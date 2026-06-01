@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "peerDependencies": {
+    "@expo/ui": "*",
     "react": "*",
     "react-native": "*",
     "react-native-reanimated": "*",
