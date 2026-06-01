@@ -1,4 +1,6 @@
 export { AnimatedEntrance } from './AnimatedEntrance';
+export { AppIcon, type AppIconProps } from './AppIcon';
+export { iconSource, type IconName } from './icons';
 export { LoginFeature } from './LoginFeature';
 export {
   LoginScreen,
