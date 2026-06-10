@@ -21,6 +21,7 @@ import {
   Screen,
   AnimatedEntrance,
   LoginScreen,
+  SettingsScreen,
   spacing,
   useSplashHidden,
 } from '@portfolio/mobile-ui';
@@ -28,15 +29,17 @@ import {
 
 ## Exports
 
-| Export                                                                                                        | Purpose                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `spacing`, `radius`, `opacity`, `duration`, `springs`, `podium`, `layout`, `staggerDelay`                     | Design tokens — the single source for spacing, radii, opacities, and animation timings. Reference these instead of raw numbers. |
-| `Screen`                                                                                                      | `flex: 1` screen container with an optional `backgroundColor`; forwards all `ViewProps`.                                        |
-| `AppIcon` / `AppIconProps`                                                                                    | Android `@expo/ui` `Icon` selected by a typed `name` (no `require()`); every other `Icon` prop passes through.                  |
-| `iconSource` / `IconName`                                                                                     | Resolve a typed icon name to its bundled Android vector drawable.                                                               |
-| `AnimatedEntrance`                                                                                            | Reanimated fade + slide-in wrapper. Pass a stable `id` so items in recycling lists don't replay (or get stuck invisible).       |
-| `LoginScreen` / `LoginFeature` (+ `AuthAction`, `AuthActionProvider`, `LoginScreenProps`, `LoginFeatureItem`) | Drop-in login screen — logo/hero, feature rows, and Google / Apple / custom auth actions.                                       |
-| `setSplashHidden` / `useSplashHidden`                                                                         | Tiny global store for "has the splash screen hidden" — set once, subscribe anywhere.                                            |
+| Export                                                                                                                                | Purpose                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spacing`, `radius`, `opacity`, `duration`, `springs`, `podium`, `layout`, `staggerDelay`                                             | Design tokens — the single source for spacing, radii, opacities, and animation timings. Reference these instead of raw numbers.                         |
+| `Screen`                                                                                                                              | `flex: 1` screen container with an optional `backgroundColor`; forwards all `ViewProps`.                                                                |
+| `AppIcon` / `AppIconProps`                                                                                                            | Android `@expo/ui` `Icon` selected by a typed `name` (no `require()`); every other `Icon` prop passes through.                                          |
+| `iconSource` / `IconName`                                                                                                             | Resolve a typed icon name to its bundled Android vector drawable.                                                                                       |
+| `AnimatedEntrance`                                                                                                                    | Reanimated fade + slide-in wrapper. Pass a stable `id` so items in recycling lists don't replay (or get stuck invisible).                               |
+| `LoginScreen` / `LoginFeature` (+ `AuthAction`, `AuthActionProvider`, `LoginScreenProps`, `LoginFeatureItem`)                         | Drop-in login screen — logo/hero, feature rows, and Google / Apple / custom auth actions.                                                               |
+| `SettingsScreen` (+ `SettingsScreenProps`, `SettingsRadioSection`, `SettingsOption`, `SettingsAccountConfig`, `SettingsScreenColors`) | Drop-in settings screen — optional account block plus any number of single-choice (radio) sections. Labels, values, handlers, and colors all via props. |
+| `SettingsAccountSection` (+ `SettingsAccountSectionProps`, `SettingsAccountColors`, `SettingsAccountProfile`)                         | Account block (title, optional profile row, sign-out + confirm dialog) used standalone or inside `SettingsScreen`.                                      |
+| `setSplashHidden` / `useSplashHidden`                                                                                                 | Tiny global store for "has the splash screen hidden" — set once, subscribe anywhere.                                                                    |
 
 ## Adding an icon
 
