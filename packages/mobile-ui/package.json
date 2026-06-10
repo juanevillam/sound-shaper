@@ -4,8 +4,12 @@
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "dependencies": {
+    "@expo/material-symbols": "^0.1.1"
+  },
   "peerDependencies": {
     "@expo/ui": "*",
+    "expo-asset": "*",
     "react": "*",
     "react-native": "*",
     "react-native-reanimated": "*",
