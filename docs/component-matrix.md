@@ -5,7 +5,7 @@ Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
-**Source of truth:** the installed `@expo/ui` **56.0.15** type exports —
+**Source of truth:** the installed `@expo/ui` **56.0.18** type exports —
 `node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
 published docs (per [`apps/expo-starter/AGENTS.md`](../apps/expo-starter/AGENTS.md),
 docs can lead the package). The Android column lists what the expo-starter
@@ -25,15 +25,15 @@ showcase actually demos today; iOS is not built yet, so the iOS column is the
 
 | Status                               | Count       | Share    |
 | ------------------------------------ | ----------- | -------- |
-| ✅ direct                            | 13          | 28%      |
-| 🟢 equivalent                        | 14          | 30%      |
+| ✅ direct                            | 14          | 29%      |
+| 🟢 equivalent                        | 15          | 31%      |
 | 🟡 partial                           | 1           | 2%       |
-| 🔴 none                              | 19          | 40%      |
-| **Portable (direct + equivalent)**   | **27 / 47** | **~57%** |
-| **Custom iOS work (partial + none)** | **20 / 47** | **~43%** |
+| 🔴 none                              | 19          | 39%      |
+| **Portable (direct + equivalent)**   | **29 / 49** | **~59%** |
+| **Custom iOS work (partial + none)** | **20 / 49** | **~41%** |
 
-About **57%** of the Android showcase maps onto a SwiftUI export with little to no
-rework. The other **~43%** is Material-specific (chips, badges, cards, FAB,
+About **59%** of the Android showcase maps onto a SwiftUI export with little to no
+rework. The other **~41%** is Material-specific (chips, badges, cards, FAB,
 snackbar, tooltips, search bars, pull-to-refresh, radio/checkbox, etc.) and needs
 a custom SwiftUI implementation.
 
@@ -45,6 +45,7 @@ a custom SwiftUI implementation.
 | Badge                       | `Badge`                     | —                    | 🔴  | Material pill badge; build with `Label` or a custom overlay shape.           |
 | Badged box                  | `BadgedBox`                 | —                    | 🔴  | Overlay-badge primitive; build with `ZStack` + badge overlay.                |
 | Basic alert dialog          | `BasicAlertDialog`          | `ConfirmationDialog` | 🟢  | `ConfirmationDialog` covers basic modal confirmation.                        |
+| Basic text field            | `BasicTextField`            | `TextField`          | ✅  | Bare, unstyled text input; iOS `TextField` is the closest primitive.         |
 | Box                         | `Box`                       | `Group`              | 🟢  | Lightweight layout/grouping container on both.                               |
 | Button                      | `Button`                    | `Button`             | ✅  | Same role/API: label + action + appearance modifiers.                        |
 | Card                        | `Card`                      | —                    | 🔴  | No iOS `Card`; `Group` + `shadow`/`cornerRadius`/`background` modifiers.     |
@@ -70,6 +71,7 @@ a custom SwiftUI implementation.
 | Material colors             | `getMaterialColors`         | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                |
 | Modal bottom sheet          | `ModalBottomSheet`          | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                  |
 | Modifiers                   | `…/modifiers`               | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                    |
+| Navigation bar              | `NavigationBar`             | `TabView`            | 🟢  | M3 bottom nav bar; iOS `TabView` fills the tab-bar role.                     |
 | Progress                    | `Progress`                  | `ProgressView`       | 🟢  | Both show progress; APIs differ.                                             |
 | Pull-to-refresh box         | `PullToRefreshBox`          | —                    | 🔴  | No iOS export; scroll view + custom refresh.                                 |
 | Radio button                | `RadioButton`               | —                    | 🔴  | No iOS radio; `Picker` or custom toggle group.                               |

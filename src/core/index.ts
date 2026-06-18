@@ -5,6 +5,11 @@ export {
   materialToAppColors,
   withAlpha,
 } from './theme/colors';
+export {
+  configureAppTheme,
+  getAppThemeConfig,
+  type AppThemeConfig,
+} from './theme/appTheme';
 export { DEFAULT_THEME, SUPPORTED_THEMES, type Theme } from './theme/themes';
 export { useAppTheme, type ResolvedScheme } from './theme/useAppTheme';
 export { useAuthStore } from './stores/auth';

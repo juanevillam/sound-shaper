@@ -49,14 +49,16 @@ export const SettingsAccountSection = ({
             <Text modifiers={[foregroundStyle(colors.onSurface)]}>
               {profile.displayName}
             </Text>
-            <Text
-              modifiers={[
-                font({ textStyle: 'footnote' }),
-                foregroundStyle(colors.onSurfaceMuted),
-              ]}
-            >
-              @{profile.username}
-            </Text>
+            {profile.username ? (
+              <Text
+                modifiers={[
+                  font({ textStyle: 'footnote' }),
+                  foregroundStyle(colors.onSurfaceMuted),
+                ]}
+              >
+                @{profile.username}
+              </Text>
+            ) : null}
           </VStack>
         </HStack>
       ) : null}

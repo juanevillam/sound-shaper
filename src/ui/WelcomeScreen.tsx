@@ -5,6 +5,7 @@ import {
   Linking,
   ScrollView,
   StyleSheet,
+  View,
   type ImageSourcePropType,
 } from 'react-native';
 
@@ -29,6 +30,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
+import { AUTHOR_CREDIT, AUTHOR_URL } from './author';
+import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
 import { Screen } from './Screen';
 import { duration, spacing } from './tokens';
@@ -65,8 +68,6 @@ export type WelcomeScreenProps = {
   appName: string;
   logo: ImageSourcePropType;
   features: WelcomeFeatureItem[];
-  creditLabel?: string;
-  creditUrl?: string;
   authActions: [AuthAction] | [AuthAction, AuthAction];
   /** App-resolved color palette. */
   colors?: {
@@ -76,9 +77,16 @@ export type WelcomeScreenProps = {
     primary?: string;
   };
   colorScheme?: 'light' | 'dark';
+  /**
+   * App brand seed forwarded to the internal `<Host>`s so the native Compose
+   * components (buttons) theme from the brand palette instead of the
+   * wallpaper-derived one. Omit to keep dynamic Material colors.
+   */
+  seedColor?: string;
 };
 
 const styles = StyleSheet.create({
+  actions: { gap: spacing.sm },
   logo: { height: LOGO_SIZE, width: LOGO_SIZE, marginBottom: spacing.lg },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
@@ -90,18 +98,17 @@ export const WelcomeScreen = ({
   appName,
   logo,
   features,
-  creditLabel,
-  creditUrl,
   authActions,
   colors,
   colorScheme,
+  seedColor,
 }: WelcomeScreenProps) => {
   const { top, bottom, left, right } = useSafeAreaInsets();
   const isSplashHidden = useSplashHidden();
 
   const openCredit = useCallback(() => {
-    if (creditUrl) Linking.openURL(creditUrl);
-  }, [creditUrl]);
+    Linking.openURL(AUTHOR_URL);
+  }, []);
 
   const someLoading = anyLoading(authActions);
 
@@ -124,7 +131,11 @@ export const WelcomeScreen = ({
           isVisible={isSplashHidden}
         >
           <Image source={logo} style={styles.logo} />
-          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
+          <Host
+            matchContents={{ vertical: true }}
+            colorScheme={colorScheme}
+            seedColor={seedColor}
+          >
             <Column
               modifiers={[fillMaxWidth()]}
               verticalArrangement={{ spacedBy: spacing.xs }}
@@ -135,15 +146,13 @@ export const WelcomeScreen = ({
               >
                 {appName}
               </Text>
-              {creditLabel ? (
-                <Text
-                  color={colors?.onSurfaceMuted}
-                  style={{ typography: 'bodyMedium' }}
-                  modifiers={creditUrl ? [clickable(openCredit)] : undefined}
-                >
-                  {creditLabel}
-                </Text>
-              ) : null}
+              <Text
+                color={colors?.onSurfaceMuted}
+                style={{ typography: 'bodyMedium' }}
+                modifiers={[clickable(openCredit)]}
+              >
+                {AUTHOR_CREDIT}
+              </Text>
 
               <Spacer modifiers={[height(spacing.xxl)]} />
 
@@ -178,13 +187,17 @@ export const WelcomeScreen = ({
                     <Column modifiers={[weight(1)]}>
                       <Text
                         color={colors?.onSurface}
-                        style={{ typography: 'titleMedium' }}
+                        style={{
+                          typography: 'titleMedium',
+                        }}
                       >
                         {feature.title}
                       </Text>
                       <Text
                         color={colors?.onSurfaceMuted}
-                        style={{ typography: 'bodyMedium' }}
+                        style={{
+                          typography: 'bodyMedium',
+                        }}
                       >
                         {feature.subtitle}
                       </Text>
@@ -202,23 +215,40 @@ export const WelcomeScreen = ({
           duration={duration.slow}
           isVisible={isSplashHidden}
         >
-          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
-            <Column
-              modifiers={[fillMaxWidth()]}
-              verticalArrangement={{ spacedBy: spacing.sm }}
-            >
-              {authActions.map(action => {
-                const label =
-                  action.isLoading && action.loadingLabel
-                    ? action.loadingLabel
-                    : action.label;
-                const isDisabled = someLoading && !action.isLoading;
-                const ButtonComponent =
-                  action.variant === 'outlined' ? OutlinedButton : Button;
+          <View style={styles.actions}>
+            {authActions.map(action => {
+              const label =
+                action.isLoading && action.loadingLabel
+                  ? action.loadingLabel
+                  : action.label;
+              const isDisabled = someLoading && !action.isLoading;
 
+              // Google's branding rules pin this button's colors, logo, and
+              // type — it brings its own Host with spec colors instead of the
+              // seeded palette.
+              if (action.provider === 'google') {
                 return (
-                  <ButtonComponent
+                  <GoogleSignInButton
                     key={action.label}
+                    label={label}
+                    scheme={colorScheme}
+                    disabled={isDisabled || Boolean(action.isLoading)}
+                    onPress={action.onPress}
+                  />
+                );
+              }
+
+              const ButtonComponent =
+                action.variant === 'outlined' ? OutlinedButton : Button;
+
+              return (
+                <Host
+                  key={action.label}
+                  matchContents={{ vertical: true }}
+                  colorScheme={colorScheme}
+                  seedColor={seedColor}
+                >
+                  <ButtonComponent
                     onClick={action.onPress}
                     enabled={!isDisabled && !action.isLoading}
                     modifiers={[fillMaxWidth()]}
@@ -235,10 +265,10 @@ export const WelcomeScreen = ({
                     ) : null}
                     <Text>{label}</Text>
                   </ButtonComponent>
-                );
-              })}
-            </Column>
-          </Host>
+                </Host>
+              );
+            })}
+          </View>
         </AnimatedEntrance>
       </ScrollView>
     </Screen>

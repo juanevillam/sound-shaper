@@ -27,13 +27,20 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
 import {
   SettingsAccountSection,
+  UsernameDialog,
   type SettingsAccountColors,
   type SettingsAccountSectionProps,
 } from './SettingsAccountSection';
+import {
+  GROUP_ROW_GAP,
+  GROUP_SIDE_PADDING,
+  groupRowShape,
+} from './settingsGroup';
 
 export type SettingsOption = { value: string; label: string };
 
@@ -47,8 +54,14 @@ export type SettingsRadioSection = {
   onSelect: (value: string) => void;
 };
 
-/** Account block config — same as the section's props minus the shared colors. */
-export type SettingsAccountConfig = Omit<SettingsAccountSectionProps, 'colors'>;
+/**
+ * Account block config — the section's props minus the shared colors
+ * and the dialog openers the screen wires up itself.
+ */
+export type SettingsAccountConfig = Omit<
+  SettingsAccountSectionProps,
+  'colors' | 'onOpenUsernameDialog' | 'onOpenSignOutConfirm'
+>;
 
 /** A read-only label/value row, e.g. a bundled package version. */
 export type SettingsInfoRow = {
@@ -82,6 +95,13 @@ export type SettingsScreenProps = {
   about?: SettingsAboutConfig;
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
+  /**
+   * App brand seed forwarded to the internal `<Host>` so the native Compose
+   * components (radio buttons, dialogs, text buttons) theme from the brand
+   * palette instead of the wallpaper-derived one. Omit to keep dynamic
+   * Material colors.
+   */
+  seedColor?: string;
 };
 
 const DIALOG_WIDTH = 312;
@@ -102,22 +122,25 @@ const PreferenceRow = memo(
     title,
     icon,
     selectedLabel,
+    shape,
     colors,
-    onPress,
+    onOpen,
   }: {
     title: string;
     icon?: IconName;
     selectedLabel?: string;
+    shape: ReturnType<typeof groupRowShape>;
     colors: SettingsScreenColors;
-    onPress: () => void;
+    /** Stable opener keyed by the row title, so the memo holds. */
+    onOpen: (title: string) => void;
   }) => (
     <ListItem
       colors={{
-        containerColor: 'transparent',
+        containerColor: colors.surfaceContainer,
         contentColor: colors.onSurface,
         supportingContentColor: colors.onSurfaceMuted,
       }}
-      modifiers={[clickable(onPress)]}
+      modifiers={[fillMaxWidth(), clip(shape), clickable(() => onOpen(title))]}
     >
       {icon ? (
         <ListItem.LeadingContent>
@@ -155,20 +178,24 @@ PreferenceRow.displayName = 'PreferenceRow';
  */
 const InfoRow = ({
   row,
+  shape,
   colors,
 }: {
   row: SettingsInfoRow;
+  shape: ReturnType<typeof groupRowShape>;
   colors: SettingsScreenColors;
 }) => (
   <ListItem
     colors={{
-      containerColor: 'transparent',
+      containerColor: colors.surfaceContainer,
       contentColor: colors.onSurface,
       supportingContentColor: colors.onSurfaceMuted,
     }}
-    modifiers={
-      row.url ? [clickable(() => Linking.openURL(row.url!))] : undefined
-    }
+    modifiers={[
+      fillMaxWidth(),
+      clip(shape),
+      ...(row.url ? [clickable(() => Linking.openURL(row.url!))] : []),
+    ]}
   >
     <ListItem.HeadlineContent>
       <Text>{row.label}</Text>
@@ -185,99 +212,83 @@ const InfoRow = ({
 );
 
 /**
- * A preference row in the Android settings idiom (`ListPreference`): leading
- * icon, setting name, and the current value as supporting text. Tapping it
- * opens a radio-group dialog; choosing an option applies it and dismisses.
+ * The single-choice radio dialog a preference row opens. Hosted by the screen
+ * in its own `<Host>` — mounting it next to the rows corrupts their modifiers
+ * (clip shapes mis-assign on unmount) and flickers sibling icons.
  */
-const RadioPreference = ({
+const RadioOptionsDialog = ({
   section,
   cancelLabel,
   colors,
+  onDismiss,
 }: {
   section: SettingsRadioSection;
   cancelLabel: string;
   colors: SettingsScreenColors;
+  onDismiss: () => void;
 }) => {
-  const [dialogVisible, setDialogVisible] = useState(false);
-
-  const selectedLabel = section.options.find(
-    option => option.value === section.selected,
-  )?.label;
-
-  const openDialog = useCallback(() => setDialogVisible(true), []);
-
   const handleSelect = (value: string) => {
-    setDialogVisible(false);
+    onDismiss();
     if (value !== section.selected) section.onSelect(value);
   };
 
   return (
-    <>
-      <PreferenceRow
-        title={section.title}
-        icon={section.icon}
-        selectedLabel={selectedLabel}
-        colors={colors}
-        onPress={openDialog}
-      />
-
-      {dialogVisible && (
-        <BasicAlertDialog onDismissRequest={() => setDialogVisible(false)}>
-          <Surface
-            tonalElevation={6}
-            modifiers={[width(DIALOG_WIDTH), clip(Shapes.RoundedCorner(28))]}
+    <BasicAlertDialog onDismissRequest={onDismiss}>
+      <Surface
+        tonalElevation={6}
+        modifiers={[width(DIALOG_WIDTH), clip(Shapes.RoundedCorner(28))]}
+      >
+        <Column modifiers={[fillMaxWidth()]}>
+          <Text
+            color={colors.onSurface}
+            style={{
+              typography: 'headlineSmall',
+            }}
+            modifiers={[padding(24, 24, 24, 16)]}
           >
-            <Column modifiers={[fillMaxWidth()]}>
-              <Text
-                color={colors.onSurface}
-                style={{ typography: 'headlineSmall' }}
-                modifiers={[padding(24, 24, 24, 16)]}
-              >
-                {section.title}
-              </Text>
-              <Column modifiers={[fillMaxWidth(), selectableGroup()]}>
-                {section.options.map(option => {
-                  const isSelected = option.value === section.selected;
+            {section.title}
+          </Text>
+          <Column modifiers={[fillMaxWidth(), selectableGroup()]}>
+            {section.options.map(option => {
+              const isSelected = option.value === section.selected;
 
-                  return (
-                    <Row
-                      key={option.value}
-                      verticalAlignment="center"
-                      modifiers={[
-                        fillMaxWidth(),
-                        height(48),
-                        selectable(
-                          isSelected,
-                          () => handleSelect(option.value),
-                          'radioButton',
-                        ),
-                        padding(24, 0, 24, 0),
-                      ]}
-                    >
-                      <RadioButton selected={isSelected} />
-                      <Text
-                        color={colors.onSurface}
-                        modifiers={[padding(16, 0, 0, 0)]}
-                      >
-                        {option.label}
-                      </Text>
-                    </Row>
-                  );
-                })}
-              </Column>
-              <Row
-                horizontalArrangement="end"
-                modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
-              >
-                <TextButton onClick={() => setDialogVisible(false)}>
-                  <Text>{cancelLabel}</Text>
-                </TextButton>
-              </Row>
-            </Column>
-          </Surface>
-        </BasicAlertDialog>
-      )}
-    </>
+              return (
+                <Row
+                  key={option.value}
+                  verticalAlignment="center"
+                  modifiers={[
+                    fillMaxWidth(),
+                    height(48),
+                    selectable(
+                      isSelected,
+                      () => handleSelect(option.value),
+                      'radioButton',
+                    ),
+                    padding(24, 0, 24, 0),
+                  ]}
+                >
+                  <RadioButton selected={isSelected} />
+                  <Text
+                    color={colors.onSurface}
+                    modifiers={[padding(16, 0, 0, 0)]}
+                  >
+                    {option.label}
+                  </Text>
+                </Row>
+              );
+            })}
+          </Column>
+          <Row
+            horizontalArrangement="end"
+            modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
+          >
+            <TextButton onClick={onDismiss}>
+              <Text>{cancelLabel}</Text>
+            </TextButton>
+          </Row>
+        </Column>
+      </Surface>
+    </BasicAlertDialog>
   );
 };
 
@@ -297,61 +308,158 @@ export const SettingsScreen = ({
   about,
   colors,
   colorScheme,
-}: SettingsScreenProps) => (
-  <Screen backgroundColor={colors.background}>
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Host
-          matchContents={{ vertical: true }}
-          colorScheme={colorScheme}
-          style={styles.host}
-        >
-          <Column
-            modifiers={[fillMaxWidth()]}
-            verticalArrangement={{ spacedBy: 8 }}
+  seedColor,
+}: SettingsScreenProps) => {
+  const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
+  const [accountDialog, setAccountDialog] = useState<
+    'username' | 'signOut' | null
+  >(null);
+
+  const openPreference = useCallback(
+    (title: string) => setOpenSectionTitle(title),
+    [],
+  );
+  const closePreference = useCallback(() => setOpenSectionTitle(null), []);
+  const openUsernameDialog = useCallback(() => setAccountDialog('username'), []);
+  const openSignOutConfirm = useCallback(() => setAccountDialog('signOut'), []);
+  const closeAccountDialog = useCallback(() => setAccountDialog(null), []);
+
+  const openSection = sections.find(
+    section => section.title === openSectionTitle,
+  );
+
+  return (
+    <Screen backgroundColor={colors.background}>
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <Host
+            matchContents={{ vertical: true }}
+            colorScheme={colorScheme}
+            seedColor={seedColor}
+            style={styles.host}
           >
-            {sectionsTitle ? (
-              <Text
-                color={colors.primary}
-                style={{ typography: 'labelLarge' }}
-                modifiers={[padding(16, 16, 16, 8)]}
+            <Column
+              modifiers={[fillMaxWidth()]}
+              verticalArrangement={{ spacedBy: 8 }}
+            >
+              {sectionsTitle ? (
+                <Text
+                  color={colors.primary}
+                  style={{ typography: 'labelLarge' }}
+                  modifiers={[padding(16, 16, 16, 8)]}
+                >
+                  {sectionsTitle}
+                </Text>
+              ) : null}
+
+              <Column
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+                ]}
+                verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
               >
-                {sectionsTitle}
-              </Text>
-            ) : null}
-
-            {sections.map(section => (
-              <RadioPreference
-                key={section.title}
-                section={section}
-                cancelLabel={cancelLabel}
-                colors={colors}
-              />
-            ))}
-
-            {account ? (
-              <SettingsAccountSection {...account} colors={colors} />
-            ) : null}
-
-            {about ? (
-              <>
-                {about.title ? (
-                  <Text
-                    color={colors.primary}
-                    style={{ typography: 'labelLarge' }}
-                    modifiers={[padding(16, 16, 16, 8)]}
-                  >
-                    {about.title}
-                  </Text>
-                ) : null}
-                {about.rows.map(row => (
-                  <InfoRow key={row.label} row={row} colors={colors} />
+                {sections.map((section, index) => (
+                  <PreferenceRow
+                    key={section.title}
+                    title={section.title}
+                    icon={section.icon}
+                    selectedLabel={
+                      section.options.find(
+                        option => option.value === section.selected,
+                      )?.label
+                    }
+                    shape={groupRowShape(index, sections.length)}
+                    colors={colors}
+                    onOpen={openPreference}
+                  />
                 ))}
-              </>
-            ) : null}
-          </Column>
-        </Host>
-      </ScrollView>
-    </SafeAreaView>
-  </Screen>
-);
+              </Column>
+
+              {account ? (
+                <SettingsAccountSection
+                  {...account}
+                  colors={colors}
+                  onOpenUsernameDialog={
+                    account.usernameEditor ? openUsernameDialog : undefined
+                  }
+                  onOpenSignOutConfirm={openSignOutConfirm}
+                />
+              ) : null}
+
+              {about ? (
+                <>
+                  {about.title ? (
+                    <Text
+                      color={colors.primary}
+                      style={{
+                        typography: 'labelLarge',
+                      }}
+                      modifiers={[padding(16, 16, 16, 8)]}
+                    >
+                      {about.title}
+                    </Text>
+                  ) : null}
+                  <Column
+                    modifiers={[
+                      fillMaxWidth(),
+                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+                    ]}
+                    verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+                  >
+                    {about.rows.map((row, index) => (
+                      <InfoRow
+                        key={row.label}
+                        row={row}
+                        shape={groupRowShape(index, about.rows.length)}
+                        colors={colors}
+                      />
+                    ))}
+                  </Column>
+                </>
+              ) : null}
+            </Column>
+          </Host>
+        </ScrollView>
+
+        {/* Dialogs live in their own Hosts: mounting them inside the scroll
+            Host corrupts the sibling rows' clip shapes on unmount and
+            flickers their icons. */}
+        {openSection ? (
+          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+            <RadioOptionsDialog
+              section={openSection}
+              cancelLabel={cancelLabel}
+              colors={colors}
+              onDismiss={closePreference}
+            />
+          </Host>
+        ) : null}
+
+        {accountDialog === 'username' && account?.usernameEditor ? (
+          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+            <UsernameDialog
+              editor={account.usernameEditor}
+              colors={colors}
+              onDismiss={closeAccountDialog}
+            />
+          </Host>
+        ) : null}
+
+        {accountDialog === 'signOut' && account ? (
+          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+            <DestructiveConfirmDialog
+              dialog={account.signOutDialog}
+              colors={colors}
+              onConfirm={() => {
+                closeAccountDialog();
+                account.onSignOut();
+              }}
+              onDismiss={closeAccountDialog}
+            />
+          </Host>
+        ) : null}
+      </SafeAreaView>
+    </Screen>
+  );
+};

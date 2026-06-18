@@ -10,9 +10,11 @@
   "peerDependencies": {
     "@expo/ui": "*",
     "expo-asset": "*",
+    "expo-image": "*",
     "react": "*",
     "react-native": "*",
     "react-native-reanimated": "*",
-    "react-native-safe-area-context": "*"
+    "react-native-safe-area-context": "*",
+    "react-native-svg": "*"
   }
 }
