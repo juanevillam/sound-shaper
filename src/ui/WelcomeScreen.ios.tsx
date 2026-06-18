@@ -5,6 +5,7 @@ import {
   Linking,
   ScrollView,
   StyleSheet,
+  View,
   type ImageSourcePropType,
 } from 'react-native';
 
@@ -33,6 +34,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
+import { AUTHOR_CREDIT, AUTHOR_URL } from './author';
+import { GoogleSignInButton } from './GoogleSignInButton';
 import { Screen } from './Screen';
 import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
@@ -48,6 +51,7 @@ const FOOTER_ENTRY_DELAY = 120;
 const FILL_WIDTH = 10_000;
 
 const styles = StyleSheet.create({
+  actions: { gap: spacing.sm },
   logo: {
     height: LOGO_SIZE,
     width: LOGO_SIZE,
@@ -72,8 +76,6 @@ export const WelcomeScreen = ({
   appName,
   logo,
   features,
-  creditLabel,
-  creditUrl,
   authActions,
   colors,
   colorScheme,
@@ -82,8 +84,8 @@ export const WelcomeScreen = ({
   const isSplashHidden = useSplashHidden();
 
   const openCredit = useCallback(() => {
-    if (creditUrl) Linking.openURL(creditUrl);
-  }, [creditUrl]);
+    Linking.openURL(AUTHOR_URL);
+  }, []);
 
   const someLoading = anyLoading(authActions);
 
@@ -119,20 +121,18 @@ export const WelcomeScreen = ({
               >
                 {appName}
               </Text>
-              {creditLabel ? (
-                <Text
-                  modifiers={[
-                    font({ textStyle: 'subheadline' }),
-                    multilineTextAlignment('center'),
-                    ...(colors?.onSurfaceMuted
-                      ? [foregroundStyle(colors.onSurfaceMuted)]
-                      : []),
-                    ...(creditUrl ? [onTapGesture(openCredit)] : []),
-                  ]}
-                >
-                  {creditLabel}
-                </Text>
-              ) : null}
+              <Text
+                modifiers={[
+                  font({ textStyle: 'subheadline' }),
+                  multilineTextAlignment('center'),
+                  ...(colors?.onSurfaceMuted
+                    ? [foregroundStyle(colors.onSurfaceMuted)]
+                    : []),
+                  onTapGesture(openCredit),
+                ]}
+              >
+                {AUTHOR_CREDIT}
+              </Text>
 
               <Spacer minLength={spacing.xxl} />
 
@@ -199,19 +199,37 @@ export const WelcomeScreen = ({
           duration={duration.slow}
           isVisible={isSplashHidden}
         >
-          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
-            <VStack spacing={spacing.sm}>
-              {authActions.map(action => {
-                const label =
-                  action.isLoading && action.loadingLabel
-                    ? action.loadingLabel
-                    : action.label;
-                const isOutlined = action.variant === 'outlined';
-                const isDisabled = someLoading && !action.isLoading;
+          <View style={styles.actions}>
+            {authActions.map(action => {
+              const label =
+                action.isLoading && action.loadingLabel
+                  ? action.loadingLabel
+                  : action.label;
+              const isOutlined = action.variant === 'outlined';
+              const isDisabled = someLoading && !action.isLoading;
 
+              // Google's branding rules pin this button's colors, logo, and
+              // type, so it renders RN-side with spec colors instead of the
+              // system tint.
+              if (action.provider === 'google') {
                 return (
-                  <Button
+                  <GoogleSignInButton
                     key={action.label}
+                    label={label}
+                    scheme={colorScheme}
+                    disabled={isDisabled || Boolean(action.isLoading)}
+                    onPress={action.onPress}
+                  />
+                );
+              }
+
+              return (
+                <Host
+                  key={action.label}
+                  matchContents={{ vertical: true }}
+                  colorScheme={colorScheme}
+                >
+                  <Button
                     onPress={action.onPress}
                     modifiers={[
                       buttonStyle(
@@ -238,10 +256,10 @@ export const WelcomeScreen = ({
                       <Text>{label}</Text>
                     </HStack>
                   </Button>
-                );
-              })}
-            </VStack>
-          </Host>
+                </Host>
+              );
+            })}
+          </View>
         </AnimatedEntrance>
       </ScrollView>
     </Screen>
