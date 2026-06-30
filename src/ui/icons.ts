@@ -14,6 +14,7 @@ import Favorite from '@expo/material-symbols/favorite.xml';
 import Flight from '@expo/material-symbols/flight.xml';
 import Groups from '@expo/material-symbols/groups.xml';
 import Home from '@expo/material-symbols/home.xml';
+import Image from '@expo/material-symbols/image.xml';
 import Info from '@expo/material-symbols/info.xml';
 import Language from '@expo/material-symbols/language.xml';
 import Lock from '@expo/material-symbols/lock.xml';
@@ -61,6 +62,7 @@ const icons = {
   groups: Groups,
   home: Home,
   'home-filled': require('./assets/icons/home-filled.xml'),
+  image: Image,
   info: Info,
   language: Language,
   lock: Lock,

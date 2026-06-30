@@ -16,7 +16,6 @@ import {
   TextButton,
   useNativeState,
 } from '@expo/ui/jetpack-compose';
-import { Image } from 'expo-image';
 import {
   background,
   clickable,
@@ -27,9 +26,10 @@ import {
   size,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
+import { Image } from 'expo-image';
 
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
-import { iconSource } from './icons';
+import { iconSource, type IconName } from './icons';
 import {
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
@@ -104,6 +104,21 @@ export type SettingsUsernameEditor = {
   onSubmit: (username: string) => Promise<void>;
 };
 
+/**
+ * A row that navigates to an in-app sub-screen — leading icon + label, tappable
+ * (no trailing chevron: navigation is implied by the tap, matching the screen's
+ * other rows). Rendered inside the account group (e.g. a "Trash" entry); the
+ * host owns the navigation in `onPress`.
+ */
+export type SettingsNavRow = {
+  /** Stable id — the React key AND the memo's stable opener key. */
+  id: string;
+  label: string;
+  /** Optional leading icon, e.g. 'delete' for Trash. */
+  icon?: IconName;
+  onPress: () => void;
+};
+
 export type SettingsAccountSectionProps = {
   /** Section heading, e.g. "Account". */
   title: string;
@@ -111,6 +126,11 @@ export type SettingsAccountSectionProps = {
   profile?: SettingsAccountProfile;
   /** When provided, renders an editable username row under the profile. */
   usernameEditor?: SettingsUsernameEditor;
+  /**
+   * Optional navigation rows rendered between the profile and the sign-out row,
+   * in the SAME grouped card (e.g. a "Trash" entry). The host owns the route.
+   */
+  navRows?: SettingsNavRow[];
   signOutLabel: string;
   signOutDialog: {
     title: string;
@@ -344,6 +364,52 @@ const SignOutRow = memo(
 
 SignOutRow.displayName = 'SignOutRow';
 
+/**
+ * A navigation row inside the account group — leading icon (in the shared 40dp
+ * slot so its label aligns with the profile/sign-out rows) + label, whole row
+ * clickable. No trailing chevron: this screen signals navigation by tappability
+ * (the About "version" row navigates to a URL with no indicator either), so a
+ * lone chevron would break that. Memoized with a stable id-keyed opener for the
+ * same reason as the other rows: re-sending props to the native `Icon` makes it
+ * re-resolve its drawable async (a visible flicker).
+ */
+const NavRow = memo(
+  ({
+    row,
+    shape,
+    colors,
+    onOpen,
+  }: {
+    row: SettingsNavRow;
+    shape: GroupShape;
+    colors: SettingsAccountColors;
+    /** Stable opener keyed by row id, so the memo holds. */
+    onOpen: (id: string) => void;
+  }) => (
+    <ListItem
+      colors={listItemColors(colors)}
+      modifiers={[fillMaxWidth(), clip(shape), clickable(() => onOpen(row.id))]}
+    >
+      {row.icon ? (
+        <ListItem.LeadingContent>
+          <LeadingSlot>
+            <Icon
+              source={iconSource(row.icon)}
+              size={24}
+              tint={colors.onSurfaceMuted}
+            />
+          </LeadingSlot>
+        </ListItem.LeadingContent>
+      ) : null}
+      <ListItem.HeadlineContent>
+        <Text color={colors.onSurface}>{row.label}</Text>
+      </ListItem.HeadlineContent>
+    </ListItem>
+  ),
+);
+
+NavRow.displayName = 'NavRow';
+
 const styles = StyleSheet.create({
   // Fills the 40dp leading slot; the parent Box clips it to a circle.
   avatar: { height: LEADING_SLOT_SIZE, width: LEADING_SLOT_SIZE },
@@ -362,6 +428,7 @@ export const SettingsAccountSection = ({
   title,
   profile,
   usernameEditor,
+  navRows,
   signOutLabel,
   signOutDialog,
   onSignOut,
@@ -380,6 +447,12 @@ export const SettingsAccountSection = ({
 
   const openConfirm = onOpenSignOutConfirm ?? openConfirmFallback;
   const openUsernameDialog = onOpenUsernameDialog ?? openUsernameDialogFallback;
+  // Stable opener keyed by row id so `NavRow`'s memo holds across this section's
+  // dialog-state toggles (re-rendering would re-resolve its native Icons).
+  const handleNavPress = useCallback(
+    (id: string) => navRows?.find(row => row.id === id)?.onPress(),
+    [navRows],
+  );
 
   const handleConfirm = () => {
     setConfirmVisible(false);
@@ -388,7 +461,7 @@ export const SettingsAccountSection = ({
 
   // Row shapes depend on how many of the optional rows render, so the
   // group's first/last corners always land on the visible rows.
-  const rowCount = 1 + (profile ? 1 : 0);
+  const rowCount = 1 + (profile ? 1 : 0) + (navRows?.length ?? 0);
   let rowIndex = 0;
 
   return (
@@ -421,6 +494,18 @@ export const SettingsAccountSection = ({
             onPress={usernameEditor ? openUsernameDialog : undefined}
           />
         ) : null}
+
+        {/* Navigation rows (e.g. Trash) sit between the identity row and the
+            destructive sign-out, which stays last. */}
+        {navRows?.map(row => (
+          <NavRow
+            key={row.id}
+            row={row}
+            shape={groupRowShape(rowIndex++, rowCount)}
+            colors={colors}
+            onOpen={handleNavPress}
+          />
+        ))}
 
         <SignOutRow
           label={signOutLabel}
