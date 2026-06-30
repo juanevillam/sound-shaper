@@ -25,6 +25,7 @@ export {
   type SettingsAccountColors,
   type SettingsAccountProfile,
   type SettingsAccountSectionProps,
+  type SettingsNavRow,
   type SettingsUsernameEditor,
 } from './SettingsAccountSection';
 export {

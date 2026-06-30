@@ -24,6 +24,7 @@ import { type SettingsAccountSectionProps } from './SettingsAccountSection';
 export const SettingsAccountSection = ({
   title,
   profile,
+  navRows,
   signOutLabel,
   signOutDialog,
   onSignOut,
@@ -62,6 +63,13 @@ export const SettingsAccountSection = ({
           </VStack>
         </HStack>
       ) : null}
+
+      {/* Navigation rows (e.g. Trash) between the identity row and sign-out.
+          Plain tappable rows (Apple push-row idiom); the chevron/styling can be
+          refined when iOS is actually built. */}
+      {navRows?.map(row => (
+        <Button key={row.id} label={row.label} onPress={row.onPress} />
+      ))}
 
       <ConfirmationDialog
         title={signOutDialog.title}

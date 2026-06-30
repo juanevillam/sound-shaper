@@ -36,6 +36,7 @@ const SF_SYMBOLS = {
   groups: 'person.2',
   home: 'house',
   'home-filled': 'house.fill',
+  image: 'photo',
   info: 'info.circle',
   language: 'globe',
   lock: 'lock',
