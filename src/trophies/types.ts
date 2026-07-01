@@ -1,7 +1,7 @@
 // PlayStation-style tiers, in ascending prestige. `platinum` is special: it
 // has no objective of its own and is auto-awarded once every other trophy is
 // earned (see the engine's `award`).
-export type TrophyTier = 'copper' | 'silver' | 'gold' | 'platinum';
+export type TrophyTier = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 /**
  * The static, content-free definition of one trophy, supplied by the consuming
@@ -22,9 +22,8 @@ export type TrophyConfig = {
  */
 export type TrophyCopy = {
   title: string;
+  /** The objective, shown identically whether locked or unlocked. */
   description: string;
-  /** Shown on a locked, non-secret trophy to nudge the user toward earning it. */
-  hint?: string;
 };
 
 /** The award record persisted per trophy: when it was earned (epoch ms). */
@@ -34,7 +33,6 @@ export type AwardedTrophy = { achievedAt: number };
 export type ResolvedTrophy = TrophyConfig & {
   title: string;
   description: string;
-  hint?: string;
   unlocked: boolean;
   /** Epoch ms when earned, or null while still locked. */
   achievedAt: number | null;

@@ -22,6 +22,8 @@ export type TrophiesScreenColors = {
 export type TrophiesScreenStrings = {
   /** Pre-formatted progress line, e.g. "3 of 7 earned". */
   progress: string;
+  /** Pre-formatted completion percent, e.g. "43%" — sits opposite the progress line. */
+  percent: string;
   /** Prefix before the date on an earned trophy, e.g. "Earned". */
   achievedLabel: string;
   tierNames: Record<TrophyTier, string>;
@@ -33,8 +35,6 @@ export type TrophiesScreenProps = {
   earned: number;
   total: number;
   colors: TrophiesScreenColors;
-  /** Active color scheme — picks the legible tier-color variant. */
-  scheme: 'light' | 'dark';
   strings: TrophiesScreenStrings;
   /** Locale-aware date formatter for the achieved date. */
   formatDate: (achievedAt: number) => string;
@@ -64,7 +64,6 @@ const TrophyRow = ({
   index,
   count,
   colors,
-  scheme,
   strings,
   formatDate,
   onPress,
@@ -73,7 +72,6 @@ const TrophyRow = ({
   index: number;
   count: number;
   colors: TrophiesScreenColors;
-  scheme: 'light' | 'dark';
   strings: TrophiesScreenStrings;
   formatDate: (achievedAt: number) => string;
   onPress?: () => void;
@@ -82,16 +80,16 @@ const TrophyRow = ({
 
   // One supporting line. Tier rides along as a plain muted word (PlayStation
   // distinguishes tiers by label; the icon carries the color): earned shows the
-  // date, locked shows the objective.
+  // date, locked shows the objective (the same description shown when earned).
   const supporting = trophy.unlocked
     ? `${tierName} · ${strings.achievedLabel} ${formatDate(trophy.achievedAt ?? 0)}`
-    : `${tierName} · ${trophy.hint ?? trophy.description}`;
+    : `${tierName} · ${trophy.description}`;
 
   const textColor = trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted;
   // Earned trophies wear their tier's color; locked ones stay a dim grey
   // silhouette, so the color is part of the reward.
   const iconColor = trophy.unlocked
-    ? tierColor(trophy.tier, scheme)
+    ? tierColor(trophy.tier)
     : colors.onSurfaceMuted;
 
   // The rounded, clipping background is an OUTER View; the Pressable lives
@@ -149,7 +147,6 @@ export const TrophiesScreen = ({
   earned,
   total,
   colors,
-  scheme,
   strings,
   formatDate,
   onTrophyPress,
@@ -162,9 +159,18 @@ export const TrophiesScreen = ({
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
-        <Text style={[styles.progress, { color: colors.onSurface }]}>
-          {strings.progress}
-        </Text>
+        <View style={styles.summaryRow}>
+          <Text
+            numberOfLines={1}
+            style={[styles.progress, { color: colors.onSurface }]}
+          >
+            {strings.progress}
+          </Text>
+          {/* The completion %, tinted to match the progress bar it sits above. */}
+          <Text style={[styles.percent, { color: colors.primary }]}>
+            {strings.percent}
+          </Text>
+        </View>
         <View style={[styles.track, { backgroundColor: colors.track }]}>
           <View
             style={[
@@ -183,7 +189,6 @@ export const TrophiesScreen = ({
             index={index}
             count={trophies.length}
             colors={colors}
-            scheme={scheme}
             strings={strings}
             formatDate={formatDate}
             onPress={onTrophyPress ? () => onTrophyPress(trophy.id) : undefined}
@@ -198,7 +203,15 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
   // Roomier gap below the summary before the trophy card starts.
   header: { gap: 12, paddingBottom: 28, paddingHorizontal: 4, paddingTop: 12 },
-  progress: { fontSize: 22, fontWeight: '600', lineHeight: 28 },
+  // Count on the left, completion % on the right, sharing the line above the bar.
+  summaryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  progress: { flexShrink: 1, fontSize: 22, fontWeight: '600', lineHeight: 28 },
+  percent: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
   track: { borderRadius: 999, height: 4, overflow: 'hidden', width: '100%' },
   fill: { borderRadius: 999, height: '100%' },
   // Outer wrapper owns the rounded corners + clip so the Pressable's ripple

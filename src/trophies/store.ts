@@ -41,11 +41,6 @@ type TrophyState = {
    * lost.
    */
   award: (id: string) => void;
-  /**
-   * Enqueue a trophy's popup WITHOUT earning it — a pure preview (no award, no
-   * persist, no state change). For "see how the banners look" tooling.
-   */
-  preview: (id: string) => void;
   /** Drop the head of the popup queue (the overlay calls this when one finishes). */
   dequeue: () => void;
   /** Clear all state on sign-out, so the next user starts clean. */
@@ -149,12 +144,6 @@ export const useTrophyStore = create<TrophyState>()((set, get) => {
 
     award,
 
-    preview: (id: string) => {
-      const config = get().byId[id];
-      if (config)
-        set(state => ({ queue: [...state.queue, { id, tier: config.tier }] }));
-    },
-
     dequeue: () => set(state => ({ queue: state.queue.slice(1) })),
 
     reset: () =>
@@ -172,10 +161,6 @@ export const useTrophyStore = create<TrophyState>()((set, get) => {
 
 /** Imperative award, for call sites that aren't React components (services). */
 export const awardTrophy = (id: string) => useTrophyStore.getState().award(id);
-
-/** Imperative preview — pop a trophy's banner without earning it. */
-export const previewTrophy = (id: string) =>
-  useTrophyStore.getState().preview(id);
 
 /** Imperative configure (e.g. from an auth-sync hook). */
 export const configureTrophies = (

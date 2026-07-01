@@ -6,7 +6,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
-  interpolate,
   runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
@@ -14,7 +13,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -31,7 +29,7 @@ import Svg, {
 import { useTrophyStore } from './store';
 import { tierColor } from './tierColors';
 import { TrophyIcon, TROPHY_PATH } from './TrophyIcon';
-import { type QueuedTrophy, type TrophyCopy, type TrophyTier } from './types';
+import { type QueuedTrophy, type TrophyCopy } from './types';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
@@ -42,24 +40,19 @@ export type TrophyOverlayColors = {
   surface: string;
   onSurface: string;
   onSurfaceMuted: string;
-  /** The one accent in the feature — the platinum banner's glow + rim. */
+  /** The one accent in the feature — the platinum banner's glow. */
   primary: string;
 };
 
 export type TrophyOverlayStrings = {
-  /** Eyebrow above the trophy title, e.g. "Trophy unlocked". */
+  /** Eyebrow above the trophy title, shown for every tier, e.g. "Trophy unlocked". */
   unlockedLabel: string;
-  /** Special eyebrow for the platinum pop; falls back to `unlockedLabel`. */
-  platinumUnlockedLabel?: string;
-  tierNames: Record<TrophyTier, string>;
 };
 
 export type TrophyOverlayProps = {
   /** Localized copy keyed by trophy id (same map the screen uses). */
   copy: Record<string, TrophyCopy>;
   colors: TrophyOverlayColors;
-  /** Active color scheme — picks the legible tier-color variant for the icon. */
-  scheme: 'light' | 'dark';
   strings: TrophyOverlayStrings;
   /** Tap the banner — e.g. navigate to the trophies screen. */
   onPress?: (id: string) => void;
@@ -74,7 +67,8 @@ const HIDDEN_OFFSET = -200;
 // Reanimated fall back to its own stiffness/mass and overshoot wildly.
 const SETTLE_SPRING = { stiffness: 180, mass: 1, damping: 19 };
 const SHOW_MS = 4200;
-// Platinum lingers a beat longer so its light-sweep gets ~two clean passes.
+// Platinum lingers a beat longer so its 3 shine passes (delay + 3×SWEEP_MS ≈ 5.06s)
+// finish with a small tail before it retracts.
 const PLATINUM_SHOW_MS = 5400;
 // Upward swipe-to-dismiss thresholds (mirror the snackbar's downward ones).
 const SWIPE_ACTIVATION_OFFSET = 8;
@@ -88,23 +82,33 @@ const ICON_SIZE = 40;
 const BANNER_BLEED = 24; // streak overshoots top/bottom so the skew never clips
 const STREAK_FRAC = 0.46; // streak width as a fraction of the banner (wide)
 const ICON_GLINT_W = 14; // glint window width, in the icon's 24-grid units
-const SWEEP_MS = 1500; // one eased pass…
-const SWEEP_HOLD_MS = 1700; // …then dead air, so it reads as a glint, not noise
+// The icon sits at the banner's LEFT, so the body streak's bright core crosses it
+// EARLY in each pass (≈ a quarter through), not at the icon's own center. Flash
+// the glint only across that slice — synced to the banner light actually being
+// over the icon — and keep the glyph dark the rest of the pass. So the trophy
+// catches the SAME light as the banner (one coherent gleam, not an independent
+// stripe), and each pass's wrap lands off-glyph — no visible reset on the small
+// glyph, which read as the glint "getting disrupted and starting again".
+const ICON_GLINT_START = 0.1; // sweep phase the glint enters the glyph
+const ICON_GLINT_SPAN = 0.28; // sweep fraction it takes to cross (peak ≈ 0.24)
+const SWEEP_MS = 1600; // one shine pass — the SAME for every tier (standardized)
 const SWEEP_DELAY_MS = 260; // ≈ the settle, so the light crosses an ARRIVED banner
+// Platinum is special: it plays the shared shine exactly this many times (others
+// play it once). A counted repeat, so there's no partial extra pass.
+const PLATINUM_SWEEPS = 3;
 
 /**
  * Top-anchored trophy banner with a queue. It drops in from above the status
  * bar (NOT up from the bottom like the snackbar), holds, then retracts —
  * showing queued unlocks one after another. Every tier shares the identical
- * shell; PLATINUM alone layers the flair: a soft specular light sweeps across
- * the banner, the trophy glyph catches the same light (clipped to its
- * silhouette), a primary rim briefly ignites as the streak passes, and the icon
- * gives one entrance pop. Mount it once, high in the tree (above all screens).
+ * shell; PLATINUM alone layers the flair: the same specular light sweeps across
+ * the banner three times (others once) and the trophy glyph catches the same
+ * light (clipped to its silhouette), plus the icon gives one entrance pop. Mount
+ * it once, high in the tree (above all screens).
  */
 export const TrophyOverlay = ({
   copy,
   colors,
-  scheme,
   strings,
   onPress,
   onShow,
@@ -203,7 +207,7 @@ export const TrophyOverlay = ({
 
     // Entrance flair for EVERY tier: the icon lands with a little spring pop and
     // one specular shine sweeps across the banner. Platinum is the most alive —
-    // its shine KEEPS sweeping (and it alone adds the icon glint + rim + glow).
+    // its shine repeats (3×) and it alone adds the icon glint + glow.
     if (reduceMotion) {
       iconScale.value = 1;
       // Platinum holds a static centered shine; the other tiers show none.
@@ -215,19 +219,18 @@ export const TrophyOverlay = ({
         withSpring(1, { stiffness: 320, mass: 0.9, damping: 13 }),
       );
       if (platinum) {
-        // Eased pass, hold off-screen, reset (invisible wrap), forever.
+        // The SAME shine as every other tier, just played PLATINUM_SWEEPS times
+        // back-to-back (others play it once). A COUNTED repeat — exactly 3 passes,
+        // never a partial 4th. Each rep wraps 1→0 fully off-screen (BANNER_BLEED),
+        // so the passes chain cleanly with no dead-air hold.
         sweep.value = withDelay(
           SWEEP_DELAY_MS,
           withRepeat(
-            withSequence(
-              withTiming(1, {
-                duration: SWEEP_MS,
-                easing: Easing.inOut(Easing.cubic),
-              }),
-              withTiming(1, { duration: SWEEP_HOLD_MS }),
-              withTiming(0, { duration: 0 }),
-            ),
-            -1,
+            withTiming(1, {
+              duration: SWEEP_MS,
+              easing: Easing.inOut(Easing.cubic),
+            }),
+            PLATINUM_SWEEPS,
             false,
           ),
         );
@@ -298,19 +301,14 @@ export const TrophyOverlay = ({
     return { x: startX + sweep.value * (endX - startX), width };
   });
 
-  // Primary rim along the top edge, lit only as the streak crosses center.
-  const rimProps = useAnimatedProps(() => ({
-    fillOpacity: interpolate(
-      sweep.value,
-      [0, 0.3, 0.5, 0.7, 1],
-      [0, 0, 0.5, 0, 0],
-    ),
-  }));
-
-  // Icon glint: slide the gradient window across the 24-grid, parked fully off
-  // the glyph at both ends so the loop wrap never flashes.
+  // Icon glint: slide the gradient window across the 24-grid, but only during the
+  // early slice of each pass when the banner streak is over the (left-anchored)
+  // icon — remap the shared sweep onto [START, START+SPAN]. Outside it the window
+  // sits fully off the glyph (transparent), so the trophy gleams once, in step
+  // with the body sweep, and the per-pass wrap never flashes on the glyph.
   const iconGlintProps = useAnimatedProps(() => {
-    const x = -ICON_GLINT_W + sweep.value * (24 + ICON_GLINT_W);
+    const u = (sweep.value - ICON_GLINT_START) / ICON_GLINT_SPAN;
+    const x = -ICON_GLINT_W + u * (24 + ICON_GLINT_W);
     return { x1: x, y1: 0, x2: x + ICON_GLINT_W, y2: 24 };
   });
 
@@ -319,12 +317,11 @@ export const TrophyOverlay = ({
   const isPlatinum = current.tier === 'platinum';
   // The popped trophy wears its tier color (matching the trophies screen), not a
   // flat white — that's the celebratory cue.
-  const iconColor = tierColor(current.tier, scheme);
+  const iconColor = tierColor(current.tier);
   const text = copy[current.id];
-  const eyebrow =
-    isPlatinum && strings.platinumUnlockedLabel
-      ? strings.platinumUnlockedLabel
-      : strings.unlockedLabel;
+  // Same eyebrow for every tier — the tier line below the title already names the
+  // tier (so a platinum-specific "Platinum unlocked" would just repeat "Platinum").
+  const eyebrow = strings.unlockedLabel;
 
   return (
     <SafeAreaView edges={['top']} pointerEvents="box-none" style={styles.host}>
@@ -414,17 +411,18 @@ export const TrophyOverlay = ({
               >
                 {text?.title ?? current.id}
               </Text>
+              {/* What you did to earn it — more meaningful in the pop than the
+                  tier word (the icon color already signals the tier). */}
               <Text
-                numberOfLines={1}
-                style={[styles.tier, { color: colors.onSurfaceMuted }]}
+                numberOfLines={2}
+                style={[styles.desc, { color: colors.onSurfaceMuted }]}
               >
-                {strings.tierNames[current.tier]}
+                {text?.description}
               </Text>
             </Animated.View>
           </Pressable>
 
-          {/* Specular shine sweep — EVERY tier (one pass; platinum loops it).
-              The primary rim that ignites with the streak is platinum-only. */}
+          {/* Specular shine sweep — EVERY tier (one pass; platinum plays it 3×). */}
           {bannerWidth > 0 ? (
             <Svg
               pointerEvents="none"
@@ -448,16 +446,6 @@ export const TrophyOverlay = ({
                 fill="url(#specular)"
                 transform="skewX(-18)"
               />
-              {isPlatinum ? (
-                <AnimatedRect
-                  animatedProps={rimProps}
-                  x={0}
-                  y={0}
-                  width={bannerWidth}
-                  height={1.5}
-                  fill={colors.primary}
-                />
-              ) : null}
             </Svg>
           ) : null}
         </Animated.View>
@@ -499,5 +487,5 @@ const styles = StyleSheet.create({
   textColumn: { flex: 1, gap: 1 },
   eyebrow: { fontSize: 12, fontWeight: '500' },
   title: { fontSize: 16, fontWeight: '500' },
-  tier: { fontSize: 12 },
+  desc: { fontSize: 12, lineHeight: 16 },
 });
