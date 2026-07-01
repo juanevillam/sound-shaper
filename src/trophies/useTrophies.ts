@@ -22,7 +22,6 @@ export const resolveTrophies = (
       ...config,
       title: text?.title ?? config.id,
       description: text?.description ?? '',
-      hint: text?.hint,
       unlocked: Boolean(earned),
       achievedAt: earned?.achievedAt ?? null,
     };
