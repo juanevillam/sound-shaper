@@ -20,6 +20,11 @@ export {
 } from './WelcomeScreen';
 export { Screen } from './Screen';
 export {
+  GROUP_ROW_GAP,
+  GROUP_SIDE_PADDING,
+  groupRowShape,
+} from './settingsGroup';
+export {
   SettingsAccountSection,
   UsernameDialog,
   type SettingsAccountColors,

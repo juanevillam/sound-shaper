@@ -131,6 +131,12 @@ export type SettingsAccountSectionProps = {
    * in the SAME grouped card (e.g. a "Trash" entry). The host owns the route.
    */
   navRows?: SettingsNavRow[];
+  /**
+   * Optional destructive rows rendered AFTER the sign-out row (e.g. a
+   * "Delete account" entry) — danger-tinted like sign-out; the host owns
+   * whatever confirmation flow the tap opens.
+   */
+  dangerRows?: SettingsNavRow[];
   signOutLabel: string;
   signOutDialog: {
     title: string;
@@ -379,12 +385,15 @@ const NavRow = memo(
     shape,
     colors,
     onOpen,
+    destructive = false,
   }: {
     row: SettingsNavRow;
     shape: GroupShape;
     colors: SettingsAccountColors;
     /** Stable opener keyed by row id, so the memo holds. */
     onOpen: (id: string) => void;
+    /** Danger-tinted icon + label (e.g. "Delete account"). */
+    destructive?: boolean;
   }) => (
     <ListItem
       colors={listItemColors(colors)}
@@ -396,13 +405,15 @@ const NavRow = memo(
             <Icon
               source={iconSource(row.icon)}
               size={24}
-              tint={colors.onSurfaceMuted}
+              tint={destructive ? colors.danger : colors.onSurfaceMuted}
             />
           </LeadingSlot>
         </ListItem.LeadingContent>
       ) : null}
       <ListItem.HeadlineContent>
-        <Text color={colors.onSurface}>{row.label}</Text>
+        <Text color={destructive ? colors.danger : colors.onSurface}>
+          {row.label}
+        </Text>
       </ListItem.HeadlineContent>
     </ListItem>
   ),
@@ -429,6 +440,7 @@ export const SettingsAccountSection = ({
   profile,
   usernameEditor,
   navRows,
+  dangerRows,
   signOutLabel,
   signOutDialog,
   onSignOut,
@@ -450,8 +462,11 @@ export const SettingsAccountSection = ({
   // Stable opener keyed by row id so `NavRow`'s memo holds across this section's
   // dialog-state toggles (re-rendering would re-resolve its native Icons).
   const handleNavPress = useCallback(
-    (id: string) => navRows?.find(row => row.id === id)?.onPress(),
-    [navRows],
+    (id: string) =>
+      [...(navRows ?? []), ...(dangerRows ?? [])]
+        .find(row => row.id === id)
+        ?.onPress(),
+    [navRows, dangerRows],
   );
 
   const handleConfirm = () => {
@@ -461,7 +476,8 @@ export const SettingsAccountSection = ({
 
   // Row shapes depend on how many of the optional rows render, so the
   // group's first/last corners always land on the visible rows.
-  const rowCount = 1 + (profile ? 1 : 0) + (navRows?.length ?? 0);
+  const rowCount =
+    1 + (profile ? 1 : 0) + (navRows?.length ?? 0) + (dangerRows?.length ?? 0);
   let rowIndex = 0;
 
   return (
@@ -513,6 +529,19 @@ export const SettingsAccountSection = ({
           colors={colors}
           onPress={openConfirm}
         />
+
+        {/* Destructive rows (e.g. Delete account) close the group, below the
+            milder sign-out — escalating severity reads top-to-bottom. */}
+        {dangerRows?.map(row => (
+          <NavRow
+            key={row.id}
+            row={row}
+            destructive
+            shape={groupRowShape(rowIndex++, rowCount)}
+            colors={colors}
+            onOpen={handleNavPress}
+          />
+        ))}
       </Column>
 
       {/* Fallback dialogs for standalone use only — when the parent screen

@@ -8,6 +8,7 @@ import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Close from '@expo/material-symbols/close.xml';
 import DarkMode from '@expo/material-symbols/dark_mode.xml';
 import Delete from '@expo/material-symbols/delete.xml';
+import DeleteForever from '@expo/material-symbols/delete_forever.xml';
 import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
@@ -19,6 +20,7 @@ import Info from '@expo/material-symbols/info.xml';
 import Language from '@expo/material-symbols/language.xml';
 import Lock from '@expo/material-symbols/lock.xml';
 import Logout from '@expo/material-symbols/logout.xml';
+import ManageAccounts from '@expo/material-symbols/manage_accounts.xml';
 import MoreVert from '@expo/material-symbols/more_vert.xml';
 import Notifications from '@expo/material-symbols/notifications.xml';
 import Palette from '@expo/material-symbols/palette.xml';
@@ -54,6 +56,7 @@ const icons = {
   close: Close,
   'dark-mode': DarkMode,
   delete: Delete,
+  'delete-forever': DeleteForever,
   'drag-indicator': DragIndicator,
   edit: Edit,
   favorite: Favorite,
@@ -67,6 +70,7 @@ const icons = {
   language: Language,
   lock: Lock,
   logout: Logout,
+  'manage-accounts': ManageAccounts,
   'more-vert': MoreVert,
   notifications: Notifications,
   'notifications-filled': require('./assets/icons/notifications-filled.xml'),
