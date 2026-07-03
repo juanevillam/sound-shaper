@@ -8,11 +8,7 @@ import {
   Spacer,
   Text,
 } from '@expo/ui/jetpack-compose';
-import {
-  alpha,
-  fillMaxWidth,
-  width,
-} from '@expo/ui/jetpack-compose/modifiers';
+import { alpha, fillMaxWidth, width } from '@expo/ui/jetpack-compose/modifiers';
 
 import {
   GOOGLE_BUTTON_COLORS,

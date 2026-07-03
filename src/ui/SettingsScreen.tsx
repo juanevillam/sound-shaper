@@ -320,7 +320,10 @@ export const SettingsScreen = ({
     [],
   );
   const closePreference = useCallback(() => setOpenSectionTitle(null), []);
-  const openUsernameDialog = useCallback(() => setAccountDialog('username'), []);
+  const openUsernameDialog = useCallback(
+    () => setAccountDialog('username'),
+    [],
+  );
   const openSignOutConfirm = useCallback(() => setAccountDialog('signOut'), []);
   const closeAccountDialog = useCallback(() => setAccountDialog(null), []);
 
