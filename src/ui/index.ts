@@ -7,6 +7,11 @@ export {
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
 export {
+  ErrorScreen,
+  type ErrorScreenColors,
+  type ErrorScreenProps,
+} from './ErrorScreen';
+export {
   GoogleSignInButton,
   type GoogleSignInButtonProps,
 } from './GoogleSignInButton';
