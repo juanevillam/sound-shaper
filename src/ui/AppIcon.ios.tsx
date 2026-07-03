@@ -38,6 +38,7 @@ const SF_SYMBOLS = {
   flag: 'flag',
   flight: 'airplane',
   groups: 'person.2',
+  help: 'questionmark.circle',
   home: 'house',
   'home-filled': 'house.fill',
   image: 'photo',
@@ -53,17 +54,20 @@ const SF_SYMBOLS = {
   'person-add': 'person.badge.plus',
   'person-filled': 'person.fill',
   public: 'globe',
+  report: 'exclamationmark.octagon',
   // SF Symbols has no rocket glyph at the deployment target; sparkles is the
   // conventional "new and shiny" stand-in.
   'rocket-launch': 'sparkles',
   search: 'magnifyingglass',
   send: 'paperplane',
+  'sentiment-dissatisfied': 'face.dashed',
   settings: 'gearshape',
   'settings-filled': 'gearshape.fill',
   share: 'square.and.arrow.up',
   star: 'star',
   'star-filled': 'star.fill',
   trophy: 'trophy',
+  'visibility-off': 'eye.slash',
   widgets: 'square.grid.2x2',
 } satisfies Record<IconName, NonNullable<ImageProps['systemName']>>;
 

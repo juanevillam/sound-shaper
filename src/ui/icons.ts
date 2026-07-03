@@ -16,6 +16,7 @@ import Favorite from '@expo/material-symbols/favorite.xml';
 import Flag from '@expo/material-symbols/flag.xml';
 import Flight from '@expo/material-symbols/flight.xml';
 import Groups from '@expo/material-symbols/groups.xml';
+import Help from '@expo/material-symbols/help.xml';
 import Home from '@expo/material-symbols/home.xml';
 import Image from '@expo/material-symbols/image.xml';
 import Info from '@expo/material-symbols/info.xml';
@@ -29,13 +30,16 @@ import Palette from '@expo/material-symbols/palette.xml';
 import Person from '@expo/material-symbols/person.xml';
 import PersonAdd from '@expo/material-symbols/person_add.xml';
 import Public from '@expo/material-symbols/public.xml';
+import Report from '@expo/material-symbols/report.xml';
 import RocketLaunch from '@expo/material-symbols/rocket_launch.xml';
 import Search from '@expo/material-symbols/search.xml';
 import Send from '@expo/material-symbols/send.xml';
+import SentimentDissatisfied from '@expo/material-symbols/sentiment_dissatisfied.xml';
 import Settings from '@expo/material-symbols/settings.xml';
 import Share from '@expo/material-symbols/share.xml';
 import Star from '@expo/material-symbols/star.xml';
 import Trophy from '@expo/material-symbols/trophy.xml';
+import VisibilityOff from '@expo/material-symbols/visibility_off.xml';
 import Widgets from '@expo/material-symbols/widgets.xml';
 import { Asset } from 'expo-asset';
 
@@ -67,6 +71,7 @@ const icons = {
   flag: Flag,
   flight: Flight,
   groups: Groups,
+  help: Help,
   home: Home,
   'home-filled': require('./assets/icons/home-filled.xml'),
   image: Image,
@@ -83,15 +88,18 @@ const icons = {
   'person-add': PersonAdd,
   'person-filled': require('./assets/icons/person-filled.xml'),
   public: Public,
+  report: Report,
   'rocket-launch': RocketLaunch,
   search: Search,
   send: Send,
+  'sentiment-dissatisfied': SentimentDissatisfied,
   settings: Settings,
   'settings-filled': require('./assets/icons/settings-filled.xml'),
   share: Share,
   star: Star,
   'star-filled': require('./assets/icons/star-filled.xml'),
   trophy: Trophy,
+  'visibility-off': VisibilityOff,
   widgets: Widgets,
 } satisfies Record<string, ImageSourcePropType>;
 
