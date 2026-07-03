@@ -3,6 +3,7 @@ import { type ImageSourcePropType } from 'react-native';
 import Add from '@expo/material-symbols/add.xml';
 import ArrowDownward from '@expo/material-symbols/arrow_downward.xml';
 import ArrowUpward from '@expo/material-symbols/arrow_upward.xml';
+import Block from '@expo/material-symbols/block.xml';
 import Check from '@expo/material-symbols/check.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Close from '@expo/material-symbols/close.xml';
@@ -12,6 +13,7 @@ import DeleteForever from '@expo/material-symbols/delete_forever.xml';
 import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
+import Flag from '@expo/material-symbols/flag.xml';
 import Flight from '@expo/material-symbols/flight.xml';
 import Groups from '@expo/material-symbols/groups.xml';
 import Home from '@expo/material-symbols/home.xml';
@@ -51,6 +53,7 @@ const icons = {
   add: Add,
   'arrow-downward': ArrowDownward,
   'arrow-upward': ArrowUpward,
+  block: Block,
   check: Check,
   chevron: ChevronRight,
   close: Close,
@@ -61,6 +64,7 @@ const icons = {
   edit: Edit,
   favorite: Favorite,
   'favorite-filled': require('./assets/icons/favorite-filled.xml'),
+  flag: Flag,
   flight: Flight,
   groups: Groups,
   home: Home,
