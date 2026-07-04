@@ -7,6 +7,10 @@ export {
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
 export {
+  EmojiRainOverlay,
+  type EmojiRainOverlayProps,
+} from './EmojiRainOverlay';
+export {
   ErrorScreen,
   type ErrorScreenColors,
   type ErrorScreenProps,
