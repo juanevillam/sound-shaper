@@ -20,9 +20,15 @@ export type DestructiveConfirmDialogProps = {
 /**
  * The one confirmation dialog for destructive actions (sign out, delete a
  * top, delete an item, …): Material `AlertDialog` with the confirm action in
- * the danger color. Android (Jetpack Compose) only — add an `.ios` variant
- * before using it on iOS. Mount it in its own `Host`: dialogs sharing a Host
- * with other content corrupt sibling modifiers and flicker icons.
+ * the danger color. Android (Jetpack Compose) only — an `.ios` variant with
+ * this same mounted-while-visible API is NOT possible: a SwiftUI
+ * `ConfirmationDialog` mounted with `isPresented` already true loses the
+ * presentation race and never shows (simulator-verified 2026-07-04). On iOS,
+ * inline a `ConfirmationDialog` that stays mounted, with its trigger button
+ * as `ConfirmationDialog.Trigger` — see `SettingsAccountSection.ios.tsx` for
+ * the verified pattern. Mount this Android dialog in its own `Host`: dialogs
+ * sharing a Host with other content corrupt sibling modifiers and flicker
+ * icons.
  */
 export const DestructiveConfirmDialog = ({
   dialog,

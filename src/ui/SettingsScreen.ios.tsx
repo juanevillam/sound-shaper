@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import {
+  Button,
   Form,
   Host,
   LabeledContent,
@@ -94,9 +95,19 @@ export const SettingsScreen = ({
                 </LabeledContent>
               );
 
-              // Rows with a url become a native Link that opens the browser;
-              // foregroundStyle keeps the label from picking up the link tint.
-              return row.url ? (
+              // Rows with an onPress run it on tap (wins over url, e.g. the
+              // version row's easter-egg counter); rows with a url become a
+              // native Link that opens the browser. foregroundStyle keeps the
+              // label from picking up the control tint in both cases.
+              return row.onPress ? (
+                <Button
+                  key={row.label}
+                  onPress={row.onPress}
+                  modifiers={[foregroundStyle(colors.onSurface)]}
+                >
+                  {content}
+                </Button>
+              ) : row.url ? (
                 <Link
                   key={row.label}
                   destination={row.url}
