@@ -5,12 +5,18 @@ Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
-**Source of truth:** the installed `@expo/ui` **56.0.18** type exports —
+**Source of truth:** the installed `@expo/ui` type exports —
 `node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
 published docs (per [`apps/expo-starter/AGENTS.md`](../apps/expo-starter/AGENTS.md),
 docs can lead the package). The Android column lists what the expo-starter
-showcase actually demos today; iOS is not built yet, so the iOS column is the
-**target** mapping.
+showcase actually demos today; the iOS SwiftUI showcase code exists but is
+device-unverified, so the iOS column is still the **target** mapping.
+
+> **Version note:** the matrix below was generated from **56.0.18** exports.
+> The repo is now on `@expo/ui` **57.0.2** (SDK 57, July 2026) — the 57 bump
+> added `LoadingIndicator` (showcased) and changed no other showcase-relevant
+> export surface, so the rows still hold; regenerate against the installed
+> types on the next major bump.
 
 ## Legend
 
