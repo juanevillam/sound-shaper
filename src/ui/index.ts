@@ -1,6 +1,6 @@
 export { AnimatedEntrance } from './AnimatedEntrance';
 export { AppIcon, type AppIconProps } from './AppIcon';
-export { AUTHOR_CREDIT, AUTHOR_URL } from './author';
+export { AUTHOR_CREDIT, AUTHOR_URL, authorUrl } from './author';
 export {
   DestructiveConfirmDialog,
   type DestructiveConfirmDialogContent,

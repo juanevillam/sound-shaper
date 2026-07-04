@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
 
 import {
-  Image,
   Linking,
   ScrollView,
   StyleSheet,
+  Text as RNText,
   View,
-  type ImageSourcePropType,
 } from 'react-native';
 
 import {
@@ -30,7 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
-import { AUTHOR_CREDIT, AUTHOR_URL } from './author';
+import { AUTHOR_CREDIT, authorUrl } from './author';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
 import { Screen } from './Screen';
@@ -38,6 +37,8 @@ import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 
 const LOGO_SIZE = 96;
+const LOGO_RADIUS = 24;
+const LOGO_LETTER_SIZE = 56;
 const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
@@ -66,7 +67,6 @@ export type AuthAction = {
 
 export type WelcomeScreenProps = {
   appName: string;
-  logo: ImageSourcePropType;
   features: WelcomeFeatureItem[];
   authActions: [AuthAction] | [AuthAction, AuthAction];
   /** App-resolved color palette. */
@@ -75,6 +75,8 @@ export type WelcomeScreenProps = {
     onSurface?: string;
     onSurfaceMuted?: string;
     primary?: string;
+    primaryContainer?: string;
+    onPrimaryContainer?: string;
   };
   colorScheme?: 'light' | 'dark';
   /**
@@ -87,7 +89,15 @@ export type WelcomeScreenProps = {
 
 const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
-  logo: { height: LOGO_SIZE, width: LOGO_SIZE, marginBottom: spacing.lg },
+  logo: {
+    height: LOGO_SIZE,
+    width: LOGO_SIZE,
+    marginBottom: spacing.lg,
+    borderRadius: LOGO_RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
 
@@ -96,7 +106,6 @@ const anyLoading = (actions: readonly AuthAction[]) =>
 
 export const WelcomeScreen = ({
   appName,
-  logo,
   features,
   authActions,
   colors,
@@ -107,8 +116,8 @@ export const WelcomeScreen = ({
   const isSplashHidden = useSplashHidden();
 
   const openCredit = useCallback(() => {
-    Linking.openURL(AUTHOR_URL);
-  }, []);
+    Linking.openURL(authorUrl(appName));
+  }, [appName]);
 
   const someLoading = anyLoading(authActions);
 
@@ -130,7 +139,17 @@ export const WelcomeScreen = ({
           duration={HERO_ENTRY_DURATION}
           isVisible={isSplashHidden}
         >
-          <Image source={logo} style={styles.logo} />
+          {/* Placeholder mark until the apps have real logos: a themed
+              rounded tile with the app's initial. */}
+          <View
+            style={[styles.logo, { backgroundColor: colors?.primaryContainer }]}
+          >
+            <RNText
+              style={[styles.logoLetter, { color: colors?.onPrimaryContainer }]}
+            >
+              {appName.charAt(0).toUpperCase()}
+            </RNText>
+          </View>
           <Host
             matchContents={{ vertical: true }}
             colorScheme={colorScheme}

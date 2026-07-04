@@ -1,6 +1,7 @@
 import { type ImageSourcePropType } from 'react-native';
 
 import Add from '@expo/material-symbols/add.xml';
+import Apps from '@expo/material-symbols/apps.xml';
 import ArrowDownward from '@expo/material-symbols/arrow_downward.xml';
 import ArrowUpward from '@expo/material-symbols/arrow_upward.xml';
 import Block from '@expo/material-symbols/block.xml';
@@ -10,6 +11,7 @@ import Close from '@expo/material-symbols/close.xml';
 import DarkMode from '@expo/material-symbols/dark_mode.xml';
 import Delete from '@expo/material-symbols/delete.xml';
 import DeleteForever from '@expo/material-symbols/delete_forever.xml';
+import Devices from '@expo/material-symbols/devices.xml';
 import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
@@ -55,6 +57,7 @@ import { Asset } from 'expo-asset';
  */
 const icons = {
   add: Add,
+  apps: Apps,
   'arrow-downward': ArrowDownward,
   'arrow-upward': ArrowUpward,
   block: Block,
@@ -64,6 +67,7 @@ const icons = {
   'dark-mode': DarkMode,
   delete: Delete,
   'delete-forever': DeleteForever,
+  devices: Devices,
   'drag-indicator': DragIndicator,
   edit: Edit,
   favorite: Favorite,
