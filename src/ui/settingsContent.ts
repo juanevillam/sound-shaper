@@ -64,15 +64,24 @@ export const buildGeneralSettingsSections = <
 ];
 
 /**
- * The standard "About" block: a single read-only row showing the bundled
- * @expo/ui version, linking to that platform's @expo/ui docs.
+ * The standard "About" block: the installed app version first (read from the
+ * native binary, so it reflects what's actually on the device), then the
+ * bundled @expo/ui version linking to that platform's @expo/ui docs.
  */
 export const buildAboutSettingsSection = (
   t: Translate,
+  appVersion: string,
   expoUiVersion: string,
+  /** Tap handler for the app-version row — the easter-egg counter hook. */
+  onAppVersionPress?: () => void,
 ): SettingsAboutConfig => ({
   title: t('settings.about.title'),
   rows: [
+    {
+      label: t('settings.about.appVersion'),
+      value: appVersion,
+      onPress: onAppVersionPress,
+    },
     {
       label: t('settings.about.expoUiVersion'),
       value: expoUiVersion,
