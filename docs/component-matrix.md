@@ -5,18 +5,14 @@ Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
-**Source of truth:** the installed `@expo/ui` type exports —
+**Source of truth:** the installed `@expo/ui` **57.0.2** type exports —
 `node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
 published docs (per [`apps/expo-starter/AGENTS.md`](../apps/expo-starter/AGENTS.md),
 docs can lead the package). The Android column lists what the expo-starter
 showcase actually demos today; the iOS SwiftUI showcase code exists but is
-device-unverified, so the iOS column is still the **target** mapping.
-
-> **Version note:** the matrix below was generated from **56.0.18** exports.
-> The repo is now on `@expo/ui` **57.0.2** (SDK 57, July 2026) — the 57 bump
-> added `LoadingIndicator` (showcased) and changed no other showcase-relevant
-> export surface, so the rows still hold; regenerate against the installed
-> types on the next major bump.
+device-unverified, so the iOS column is still the **target** mapping. The 57
+bump added `LoadingIndicator` (showcased) and changed no other
+showcase-relevant export surface.
 
 ## Legend
 
@@ -74,6 +70,7 @@ a custom SwiftUI implementation.
 | Lazy column                 | `LazyColumn`                | `List`               | 🟢  | `List` gives virtualized vertical rendering.                                 |
 | Lazy row                    | `LazyRow`                   | `LazyHStack`         | ✅  | Lazy horizontal stack on both.                                               |
 | List item                   | `ListItem`                  | —                    | 🔴  | No iOS `ListItem`; `HStack` + `Label`/`Text`.                                |
+| Loading indicator           | `LoadingIndicator`          | `ProgressView`       | 🟢  | New in 57 — M3 morphing-shape loader; iOS spinner via `ProgressView`.        |
 | Material colors             | `getMaterialColors`         | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                |
 | Modal bottom sheet          | `ModalBottomSheet`          | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                  |
 | Modifiers                   | `…/modifiers`               | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                    |
