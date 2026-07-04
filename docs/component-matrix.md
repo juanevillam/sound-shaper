@@ -5,7 +5,7 @@ Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
-**Source of truth:** the installed `@expo/ui` **57.0.2** type exports —
+**Source of truth:** the installed `@expo/ui` **57.0.3** type exports —
 `node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
 published docs (per [`apps/expo-starter/AGENTS.md`](../apps/expo-starter/AGENTS.md),
 docs can lead the package). The Android column lists what the expo-starter
