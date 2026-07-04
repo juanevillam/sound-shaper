@@ -69,6 +69,8 @@ export type SettingsInfoRow = {
   value: string;
   /** Optional external link the row opens when tapped, e.g. package docs. */
   url?: string;
+  /** Optional tap handler (wins over `url`), e.g. an easter-egg counter. */
+  onPress?: () => void;
 };
 
 /** Trailing read-only block, e.g. "About" with app/package versions. */
@@ -172,9 +174,9 @@ PreferenceRow.displayName = 'PreferenceRow';
 
 /**
  * A read-only row in the Android "About phone" idiom: setting name with the
- * value as supporting text. Rows with a `url` open it in the browser on tap
- * (the "About phone" rows that lead somewhere look identical to those that
- * don't, so no trailing affordance).
+ * value as supporting text. Rows with an `onPress` run it on tap; rows with a
+ * `url` open it in the browser (the "About phone" rows that lead somewhere
+ * look identical to those that don't, so no trailing affordance).
  */
 const InfoRow = ({
   row,
@@ -194,7 +196,11 @@ const InfoRow = ({
     modifiers={[
       fillMaxWidth(),
       clip(shape),
-      ...(row.url ? [clickable(() => Linking.openURL(row.url!))] : []),
+      ...(row.onPress
+        ? [clickable(row.onPress)]
+        : row.url
+          ? [clickable(() => Linking.openURL(row.url!))]
+          : []),
     ]}
   >
     <ListItem.HeadlineContent>
