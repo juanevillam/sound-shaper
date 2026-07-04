@@ -20,6 +20,7 @@ import { type IconName } from './icons';
  */
 const SF_SYMBOLS = {
   add: 'plus',
+  apps: 'square.grid.3x3',
   'arrow-downward': 'arrow.down',
   'arrow-upward': 'arrow.up',
   block: 'nosign',
@@ -29,6 +30,7 @@ const SF_SYMBOLS = {
   'dark-mode': 'circle.lefthalf.filled',
   delete: 'trash',
   'delete-forever': 'trash.slash',
+  devices: 'laptopcomputer.and.iphone',
   'manage-accounts': 'person.crop.circle.badge.checkmark',
   // iOS reorder affordance is the three-line grabber, not the six-dot grid.
   'drag-indicator': 'line.3.horizontal',

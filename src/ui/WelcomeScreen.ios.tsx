@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
 
 import {
-  Image as RNImage,
   Linking,
   ScrollView,
   StyleSheet,
+  Text as RNText,
   View,
-  type ImageSourcePropType,
 } from 'react-native';
 
 import {
@@ -34,7 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
-import { AUTHOR_CREDIT, AUTHOR_URL } from './author';
+import { AUTHOR_CREDIT, authorUrl } from './author';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { Screen } from './Screen';
 import { duration, spacing } from './tokens';
@@ -42,6 +41,8 @@ import { useSplashHidden } from './useSplashHidden';
 import { type AuthAction, type WelcomeScreenProps } from './WelcomeScreen';
 
 const LOGO_SIZE = 96;
+const LOGO_RADIUS = 24;
+const LOGO_LETTER_SIZE = 56;
 const FEATURE_ICON_SIZE = 30;
 const FEATURE_ICON_SLOT = 40;
 const HERO_ENTRY_DURATION = duration.slow;
@@ -57,7 +58,11 @@ const styles = StyleSheet.create({
     width: LOGO_SIZE,
     marginBottom: spacing.lg,
     alignSelf: 'center',
+    borderRadius: LOGO_RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
 
@@ -74,7 +79,6 @@ const anyLoading = (actions: readonly AuthAction[]) =>
  */
 export const WelcomeScreen = ({
   appName,
-  logo,
   features,
   authActions,
   colors,
@@ -84,8 +88,8 @@ export const WelcomeScreen = ({
   const isSplashHidden = useSplashHidden();
 
   const openCredit = useCallback(() => {
-    Linking.openURL(AUTHOR_URL);
-  }, []);
+    Linking.openURL(authorUrl(appName));
+  }, [appName]);
 
   const someLoading = anyLoading(authActions);
 
@@ -107,7 +111,17 @@ export const WelcomeScreen = ({
           duration={HERO_ENTRY_DURATION}
           isVisible={isSplashHidden}
         >
-          <RNImage source={logo as ImageSourcePropType} style={styles.logo} />
+          {/* Placeholder mark until the apps have real logos: a themed
+              rounded tile with the app's initial. */}
+          <View
+            style={[styles.logo, { backgroundColor: colors?.primaryContainer }]}
+          >
+            <RNText
+              style={[styles.logoLetter, { color: colors?.onPrimaryContainer }]}
+            >
+              {appName.charAt(0).toUpperCase()}
+            </RNText>
+          </View>
           <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
             <VStack spacing={spacing.xs}>
               <Text
