@@ -8,6 +8,11 @@ export type AppColors = {
   // the grouped-list cell color (white / #1C1C1E), one step subtler than the
   // control fill — Apple's cell-on-grouped-background ramp.
   card: string;
+  // Background of a modal sheet. iOS never presents sheets on the base
+  // background: dark mode uses the ELEVATED background (#1C1C1E), light mode
+  // the grouped gray. Android's editors are Compose ModalBottomSheets that
+  // theme themselves, so there this simply mirrors surfaceContainer.
+  sheet: string;
   surfaceContainer: string;
   surfaceVariant: string;
   onSurface: string;
@@ -43,6 +48,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     background: m.background,
     surface: m.surface,
     card: m.surfaceContainer,
+    sheet: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
     surfaceVariant: m.surfaceVariant,
     onSurface: m.onSurface,
@@ -101,6 +107,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     background: '#F2F2F7',
     surface: '#FFFFFF',
     card: '#FFFFFF',
+    sheet: '#F2F2F7',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
     onSurface: '#000000',
@@ -125,6 +132,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     background: '#000000',
     surface: '#1C1C1E',
     card: '#1C1C1E',
+    sheet: '#1C1C1E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
     onSurface: '#FFFFFF',
@@ -152,6 +160,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     background: '#FEF7FF',
     surface: '#FEF7FF',
     card: '#F3EDF7',
+    sheet: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
     onSurface: '#1D1B20',
@@ -176,6 +185,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     background: '#141218',
     surface: '#141218',
     card: '#211F26',
+    sheet: '#211F26',
     surfaceContainer: '#211F26',
     surfaceVariant: '#49454F',
     onSurface: '#E6E0E9',
