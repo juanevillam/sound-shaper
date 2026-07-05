@@ -7,6 +7,7 @@ import {
   HStack,
   Image,
   Section,
+  Spacer,
   Text,
   TextField,
   useNativeState,
@@ -115,9 +116,30 @@ export const SettingsAccountSection = ({
         )
       ) : null}
 
-      {/* Navigation rows (e.g. Trash) between the identity row and sign-out. */}
+      {/* Navigation rows (e.g. Trash) between the identity row and sign-out.
+          Styled as native disclosure rows — primary-labeled text with a
+          trailing chevron — not tinted action buttons (in Apple's Settings,
+          blue text means "do something"; navigation is neutral + chevron). */}
       {navRows?.map(row => (
-        <Button key={row.id} label={row.label} onPress={row.onPress} />
+        <Button key={row.id} onPress={row.onPress}>
+          <HStack spacing={8}>
+            <Text
+              modifiers={[
+                ...(colors?.onSurface
+                  ? [foregroundStyle(colors.onSurface)]
+                  : []),
+              ]}
+            >
+              {row.label}
+            </Text>
+            <Spacer />
+            <Image
+              systemName="chevron.right"
+              size={13}
+              color={colors?.onSurfaceMuted}
+            />
+          </HStack>
+        </Button>
       ))}
 
       {/* The sign-out button doubles as the sheet's native trigger — a
