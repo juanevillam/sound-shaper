@@ -3,6 +3,11 @@ import type { MaterialColors } from '@expo/ui/jetpack-compose';
 export type AppColors = {
   background: string;
   surface: string;
+  // Content cards / list rows sitting on `background`. On Android this is the
+  // same value as `surfaceContainer` (the M3 filled-card token); on iOS it is
+  // the grouped-list cell color (white / #1C1C1E), one step subtler than the
+  // control fill — Apple's cell-on-grouped-background ramp.
+  card: string;
   surfaceContainer: string;
   surfaceVariant: string;
   onSurface: string;
@@ -37,6 +42,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
   return {
     background: m.background,
     surface: m.surface,
+    card: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
     surfaceVariant: m.surfaceVariant,
     onSurface: m.onSurface,
@@ -94,6 +100,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
   light: {
     background: '#F2F2F7',
     surface: '#FFFFFF',
+    card: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
     onSurface: '#000000',
@@ -117,6 +124,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
   dark: {
     background: '#000000',
     surface: '#1C1C1E',
+    card: '#1C1C1E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
     onSurface: '#FFFFFF',
@@ -143,6 +151,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
   light: {
     background: '#FEF7FF',
     surface: '#FEF7FF',
+    card: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
     onSurface: '#1D1B20',
@@ -166,6 +175,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
   dark: {
     background: '#141218',
     surface: '#141218',
+    card: '#211F26',
     surfaceContainer: '#211F26',
     surfaceVariant: '#49454F',
     onSurface: '#E6E0E9',
