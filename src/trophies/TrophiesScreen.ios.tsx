@@ -14,7 +14,9 @@ import { type ResolvedTrophy } from './types';
 // Material grouped card: ONE rounded container, rows divided by hairline
 // separators inset past the icon column, press feedback as a highlight (no
 // ripple), and a thin rounded progress bar under a headline summary.
-const GROUP_RADIUS = 12;
+// Matches the iOS 26 inset-grouped-list container radius (the app's shared
+// CARD_RADIUS on iOS) so the group sits in tone with native Form sections.
+const GROUP_RADIUS = 26;
 const ICON_SLOT = 40;
 const PRESSED_OPACITY = 0.6;
 
@@ -95,7 +97,10 @@ export const TrophiesScreen = ({
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
-      <View style={styles.header}>
+      {/* Progress lives in its own inset-grouped card above the list — the
+          bare header read Android-ish; a grouped summary card is the
+          Game Center read. */}
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <View style={styles.summaryRow}>
           <Text
             numberOfLines={1}
@@ -137,7 +142,12 @@ export const TrophiesScreen = ({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
-  header: { gap: 10, paddingBottom: 24, paddingHorizontal: 4, paddingTop: 8 },
+  header: {
+    borderRadius: GROUP_RADIUS,
+    gap: 12,
+    marginBottom: 20,
+    padding: 18,
+  },
   summaryRow: {
     alignItems: 'baseline',
     flexDirection: 'row',
