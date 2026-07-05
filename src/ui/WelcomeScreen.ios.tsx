@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
+import { AppleSignInButton } from './AppleSignInButton';
 import { AUTHOR_CREDIT, authorUrl } from './author';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { Screen } from './Screen';
@@ -228,6 +229,20 @@ export const WelcomeScreen = ({
               if (action.provider === 'google') {
                 return (
                   <GoogleSignInButton
+                    key={action.label}
+                    label={label}
+                    scheme={colorScheme}
+                    disabled={isDisabled || Boolean(action.isLoading)}
+                    onPress={action.onPress}
+                  />
+                );
+              }
+
+              // Apple's branding rules likewise pin this button's black/white
+              // variants and logo, so it renders RN-side with spec colors.
+              if (action.provider === 'apple') {
+                return (
+                  <AppleSignInButton
                     key={action.label}
                     label={label}
                     scheme={colorScheme}
