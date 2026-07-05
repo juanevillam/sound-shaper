@@ -1,11 +1,14 @@
 import { useState } from 'react';
 
+import { StyleSheet } from 'react-native';
+
 import {
   Alert,
   Button,
   ConfirmationDialog,
   HStack,
   Image,
+  RNHostView,
   Section,
   Spacer,
   Text,
@@ -14,6 +17,7 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 import { font, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
+import { Image as RemoteImage } from 'expo-image';
 
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
 
@@ -57,11 +61,24 @@ export const SettingsAccountSection = ({
 
   const profileContent = profile ? (
     <HStack spacing={12}>
-      <Image
-        systemName="person.crop.circle.fill"
-        size={40}
-        color={colors.onSurfaceMuted}
-      />
+      {/* SwiftUI `Image` can't load remote URLs, so the Google photo bridges
+          back through RNHostView (same idiom as the Android Compose row);
+          the SF person icon stays as the no-photo fallback. */}
+      {profile.photoUrl ? (
+        <RNHostView matchContents>
+          <RemoteImage
+            source={{ uri: profile.photoUrl }}
+            style={styles.avatar}
+            contentFit="cover"
+          />
+        </RNHostView>
+      ) : (
+        <Image
+          systemName="person.crop.circle.fill"
+          size={40}
+          color={colors.onSurfaceMuted}
+        />
+      )}
       <VStack alignment="leading" spacing={2}>
         <Text modifiers={[foregroundStyle(colors.onSurface)]}>
           {profile.displayName}
@@ -192,3 +209,13 @@ export const SettingsAccountSection = ({
     </Section>
   );
 };
+
+const AVATAR_SIZE = 40;
+
+const styles = StyleSheet.create({
+  avatar: {
+    borderRadius: AVATAR_SIZE / 2,
+    height: AVATAR_SIZE,
+    width: AVATAR_SIZE,
+  },
+});
