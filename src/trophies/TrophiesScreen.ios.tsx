@@ -1,4 +1,25 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import {
+  Button,
+  Form,
+  Host,
+  HStack,
+  Image,
+  ProgressView,
+  RNHostView,
+  Section,
+  Spacer,
+  Text,
+  VStack,
+} from '@expo/ui/swift-ui';
+import {
+  font,
+  foregroundStyle,
+  padding,
+  scrollContentBackground,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
 import { tierColor } from './tierColors';
 import {
@@ -9,27 +30,23 @@ import {
 import { TrophyIcon } from './TrophyIcon';
 import { type ResolvedTrophy } from './types';
 
-// iOS counterpart of `TrophiesScreen` — same prop API, laid out as a native
-// inset-grouped list (the Settings / Game Center idiom) instead of Android's
-// Material grouped card: ONE rounded container, rows divided by hairline
-// separators inset past the icon column, press feedback as a highlight (no
-// ripple), and a thin rounded progress bar under a headline summary.
-// Matches the iOS 26 inset-grouped-list container radius (the app's shared
-// CARD_RADIUS on iOS) so the group sits in tone with native Form sections.
-const GROUP_RADIUS = 26;
-const ICON_SLOT = 40;
-const PRESSED_OPACITY = 0.6;
+// iOS counterpart of `TrophiesScreen` — same prop API, rendered as a REAL
+// SwiftUI inset-grouped `Form` (the exact chrome the shared Settings screen
+// uses: system cell background, separators, radius, press highlight), not an
+// RN imitation of one. The trophy glyph (react-native-svg) bridges into each
+// row via RNHostView; the progress line is a native `ProgressView`.
+const ICON_SIZE = 26;
+const ICON_SLOT = 34;
+const CHEVRON_SIZE = 13;
 
 const TrophyRow = ({
   trophy,
-  isLast,
   colors,
   strings,
   formatDate,
   onPress,
 }: {
   trophy: ResolvedTrophy;
-  isLast: boolean;
   colors: TrophiesScreenColors;
   strings: TrophiesScreenStrings;
   formatDate: (achievedAt: number) => string;
@@ -41,43 +58,49 @@ const TrophyRow = ({
     ? `${tierName} · ${strings.achievedLabel} ${formatDate(trophy.achievedAt ?? 0)}`
     : `${tierName} · ${trophy.description}`;
 
-  const textColor = trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted;
   const iconColor = trophy.unlocked
     ? tierColor(trophy.tier)
     : colors.onSurfaceMuted;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        opacity: pressed ? PRESSED_OPACITY : 1,
-      })}
-    >
-      <View style={styles.row}>
-        <View style={styles.iconSlot}>
-          <TrophyIcon color={iconColor} size={26} locked={!trophy.unlocked} />
-        </View>
-        <View
-          style={[
-            styles.rowBody,
-            !isLast && {
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: colors.track,
-            },
-          ]}
-        >
-          <Text numberOfLines={1} style={[styles.title, { color: textColor }]}>
+    <Button onPress={onPress}>
+      <HStack spacing={12}>
+        <RNHostView matchContents>
+          <View style={styles.iconSlot}>
+            <TrophyIcon
+              color={iconColor}
+              size={ICON_SIZE}
+              locked={!trophy.unlocked}
+            />
+          </View>
+        </RNHostView>
+        <VStack alignment="leading" spacing={2}>
+          <Text
+            modifiers={[
+              foregroundStyle(
+                trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted,
+              ),
+            ]}
+          >
             {trophy.title}
           </Text>
           <Text
-            numberOfLines={1}
-            style={[styles.supporting, { color: colors.onSurfaceMuted }]}
+            modifiers={[
+              font({ textStyle: 'footnote' }),
+              foregroundStyle(colors.onSurfaceMuted),
+            ]}
           >
             {supporting}
           </Text>
-        </View>
-      </View>
-    </Pressable>
+        </VStack>
+        <Spacer />
+        <Image
+          systemName="chevron.right"
+          size={CHEVRON_SIZE}
+          color={colors.onSurfaceMuted}
+        />
+      </HStack>
+    </Button>
   );
 };
 
@@ -93,90 +116,67 @@ export const TrophiesScreen = ({
   const fraction = total > 0 ? earned / total : 0;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-    >
-      {/* Progress lives in its own inset-grouped card above the list — the
-          bare header read Android-ish; a grouped summary card is the
-          Game Center read. */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <View style={styles.summaryRow}>
-          <Text
-            numberOfLines={1}
-            style={[styles.progress, { color: colors.onSurface }]}
-          >
-            {strings.progress}
-          </Text>
-          <Text style={[styles.percent, { color: colors.onSurfaceMuted }]}>
-            {strings.percent}
-          </Text>
-        </View>
-        <View style={[styles.track, { backgroundColor: colors.track }]}>
-          <View
-            style={[
-              styles.fill,
-              { backgroundColor: colors.primary, width: `${fraction * 100}%` },
-            ]}
-          />
-        </View>
-      </View>
+    <Host style={styles.host}>
+      <Form
+        modifiers={[
+          scrollContentBackground('hidden'),
+          tint(colors.primary),
+          // The RN navigation header replaces SwiftUI's own bar; match the
+          // shared Settings screen's top breathing room.
+          padding({ top: 16 }),
+        ]}
+      >
+        {/* Progress summary as its own grouped section — cell chrome comes
+            from the system, the bar is a native ProgressView. */}
+        <Section>
+          <VStack alignment="leading" spacing={10}>
+            <HStack spacing={12}>
+              <Text
+                modifiers={[
+                  font({ textStyle: 'headline' }),
+                  foregroundStyle(colors.onSurface),
+                ]}
+              >
+                {strings.progress}
+              </Text>
+              <Spacer />
+              <Text
+                modifiers={[
+                  font({ textStyle: 'subheadline' }),
+                  foregroundStyle(colors.onSurfaceMuted),
+                ]}
+              >
+                {strings.percent}
+              </Text>
+            </HStack>
+            <ProgressView value={fraction} />
+          </VStack>
+        </Section>
 
-      {/* One inset-grouped container; hairline separators live inside. */}
-      <View style={[styles.group, { backgroundColor: colors.surface }]}>
-        {trophies.map((trophy, index) => (
-          <TrophyRow
-            key={trophy.id}
-            trophy={trophy}
-            isLast={index === trophies.length - 1}
-            colors={colors}
-            strings={strings}
-            formatDate={formatDate}
-            onPress={onTrophyPress ? () => onTrophyPress(trophy.id) : undefined}
-          />
-        ))}
-      </View>
-    </ScrollView>
+        <Section>
+          {trophies.map(trophy => (
+            <TrophyRow
+              key={trophy.id}
+              trophy={trophy}
+              colors={colors}
+              strings={strings}
+              formatDate={formatDate}
+              onPress={
+                onTrophyPress ? () => onTrophyPress(trophy.id) : undefined
+              }
+            />
+          ))}
+        </Section>
+      </Form>
+    </Host>
   );
 };
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
-  header: {
-    borderRadius: GROUP_RADIUS,
-    gap: 12,
-    marginBottom: 20,
-    padding: 18,
-  },
-  summaryRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  progress: { flexShrink: 1, fontSize: 20, fontWeight: '600', lineHeight: 25 },
-  percent: { fontSize: 15, fontWeight: '400', lineHeight: 20 },
-  track: { borderRadius: 999, height: 3, overflow: 'hidden', width: '100%' },
-  fill: { borderRadius: 999, height: '100%' },
-  group: { borderRadius: GROUP_RADIUS, overflow: 'hidden' },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingLeft: 16,
-  },
+  host: { flex: 1 },
   iconSlot: {
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'center',
     width: ICON_SLOT,
   },
-  // The separator hangs on the text block so it insets past the icon column —
-  // the native grouped-list read.
-  rowBody: {
-    flex: 1,
-    gap: 2,
-    paddingRight: 16,
-    paddingVertical: 11,
-  },
-  title: { fontSize: 16, fontWeight: '400', lineHeight: 21 },
-  supporting: { fontSize: 13, lineHeight: 18 },
 });
