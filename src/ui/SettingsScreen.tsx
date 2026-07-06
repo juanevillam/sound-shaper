@@ -66,7 +66,8 @@ export type SettingsAccountConfig = Omit<
 /** A read-only label/value row, e.g. a bundled package version. */
 export type SettingsInfoRow = {
   label: string;
-  value: string;
+  /** Optional supporting value; omit for label-only link rows (legal pages). */
+  value?: string;
   /** Optional external link the row opens when tapped, e.g. package docs. */
   url?: string;
   /** Optional tap handler (wins over `url`), e.g. an easter-egg counter. */
@@ -206,14 +207,16 @@ const InfoRow = ({
     <ListItem.HeadlineContent>
       <Text>{row.label}</Text>
     </ListItem.HeadlineContent>
-    <ListItem.SupportingContent>
-      <Text
-        style={{ typography: 'bodyMedium' }}
-        modifiers={[padding(0, 4, 0, 0)]}
-      >
-        {row.value}
-      </Text>
-    </ListItem.SupportingContent>
+    {row.value ? (
+      <ListItem.SupportingContent>
+        <Text
+          style={{ typography: 'bodyMedium' }}
+          modifiers={[padding(0, 4, 0, 0)]}
+        >
+          {row.value}
+        </Text>
+      </ListItem.SupportingContent>
+    ) : null}
   </ListItem>
 );
 

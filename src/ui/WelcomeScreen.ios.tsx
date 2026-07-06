@@ -36,6 +36,7 @@ import { AppIcon } from './AppIcon';
 import { AppleSignInButton } from './AppleSignInButton';
 import { AUTHOR_CREDIT, authorUrl } from './author';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { LegalFooter } from './LegalFooter';
 import { Screen } from './Screen';
 import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
@@ -84,6 +85,7 @@ export const WelcomeScreen = ({
   authActions,
   colors,
   colorScheme,
+  legal,
 }: WelcomeScreenProps) => {
   const { top, bottom, left, right } = useSafeAreaInsets();
   const isSplashHidden = useSplashHidden();
@@ -289,6 +291,7 @@ export const WelcomeScreen = ({
               );
             })}
           </View>
+          {legal ? <LegalFooter legal={legal} colors={colors} /> : null}
         </AnimatedEntrance>
       </ScrollView>
     </Screen>
