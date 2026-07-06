@@ -53,6 +53,9 @@ export type WelcomeFeatureItem = {
   subtitle: string;
 };
 
+/** `apple` renders the branded Apple button only in the iOS variant — the
+ *  Android screen has no Apple sign-in and falls through to a plain button,
+ *  so don't pass it there. */
 export type AuthActionProvider = 'google' | 'apple' | 'custom';
 
 export type AuthAction = {

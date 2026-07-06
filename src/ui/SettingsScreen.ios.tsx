@@ -42,7 +42,8 @@ const styles = StyleSheet.create({
  * The `Form` scrolls and insets itself natively, so the RN
  * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.
  * `cancelLabel` and per-section `icon` are unused here — the native menu
- * dismisses itself.
+ * dismisses itself. `seedColor` is likewise Android-only (Compose theming);
+ * this variant tints from `colors.primary`.
  */
 export const SettingsScreen = ({
   account,

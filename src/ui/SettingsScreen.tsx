@@ -92,7 +92,8 @@ export type SettingsScreenProps = {
   sections: SettingsRadioSection[];
   /** Category header rendered above the preference rows, e.g. "General". */
   sectionsTitle?: string;
-  /** Label for the dismiss action in the option dialogs. */
+  /** Label for the dismiss action in the option dialogs. Android-only — the
+   *  iOS variant's menu `Picker` dismisses itself. */
   cancelLabel?: string;
   /** Optional read-only info rows rendered last, e.g. bundled versions. */
   about?: SettingsAboutConfig;
@@ -102,7 +103,8 @@ export type SettingsScreenProps = {
    * App brand seed forwarded to the internal `<Host>` so the native Compose
    * components (radio buttons, dialogs, text buttons) theme from the brand
    * palette instead of the wallpaper-derived one. Omit to keep dynamic
-   * Material colors.
+   * Material colors. Android-only — the iOS variant tints from
+   * `colors.primary`.
    */
   seedColor?: string;
 };
