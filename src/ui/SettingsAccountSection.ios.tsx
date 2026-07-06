@@ -54,9 +54,14 @@ export const SettingsAccountSection = ({
   const [usernameDraft, setUsernameDraft] = useState(initialUsername);
 
   const submitUsername = () => {
-    // The alert has already dismissed itself; a rejected submit is surfaced
-    // by the app (snackbar) — mirroring Android's inline error isn't possible.
-    void usernameEditor?.onSubmit(usernameDraft.trim()).catch(() => {});
+    // The alert has already dismissed itself (UIAlertController always does);
+    // the app surfaces the error copy (snackbar). Mirror Android's
+    // keep-the-dialog-open by RE-presenting the alert on a rejected submit —
+    // the attempted text is still in the field (native TextField state), so
+    // the user can correct instead of retyping.
+    void usernameEditor?.onSubmit(usernameDraft.trim()).catch(() => {
+      setUsernameAlertVisible(true);
+    });
   };
 
   const profileContent = profile ? (
