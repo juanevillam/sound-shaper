@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import type {
   SettingsAboutConfig,
+  SettingsInfoRow,
   SettingsRadioSection,
 } from './SettingsScreen';
 
@@ -72,20 +73,21 @@ export const buildAboutSettingsSection = (
   t: Translate,
   appVersion: string,
   expoUiVersion: string,
-  /** Tap handler for the app-version row — the easter-egg counter hook. */
-  onAppVersionPress?: () => void,
+  /** App-specific trailing rows, e.g. Topper's legal-page links (stores
+   *  require the privacy policy reachable from inside the app). */
+  extraRows: SettingsInfoRow[] = [],
 ): SettingsAboutConfig => ({
   title: t('settings.about.title'),
   rows: [
     {
       label: t('settings.about.appVersion'),
       value: appVersion,
-      onPress: onAppVersionPress,
     },
     {
       label: t('settings.about.expoUiVersion'),
       value: expoUiVersion,
       url: EXPO_UI_DOCS_URL,
     },
+    ...extraRows,
   ],
 });

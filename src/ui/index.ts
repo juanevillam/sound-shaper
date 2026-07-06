@@ -1,15 +1,18 @@
 export { AnimatedEntrance } from './AnimatedEntrance';
 export { AppIcon, type AppIconProps } from './AppIcon';
-export { AUTHOR_CREDIT, AUTHOR_URL, authorUrl } from './author';
+export {
+  AUTHOR_CREDIT,
+  AUTHOR_URL,
+  authorUrl,
+  legalUrl,
+  type LegalPage,
+} from './author';
+export { type WelcomeLegal } from './LegalFooter';
 export {
   DestructiveConfirmDialog,
   type DestructiveConfirmDialogContent,
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
-export {
-  EmojiRainOverlay,
-  type EmojiRainOverlayProps,
-} from './EmojiRainOverlay';
 export {
   ErrorScreen,
   type ErrorScreenColors,

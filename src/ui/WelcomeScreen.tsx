@@ -32,6 +32,7 @@ import { AppIcon } from './AppIcon';
 import { AUTHOR_CREDIT, authorUrl } from './author';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
+import { LegalFooter, type WelcomeLegal } from './LegalFooter';
 import { Screen } from './Screen';
 import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
@@ -85,6 +86,9 @@ export type WelcomeScreenProps = {
    * wallpaper-derived one. Omit to keep dynamic Material colors.
    */
   seedColor?: string;
+  /** Optional legal disclaimer rendered under the auth buttons (apps that
+   *  handle user data pass it; the starter omits it). */
+  legal?: WelcomeLegal;
 };
 
 const styles = StyleSheet.create({
@@ -111,6 +115,7 @@ export const WelcomeScreen = ({
   colors,
   colorScheme,
   seedColor,
+  legal,
 }: WelcomeScreenProps) => {
   const { top, bottom, left, right } = useSafeAreaInsets();
   const isSplashHidden = useSplashHidden();
@@ -288,6 +293,7 @@ export const WelcomeScreen = ({
               );
             })}
           </View>
+          {legal ? <LegalFooter legal={legal} colors={colors} /> : null}
         </AnimatedEntrance>
       </ScrollView>
     </Screen>

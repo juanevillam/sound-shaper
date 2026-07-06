@@ -89,10 +89,14 @@ export const SettingsScreen = ({
         {about ? (
           <Section title={about.title}>
             {about.rows.map(row => {
-              const content = (
+              // Valueless rows (the legal links) render as a plain label —
+              // LabeledContent with empty trailing text reads as a broken row.
+              const content = row.value ? (
                 <LabeledContent key={row.label} label={row.label}>
                   <Text>{row.value}</Text>
                 </LabeledContent>
+              ) : (
+                <Text key={row.label}>{row.label}</Text>
               );
 
               // Rows with an onPress run it on tap (wins over url, e.g. the
