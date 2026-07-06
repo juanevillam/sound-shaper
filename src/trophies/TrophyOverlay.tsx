@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -54,6 +60,16 @@ export type TrophyOverlayProps = {
   copy: Record<string, TrophyCopy>;
   colors: TrophyOverlayColors;
   strings: TrophyOverlayStrings;
+  /** Banner corner radius — pass the app's card-container radius so the
+   *  banner reads in family with its cards (defaults to the legacy 18). */
+  radius?: number;
+  /**
+   * Optional surface layer rendered UNDER the banner content at its measured
+   * size (e.g. an iOS Liquid Glass sheet via @expo/ui — injected so this
+   * package stays dependency-light). When set, the banner paints NO solid
+   * background/shadow: the underlay IS the surface.
+   */
+  underlay?: (size: { width: number; height: number }) => ReactNode;
   /** Tap the banner — e.g. navigate to the trophies screen. */
   onPress?: (id: string) => void;
   /** Fires once when a banner appears — e.g. a celebratory haptic. */
@@ -110,6 +126,8 @@ export const TrophyOverlay = ({
   copy,
   colors,
   strings,
+  radius = 18,
+  underlay,
   onPress,
   onShow,
 }: TrophyOverlayProps) => {
@@ -166,8 +184,12 @@ export const TrophyOverlay = ({
     translateY.value = withTiming(
       HIDDEN_OFFSET,
       { duration: 220 },
-      finished => {
-        if (finished) runOnJS(finishDismiss)();
+      // Dismiss even when the exit animation gets CANCELLED (a competing
+      // gesture/animation on translateY): skipping it left `current` stuck at
+      // opacity 0 — an invisible banner that swallowed all taps in its box
+      // (sim-reproduced via swipe-dismiss racing the exit).
+      () => {
+        runOnJS(finishDismiss)();
       },
     );
   }, [clearTimer, finishDismiss, opacity, translateY, reduceMotion]);
@@ -335,15 +357,28 @@ export const TrophyOverlay = ({
           }}
           style={[
             styles.banner,
-            { backgroundColor: colors.surface },
+            { borderRadius: radius },
+            // With an underlay the banner is a clear shell — the injected
+            // surface (glass) provides the depth, so no fill and no shadow
+            // (a shadow needs an opaque layer to cast from anyway).
+            underlay
+              ? styles.bannerClear
+              : [styles.bannerSolid, { backgroundColor: colors.surface }],
             // Platinum is the one expressive moment: a faint primary glow. Every
             // other banner sits flat like a Material notification.
-            isPlatinum
+            !underlay && isPlatinum
               ? { shadowColor: colors.primary, shadowOpacity: 0.3 }
               : null,
             bannerStyle,
           ]}
         >
+          {/* Injected surface (measured size) — pointer-transparent so taps
+              and the swipe gesture pass through to the content. */}
+          {underlay && bannerWidth > 0 ? (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {underlay({ width: bannerWidth, height: bannerHeight })}
+            </View>
+          ) : null}
           <Pressable
             style={styles.row}
             onPress={() => {
@@ -464,25 +499,32 @@ const styles = StyleSheet.create({
   },
   banner: {
     alignItems: 'center',
-    borderRadius: 18,
-    elevation: 6,
     flexDirection: 'row',
     // A little breathing room below the status bar so the banner doesn't hug
     // the very top edge.
     marginTop: 18,
     overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    // NO padding here: Yoga insets absolute children (the underlay + shine
+    // layers) by the parent's padding, which would shift them off the banner
+    // box — so all padding lives on the inner row (snackbar-proven fix).
+  },
+  // Solid variant (no underlay): elevated card with a soft drop shadow.
+  bannerSolid: {
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
   },
+  // Underlay variant: fully transparent shell over the injected surface.
+  bannerClear: { backgroundColor: 'transparent' },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
     flex: 1,
     gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   textColumn: { flex: 1, gap: 1 },
   eyebrow: { fontSize: 12, fontWeight: '500' },
