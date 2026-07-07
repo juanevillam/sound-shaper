@@ -2,7 +2,21 @@ import { useMemo } from 'react';
 
 import { I18n } from 'i18n-js';
 
-export type Translator = (key: string) => string;
+export type Translator<K extends string = string> = (key: K) => string;
+
+/**
+ * Dot-separated key paths of a translation tree — derive an app's key union
+ * from its canonical locale (`DotPaths<typeof translations.en>`) and pass it
+ * as `createI18n`'s second type parameter so a typo'd key fails at compile
+ * time instead of rendering `[missing ...]` at runtime.
+ */
+export type DotPaths<T> = T extends object
+  ? {
+      [K in Extract<keyof T, string>]: T[K] extends object
+        ? `${K}.${DotPaths<T[K]>}`
+        : K;
+    }[Extract<keyof T, string>]
+  : never;
 
 type LocaleState<L extends string> = {
   locale: L;
@@ -25,7 +39,7 @@ type LocaleState<L extends string> = {
  * });
  * export const useI18n = createI18n<Locale>(translations, useLocaleState);
  */
-export function createI18n<L extends string>(
+export function createI18n<L extends string, K extends string = string>(
   translations: Record<string, object>,
   useLocaleState: () => LocaleState<L>,
   defaultLocale = 'en',
@@ -33,12 +47,12 @@ export function createI18n<L extends string>(
   return function useI18n() {
     const { locale, setLocale } = useLocaleState();
 
-    const t = useMemo<Translator>(() => {
+    const t = useMemo<Translator<K>>(() => {
       const i18n = new I18n(translations);
       i18n.enableFallback = true;
       i18n.defaultLocale = defaultLocale;
       i18n.locale = locale;
-      return (key: string) => i18n.t(key);
+      return (key: K) => i18n.t(key);
     }, [locale]);
 
     return { locale, setLocale, t };

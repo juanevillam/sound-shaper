@@ -1,10 +1,12 @@
 import type { AppColors } from './colors';
 
 /**
- * Per-app theme identity. Apps with their own brand (Topper) configure this
- * once at startup; apps that skip it (expo-starter) keep the platform default
- * palette — wallpaper-derived Material You on Android, Apple system colors on
- * iOS, the Material 3 baseline elsewhere.
+ * Per-app theme identity — currently an UNUSED capability: no portfolio app
+ * calls `configureAppTheme` (Topper's gold seed was dropped 2026-06-16), so
+ * every app keeps the platform default palette — wallpaper-derived Material
+ * You on Android, Apple system colors on iOS, the Material 3 baseline
+ * elsewhere. Kept because the plumbing (useAppTheme → Host seedColor) is the
+ * one sanctioned way to reintroduce a brand seed if a future app wants one.
  */
 export type AppThemeConfig = {
   /**
