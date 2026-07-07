@@ -47,14 +47,6 @@ const springs = {
   drag: { damping: 18, mass: 0.6, stiffness: 240 },
 } as const;
 
-// Podium colors for the top three ranks. Theme-independent brand constants —
-// do not move into the MD3 palettes in colors.ts.
-const podium = {
-  1: { background: '#D4A248', text: '#1A1208' },
-  2: { background: '#B4B4B4', text: '#1A1A1A' },
-  3: { background: '#A4733E', text: '#1A1208' },
-} as const;
-
 // Layout constants reused across screens.
 const layout = {
   screenPadding: spacing.lg,
@@ -68,13 +60,4 @@ const layout = {
 const staggerDelay = (index: number): number =>
   Math.min(index, layout.staggerMaxIndex) * layout.staggerStepMs;
 
-export {
-  duration,
-  layout,
-  opacity,
-  podium,
-  radius,
-  spacing,
-  springs,
-  staggerDelay,
-};
+export { duration, layout, opacity, radius, spacing, springs, staggerDelay };
