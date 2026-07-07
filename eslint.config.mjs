@@ -7,17 +7,24 @@ import importPlugin from 'eslint-plugin-import';
 import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 
 export default [
+  // Global ignores. Flat-config minimatch patterns are relative to this file,
+  // so they must be globstar to also cover apps/* subtrees (CNG prebuild
+  // output, .expo caches, build artifacts like functions/lib). A standalone
+  // `ignores` object applies to every subsequent config block.
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/android/**',
+      '**/ios/**',
+      '**/build/**',
+      '**/lib/**',
+      '**/.expo/**',
+      '**/dist/**',
+      '**/expo-env.d.ts',
+    ],
+  },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
-    ignores: [
-      'node_modules/',
-      'android/',
-      'ios/',
-      'build/',
-      '.expo/',
-      'dist/',
-      'expo-env.d.ts',
-    ],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2021,
@@ -91,6 +98,25 @@ export default [
         {
           prefer: 'type-imports',
           fixStyle: 'inline-type-imports',
+        },
+      ],
+      // Guardrails for the monorepo's module boundaries — the tree is clean
+      // today; these keep future sessions from eroding it.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@portfolio/*/src/*'],
+              message:
+                'Deep import into a package — import from the package root instead.',
+            },
+            {
+              group: ['**/apps/*/src/*', '../../../*'],
+              message:
+                'Cross-app or deep relative import — move shared code into packages/*.',
+            },
+          ],
         },
       ],
     },
