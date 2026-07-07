@@ -10,6 +10,7 @@
   "peerDependencies": {
     "@expo/ui": "*",
     "@react-native-async-storage/async-storage": "*",
+    "expo-localization": "*",
     "i18n-js": "*",
     "react": "*",
     "react-native": "*",
