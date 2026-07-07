@@ -12,6 +12,7 @@
   },
   "peerDependencies": {
     "@expo/ui": "*",
+    "@portfolio/core": "*",
     "expo-asset": "*",
     "expo-image": "*",
     "react": "*",
