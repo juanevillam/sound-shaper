@@ -45,6 +45,14 @@ import { type AuthAction, type WelcomeScreenProps } from './WelcomeScreen';
 const LOGO_SIZE = 96;
 const LOGO_RADIUS = 24;
 const LOGO_LETTER_SIZE = 56;
+/** Glyph box for the brand mark inside the hero tile — sized so the mark reads
+ *  like the app icon (mirrors its foreground proportions). */
+const LOGO_GLYPH_SIZE = 90;
+/** The brand mark sits on its own fixed graphite tile (matching the app icon /
+ *  splash) with the light-on-dark mark — the one in-app exception to Material
+ *  You, by design, so the hero reads as the real app icon. */
+const BRAND_TILE_BG = '#070709';
+const BRAND_MARK_COLOR = '#EEF2F7';
 const FEATURE_ICON_SIZE = 30;
 const FEATURE_ICON_SLOT = 40;
 const HERO_ENTRY_DURATION = duration.slow;
@@ -86,6 +94,7 @@ export const WelcomeScreen = ({
   colors,
   colorScheme,
   legal,
+  logo,
 }: WelcomeScreenProps) => {
   const { top, bottom, left, right } = useSafeAreaInsets();
   const isSplashHidden = useSplashHidden();
@@ -114,16 +123,33 @@ export const WelcomeScreen = ({
           duration={HERO_ENTRY_DURATION}
           isVisible={isSplashHidden}
         >
-          {/* Placeholder mark until the apps have real logos: a themed
-              rounded tile with the app's initial. */}
+          {/* Brand mark on a themed tile. Apps pass their vector glyph via
+              `logo`; the letter is the fallback when they don't. */}
           <View
-            style={[styles.logo, { backgroundColor: colors?.primaryContainer }]}
+            style={[
+              styles.logo,
+              {
+                backgroundColor: logo
+                  ? BRAND_TILE_BG
+                  : colors?.primaryContainer,
+              },
+            ]}
           >
-            <RNText
-              style={[styles.logoLetter, { color: colors?.onPrimaryContainer }]}
-            >
-              {appName.charAt(0).toUpperCase()}
-            </RNText>
+            {logo ? (
+              logo({
+                size: LOGO_GLYPH_SIZE,
+                color: BRAND_MARK_COLOR,
+              })
+            ) : (
+              <RNText
+                style={[
+                  styles.logoLetter,
+                  { color: colors?.onPrimaryContainer },
+                ]}
+              >
+                {appName.charAt(0).toUpperCase()}
+              </RNText>
+            )}
           </View>
           <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
             <VStack spacing={spacing.xs}>
