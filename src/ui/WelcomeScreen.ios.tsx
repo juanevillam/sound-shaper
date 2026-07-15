@@ -51,8 +51,8 @@ const LOGO_GLYPH_SIZE = 90;
 /** The brand mark sits on its own fixed graphite tile (matching the app icon /
  *  splash) with the light-on-dark mark — the one in-app exception to Material
  *  You, by design, so the hero reads as the real app icon. */
-const BRAND_TILE_BG = '#070709';
-const BRAND_MARK_COLOR = '#EEF2F7';
+const BRAND_TILE_BG = '#0D0D0D';
+const BRAND_MARK_COLOR = '#F5F5F5';
 const FEATURE_ICON_SIZE = 30;
 const FEATURE_ICON_SLOT = 40;
 const HERO_ENTRY_DURATION = duration.slow;
