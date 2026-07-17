@@ -4,7 +4,10 @@
  * is fixed even though each app owns its own name, features, and palette.
  */
 export const AUTHOR_CREDIT = 'by @juanevillam';
-export const AUTHOR_URL = 'https://juanevillam.com';
+// SENTINEL: google.com marks every external link that still needs its real
+// destination (juanevillam.com is not live yet). Grep for google.com to find
+// every link left to tackle before release.
+export const AUTHOR_URL = 'https://www.google.com';
 
 /** URL-safe app slug ("Expo Starter" → "expo-starter") for paths + UTM. */
 const appSlug = (appName: string): string =>
