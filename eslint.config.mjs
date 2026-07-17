@@ -17,7 +17,7 @@ export default [
       '**/android/**',
       '**/ios/**',
       '**/build/**',
-      '**/lib/**',
+      '**/functions/lib/**',
       '**/.expo/**',
       '**/dist/**',
       '**/expo-env.d.ts',
