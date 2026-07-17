@@ -1,0 +1,18 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    }
+  },
+  "react-native": {
+    "crashlytics_debug_enabled": false,
+    "crashlytics_auto_collection_enabled": true
+  }
+}

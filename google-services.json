@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "714853847469",
+    "project_id": "sound-shaper",
+    "storage_bucket": "sound-shaper.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714853847469:android:c92a349970a0edad4d1124",
+        "android_client_info": {
+          "package_name": "com.juanevillam.soundshaper"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "714853847469-fcdmstaosf2l8saqhrdn1nn66mclgtjd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.juanevillam.soundshaper",
+            "certificate_hash": "1eedf318379c500a819edb62bd3451aaad479d3c"
+          }
+        },
+        {
+          "client_id": "714853847469-oqgh2l8gsqdmckta6e8ikdel4tl6qr4l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.juanevillam.soundshaper",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "714853847469-8cngsj4f4q97dtsqp4it81g963480900.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJEdHy3BRYnqf-twSY9Ss2lbYSornSxe4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "714853847469-8cngsj4f4q97dtsqp4it81g963480900.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "714853847469-0vavdv83f8ev7v7pau88ff5ubtavq1l8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.juanevillam.soundshaper"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
