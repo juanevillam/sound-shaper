@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// P0 starter rules — auth + own-profile only. Song/social/clip rules land in
+// their phases (see docs/sound-shaper-plan.md §5). Default-deny everything not
+// explicitly allowed below.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // A signed-in user reads any profile (public discovery later) but writes
+    // only their own — the doc `upsertOwnProfile` creates on sign-in.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isUser(uid);
+    }
+  }
+}
