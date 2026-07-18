@@ -21,6 +21,9 @@ export default [
       '**/.expo/**',
       '**/dist/**',
       '**/expo-env.d.ts',
+      // Backend services (e.g. the Cloudflare Worker) have their own toolchain
+      // and Workers globals — this RN/React lint config doesn't govern them.
+      'services/**',
     ],
   },
   {
