@@ -2,12 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import {
-  ExtendedFloatingActionButton,
-  Icon,
-  IconButton,
-  Text,
-} from '@expo/ui/jetpack-compose';
+import { Icon, IconButton } from '@expo/ui/jetpack-compose';
 import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, router } from 'expo-router';
@@ -19,17 +14,20 @@ import {
 import { MiniPlayer, MINI_PLAYER_HEIGHT } from '@/components/player/MiniPlayer';
 import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
 import { PlaylistActionsSheet } from '@/components/playlists/PlaylistActionsSheet';
-import { PlaylistCard } from '@/components/playlists/PlaylistCard';
+import {
+  NewPlaylistTile,
+  PlaylistTile,
+} from '@/components/playlists/PlaylistTile';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
 import {
-  PlaylistCardSkeleton,
+  PlaylistTileSkeleton,
   SKELETON_DELAY_MS,
 } from '@/components/ui/Skeleton';
+import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -37,17 +35,37 @@ import { deletePlaylist, type Playlist } from '@/services/firebase/playlists';
 import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 
-const FAB_MARGIN = 16;
-const CARD_GAP = 12;
 const LIST_PADDING = 16;
-const SCROLL_THROTTLE_MS = 64;
-// Clears the floating action button (16dp offset + 56dp FAB + gap).
-const FAB_CLEARANCE = 88;
+const GRID_GAP = 16;
 
-// The app's single root screen — a personal sound shaper has no tabs and no
-// social surface: just your playlists, the mini-player, and a Settings gear
-// in the app bar. Everything else (playlist detail, now-playing, settings)
-// pushes from here.
+// The grid rows FlashList renders: real playlists plus the trailing create
+// tile, pre-paired into 2-column rows (FlashList's numColumns + varying tile
+// heights fight each other; hand-pairing keeps rows aligned).
+type GridRow = {
+  id: string;
+  left: Playlist | 'new';
+  right: Playlist | 'new' | null;
+};
+
+const toGridRows = (playlists: Playlist[]): GridRow[] => {
+  const cells: (Playlist | 'new')[] = [...playlists, 'new'];
+  const rows: GridRow[] = [];
+
+  for (let index = 0; index < cells.length; index += 2) {
+    const left = cells[index];
+    rows.push({
+      id: typeof left === 'string' ? 'new' : left.id,
+      left,
+      right: cells[index + 1] ?? null,
+    });
+  }
+
+  return rows;
+};
+
+// YT-Music-ized home: no app bar — an in-screen wordmark row (app name +
+// settings gear) over a 2-column grid of artwork tiles. The create tile lives
+// IN the grid (no FAB): the library is the whole screen.
 export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -59,14 +77,11 @@ export default function HomeScreen() {
   const hasSettled = usePlaylistsStore(s => s.hasSettled);
   const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
-  const { scrolled, onScroll } = useHeaderScroll();
 
   const [createVisible, setCreateVisible] = useState(false);
   // The playlist whose long-press action sheet (Edit / Delete) is open.
   const [menuPlaylist, setMenuPlaylist] = useState<Playlist | null>(null);
-  // Set by the action sheet's "Edit" → mounts EditPlaylistSheet for it.
   const [editPlaylistId, setEditPlaylistId] = useState<string | null>(null);
-  // Set by the action sheet's "Delete" → the destructive confirm dialog.
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
 
   const goToPlaylist = useCallback(
@@ -87,54 +102,82 @@ export default function HomeScreen() {
   }, [deleteTarget, showSnackbar, t]);
 
   const firstLoad = !hasSettled;
+  const rows = toGridRows(playlists);
 
-  const renderPlaylist = useCallback(
-    ({ item }: { item: Playlist }) => (
-      <View style={styles.cardWrap}>
-        <PlaylistCard
-          playlist={item}
-          onPress={() => goToPlaylist(item.id)}
-          onLongPress={() => setMenuPlaylist(item)}
-        />
-      </View>
-    ),
+  const renderCell = useCallback(
+    (cell: Playlist | 'new' | null, index: number) => {
+      if (cell === null) return <View style={styles.cell} />;
+
+      if (cell === 'new')
+        return (
+          <View style={styles.cell}>
+            <NewPlaylistTile onPress={() => setCreateVisible(true)} />
+          </View>
+        );
+
+      return (
+        <View style={styles.cell}>
+          <PlaylistTile
+            playlist={cell}
+            index={index}
+            onPress={() => goToPlaylist(cell.id)}
+            onLongPress={() => setMenuPlaylist(cell)}
+          />
+        </View>
+      );
+    },
     [goToPlaylist],
   );
 
-  // Bottom clearance: system nav + FAB, plus the mini-player when docked.
+  const renderRow = useCallback(
+    ({ item, index }: { item: GridRow; index: number }) => (
+      <View style={styles.gridRow}>
+        {renderCell(item.left, index * 2)}
+        {renderCell(item.right, index * 2 + 1)}
+      </View>
+    ),
+    [renderCell],
+  );
+
   const listBottomPadding =
-    insets.bottom + FAB_CLEARANCE + (miniVisible ? MINI_PLAYER_HEIGHT : 0);
+    insets.bottom + 24 + (miniVisible ? MINI_PLAYER_HEIGHT : 0);
 
   return (
     <Screen>
-      <Stack.Screen
-        options={{
-          title: t('app.title'),
-          // Settings lives behind the app bar gear — with no profile tab,
-          // this is its one entry point.
-          headerRight: () => (
-            <ThemedHost matchContents>
-              <IconButton onClick={() => router.push('/settings')}>
-                <Icon
-                  source={iconSource('settings')}
-                  tint={colors.onSurface}
-                  contentDescription={t('app.settings')}
-                />
-              </IconButton>
-            </ThemedHost>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
       <SafeAreaView style={styles.safeArea} edges={[]}>
+        {/* Wordmark row where the app bar would be — the YT Music idiom. */}
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
+          <ThemedHost matchContents>
+            <IconButton onClick={() => router.push('/settings')}>
+              <Icon
+                source={iconSource('settings')}
+                tint={colors.onSurface}
+                contentDescription={t('app.settings')}
+              />
+            </IconButton>
+          </ThemedHost>
+        </View>
+
         {firstLoad ? (
-          // Delay-gated: a cached first load settles inside the window, so the
-          // screen stays blank rather than flashing a skeleton it won't need.
           showSkeleton ? (
-            <View style={styles.skeletonList}>
-              {[0, 1, 2].map(row => (
-                <PlaylistCardSkeleton key={row} />
-              ))}
+            <View style={styles.skeletonGrid}>
+              <View style={styles.gridRow}>
+                <View style={styles.cell}>
+                  <PlaylistTileSkeleton />
+                </View>
+                <View style={styles.cell}>
+                  <PlaylistTileSkeleton />
+                </View>
+              </View>
+              <View style={styles.gridRow}>
+                <View style={styles.cell}>
+                  <PlaylistTileSkeleton />
+                </View>
+                <View style={styles.cell} />
+              </View>
             </View>
           ) : null
         ) : error ? (
@@ -143,69 +186,20 @@ export default function HomeScreen() {
             subtitle={t('home.error.subtitle')}
             action={{ label: t('common.retry'), onPress: retry }}
           />
-        ) : playlists.length === 0 ? (
-          <EmptyState
-            emoji="🎵"
-            title={t('home.empty.title')}
-            subtitle={t('home.empty.subtitle')}
-            action={{
-              label: t('home.empty.cta'),
-              onPress: () => setCreateVisible(true),
-            }}
-          />
         ) : (
           <FlashList
             style={styles.list}
-            data={playlists}
-            keyExtractor={playlist => playlist.id}
-            renderItem={renderPlaylist}
-            onScroll={onScroll}
-            scrollEventThrottle={SCROLL_THROTTLE_MS}
+            data={rows}
+            keyExtractor={row => row.id}
+            renderItem={renderRow}
             contentContainerStyle={{
               paddingHorizontal: LIST_PADDING,
-              paddingTop: CARD_GAP,
+              paddingTop: 8,
               paddingBottom: listBottomPadding,
             }}
           />
         )}
 
-        {/* Same FAB anchoring as Topper's detail screen: absolute against the
-            screen edge, the bottom inset added by hand — plus the docked
-            mini-player's height when it's up. */}
-        <View
-          style={[
-            styles.fab,
-            {
-              bottom:
-                insets.bottom +
-                FAB_MARGIN +
-                (miniVisible ? MINI_PLAYER_HEIGHT : 0),
-            },
-          ]}
-        >
-          <ThemedHost matchContents>
-            <ExtendedFloatingActionButton
-              expanded={!scrolled}
-              containerColor={colors.primaryContainer}
-              onClick={() => setCreateVisible(true)}
-            >
-              <ExtendedFloatingActionButton.Icon>
-                <Icon
-                  source={iconSource('add')}
-                  tint={colors.onPrimaryContainer}
-                />
-              </ExtendedFloatingActionButton.Icon>
-              <ExtendedFloatingActionButton.Text>
-                <Text color={colors.onPrimaryContainer}>
-                  {t('home.fab.newPlaylist')}
-                </Text>
-              </ExtendedFloatingActionButton.Text>
-            </ExtendedFloatingActionButton>
-          </ThemedHost>
-        </View>
-
-        {/* The persistent mini-player, pinned to the bottom edge (it pads
-            itself past the system nav). */}
         {miniVisible ? (
           <View style={styles.miniPlayer}>
             <MiniPlayer />
@@ -215,16 +209,12 @@ export default function HomeScreen() {
         {createVisible && (
           <EditPlaylistSheet onClose={() => setCreateVisible(false)} />
         )}
-
-        {/* Edit a playlist from the card's long-press menu. */}
         {editPlaylistId && (
           <EditPlaylistSheet
             playlistId={editPlaylistId}
             onClose={() => setEditPlaylistId(null)}
           />
         )}
-
-        {/* Quick actions for a long-pressed card. */}
         {menuPlaylist && (
           <PlaylistActionsSheet
             playlistName={menuPlaylist.name}
@@ -233,9 +223,6 @@ export default function HomeScreen() {
             onDelete={() => setDeleteTarget(menuPlaylist)}
           />
         )}
-
-        {/* Deleting a playlist is a REAL delete (its songs go with it), so it
-            confirms. Own Host (dialogs corrupt Compose siblings). */}
         {deleteTarget && (
           <ThemedHost matchContents>
             <DestructiveConfirmDialog
@@ -258,17 +245,23 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 4,
+    paddingLeft: LIST_PADDING,
+    paddingRight: 4,
+  },
+  wordmark: { fontWeight: '700' },
   list: { flex: 1 },
-  cardWrap: { marginBottom: CARD_GAP },
-  skeletonList: {
-    gap: CARD_GAP,
-    paddingHorizontal: LIST_PADDING,
-    paddingTop: CARD_GAP,
+  gridRow: {
+    flexDirection: 'row',
+    gap: GRID_GAP,
+    marginBottom: 20,
   },
-  fab: {
-    position: 'absolute',
-    right: FAB_MARGIN,
-  },
+  cell: { flex: 1 },
+  skeletonGrid: { paddingHorizontal: LIST_PADDING, paddingTop: 8 },
   miniPlayer: {
     bottom: 0,
     left: 0,

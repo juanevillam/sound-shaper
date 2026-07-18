@@ -4,20 +4,19 @@ import { InteractionManager, StyleSheet, View } from 'react-native';
 
 import {
   Button,
+  Column,
   DropdownMenu,
   DropdownMenuItem,
-  ExtendedFloatingActionButton,
   Icon,
   IconButton,
-  Text,
+  OutlinedButton,
+  Row,
+  Text as ComposeText,
 } from '@expo/ui/jetpack-compose';
 import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import Animated, {
-  useAnimatedRef,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -33,15 +32,14 @@ import {
   EditSongSheet,
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
-import { SongCard } from '@/components/songs/SongCard';
+import { SongRow } from '@/components/songs/SongRow';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
-import { SKELETON_DELAY_MS, SongCardSkeleton } from '@/components/ui/Skeleton';
-import { Text as AppText } from '@/components/ui/Text';
+import { SKELETON_DELAY_MS, SongRowSkeleton } from '@/components/ui/Skeleton';
+import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useSongsSubscription } from '@/hooks/useSongsSubscription';
 import { useI18n } from '@/i18n';
@@ -52,30 +50,41 @@ import { reorderSongs, type Song } from '@/services/firebase/songs';
 import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useSongsStore } from '@/store/songs';
+import { TILE_RADIUS } from '@/styles/shape';
 
-const FAB_MARGIN = 16;
-const CARD_GAP = 12;
 const MENU_ICON_SIZE = 24;
-const SCROLL_THROTTLE_MS = 64;
+const HERO_ART_SIZE = 148;
+const HERO_EMOJI_SIZE = 72;
+const ROW_GAP = 4;
 
-// Subtle lift for the card being dragged.
-const DRAG_ACTIVE_SCALE = 1.03;
-
-// First frame mounts only about a screenful of cards so the push transition
+// First frame mounts only about a screenful of rows so the push transition
 // starts immediately; the rest mount when it lands.
-const INITIAL_RENDER_COUNT = 10;
+const INITIAL_RENDER_COUNT = 12;
 
-// Content-shaped first-load placeholder for the song list.
+// Fisher–Yates over a copy — the shuffle button hands the player a shuffled
+// QUEUE, so next/previous walk the shuffled order too.
+const shuffled = <T,>(items: T[]): T[] => {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index--) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swap]] = [copy[swap], copy[index]];
+  }
+  return copy;
+};
+
 function SongListSkeleton() {
   return (
     <View style={styles.listSkeleton}>
-      {[0, 1, 2, 3, 4].map(row => (
-        <SongCardSkeleton key={row} />
+      {[0, 1, 2, 3, 4, 5].map(row => (
+        <SongRowSkeleton key={row} />
       ))}
     </View>
   );
 }
 
+// YT-Music-ized playlist screen: a transparent app bar (back + overflow only),
+// then a hero block — big artwork, name, count — with Play/Shuffle pills, and
+// the songs as FLAT rows. Long-press a row to reorder; the row's ⋮ edits it.
 export default function PlaylistDetailScreen() {
   const { playlistId } = useLocalSearchParams<{ playlistId: string }>();
   const { t } = useI18n();
@@ -83,7 +92,6 @@ export default function PlaylistDetailScreen() {
   const { showSnackbar } = useSnackbar();
   const insets = useSafeAreaInsets();
 
-  const reduceMotion = useReducedMotion();
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
 
   const playlist = usePlaylistsStore(s =>
@@ -104,12 +112,8 @@ export default function PlaylistDetailScreen() {
   const [editPlaylistVisible, setEditPlaylistVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
-  // Create mode: the picked + parsed .mp3 the song editor opens with.
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
-  // Edit mode: the song whose metadata is being edited.
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
-
-  const { scrolled, onScroll } = useHeaderScroll();
 
   // "Add song": pick an .mp3, read its ID3 tags, THEN open the editor already
   // prefilled — the pick comes first so a cancel never opens an empty form.
@@ -127,8 +131,6 @@ export default function PlaylistDetailScreen() {
     setPickedFile({ uri: asset.uri, fileName: asset.name, tags });
   }, []);
 
-  // Deleting the playlist is a REAL delete (songs + files go with it) — the
-  // dialog stays up (busy) through the sweep, then pops back.
   const [deleting, setDeleting] = useState(false);
   const confirmDelete = useCallback(async () => {
     if (!playlistId) return;
@@ -148,8 +150,8 @@ export default function PlaylistDetailScreen() {
   }, [playlistId, showSnackbar, t]);
 
   // Local mirror of the store's songs so a drag reorders optimistically —
-  // synced DURING render (not in an effect) so a settled-but-empty frame never
-  // flashes the empty state on entry.
+  // synced DURING render so a settled-but-empty frame never flashes the empty
+  // state on entry.
   const [songs, setSongs] = useState(storeSongs);
   const [syncedStoreSongs, setSyncedStoreSongs] = useState(storeSongs);
 
@@ -162,8 +164,6 @@ export default function PlaylistDetailScreen() {
 
   useSongsSubscription(playlistId);
 
-  // Flips when the push transition lands: cards hold their entrance until
-  // then, and the tail of long lists mounts only after it.
   const [isTransitionDone, setIsTransitionDone] = useState(false);
 
   useEffect(() => {
@@ -177,8 +177,6 @@ export default function PlaylistDetailScreen() {
     ? songs
     : songs?.slice(0, INITIAL_RENDER_COUNT);
 
-  // A light pulse on pickup, each reorder swap, and drop makes dragging songs
-  // feel tactile.
   const handleDragStart = useCallback(() => haptics.dragPickup(), []);
   const handleOrderChange = useCallback(() => haptics.dragMove(), []);
 
@@ -206,11 +204,22 @@ export default function PlaylistDetailScreen() {
   const currentSongId = usePlayerStore(s => s.current?.id);
   const miniVisible = usePlayerStore(s => s.current !== null);
 
-  // Tap = play (the music-app native expectation); editing metadata moves to
-  // the card's long-press, mirroring the home cards' management idiom.
+  const playAll = useCallback(() => {
+    if (!playlistId || !songs || songs.length === 0) return;
+
+    playSong(songs[0], songs, playlistId);
+  }, [playlistId, songs, playSong]);
+
+  const playShuffled = useCallback(() => {
+    if (!playlistId || !songs || songs.length === 0) return;
+
+    const order = shuffled(songs);
+    playSong(order[0], order, playlistId);
+  }, [playlistId, songs, playSong]);
+
   const renderSong = useCallback<SortableGridRenderItem<Song>>(
     ({ item, index }) => (
-      <SongCard
+      <SongRow
         song={item}
         index={index}
         shouldEnter={isTransitionDone}
@@ -218,7 +227,7 @@ export default function PlaylistDetailScreen() {
         onPress={() => {
           if (playlistId && songs) playSong(item, songs, playlistId);
         }}
-        onLongPress={() => setEditingSongId(item.id)}
+        onPressMenu={() => setEditingSongId(item.id)}
       />
     ),
     [isTransitionDone, currentSongId, playSong, playlistId, songs],
@@ -228,9 +237,11 @@ export default function PlaylistDetailScreen() {
     <Screen>
       <Stack.Screen
         options={{
-          title: playlist
-            ? `${playlist.emoji} ${playlist.name}`
-            : t('app.playlistDetail'),
+          // Transparent bar riding the content (YT Music's playlist screen):
+          // just the back arrow + overflow, the identity lives in the hero.
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
           headerRight: playlist
             ? () => (
                 <ThemedHost matchContents>
@@ -255,9 +266,9 @@ export default function PlaylistDetailScreen() {
                         }}
                       >
                         <DropdownMenuItem.Text>
-                          <Text color={colors.onSurface}>
+                          <ComposeText color={colors.onSurface}>
                             {t('playlistDetail.menu.edit')}
-                          </Text>
+                          </ComposeText>
                         </DropdownMenuItem.Text>
                         <DropdownMenuItem.LeadingIcon>
                           <Icon
@@ -274,9 +285,9 @@ export default function PlaylistDetailScreen() {
                         }}
                       >
                         <DropdownMenuItem.Text>
-                          <Text color={colors.danger}>
+                          <ComposeText color={colors.danger}>
                             {t('playlistDetail.menu.delete')}
-                          </Text>
+                          </ComposeText>
                         </DropdownMenuItem.Text>
                         <DropdownMenuItem.LeadingIcon>
                           <Icon
@@ -296,19 +307,6 @@ export default function PlaylistDetailScreen() {
 
       <SafeAreaView style={styles.safeArea} edges={[]}>
         <View style={styles.content}>
-          {/* The playlist's free-text note, pinned above the songs. */}
-          {playlist && playlist.description.length > 0 ? (
-            <View style={styles.description}>
-              <AppText
-                doNotTranslate
-                muted
-                text={playlist.description}
-                variant="bodyMedium"
-                style={styles.descriptionText}
-              />
-            </View>
-          ) : null}
-
           {error ? (
             <EmptyState
               title={t('playlistDetail.error.title')}
@@ -322,100 +320,126 @@ export default function PlaylistDetailScreen() {
                   : undefined
               }
             />
-          ) : !displaySongs || displaySongs.length === 0 ? (
-            !hasSettled ? (
-              // Delay-gated so a cached snapshot settles before it shows.
-              showSkeleton ? (
-                <SongListSkeleton />
-              ) : null
-            ) : (
-              <EmptyState
-                emoji={playlist?.emoji ?? '🎵'}
-                title={t('playlistDetail.empty.title')}
-                subtitle={t('playlistDetail.empty.subtitle')}
-              >
-                <Button onClick={openCreateSong}>
-                  <Text>{t('playlistDetail.empty.cta')}</Text>
-                </Button>
-              </EmptyState>
-            )
           ) : (
-            /* RN-side list (not LazyColumn) so each card can be a sortables
-               drag target; long-press a card to pick it up — order persists
-               via reorderSongs. */
             <Animated.ScrollView
               ref={scrollableRef}
               style={styles.list}
-              contentContainerStyle={[
-                styles.listContent,
-                // System nav + FAB clearance, plus the mini-player when up
-                // (the SafeAreaView no longer pads the bottom).
-                {
-                  paddingBottom:
-                    insets.bottom + 88 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
-                },
-              ]}
-              onScroll={onScroll}
-              scrollEventThrottle={SCROLL_THROTTLE_MS}
+              contentContainerStyle={{
+                paddingBottom:
+                  insets.bottom + 96 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
+              }}
             >
-              <Sortable.Grid
-                columns={1}
-                data={displaySongs}
-                keyExtractor={song => song.id}
-                renderItem={renderSong}
-                rowGap={CARD_GAP}
-                scrollableRef={scrollableRef}
-                activeItemScale={reduceMotion ? 1 : DRAG_ACTIVE_SCALE}
-                // Pin horizontal drag so a full-width card can't slide
-                // sideways; vertical over-drag stays for edge auto-scroll.
-                overDrag="vertical"
-                onDragStart={handleDragStart}
-                onOrderChange={handleOrderChange}
-                onDragEnd={handleDragEnd}
-              />
+              {/* Hero: the artwork IS the header. */}
+              <View style={styles.hero}>
+                <View
+                  style={[
+                    styles.heroArt,
+                    { backgroundColor: colors.surfaceContainer },
+                  ]}
+                >
+                  <Text
+                    doNotTranslate
+                    text={playlist?.emoji || '🎵'}
+                    style={styles.heroEmoji}
+                  />
+                </View>
+                <Text
+                  doNotTranslate
+                  text={playlist?.name ?? ''}
+                  variant="titleLarge"
+                  numberOfLines={2}
+                  style={styles.heroName}
+                />
+                <Text
+                  doNotTranslate
+                  muted
+                  text={`${playlist?.songCount ?? 0} ${t(
+                    (playlist?.songCount ?? 0) === 1
+                      ? 'home.song'
+                      : 'home.songs',
+                  )}`}
+                  variant="bodySmall"
+                />
+                {playlist && playlist.description.length > 0 ? (
+                  <Text
+                    doNotTranslate
+                    muted
+                    text={playlist.description}
+                    variant="bodyMedium"
+                    style={styles.heroDescription}
+                  />
+                ) : null}
+
+                {displaySongs && displaySongs.length > 0 ? (
+                  // FIXED height, not matchContents: a vertically-matching
+                  // Host on the scroll axis of this ScrollView mis-measures
+                  // (see expo-ui-matchcontents-scrollable notes).
+                  <ThemedHost style={styles.actions}>
+                    <Column horizontalAlignment="center">
+                      <Row
+                        horizontalArrangement={{ spacedBy: 12 }}
+                        verticalAlignment="center"
+                      >
+                        <Button onClick={playAll}>
+                          <ComposeText>{t('playlistDetail.play')}</ComposeText>
+                        </Button>
+                        <OutlinedButton onClick={playShuffled}>
+                          <ComposeText color={colors.onSurface}>
+                            {t('playlistDetail.shuffle')}
+                          </ComposeText>
+                        </OutlinedButton>
+                        <OutlinedButton onClick={openCreateSong}>
+                          <ComposeText color={colors.onSurface}>
+                            {t('playlistDetail.fab.addSong')}
+                          </ComposeText>
+                        </OutlinedButton>
+                      </Row>
+                    </Column>
+                  </ThemedHost>
+                ) : null}
+              </View>
+
+              {!displaySongs || displaySongs.length === 0 ? (
+                !hasSettled ? (
+                  showSkeleton ? (
+                    <SongListSkeleton />
+                  ) : null
+                ) : (
+                  <View style={styles.emptyWrap}>
+                    <EmptyState
+                      emoji={playlist?.emoji ?? '🎵'}
+                      title={t('playlistDetail.empty.title')}
+                      subtitle={t('playlistDetail.empty.subtitle')}
+                      action={{
+                        label: t('playlistDetail.empty.cta'),
+                        onPress: openCreateSong,
+                      }}
+                    />
+                  </View>
+                )
+              ) : (
+                <Sortable.Grid
+                  columns={1}
+                  data={displaySongs}
+                  keyExtractor={song => song.id}
+                  renderItem={renderSong}
+                  rowGap={ROW_GAP}
+                  scrollableRef={scrollableRef}
+                  overDrag="vertical"
+                  onDragStart={handleDragStart}
+                  onOrderChange={handleOrderChange}
+                  onDragEnd={handleDragEnd}
+                />
+              )}
             </Animated.ScrollView>
           )}
         </View>
 
-        {/* Pushed screens cover the tab bar, so this screen hosts its own
-            mini-player instance, pinned to the bottom edge. */}
         {miniVisible ? (
           <View style={styles.miniPlayer}>
             <MiniPlayer />
           </View>
         ) : null}
-
-        <View
-          style={[
-            styles.fab,
-            {
-              bottom:
-                insets.bottom +
-                FAB_MARGIN +
-                (miniVisible ? MINI_PLAYER_HEIGHT : 0),
-            },
-          ]}
-        >
-          <ThemedHost matchContents>
-            <ExtendedFloatingActionButton
-              expanded={!scrolled}
-              containerColor={colors.primaryContainer}
-              onClick={openCreateSong}
-            >
-              <ExtendedFloatingActionButton.Icon>
-                <Icon
-                  source={iconSource('add')}
-                  tint={colors.onPrimaryContainer}
-                />
-              </ExtendedFloatingActionButton.Icon>
-              <ExtendedFloatingActionButton.Text>
-                <Text color={colors.onPrimaryContainer}>
-                  {t('playlistDetail.fab.addSong')}
-                </Text>
-              </ExtendedFloatingActionButton.Text>
-            </ExtendedFloatingActionButton>
-          </ThemedHost>
-        </View>
 
         {editPlaylistVisible && (
           <EditPlaylistSheet
@@ -461,19 +485,28 @@ export default function PlaylistDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { flex: 1 },
-  description: { paddingHorizontal: 16, paddingVertical: 12 },
-  descriptionText: { includeFontPadding: false },
   list: { flex: 1 },
-  // Bottom clearance is computed inline (inset + FAB + mini-player).
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+  hero: {
+    alignItems: 'center',
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  listSkeleton: { gap: CARD_GAP, paddingHorizontal: 16, paddingTop: 12 },
-  fab: {
-    position: 'absolute',
-    right: FAB_MARGIN,
+  heroArt: {
+    alignItems: 'center',
+    borderRadius: TILE_RADIUS,
+    height: HERO_ART_SIZE,
+    justifyContent: 'center',
+    marginBottom: 16,
+    width: HERO_ART_SIZE,
   },
+  // Explicit line height so Android doesn't clip the large emoji glyph.
+  heroEmoji: { fontSize: HERO_EMOJI_SIZE, lineHeight: HERO_EMOJI_SIZE * 1.4 },
+  heroName: { fontWeight: '700', marginBottom: 2, textAlign: 'center' },
+  heroDescription: { marginTop: 10, textAlign: 'center' },
+  actions: { alignSelf: 'stretch', height: 48, marginTop: 16 },
+  emptyWrap: { minHeight: 260 },
+  listSkeleton: { gap: ROW_GAP },
   miniPlayer: {
     bottom: 0,
     left: 0,

@@ -2,6 +2,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAudioPlayerStatus } from 'expo-audio';
 import { router } from 'expo-router';
+import Animated, {
+  SlideInDown,
+  SlideOutDown,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SongArt } from '@/components/ui/SongArt';
@@ -10,16 +15,19 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { audioPlayer } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { innerRadius, SHAPE_SM, TILE_RADIUS } from '@/styles/shape';
+import { SHAPE_SM } from '@/styles/shape';
 
 // Exported so screens hosting their own instance (playlist-detail) can clear
 // it — the FAB lifts by this much while the bar is up.
 export const MINI_PLAYER_HEIGHT = 64;
 
 const ART_SIZE = 44;
-const ART_RADIUS = innerRadius(TILE_RADIUS, 10, SHAPE_SM);
+// A tight radius reads "track thumbnail" (YT Music), not "card".
+const ART_RADIUS = SHAPE_SM;
 // Thin progress line along the bar's top edge.
 const PROGRESS_HEIGHT = 2;
+// Entrance/exit: the bar slides up when playback starts, drops when cleared.
+const SLIDE_MS = 220;
 
 // Hand-drawn transport glyphs (a triangle and two bars): the mini-player
 // persists across every navigation, and a Compose Icon here would blink on
@@ -36,6 +44,14 @@ const PauseGlyph = ({ color }: { color: string }) => (
   </View>
 );
 
+// Skip-next: a small triangle against a stop bar.
+const NextGlyph = ({ color }: { color: string }) => (
+  <View style={styles.nextRow}>
+    <View style={[styles.nextTriangle, { borderLeftColor: color }]} />
+    <View style={[styles.nextBar, { backgroundColor: color }]} />
+  </View>
+);
+
 /**
  * The persistent playback bar — the music-app anchor of the whole UI. Screens
  * pin it to the bottom edge; it extends its own background through the system
@@ -48,8 +64,10 @@ export function MiniPlayer() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const current = usePlayerStore(s => s.current);
   const toggle = usePlayerStore(s => s.toggle);
+  const next = usePlayerStore(s => s.next);
   const status = useAudioPlayerStatus(audioPlayer);
 
   if (!current) return null;
@@ -59,7 +77,9 @@ export function MiniPlayer() {
   const subtitle = current.artist || ' ';
 
   return (
-    <View
+    <Animated.View
+      entering={reduceMotion ? undefined : SlideInDown.duration(SLIDE_MS)}
+      exiting={reduceMotion ? undefined : SlideOutDown.duration(SLIDE_MS)}
       style={{
         backgroundColor: colors.surfaceContainer,
         paddingBottom: insets.bottom,
@@ -109,7 +129,7 @@ export function MiniPlayer() {
         </View>
         <Pressable
           onPress={toggle}
-          hitSlop={12}
+          hitSlop={8}
           style={styles.toggle}
           accessibilityRole="button"
           accessibilityLabel={t(
@@ -122,8 +142,17 @@ export function MiniPlayer() {
             <PlayGlyph color={colors.onSurface} />
           )}
         </Pressable>
+        <Pressable
+          onPress={next}
+          hitSlop={8}
+          style={styles.toggle}
+          accessibilityRole="button"
+          accessibilityLabel={t('player.next')}
+        >
+          <NextGlyph color={colors.onSurface} />
+        </Pressable>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -161,4 +190,13 @@ const styles = StyleSheet.create({
   },
   pauseRow: { flexDirection: 'row', gap: 4 },
   pauseBar: { borderRadius: 1.5, height: 16, width: 4.5 },
+  nextRow: { alignItems: 'center', flexDirection: 'row', gap: 1.5 },
+  nextTriangle: {
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 7,
+    borderLeftWidth: 11,
+    borderTopColor: 'transparent',
+    borderTopWidth: 7,
+  },
+  nextBar: { borderRadius: 1, height: 14, width: 2.5 },
 });

@@ -97,6 +97,8 @@ export const translations = {
         confirm: 'Delete',
         cancel: 'Cancel',
       },
+      play: 'Play',
+      shuffle: 'Shuffle',
       fab: { addSong: 'Add song' },
       empty: {
         title: 'No songs yet',
@@ -347,6 +349,8 @@ export const translations = {
         confirm: 'Eliminar',
         cancel: 'Cancelar',
       },
+      play: 'Reproducir',
+      shuffle: 'Aleatorio',
       fab: { addSong: 'Agregar canción' },
       empty: {
         title: 'Aún no hay canciones',
@@ -602,6 +606,8 @@ export const translations = {
         confirm: '删除',
         cancel: '取消',
       },
+      play: '播放',
+      shuffle: '随机播放',
       fab: { addSong: '添加歌曲' },
       empty: {
         title: '还没有歌曲',
