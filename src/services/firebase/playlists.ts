@@ -48,7 +48,6 @@ type CreatePlaylistParams = {
   isDefault?: boolean;
   name: string;
   ownerId: string;
-  visibility: PlaylistVisibility;
 };
 
 type UpdatePlaylistParams = {
@@ -56,7 +55,6 @@ type UpdatePlaylistParams = {
   emoji: string;
   name: string;
   playlistId: string;
-  visibility: PlaylistVisibility;
 };
 
 type SubscribeToUserPlaylistsParams = {
@@ -114,7 +112,6 @@ export const createPlaylist = reported(
     isDefault = false,
     name,
     ownerId,
-    visibility,
   }: CreatePlaylistParams): Promise<string> => {
     const docRef = await addDoc(
       collection(getFirestore(), PLAYLISTS_COLLECTION),
@@ -127,7 +124,9 @@ export const createPlaylist = reported(
         ownerId,
         songCount: 0,
         updatedAt: serverTimestamp(),
-        visibility,
+        // A personal app: nothing is ever public. The field stays on the doc
+        // so a future social phase wouldn't need a migration.
+        visibility: 'private',
       },
     );
 
@@ -170,14 +169,12 @@ export const updatePlaylist = reported(
     emoji,
     name,
     playlistId,
-    visibility,
   }: UpdatePlaylistParams): Promise<void> => {
     await updateDoc(doc(getFirestore(), PLAYLISTS_COLLECTION, playlistId), {
       description,
       emoji,
       name,
       updatedAt: serverTimestamp(),
-      visibility,
     });
   },
 );

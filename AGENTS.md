@@ -1,9 +1,17 @@
 # Sound Shaper
 
-Third portfolio app: a social music player + tweaker. Upload your own `.mp3`s,
-read their tags, play them, clip the best parts, top other people's songs. Same
-mentality as Topper — native UI per platform, shared portfolio Welcome /
-Settings / Manage-account screens, full Firebase, no self-hosted backend.
+Third portfolio app: a **PERSONAL** music player + tweaker — zero social
+features, by design (2026-07-18): every upload is for the uploader alone, which
+keeps the copyright surface at zero. Upload your own `.mp3`s, read their tags,
+play them, shape the sound. Same engineering mentality as Topper — native UI
+per platform, shared portfolio Welcome / Settings / Manage-account screens,
+full Firebase (Spark), no self-hosted backend.
+
+**No tabs.** Home (playlists) is the single root screen; Settings hangs off its
+app-bar gear; playlist-detail / now-playing / manage-account push from there.
+There is NO Explore and NO profile screen — the username lives in Settings'
+account section only. Don't reintroduce social affordances (visibility
+toggles, feeds, follows) — simplicity is the point.
 
 **The build plan is the source of truth:**
 [`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) — scope,
@@ -28,10 +36,14 @@ and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
 backend call we don't have, so deleting a song/playlist orphans its Cloudinary
 assets (a known gap, exactly Topper's pre-Functions state).
 
-Deliberate gaps, in build order: **playback** (P2 — the player + mini-player),
-clips (P3), **Explore tab is a stub** (social/discovery ships LAST),
-delete-account flow (needs reauth + sweep), **iOS route twins** (`*.ios.tsx` —
-Android-first like Topper was; the Compose screens don't render on iOS yet).
+P2 (playback) is BUILT: expo-audio singleton (`src/lib/player.ts` +
+`src/store/player.ts`), tap-to-play SongCards (long-press = edit), pure-RN
+MiniPlayer pinned above the bottom inset, now-playing screen (scrubber,
+transport, speed presets 0.5–2×, keep-pitch switch), background playback.
+
+Deliberate gaps, in build order: clips (P3), delete-account flow (needs
+reauth + sweep), **iOS route twins** (`*.ios.tsx` — Android-first like Topper
+was; the Compose screens don't render on iOS yet).
 
 Brand is deliberately **deferred to the end** — the launcher icon / splash /
 welcome hero currently use **placeholder art borrowed from expo-starter**; the

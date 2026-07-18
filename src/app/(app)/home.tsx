@@ -5,16 +5,18 @@ import { StyleSheet, View } from 'react-native';
 import {
   ExtendedFloatingActionButton,
   Icon,
+  IconButton,
   Text,
 } from '@expo/ui/jetpack-compose';
 import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
-import { router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import { MiniPlayer, MINI_PLAYER_HEIGHT } from '@/components/player/MiniPlayer';
 import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
 import { PlaylistActionsSheet } from '@/components/playlists/PlaylistActionsSheet';
 import { PlaylistCard } from '@/components/playlists/PlaylistCard';
@@ -32,16 +34,20 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { deletePlaylist, type Playlist } from '@/services/firebase/playlists';
+import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 
 const FAB_MARGIN = 16;
 const CARD_GAP = 12;
 const LIST_PADDING = 16;
 const SCROLL_THROTTLE_MS = 64;
+// Clears the floating action button (16dp offset + 56dp FAB + gap).
+const FAB_CLEARANCE = 88;
 
-// Home = your playlists, newest last (the default "My library" leads), with an
-// extended FAB to create one — the structure mirrors Topper's home reduced to
-// its "your content" core (the Following feed arrives with the social phase).
+// The app's single root screen — a personal sound shaper has no tabs and no
+// social surface: just your playlists, the mini-player, and a Settings gear
+// in the app bar. Everything else (playlist detail, now-playing, settings)
+// pushes from here.
 export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -51,6 +57,7 @@ export default function HomeScreen() {
   const error = usePlaylistsStore(s => s.error);
   const retry = usePlaylistsStore(s => s.retry);
   const hasSettled = usePlaylistsStore(s => s.hasSettled);
+  const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
   const { scrolled, onScroll } = useHeaderScroll();
 
@@ -94,10 +101,31 @@ export default function HomeScreen() {
     [goToPlaylist],
   );
 
+  // Bottom clearance: system nav + FAB, plus the mini-player when docked.
+  const listBottomPadding =
+    insets.bottom + FAB_CLEARANCE + (miniVisible ? MINI_PLAYER_HEIGHT : 0);
+
   return (
     <Screen>
-      {/* The bottom tab bar already clears the system nav, so the list adds no
-          bottom inset of its own. */}
+      <Stack.Screen
+        options={{
+          title: t('app.title'),
+          // Settings lives behind the app bar gear — with no profile tab,
+          // this is its one entry point.
+          headerRight: () => (
+            <ThemedHost matchContents>
+              <IconButton onClick={() => router.push('/settings')}>
+                <Icon
+                  source={iconSource('settings')}
+                  tint={colors.onSurface}
+                  contentDescription={t('app.settings')}
+                />
+              </IconButton>
+            </ThemedHost>
+          ),
+        }}
+      />
+
       <SafeAreaView style={styles.safeArea} edges={[]}>
         {firstLoad ? (
           // Delay-gated: a cached first load settles inside the window, so the
@@ -133,13 +161,28 @@ export default function HomeScreen() {
             renderItem={renderPlaylist}
             onScroll={onScroll}
             scrollEventThrottle={SCROLL_THROTTLE_MS}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={{
+              paddingHorizontal: LIST_PADDING,
+              paddingTop: CARD_GAP,
+              paddingBottom: listBottomPadding,
+            }}
           />
         )}
 
-        {/* Direct SafeAreaView child: absolute positioning anchors to the
-            screen edge, so the bottom inset is added by hand. */}
-        <View style={[styles.fab, { bottom: insets.bottom + FAB_MARGIN }]}>
+        {/* Same FAB anchoring as Topper's detail screen: absolute against the
+            screen edge, the bottom inset added by hand — plus the docked
+            mini-player's height when it's up. */}
+        <View
+          style={[
+            styles.fab,
+            {
+              bottom:
+                insets.bottom +
+                FAB_MARGIN +
+                (miniVisible ? MINI_PLAYER_HEIGHT : 0),
+            },
+          ]}
+        >
           <ThemedHost matchContents>
             <ExtendedFloatingActionButton
               expanded={!scrolled}
@@ -160,6 +203,14 @@ export default function HomeScreen() {
             </ExtendedFloatingActionButton>
           </ThemedHost>
         </View>
+
+        {/* The persistent mini-player, pinned to the bottom edge (it pads
+            itself past the system nav). */}
+        {miniVisible ? (
+          <View style={styles.miniPlayer}>
+            <MiniPlayer />
+          </View>
+        ) : null}
 
         {createVisible && (
           <EditPlaylistSheet onClose={() => setCreateVisible(false)} />
@@ -183,10 +234,8 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Deleting a playlist is a REAL delete (its songs + their files go
-            with it), so it confirms — unlike Topper's trash-with-undo, there
-            is no trash tier here yet. Own Host (dialog beside other Compose
-            content flickers siblings). */}
+        {/* Deleting a playlist is a REAL delete (its songs go with it), so it
+            confirms. Own Host (dialogs corrupt Compose siblings). */}
         {deleteTarget && (
           <ThemedHost matchContents>
             <DestructiveConfirmDialog
@@ -210,12 +259,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   list: { flex: 1 },
-  listContent: {
-    paddingHorizontal: LIST_PADDING,
-    paddingTop: CARD_GAP,
-    // Clears the floating action button (16dp offset + 56dp FAB + gap).
-    paddingBottom: 88,
-  },
   cardWrap: { marginBottom: CARD_GAP },
   skeletonList: {
     gap: CARD_GAP,
@@ -225,5 +268,11 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: FAB_MARGIN,
+  },
+  miniPlayer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
 });
