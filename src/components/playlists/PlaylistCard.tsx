@@ -1,30 +1,29 @@
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Playlist } from '@/services/firebase/playlists';
-import { CARD_RADIUS, innerRadius, SHAPE_SM } from '@/styles/shape';
+import { CARD_RADIUS } from '@/styles/shape';
 
 // Material 3 filled-card look in plain RN views (Topper's TopCard reasoning:
 // a Compose Host per card measures async, so a list of them lags). Tokens
 // mirror the Compose Card (surfaceContainer, 12dp corners) and the type scale.
 const EMOJI_SIZE = 22;
 const CARD_PADDING = 16;
-// Concentric with the card's corner across the 16dp inset — the private pill.
-const NESTED_RADIUS = innerRadius(CARD_RADIUS, CARD_PADDING, SHAPE_SM);
 
 type PlaylistCardProps = {
   onPress: () => void;
-  /** Long-press quick actions (Edit / Delete) — home list only. */
+  /** Long-press quick actions (Edit / Delete). */
   onLongPress?: () => void;
   playlist: Playlist;
 };
 
 /**
- * Card for playlists lists (home, profile): emoji + name + a private pill,
- * then the song count. Tap opens the playlist; long-press offers Edit/Delete.
+ * Card for the home playlists list: emoji + name, then the song count. Tap
+ * opens the playlist; long-press offers Edit/Delete. No visibility pill — a
+ * personal app has no public tier.
  */
 export function PlaylistCard({
   onPress,
@@ -34,7 +33,6 @@ export function PlaylistCard({
   const { t } = useI18n();
   const { colors } = useAppTheme();
 
-  const isPrivate = playlist.visibility === 'private';
   const countLabel = `${playlist.songCount} ${t(
     playlist.songCount === 1 ? 'home.song' : 'home.songs',
   )}`;
@@ -53,25 +51,6 @@ export function PlaylistCard({
             numberOfLines={1}
             style={styles.name}
           />
-          {isPrivate ? (
-            <View
-              style={[
-                styles.pill,
-                {
-                  backgroundColor:
-                    Platform.OS === 'ios'
-                      ? colors.surfaceContainer
-                      : colors.surfaceVariant,
-                },
-              ]}
-            >
-              <Text
-                muted
-                text="playlistEdit.visibility.private"
-                variant="labelMedium"
-              />
-            </View>
-          ) : null}
         </View>
 
         <Text doNotTranslate muted text={countLabel} variant="bodySmall" />
@@ -93,9 +72,4 @@ const styles = StyleSheet.create({
   },
   emoji: { fontSize: EMOJI_SIZE },
   name: { flex: 1 },
-  pill: {
-    borderRadius: NESTED_RADIUS,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
 });

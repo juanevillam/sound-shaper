@@ -5,8 +5,6 @@ import {
   ModalBottomSheet,
   OutlinedTextField,
   RNHostView,
-  SegmentedButton,
-  SingleChoiceSegmentedButtonRow,
   Text,
   useNativeState,
   type ModalBottomSheetRef,
@@ -21,16 +19,11 @@ import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
-import {
-  createPlaylist,
-  updatePlaylist,
-  type PlaylistVisibility,
-} from '@/services/firebase/playlists';
+import { createPlaylist, updatePlaylist } from '@/services/firebase/playlists';
 import { useAuthStore } from '@/store/auth';
 import { usePlaylistsStore } from '@/store/playlists';
 
 const DEFAULT_EMOJI = '🎵';
-const VISIBILITIES: PlaylistVisibility[] = ['public', 'private'];
 
 type EditPlaylistSheetProps = {
   /** Omit to create a new playlist; pass an id to edit that playlist. */
@@ -68,9 +61,6 @@ export function EditPlaylistSheet({
     editingPlaylist?.description ?? '',
   );
   const [emoji, setEmoji] = useState(editingPlaylist?.emoji ?? DEFAULT_EMOJI);
-  const [visibility, setVisibility] = useState<PlaylistVisibility>(
-    editingPlaylist?.visibility ?? 'private',
-  );
   const [showNameError, setShowNameError] = useState(false);
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
 
@@ -100,14 +90,12 @@ export function EditPlaylistSheet({
           emoji,
           name: trimmedName,
           playlistId,
-          visibility,
         })
       : createPlaylist({
           description: trimmedDescription,
           emoji,
           name: trimmedName,
           ownerId: uid,
-          visibility,
         });
 
     action
@@ -222,46 +210,6 @@ export function EditPlaylistSheet({
                 <Text>{t('playlistEdit.description.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
             </OutlinedTextField>
-
-            {/* Visibility grouped with extra top/bottom padding so it reads
-                apart from the fields above. */}
-            <Column
-              verticalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth(), padding(0, 8, 0, 8)]}
-            >
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelLarge' }}
-              >
-                {t('playlistEdit.visibility.label')}
-              </Text>
-              <Column
-                verticalArrangement={{ spacedBy: 6 }}
-                modifiers={[fillMaxWidth()]}
-              >
-                <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
-                  {VISIBILITIES.map(value => (
-                    <SegmentedButton
-                      key={value}
-                      selected={visibility === value}
-                      onClick={() => setVisibility(value)}
-                    >
-                      <SegmentedButton.Label>
-                        <Text maxLines={1}>
-                          {t(`playlistEdit.visibility.${value}`)}
-                        </Text>
-                      </SegmentedButton.Label>
-                    </SegmentedButton>
-                  ))}
-                </SingleChoiceSegmentedButtonRow>
-                <Text
-                  color={colors.onSurfaceMuted}
-                  style={{ typography: 'bodySmall' }}
-                >
-                  {t(`playlistEdit.visibility.${visibility}Description`)}
-                </Text>
-              </Column>
-            </Column>
           </Column>
         </ModalBottomSheet>
       </ThemedHost>

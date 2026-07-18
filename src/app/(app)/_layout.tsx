@@ -48,17 +48,17 @@ export default function AppLayout() {
           animation: Platform.select({ android: 'fade_from_bottom' }),
         }}
       >
-        {/* The three top-level destinations (Home / Explore / Profile) live in
-            the tab group, which owns its own headers via the bottom-tab
-            navigator. Everything below pushes OVER the bottom bar. */}
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false, title: t('app.title') }}
-        />
+        {/* Home is the single root — a personal app has no tabs. Its title +
+            settings gear are set by the screen itself. */}
+        <Stack.Screen name="home" options={{ title: t('app.title') }} />
         <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
         <Stack.Screen
           name="playlist-detail"
           options={{ title: t('app.playlistDetail') }}
+        />
+        <Stack.Screen
+          name="now-playing"
+          options={{ title: t('player.title') }}
         />
         <Stack.Screen
           name="manage-account"
