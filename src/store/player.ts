@@ -144,8 +144,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   reset: () => {
+    // Pause + rewind, but DON'T `replace(null)`: the native module rejects a
+    // null source at runtime (crashed sign-out). Clearing `current` already
+    // hides every player surface, and the next playSong replaces the source.
     audioPlayer.pause();
-    audioPlayer.replace(null);
+    audioPlayer.seekTo(0);
     set({
       current: null,
       queue: [],
