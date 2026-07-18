@@ -29,6 +29,8 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 import { useAudioPlayerStatus } from 'expo-audio';
+import { Stack, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipSaveSheet } from '@/components/player/ClipSaveSheet';
 import { Screen } from '@/components/ui/Screen';
@@ -75,6 +77,7 @@ export default function NowPlayingScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
   const current = usePlayerStore(s => s.current);
   const playlistId = usePlayerStore(s => s.playlistId);
@@ -154,7 +157,24 @@ export default function NowPlayingScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+      >
+        {/* Headerless: the close chevron is the only chrome (slide-up sheet
+            idiom — Android back dismisses too). */}
+        <View style={styles.topBar}>
+          <ThemedHost matchContents>
+            <IconButton onClick={() => router.back()}>
+              <AppIcon
+                name="close"
+                tint={colors.onSurface}
+                contentDescription={t('common.cancel')}
+              />
+            </IconButton>
+          </ThemedHost>
+        </View>
+
         <View style={styles.artWrap}>
           <SongArt
             artUrl={current.artUrl || undefined}
@@ -163,13 +183,15 @@ export default function NowPlayingScreen() {
           />
         </View>
 
+        {/* Identity block, LEFT-aligned like a music app's player — the
+            centered look was the Topper voice. */}
         <View style={styles.titleBlock}>
           <AppText
             doNotTranslate
             text={current.name}
             variant="titleLarge"
             numberOfLines={2}
-            style={styles.centerText}
+            style={styles.titleText}
           />
           {current.artist ? (
             <AppText
@@ -178,7 +200,6 @@ export default function NowPlayingScreen() {
               text={current.artist}
               variant="bodyMedium"
               numberOfLines={1}
-              style={styles.centerText}
             />
           ) : null}
         </View>
@@ -426,11 +447,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 32,
     paddingHorizontal: 24,
-    paddingTop: 16,
+  },
+  topBar: {
+    alignItems: 'flex-start',
+    marginLeft: -12,
+    paddingBottom: 4,
+    width: '100%',
   },
   artWrap: { alignItems: 'center', width: '100%' },
   art: { borderRadius: TILE_RADIUS },
   titleBlock: { gap: 4, paddingTop: 20, width: '100%' },
-  centerText: { textAlign: 'center' },
+  titleText: { fontWeight: '700' },
   host: { width: '100%' },
 });

@@ -19,11 +19,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { CARD_RADIUS, innerRadius, SHAPE_MD } from '@/styles/shape';
+import { innerRadius, SHAPE_SM, TILE_RADIUS } from '@/styles/shape';
 
-// Nested-child radius mirrored from the real SongCard (same outer radius,
-// inset, and M3 step), so the bone rounds exactly like the art it stands for.
-const SONG_THUMB_RADIUS = innerRadius(CARD_RADIUS, 12, SHAPE_MD);
+// Mirrors SongRow's art radius (48dp art inset 8 in a TILE_RADIUS context),
+// so the bone rounds exactly like the art it stands for.
+const SONG_THUMB_RADIUS = innerRadius(TILE_RADIUS, 8, SHAPE_SM);
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -94,66 +94,46 @@ export function Skeleton({
   );
 }
 
-// Shared card chrome so a skeleton sits in the same surface/radius/padding as
-// the real card it stands in for.
-function SkeletonCard({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const { colors } = useAppTheme();
-
+/** Stand-in for `PlaylistTile` — the home grid: artwork square + two text
+ *  lines under it, so the grid doesn't reflow on settle. */
+export function PlaylistTileSkeleton() {
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }, style]}>
-      {children}
+    <View>
+      <Skeleton
+        width="100%"
+        height={undefined}
+        radius={TILE_RADIUS}
+        style={styles.tileArt}
+      />
+      <Skeleton width="75%" height={16} style={styles.tileName} />
+      <Skeleton width="40%" height={12} />
     </View>
   );
 }
 
-/** Stand-in for `PlaylistCard` — home list + profile. */
-export function PlaylistCardSkeleton() {
+/** Stand-in for `SongRow` — the flat 64dp track row (48dp art, two lines). */
+export function SongRowSkeleton() {
   return (
-    <SkeletonCard style={styles.playlistCard}>
-      <View style={styles.playlistHeader}>
-        <Skeleton width={24} height={24} radius={6} />
-        <Skeleton width="55%" height={18} />
-      </View>
-      <View style={styles.playlistMetaLine}>
-        <Skeleton width="30%" height={12} />
-      </View>
-    </SkeletonCard>
-  );
-}
-
-/** Stand-in for `SongCard` — the playlist-detail song list (art, title,
- * artist), so a cold load matches the rest of the app instead of a spinner. */
-export function SongCardSkeleton() {
-  return (
-    <SkeletonCard style={styles.songCard}>
-      <Skeleton width={56} height={56} radius={SONG_THUMB_RADIUS} />
+    <View style={styles.songRow}>
+      <Skeleton width={48} height={48} radius={SONG_THUMB_RADIUS} />
       <View style={styles.songBody}>
-        <Skeleton width="70%" height={18} />
-        <Skeleton width="45%" height={14} />
+        <Skeleton width="70%" height={16} />
+        <Skeleton width="45%" height={12} />
       </View>
-    </SkeletonCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: CARD_RADIUS, padding: 16 },
-  playlistCard: { gap: 10 },
-  playlistHeader: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  // bodySmall meta line box (16dp nominal, inflated by includeFontPadding).
-  playlistMetaLine: { height: 18, justifyContent: 'center' },
-  songCard: {
+  // aspectRatio drives the height; the fixed-height prop is overridden.
+  tileArt: { aspectRatio: 1, marginBottom: 10 },
+  tileName: { marginBottom: 6 },
+  songRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    minHeight: 80,
+    gap: 14,
+    height: 64,
     paddingHorizontal: 16,
-    paddingVertical: 12,
   },
-  songBody: { flex: 1, gap: 4 },
+  songBody: { flex: 1, gap: 6 },
 });

@@ -56,9 +56,16 @@ export default function AppLayout() {
           name="playlist-detail"
           options={{ title: t('app.playlistDetail') }}
         />
+        {/* The player is a full-screen sheet sliding up from the mini-player
+            (the YT Music gesture language), not a pushed page — no app bar,
+            its own close affordance. */}
         <Stack.Screen
           name="now-playing"
-          options={{ title: t('player.title') }}
+          options={{
+            title: t('player.title'),
+            headerShown: false,
+            animation: 'slide_from_bottom',
+          }}
         />
         <Stack.Screen
           name="manage-account"
