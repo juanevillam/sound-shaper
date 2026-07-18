@@ -15,6 +15,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useI18n } from '@/i18n';
+import { configureAudioSession } from '@/lib/player';
 import { SnackbarProvider } from '@/providers/SnackbarProvider';
 import { recordError } from '@/services/firebase/crashlytics';
 import { useAuthStore } from '@/store/auth';
@@ -86,6 +87,12 @@ export default function RootLayout() {
   // fetch on first render. Non-blocking — never gates app readiness.
   useEffect(() => {
     preloadIcons().catch(() => {});
+  }, []);
+
+  // Music-app audio session: keep playing in the background / with the
+  // screen off, take audio focus instead of mixing. Once, at startup.
+  useEffect(() => {
+    configureAudioSession().catch(() => {});
   }, []);
 
   if (!ready) return null;

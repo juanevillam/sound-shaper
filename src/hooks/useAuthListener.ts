@@ -7,6 +7,7 @@ import {
 } from '@/services/firebase/auth';
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useProfileStore } from '@/store/profile';
 import { useSongsStore } from '@/store/songs';
@@ -28,7 +29,9 @@ export const useAuthListener = () => {
       if (!user) {
         const wasManual = consumeManualSignOutFlag();
 
-        // Wipe every user-scoped store so the next account starts clean.
+        // Wipe every user-scoped store so the next account starts clean —
+        // including live playback (the songs belong to the signed-out account).
+        usePlayerStore.getState().reset();
         usePlaylistsStore.getState().clear();
         useSongsStore.getState().clear();
         useProfileStore.getState().clear();

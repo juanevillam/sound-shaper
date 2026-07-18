@@ -27,6 +27,7 @@ import Sortable, {
   type SortableGridRenderItem,
 } from 'react-native-sortables';
 
+import { MiniPlayer, MINI_PLAYER_HEIGHT } from '@/components/player/MiniPlayer';
 import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
 import {
   EditSongSheet,
@@ -48,6 +49,7 @@ import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
 import { deletePlaylist } from '@/services/firebase/playlists';
 import { reorderSongs, type Song } from '@/services/firebase/songs';
+import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useSongsStore } from '@/store/songs';
 
@@ -200,16 +202,26 @@ export default function PlaylistDetailScreen() {
     [playlistId, showSnackbar, t],
   );
 
+  const playSong = usePlayerStore(s => s.playSong);
+  const currentSongId = usePlayerStore(s => s.current?.id);
+  const miniVisible = usePlayerStore(s => s.current !== null);
+
+  // Tap = play (the music-app native expectation); editing metadata moves to
+  // the card's long-press, mirroring the home cards' management idiom.
   const renderSong = useCallback<SortableGridRenderItem<Song>>(
     ({ item, index }) => (
       <SongCard
         song={item}
         index={index}
         shouldEnter={isTransitionDone}
-        onPress={() => setEditingSongId(item.id)}
+        isCurrent={item.id === currentSongId}
+        onPress={() => {
+          if (playlistId && songs) playSong(item, songs, playlistId);
+        }}
+        onLongPress={() => setEditingSongId(item.id)}
       />
     ),
-    [isTransitionDone],
+    [isTransitionDone, currentSongId, playSong, playlistId, songs],
   );
 
   return (
@@ -282,7 +294,7 @@ export default function PlaylistDetailScreen() {
         }}
       />
 
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         <View style={styles.content}>
           {/* The playlist's free-text note, pinned above the songs. */}
           {playlist && playlist.description.length > 0 ? (
@@ -334,7 +346,15 @@ export default function PlaylistDetailScreen() {
             <Animated.ScrollView
               ref={scrollableRef}
               style={styles.list}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                // System nav + FAB clearance, plus the mini-player when up
+                // (the SafeAreaView no longer pads the bottom).
+                {
+                  paddingBottom:
+                    insets.bottom + 88 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
+                },
+              ]}
               onScroll={onScroll}
               scrollEventThrottle={SCROLL_THROTTLE_MS}
             >
@@ -357,7 +377,25 @@ export default function PlaylistDetailScreen() {
           )}
         </View>
 
-        <View style={[styles.fab, { bottom: insets.bottom + FAB_MARGIN }]}>
+        {/* Pushed screens cover the tab bar, so this screen hosts its own
+            mini-player instance, pinned to the bottom edge. */}
+        {miniVisible ? (
+          <View style={styles.miniPlayer}>
+            <MiniPlayer />
+          </View>
+        ) : null}
+
+        <View
+          style={[
+            styles.fab,
+            {
+              bottom:
+                insets.bottom +
+                FAB_MARGIN +
+                (miniVisible ? MINI_PLAYER_HEIGHT : 0),
+            },
+          ]}
+        >
           <ThemedHost matchContents>
             <ExtendedFloatingActionButton
               expanded={!scrolled}
@@ -426,15 +464,20 @@ const styles = StyleSheet.create({
   description: { paddingHorizontal: 16, paddingVertical: 12 },
   descriptionText: { includeFontPadding: false },
   list: { flex: 1 },
+  // Bottom clearance is computed inline (inset + FAB + mini-player).
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    // Clears the floating action button (16dp offset + 56dp FAB + gap).
-    paddingBottom: 88,
   },
   listSkeleton: { gap: CARD_GAP, paddingHorizontal: 16, paddingTop: 12 },
   fab: {
     position: 'absolute',
     right: FAB_MARGIN,
+  },
+  miniPlayer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
 });

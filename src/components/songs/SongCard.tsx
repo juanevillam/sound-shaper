@@ -49,7 +49,12 @@ type SongCardProps = {
   /** Show the drag handle — the owner's reorderable list. */
   draggable?: boolean;
   song: Song;
+  /** Tap: play the song. */
   onPress: () => void;
+  /** Long-press: open the metadata editor. */
+  onLongPress?: () => void;
+  /** This song is loaded in the player — its title tints primary. */
+  isCurrent?: boolean;
   /** 1-based position, used only to stagger the entrance cascade. */
   index: number;
   /** Gate for the entrance animation (flips when the push transition lands). */
@@ -89,6 +94,8 @@ export function SongCard({
   draggable = true,
   song,
   onPress,
+  onLongPress,
+  isCurrent = false,
   index,
   shouldEnter = true,
 }: SongCardProps) {
@@ -131,7 +138,7 @@ export function SongCard({
 
   return (
     <Animated.View style={enterStyle}>
-      <SquashPressable onPress={onPress}>
+      <SquashPressable onPress={onPress} onLongPress={onLongPress}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <SongArt
             artUrl={song.artUrl || undefined}
@@ -145,6 +152,7 @@ export function SongCard({
               text={song.name}
               variant="bodyLarge"
               numberOfLines={1}
+              style={isCurrent ? { color: colors.primary } : undefined}
             />
             {subtitle.length > 0 ? (
               <Text
