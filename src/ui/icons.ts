@@ -22,6 +22,7 @@ import Help from '@expo/material-symbols/help.xml';
 import Home from '@expo/material-symbols/home.xml';
 import Image from '@expo/material-symbols/image.xml';
 import Info from '@expo/material-symbols/info.xml';
+import KeyboardArrowDown from '@expo/material-symbols/keyboard_arrow_down.xml';
 import Language from '@expo/material-symbols/language.xml';
 import Lock from '@expo/material-symbols/lock.xml';
 import Logout from '@expo/material-symbols/logout.xml';
@@ -68,6 +69,7 @@ const icons = {
   block: Block,
   check: Check,
   chevron: ChevronRight,
+  'chevron-down': KeyboardArrowDown,
   close: Close,
   'dark-mode': DarkMode,
   delete: Delete,

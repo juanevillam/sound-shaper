@@ -26,6 +26,7 @@ const SF_SYMBOLS = {
   block: 'nosign',
   check: 'checkmark',
   chevron: 'chevron.right',
+  'chevron-down': 'chevron.down',
   close: 'xmark',
   'dark-mode': 'circle.lefthalf.filled',
   delete: 'trash',

@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { Redirect, Stack } from 'expo-router';
 
+import { PlayerSheet } from '@/components/player/PlayerSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useEnsureDefaultPlaylist } from '@/hooks/useEnsureDefaultPlaylist';
 import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
@@ -52,26 +53,17 @@ export default function AppLayout() {
             settings gear are set by the screen itself. */}
         <Stack.Screen name="home" options={{ title: t('app.title') }} />
         <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
-        <Stack.Screen
-          name="playlist-detail"
-          options={{ title: t('app.playlistDetail') }}
-        />
-        {/* The player is a full-screen sheet sliding up from the mini-player
-            (the YT Music gesture language), not a pushed page — no app bar,
-            its own close affordance. */}
-        <Stack.Screen
-          name="now-playing"
-          options={{
-            title: t('player.title'),
-            headerShown: false,
-            animation: 'slide_from_bottom',
-          }}
-        />
+        {/* Empty title from the start — the identity lives in the screen's
+            hero, and the default title would flash during the art morph. */}
+        <Stack.Screen name="playlist-detail" options={{ title: '' }} />
         <Stack.Screen
           name="manage-account"
           options={{ title: t('settings.manageAccount.title') }}
         />
       </Stack>
+      {/* The player is not a route: banner and full player are ONE surface
+          that expands in place over every screen (the YT Music interaction). */}
+      <PlayerSheet />
     </>
   );
 }

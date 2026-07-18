@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
@@ -16,20 +16,30 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Playlist } from '@/services/firebase/playlists';
-import { useArtTransitionStore } from '@/store/artTransition';
+import { ART_EMOJI_RATIO, useArtTransitionStore } from '@/store/artTransition';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // YT-Music-style library tile: the "artwork" square (the playlist's emoji as
 // its cover) with the name + count stacked UNDER it, not boxed in a card —
 // art-forward, flat, unmistakably a music app. Pure RN (grids of Compose
-// Hosts measure async and lag — the Topper cards lesson).
-const EMOJI_SIZE = 56;
+// Hosts measure async and lag — the Topper cards lesson). The emoji is sized
+// from the tile's MEASURED width by the shared ratio, so the hero morph's
+// uniform scale lands it exactly on the detail hero's emoji.
+const EMOJI_FALLBACK_SIZE = 56;
 
 // Entrance: tiles fade-rise in a stagger, same vocabulary as the song rows.
 const ENTER_DURATION_MS = 220;
 const ENTER_STAGGER_MS = 30;
 const ENTER_STAGGER_CAP = 10;
 const ENTER_RISE = 12;
+
+// Ratio-sized emoji with the explicit line height Android needs to not clip
+// large glyphs to the font's nominal line box.
+const emojiStyle = (artSize: number) => {
+  const fontSize =
+    artSize > 0 ? artSize * ART_EMOJI_RATIO : EMOJI_FALLBACK_SIZE;
+  return { fontSize, lineHeight: fontSize * 1.4 };
+};
 
 type PlaylistTileProps = {
   onPress: () => void;
@@ -51,6 +61,8 @@ export function PlaylistTile({
   const setHandoff = useArtTransitionStore(s => s.setHandoff);
 
   const artRef = useRef<View>(null);
+  // Measured tile width drives the emoji size (ratio shared with the hero).
+  const [artSize, setArtSize] = useState(0);
   const initialIndex = useRef(index).current;
   const hasEntered = useRef(false);
   const enterProgress = useSharedValue(0);
@@ -108,12 +120,13 @@ export function PlaylistTile({
       <SquashPressable onPress={pressWithHandoff} onLongPress={onLongPress}>
         <View
           ref={artRef}
+          onLayout={event => setArtSize(event.nativeEvent.layout.width)}
           style={[styles.art, { backgroundColor: colors.surfaceContainer }]}
         >
           <Text
             doNotTranslate
             text={playlist.emoji || '🎵'}
-            style={styles.emoji}
+            style={emojiStyle(artSize)}
           />
         </View>
         <Text
@@ -161,9 +174,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderWidth: StyleSheet.hairlineWidth * 2,
   },
-  // Explicit line height: Android clips large emoji glyphs to the font's
-  // nominal line box otherwise (only the stems survive).
-  emoji: { fontSize: EMOJI_SIZE, lineHeight: EMOJI_SIZE * 1.4 },
   plus: { fontSize: 44, lineHeight: 60 },
   name: { marginBottom: 1 },
 });

@@ -18,11 +18,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Animated, {
   Easing,
+  FadeIn,
   runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import {
@@ -34,7 +36,7 @@ import Sortable, {
   type SortableGridRenderItem,
 } from 'react-native-sortables';
 
-import { MiniPlayer, MINI_PLAYER_HEIGHT } from '@/components/player/MiniPlayer';
+import { MINI_PLAYER_HEIGHT } from '@/components/player/PlayerSheet';
 import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
 import {
   EditSongSheet,
@@ -55,7 +57,7 @@ import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
 import { deletePlaylist } from '@/services/firebase/playlists';
 import { reorderSongs, type Song } from '@/services/firebase/songs';
-import { useArtTransitionStore } from '@/store/artTransition';
+import { ART_EMOJI_RATIO, useArtTransitionStore } from '@/store/artTransition';
 import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useSongsStore } from '@/store/songs';
@@ -63,14 +65,15 @@ import { TILE_RADIUS } from '@/styles/shape';
 
 const MENU_ICON_SIZE = 24;
 const HERO_ART_SIZE = 148;
-const HERO_EMOJI_SIZE = 72;
+// The shared ratio: the flying tile's uniform scale lands its emoji exactly
+// on this (no size jump at the handover).
+const HERO_EMOJI_SIZE = Math.round(HERO_ART_SIZE * ART_EMOJI_RATIO);
 const ROW_GAP = 4;
-// The tile→hero art morph: flight time, then a short crossfade into the real
-// hero (which absorbs the small emoji-scale difference between the two).
-const MORPH_MS = 320;
-const MORPH_FADE_MS = 140;
-// Matches PlaylistTile's emoji sizing so the overlay starts pixel-identical.
-const MORPH_EMOJI_SIZE = 56;
+// The tile→hero art morph: a beat at the source (continuity with the tap),
+// the flight, then a quick opacity handover to the real hero.
+const MORPH_HOLD_MS = 40;
+const MORPH_MS = 300;
+const MORPH_FADE_MS = 90;
 
 type MorphRects = {
   from: { x: number; y: number; size: number };
@@ -150,34 +153,38 @@ export default function PlaylistDetailScreen() {
   useEffect(() => {
     if (!handoff || reduceMotion) return;
 
-    // One frame so the hero has laid out before we measure it.
-    const raf = requestAnimationFrame(() => {
-      const root = rootRef.current;
-      const hero = heroArtRef.current;
+    // Layout is committed by the time effects run — measure immediately (a
+    // deferred frame here was most of the perceived flicker).
+    const root = rootRef.current;
+    const hero = heroArtRef.current;
 
-      if (!root || !hero) {
-        setHeroShown(true);
-        return;
-      }
+    if (!root || !hero) {
+      setHeroShown(true);
+      return;
+    }
 
-      root.measureInWindow((rootX, rootY) => {
-        hero.measureInWindow((heroX, heroY, heroWidth) => {
-          if (!heroWidth) {
-            setHeroShown(true);
-            return;
-          }
+    root.measureInWindow((rootX, rootY) => {
+      hero.measureInWindow((heroX, heroY, heroWidth) => {
+        if (!heroWidth) {
+          setHeroShown(true);
+          return;
+        }
 
-          // Both rects re-based into this screen's coordinate space.
-          setMorph({
-            from: {
-              x: handoff.x - rootX,
-              y: handoff.y - rootY,
-              size: handoff.size,
-            },
-            to: { x: heroX - rootX, y: heroY - rootY, size: heroWidth },
-          });
+        // Both rects re-based into this screen's coordinate space.
+        setMorph({
+          from: {
+            x: handoff.x - rootX,
+            y: handoff.y - rootY,
+            size: handoff.size,
+          },
+          to: { x: heroX - rootX, y: heroY - rootY, size: heroWidth },
+        });
 
-          morphProgress.value = withTiming(
+        // A short hold at the source keeps continuity with the tapped tile
+        // while the screen fades in under the overlay, then the flight.
+        morphProgress.value = withDelay(
+          MORPH_HOLD_MS,
+          withTiming(
             1,
             { duration: MORPH_MS, easing: Easing.out(Easing.cubic) },
             finished => {
@@ -194,12 +201,10 @@ export default function PlaylistDetailScreen() {
                 },
               );
             },
-          );
-        });
+          ),
+        );
       });
     });
-
-    return () => cancelAnimationFrame(raf);
     // Mount-only: the handoff is consumed once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -352,9 +357,10 @@ export default function PlaylistDetailScreen() {
           title: '',
           headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
-          // A quick fade underneath the art morph — a sliding screen would
-          // drag the morph's target rect with it.
-          animation: 'fade',
+          // No native transition at all: RNS's fade composited over the morph
+          // overlay read as flicker. The content fades itself in (below)
+          // while the overlay owns the motion.
+          animation: 'none',
           headerRight: playlist
             ? () => (
                 <ThemedHost matchContents>
@@ -419,7 +425,10 @@ export default function PlaylistDetailScreen() {
       />
 
       <SafeAreaView ref={rootRef} style={styles.safeArea} edges={[]}>
-        <View style={styles.content}>
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(240)}
+          style={styles.content}
+        >
           {error ? (
             <EmptyState
               title={t('playlistDetail.error.title')}
@@ -549,7 +558,7 @@ export default function PlaylistDetailScreen() {
               )}
             </Animated.ScrollView>
           )}
-        </View>
+        </Animated.View>
 
         {/* The flying artwork: a copy of the pressed tile, translated+scaled
             from where it was tapped onto the hero slot. */}
@@ -571,15 +580,14 @@ export default function PlaylistDetailScreen() {
             <Text
               doNotTranslate
               text={handoff.emoji}
-              style={styles.morphEmoji}
+              // Ratio-sized to the overlay's own square: after the uniform
+              // scale it lands at exactly the hero's emoji size.
+              style={{
+                fontSize: handoff.size * ART_EMOJI_RATIO,
+                lineHeight: handoff.size * ART_EMOJI_RATIO * 1.4,
+              }}
             />
           </Animated.View>
-        ) : null}
-
-        {miniVisible ? (
-          <View style={styles.miniPlayer}>
-            <MiniPlayer />
-          </View>
         ) : null}
 
         {editPlaylistVisible && (
@@ -651,19 +659,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 10,
   },
-  morphEmoji: {
-    fontSize: MORPH_EMOJI_SIZE,
-    lineHeight: MORPH_EMOJI_SIZE * 1.4,
-  },
   heroName: { fontWeight: '700', marginBottom: 2, textAlign: 'center' },
   heroDescription: { marginTop: 10, textAlign: 'center' },
   actions: { alignSelf: 'stretch', height: 48, marginTop: 16 },
   emptyWrap: { minHeight: 260 },
   listSkeleton: { gap: ROW_GAP },
-  miniPlayer: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
 });
