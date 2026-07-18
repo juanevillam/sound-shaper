@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+// One emoji-to-container ratio shared by the grid tiles, the detail hero, and
+// the morph overlay — with a uniform-scale flight, an identical ratio means
+// the artwork lands pixel-exact (no emoji resize at the crossfade).
+export const ART_EMOJI_RATIO = 0.38;
+
 // Hand-rolled shared-element handoff: the pressed tile measures its artwork
 // in WINDOW coordinates and parks it here; the destination screen consumes it
 // once and morphs an overlay copy from that rect into its hero. This exists

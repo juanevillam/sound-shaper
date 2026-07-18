@@ -11,7 +11,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { MiniPlayer, MINI_PLAYER_HEIGHT } from '@/components/player/MiniPlayer';
+import { MINI_PLAYER_HEIGHT } from '@/components/player/PlayerSheet';
 import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
 import { PlaylistActionsSheet } from '@/components/playlists/PlaylistActionsSheet';
 import {
@@ -200,12 +200,6 @@ export default function HomeScreen() {
           />
         )}
 
-        {miniVisible ? (
-          <View style={styles.miniPlayer}>
-            <MiniPlayer />
-          </View>
-        ) : null}
-
         {createVisible && (
           <EditPlaylistSheet onClose={() => setCreateVisible(false)} />
         )}
@@ -262,10 +256,4 @@ const styles = StyleSheet.create({
   },
   cell: { flex: 1 },
   skeletonGrid: { paddingHorizontal: LIST_PADDING, paddingTop: 8 },
-  miniPlayer: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
 });
