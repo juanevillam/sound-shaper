@@ -14,11 +14,6 @@ export const translations = {
       songEdit: 'New song',
       songEditExisting: 'Edit song',
     },
-    tabs: {
-      home: 'Home',
-      explore: 'Explore',
-      profile: 'Profile',
-    },
     common: {
       cancel: 'Cancel',
       retry: 'Try again',
@@ -38,7 +33,7 @@ export const translations = {
         },
         clip: {
           title: 'Clip the best parts',
-          subtitle: "Mark a song's best seconds and share them.",
+          subtitle: "Mark a song's best seconds and jump right back to them.",
         },
       },
       button: {
@@ -72,23 +67,6 @@ export const translations = {
         subtitle: 'Check your connection and try again.',
       },
     },
-    explore: {
-      title: 'Explore',
-      comingSoon: {
-        title: 'Explore is on its way',
-        subtitle:
-          'Discovering people and their playlists lands in a future update.',
-      },
-    },
-    profile: {
-      ownTitle: 'Your profile',
-      addUsername: 'Add a username',
-      playlists: 'Playlists',
-      playlistOne: 'Playlist',
-      empty: {
-        subtitle: 'The playlists you create show up here.',
-      },
-    },
     playlistEdit: {
       name: {
         label: 'Name',
@@ -103,13 +81,6 @@ export const translations = {
         change: 'Tap to change emoji',
         sheetTitle: 'Pick an emoji',
         recent: 'Recent',
-      },
-      visibility: {
-        label: 'Visibility',
-        public: 'Public',
-        private: 'Private',
-        publicDescription: 'Anyone will be able to find this playlist.',
-        privateDescription: 'Only you can see this playlist.',
       },
       save: 'Create',
       saveExisting: 'Save',
@@ -136,6 +107,16 @@ export const translations = {
         title: 'Could not load the songs',
         subtitle: 'Check your connection and try again.',
       },
+    },
+    player: {
+      title: 'Now playing',
+      play: 'Play',
+      pause: 'Pause',
+      next: 'Next song',
+      previous: 'Previous song',
+      speed: 'Speed',
+      keepPitch: 'Keep pitch',
+      keepPitchDescription: 'Hold the original tone while the speed changes.',
     },
     songEdit: {
       name: {
@@ -267,11 +248,6 @@ export const translations = {
       songEdit: 'Nueva canción',
       songEditExisting: 'Editar canción',
     },
-    tabs: {
-      home: 'Inicio',
-      explore: 'Explorar',
-      profile: 'Perfil',
-    },
     common: {
       cancel: 'Cancelar',
       retry: 'Reintentar',
@@ -290,7 +266,8 @@ export const translations = {
         },
         clip: {
           title: 'Recorta las mejores partes',
-          subtitle: 'Marca los mejores segundos de una canción y compártelos.',
+          subtitle:
+            'Marca los mejores segundos de una canción y vuelve a ellos al instante.',
         },
       },
       button: {
@@ -324,23 +301,6 @@ export const translations = {
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
       },
     },
-    explore: {
-      title: 'Explorar',
-      comingSoon: {
-        title: 'Explorar está en camino',
-        subtitle:
-          'Descubrir personas y sus playlists llegará en una próxima actualización.',
-      },
-    },
-    profile: {
-      ownTitle: 'Tu perfil',
-      addUsername: 'Agrega un nombre de usuario',
-      playlists: 'Playlists',
-      playlistOne: 'Playlist',
-      empty: {
-        subtitle: 'Las playlists que crees aparecerán aquí.',
-      },
-    },
     playlistEdit: {
       name: {
         label: 'Nombre',
@@ -355,13 +315,6 @@ export const translations = {
         change: 'Toca para cambiar el emoji',
         sheetTitle: 'Elige un emoji',
         recent: 'Recientes',
-      },
-      visibility: {
-        label: 'Visibilidad',
-        public: 'Pública',
-        private: 'Privada',
-        publicDescription: 'Cualquiera podrá encontrar esta playlist.',
-        privateDescription: 'Solo tú puedes ver esta playlist.',
       },
       save: 'Crear',
       saveExisting: 'Guardar',
@@ -388,6 +341,17 @@ export const translations = {
         title: 'No se pudieron cargar las canciones',
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
       },
+    },
+    player: {
+      title: 'Reproduciendo',
+      play: 'Reproducir',
+      pause: 'Pausar',
+      next: 'Siguiente canción',
+      previous: 'Canción anterior',
+      speed: 'Velocidad',
+      keepPitch: 'Mantener el tono',
+      keepPitchDescription:
+        'Conserva el tono original mientras cambia la velocidad.',
     },
     songEdit: {
       name: {
@@ -524,11 +488,6 @@ export const translations = {
       songEdit: '新建歌曲',
       songEditExisting: '编辑歌曲',
     },
-    tabs: {
-      home: '主页',
-      explore: '发现',
-      profile: '我的',
-    },
     common: {
       cancel: '取消',
       retry: '重试',
@@ -547,7 +506,7 @@ export const translations = {
         },
         clip: {
           title: '剪辑最精彩的部分',
-          subtitle: '标记一首歌最精彩的几秒并分享。',
+          subtitle: '标记一首歌最精彩的几秒，随时回到那里。',
         },
       },
       button: {
@@ -581,22 +540,6 @@ export const translations = {
         subtitle: '请检查网络连接后重试。',
       },
     },
-    explore: {
-      title: '发现',
-      comingSoon: {
-        title: '发现功能即将上线',
-        subtitle: '发现其他人和他们的歌单将在未来的更新中推出。',
-      },
-    },
-    profile: {
-      ownTitle: '你的资料',
-      addUsername: '添加用户名',
-      playlists: '歌单',
-      playlistOne: '歌单',
-      empty: {
-        subtitle: '你创建的歌单会显示在这里。',
-      },
-    },
     playlistEdit: {
       name: {
         label: '名称',
@@ -611,13 +554,6 @@ export const translations = {
         change: '点按更换表情符号',
         sheetTitle: '选择表情符号',
         recent: '最近使用',
-      },
-      visibility: {
-        label: '可见性',
-        public: '公开',
-        private: '私密',
-        publicDescription: '任何人都可以找到这个歌单。',
-        privateDescription: '只有你能看到这个歌单。',
       },
       save: '创建',
       saveExisting: '保存',
@@ -643,6 +579,16 @@ export const translations = {
         title: '无法加载歌曲',
         subtitle: '请检查网络连接后重试。',
       },
+    },
+    player: {
+      title: '正在播放',
+      play: '播放',
+      pause: '暂停',
+      next: '下一首',
+      previous: '上一首',
+      speed: '速度',
+      keepPitch: '保持音调',
+      keepPitchDescription: '改变速度时保持原来的音调。',
     },
     songEdit: {
       name: {
