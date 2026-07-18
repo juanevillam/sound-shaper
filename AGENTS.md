@@ -12,10 +12,26 @@ public feed plays only the clip preview).
 
 ## Status
 
-**P0 — scaffold + auth.** Copied from `expo-starter` (wiring) + Topper's
-Firebase/auth shell. Not runnable until the Firebase project exists (see the
-three `REPLACE_WITH_*` placeholders in `app.json` + `.firebaserc`, and the two
-missing native config files `google-services.json` / `GoogleService-Info.plist`).
+**Playlist phase (P1) — Topper-structure port, Android-first.** P0 (scaffold +
+Firebase + Google/Apple auth) is done and device-verified. This phase mirrors
+Topper's architecture with playlists in place of tops and songs in place of
+items: `(tabs)` home/explore/profile behind the Compose `AppTabBar`, playlist
+CRUD via `EditPlaylistSheet`, song upload via document-picker → ID3 parse
+(`src/lib/id3.ts`) → `EditSongSheet` → **Cloudinary** (audio as a `video`
+resource + embedded art) + Firestore, drag-reorder via react-native-sortables,
+username claim + profile tab, manage-account info screen.
+
+**No Firebase Storage, no Cloud Functions** — both need the Blaze (paid) plan,
+and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
+`juanevillam` as Topper, unsigned preset `sound_shaper_unsigned`,
+`src/services/cloudinary/`). Consequence: Cloudinary deletion needs a signed
+backend call we don't have, so deleting a song/playlist orphans its Cloudinary
+assets (a known gap, exactly Topper's pre-Functions state).
+
+Deliberate gaps, in build order: **playback** (P2 — the player + mini-player),
+clips (P3), **Explore tab is a stub** (social/discovery ships LAST),
+delete-account flow (needs reauth + sweep), **iOS route twins** (`*.ios.tsx` —
+Android-first like Topper was; the Compose screens don't render on iOS yet).
 
 Brand is deliberately **deferred to the end** — the launcher icon / splash /
 welcome hero currently use **placeholder art borrowed from expo-starter**; the

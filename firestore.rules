@@ -1,23 +1,52 @@
 rules_version = '2';
 
-// P0 starter rules — auth + own-profile only. Song/social/clip rules land in
-// their phases (see docs/sound-shaper-plan.md §5). Default-deny everything not
-// explicitly allowed below.
+// Owner-centric rules for the playlist phase: everything is readable/writable
+// by its owner only (Explore/social opens cross-user reads in a later phase —
+// public visibility is already stored, just not yet granted here).
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- helpers ----------
     function isSignedIn() {
       return request.auth != null;
     }
     function isUser(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
+    function playlistOwner(playlistId) {
+      return get(/databases/$(database)/documents/playlists/$(playlistId)).data.ownerId;
+    }
 
-    // A signed-in user reads any profile (public discovery later) but writes
-    // only their own — the doc `upsertOwnProfile` creates on sign-in.
+    // A signed-in user reads any profile (discovery later) but writes only
+    // their own — the doc `upsertOwnProfile` creates on sign-in.
     match /users/{uid} {
       allow read: if isSignedIn();
       allow write: if isUser(uid);
+    }
+
+    // Username reservations (one doc per lowercased handle, `{ uid }`).
+    // Claimed in a transaction with the profile write — create/overwrite only
+    // for yourself, delete only your own reservation (freeing it on rename).
+    match /usernames/{username} {
+      allow read: if isSignedIn();
+      allow create, update: if isUser(request.resource.data.uid);
+      allow delete: if isUser(resource.data.uid);
+    }
+
+    // Playlists: owner-only CRUD. `ownerId` is immutable after create.
+    match /playlists/{playlistId} {
+      allow read: if isUser(resource.data.ownerId);
+      allow create: if isUser(request.resource.data.ownerId);
+      allow update: if isUser(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isUser(resource.data.ownerId);
+
+      // Songs ride their playlist's ownership (one get() per request, deduped
+      // by the rules engine).
+      match /songs/{songId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == playlistOwner(playlistId);
+      }
     }
   }
 }
