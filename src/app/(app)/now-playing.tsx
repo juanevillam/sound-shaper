@@ -30,6 +30,10 @@ import {
 import { AppIcon } from '@portfolio/mobile-ui';
 import { useAudioPlayerStatus } from 'expo-audio';
 import { Stack, router } from 'expo-router';
+import Animated, {
+  FadeInDown,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipSaveSheet } from '@/components/player/ClipSaveSheet';
@@ -79,6 +83,12 @@ export default function NowPlayingScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
+  const reduceMotion = useReducedMotion();
+
+  // Entrance choreography riding the slide-up: art leads, identity and
+  // controls follow in a cascade. Mount-only (entering animations).
+  const enter = (delay: number) =>
+    reduceMotion ? undefined : FadeInDown.duration(280).delay(delay);
   const current = usePlayerStore(s => s.current);
   const playlistId = usePlayerStore(s => s.playlistId);
   const toggle = usePlayerStore(s => s.toggle);
@@ -175,17 +185,17 @@ export default function NowPlayingScreen() {
           </ThemedHost>
         </View>
 
-        <View style={styles.artWrap}>
+        <Animated.View entering={enter(0)} style={styles.artWrap}>
           <SongArt
             artUrl={current.artUrl || undefined}
             emojiSize={96}
             style={[styles.art, { height: artSize, width: artSize }]}
           />
-        </View>
+        </Animated.View>
 
         {/* Identity block, LEFT-aligned like a music app's player — the
             centered look was the Topper voice. */}
-        <View style={styles.titleBlock}>
+        <Animated.View entering={enter(70)} style={styles.titleBlock}>
           <AppText
             doNotTranslate
             text={current.name}
@@ -202,229 +212,233 @@ export default function NowPlayingScreen() {
               numberOfLines={1}
             />
           ) : null}
-        </View>
+        </Animated.View>
 
-        <ThemedHost matchContents={{ vertical: true }} style={styles.host}>
-          <Column
-            horizontalAlignment="center"
-            verticalArrangement={{ spacedBy: 4 }}
-            modifiers={[fillMaxWidth(), padding(24, 8, 24, 0)]}
-          >
-            <Slider
-              value={Math.min(position, duration)}
-              min={0}
-              max={duration}
-              onValueChange={value => {
-                lastDragRef.current = value;
-                setDragValue(value);
-              }}
-              onValueChangeFinished={() => {
-                audioPlayer.seekTo(lastDragRef.current);
-                // A manual scrub ends any clip replay — the listener would
-                // otherwise pause at the stale boundary.
-                clearActiveClip();
-                setDragValue(null);
-              }}
-              modifiers={[fillMaxWidth()]}
-            />
-            <Row
-              horizontalArrangement="spaceBetween"
-              modifiers={[fillMaxWidth()]}
-            >
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelMedium' }}
-              >
-                {formatTime(position)}
-              </Text>
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelMedium' }}
-              >
-                {formatTime(status.duration)}
-              </Text>
-            </Row>
-
-            {/* Transport: previous / play-pause / next, M3 icon buttons with
-                the big filled center control. */}
-            <Row
-              verticalAlignment="center"
-              horizontalArrangement={{ spacedBy: 24 }}
-              modifiers={[padding(0, 8, 0, 8)]}
-            >
-              <IconButton onClick={previous} modifiers={[size(56, 56)]}>
-                <AppIcon
-                  name="skip-previous"
-                  size={CONTROL_ICON_SIZE}
-                  tint={colors.onSurface}
-                  contentDescription={t('player.previous')}
-                />
-              </IconButton>
-              <FilledIconButton
-                onClick={toggle}
-                modifiers={[size(PLAY_BUTTON_SIZE, PLAY_BUTTON_SIZE)]}
-              >
-                <AppIcon
-                  name={status.playing ? 'pause' : 'play-arrow'}
-                  size={40}
-                  tint={colors.onPrimary}
-                  contentDescription={t(
-                    status.playing ? 'player.pause' : 'player.play',
-                  )}
-                />
-              </FilledIconButton>
-              <IconButton onClick={next} modifiers={[size(56, 56)]}>
-                <AppIcon
-                  name="skip-next"
-                  size={CONTROL_ICON_SIZE}
-                  tint={colors.onSurface}
-                  contentDescription={t('player.next')}
-                />
-              </IconButton>
-            </Row>
-
-            {/* Shape the sound: playback rate presets + pitch retention. */}
+        <Animated.View entering={enter(140)} style={styles.host}>
+          <ThemedHost matchContents={{ vertical: true }} style={styles.host}>
             <Column
-              verticalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth(), padding(0, 16, 0, 0)]}
+              horizontalAlignment="center"
+              verticalArrangement={{ spacedBy: 4 }}
+              modifiers={[fillMaxWidth(), padding(24, 8, 24, 0)]}
             >
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelLarge' }}
+              <Slider
+                value={Math.min(position, duration)}
+                min={0}
+                max={duration}
+                onValueChange={value => {
+                  lastDragRef.current = value;
+                  setDragValue(value);
+                }}
+                onValueChangeFinished={() => {
+                  audioPlayer.seekTo(lastDragRef.current);
+                  // A manual scrub ends any clip replay — the listener would
+                  // otherwise pause at the stale boundary.
+                  clearActiveClip();
+                  setDragValue(null);
+                }}
+                modifiers={[fillMaxWidth()]}
+              />
+              <Row
+                horizontalArrangement="spaceBetween"
+                modifiers={[fillMaxWidth()]}
               >
-                {t('player.speed')}
-              </Text>
-              <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
-                {RATE_PRESETS.map(preset => (
-                  <SegmentedButton
-                    key={preset}
-                    selected={rate === preset}
-                    onClick={() => setRate(preset)}
-                  >
-                    <SegmentedButton.Label>
-                      <Text maxLines={1}>{rateLabel(preset)}</Text>
-                    </SegmentedButton.Label>
-                  </SegmentedButton>
-                ))}
-              </SingleChoiceSegmentedButtonRow>
-            </Column>
-
-            <Row
-              verticalAlignment="center"
-              horizontalArrangement="spaceBetween"
-              modifiers={[fillMaxWidth(), padding(0, 12, 0, 8)]}
-            >
-              <Column verticalArrangement={{ spacedBy: 2 }}>
                 <Text
-                  color={colors.onSurface}
-                  style={{ typography: 'bodyLarge' }}
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelMedium' }}
                 >
-                  {t('player.keepPitch')}
+                  {formatTime(position)}
                 </Text>
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelMedium' }}
+                >
+                  {formatTime(status.duration)}
+                </Text>
+              </Row>
+
+              {/* Transport: previous / play-pause / next, M3 icon buttons with
+                the big filled center control. */}
+              <Row
+                verticalAlignment="center"
+                horizontalArrangement={{ spacedBy: 24 }}
+                modifiers={[padding(0, 8, 0, 8)]}
+              >
+                <IconButton onClick={previous} modifiers={[size(56, 56)]}>
+                  <AppIcon
+                    name="skip-previous"
+                    size={CONTROL_ICON_SIZE}
+                    tint={colors.onSurface}
+                    contentDescription={t('player.previous')}
+                  />
+                </IconButton>
+                <FilledIconButton
+                  onClick={toggle}
+                  modifiers={[size(PLAY_BUTTON_SIZE, PLAY_BUTTON_SIZE)]}
+                >
+                  <AppIcon
+                    name={status.playing ? 'pause' : 'play-arrow'}
+                    size={40}
+                    tint={colors.onPrimary}
+                    contentDescription={t(
+                      status.playing ? 'player.pause' : 'player.play',
+                    )}
+                  />
+                </FilledIconButton>
+                <IconButton onClick={next} modifiers={[size(56, 56)]}>
+                  <AppIcon
+                    name="skip-next"
+                    size={CONTROL_ICON_SIZE}
+                    tint={colors.onSurface}
+                    contentDescription={t('player.next')}
+                  />
+                </IconButton>
+              </Row>
+
+              {/* Shape the sound: playback rate presets + pitch retention. */}
+              <Column
+                verticalArrangement={{ spacedBy: 8 }}
+                modifiers={[fillMaxWidth(), padding(0, 16, 0, 0)]}
+              >
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelLarge' }}
+                >
+                  {t('player.speed')}
+                </Text>
+                <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
+                  {RATE_PRESETS.map(preset => (
+                    <SegmentedButton
+                      key={preset}
+                      selected={rate === preset}
+                      onClick={() => setRate(preset)}
+                    >
+                      <SegmentedButton.Label>
+                        <Text maxLines={1}>{rateLabel(preset)}</Text>
+                      </SegmentedButton.Label>
+                    </SegmentedButton>
+                  ))}
+                </SingleChoiceSegmentedButtonRow>
+              </Column>
+
+              <Row
+                verticalAlignment="center"
+                horizontalArrangement="spaceBetween"
+                modifiers={[fillMaxWidth(), padding(0, 12, 0, 8)]}
+              >
+                <Column verticalArrangement={{ spacedBy: 2 }}>
+                  <Text
+                    color={colors.onSurface}
+                    style={{ typography: 'bodyLarge' }}
+                  >
+                    {t('player.keepPitch')}
+                  </Text>
+                  <Text
+                    color={colors.onSurfaceMuted}
+                    style={{ typography: 'bodySmall' }}
+                  >
+                    {t('player.keepPitchDescription')}
+                  </Text>
+                </Column>
+                <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
+              </Row>
+
+              {/* Clips: personal bookmarks into the song. Mark while listening
+                (start, then end), tap a row to jump-play its range — playback
+                parks back at the clip start when it runs out. */}
+              <Row
+                verticalAlignment="center"
+                horizontalArrangement="spaceBetween"
+                modifiers={[fillMaxWidth(), padding(0, 8, 0, 0)]}
+              >
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelLarge' }}
+                >
+                  {markStartMs !== null
+                    ? `${t('player.clips.title')} · ${formatTime(markStartMs / 1000)} →`
+                    : t('player.clips.title')}
+                </Text>
+                <Button onClick={onMarkPress}>
+                  <Text maxLines={1}>
+                    {t(
+                      markStartMs !== null
+                        ? 'player.clips.setEnd'
+                        : 'player.clips.new',
+                    )}
+                  </Text>
+                </Button>
+              </Row>
+
+              {clips.length === 0 ? (
                 <Text
                   color={colors.onSurfaceMuted}
                   style={{ typography: 'bodySmall' }}
                 >
-                  {t('player.keepPitchDescription')}
+                  {t('player.clips.empty')}
                 </Text>
-              </Column>
-              <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
-            </Row>
+              ) : (
+                <Column
+                  verticalArrangement={{ spacedBy: 2 }}
+                  modifiers={[fillMaxWidth(), padding(0, 0, 0, 8)]}
+                >
+                  {clips.map(clip => {
+                    const isActive = activeClip?.clipId === clip.id;
+                    const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
-            {/* Clips: personal bookmarks into the song. Mark while listening
-                (start, then end), tap a row to jump-play its range — playback
-                parks back at the clip start when it runs out. */}
-            <Row
-              verticalAlignment="center"
-              horizontalArrangement="spaceBetween"
-              modifiers={[fillMaxWidth(), padding(0, 8, 0, 0)]}
-            >
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelLarge' }}
-              >
-                {markStartMs !== null
-                  ? `${t('player.clips.title')} · ${formatTime(markStartMs / 1000)} →`
-                  : t('player.clips.title')}
-              </Text>
-              <Button onClick={onMarkPress}>
-                <Text maxLines={1}>
-                  {t(
-                    markStartMs !== null
-                      ? 'player.clips.setEnd'
-                      : 'player.clips.new',
-                  )}
-                </Text>
-              </Button>
-            </Row>
-
-            {clips.length === 0 ? (
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'bodySmall' }}
-              >
-                {t('player.clips.empty')}
-              </Text>
-            ) : (
-              <Column
-                verticalArrangement={{ spacedBy: 2 }}
-                modifiers={[fillMaxWidth(), padding(0, 0, 0, 8)]}
-              >
-                {clips.map(clip => {
-                  const isActive = activeClip?.clipId === clip.id;
-                  const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
-
-                  return (
-                    <Surface
-                      key={clip.id}
-                      onClick={() =>
-                        playClip(clip.id, clip.startMs, clip.endMs)
-                      }
-                      color="transparent"
-                      shape={CLIP_ROW_SHAPE}
-                      modifiers={[fillMaxWidth()]}
-                    >
-                      <Row
-                        verticalAlignment="center"
-                        horizontalArrangement={{ spacedBy: 12 }}
-                        modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
+                    return (
+                      <Surface
+                        key={clip.id}
+                        onClick={() =>
+                          playClip(clip.id, clip.startMs, clip.endMs)
+                        }
+                        color="transparent"
+                        shape={CLIP_ROW_SHAPE}
+                        modifiers={[fillMaxWidth()]}
                       >
-                        <Column
-                          verticalArrangement={{ spacedBy: 1 }}
-                          modifiers={[weight(1)]}
+                        <Row
+                          verticalAlignment="center"
+                          horizontalArrangement={{ spacedBy: 12 }}
+                          modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
                         >
-                          <Text
-                            color={isActive ? colors.primary : colors.onSurface}
-                            style={{ typography: 'bodyLarge' }}
-                            maxLines={1}
+                          <Column
+                            verticalArrangement={{ spacedBy: 1 }}
+                            modifiers={[weight(1)]}
                           >
-                            {clip.label || range}
-                          </Text>
-                          {clip.label ? (
                             <Text
-                              color={colors.onSurfaceMuted}
-                              style={{ typography: 'bodySmall' }}
+                              color={
+                                isActive ? colors.primary : colors.onSurface
+                              }
+                              style={{ typography: 'bodyLarge' }}
+                              maxLines={1}
                             >
-                              {range}
+                              {clip.label || range}
                             </Text>
-                          ) : null}
-                        </Column>
-                        <IconButton onClick={() => onDeleteClip(clip.id)}>
-                          <AppIcon
-                            name="delete"
-                            size={20}
-                            tint={colors.onSurfaceMuted}
-                            contentDescription={t('player.clips.delete')}
-                          />
-                        </IconButton>
-                      </Row>
-                    </Surface>
-                  );
-                })}
-              </Column>
-            )}
-          </Column>
-        </ThemedHost>
+                            {clip.label ? (
+                              <Text
+                                color={colors.onSurfaceMuted}
+                                style={{ typography: 'bodySmall' }}
+                              >
+                                {range}
+                              </Text>
+                            ) : null}
+                          </Column>
+                          <IconButton onClick={() => onDeleteClip(clip.id)}>
+                            <AppIcon
+                              name="delete"
+                              size={20}
+                              tint={colors.onSurfaceMuted}
+                              contentDescription={t('player.clips.delete')}
+                            />
+                          </IconButton>
+                        </Row>
+                      </Surface>
+                    );
+                  })}
+                </Column>
+              )}
+            </Column>
+          </ThemedHost>
+        </Animated.View>
       </ScrollView>
 
       {/* Own Host lives inside the sheet (sheets beside other Compose content

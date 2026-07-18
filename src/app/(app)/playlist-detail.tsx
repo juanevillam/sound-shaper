@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { InteractionManager, StyleSheet, View } from 'react-native';
 
@@ -16,7 +16,15 @@ import {
 import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import Animated, { useAnimatedRef } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -47,6 +55,7 @@ import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
 import { deletePlaylist } from '@/services/firebase/playlists';
 import { reorderSongs, type Song } from '@/services/firebase/songs';
+import { useArtTransitionStore } from '@/store/artTransition';
 import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useSongsStore } from '@/store/songs';
@@ -56,6 +65,17 @@ const MENU_ICON_SIZE = 24;
 const HERO_ART_SIZE = 148;
 const HERO_EMOJI_SIZE = 72;
 const ROW_GAP = 4;
+// The tile→hero art morph: flight time, then a short crossfade into the real
+// hero (which absorbs the small emoji-scale difference between the two).
+const MORPH_MS = 320;
+const MORPH_FADE_MS = 140;
+// Matches PlaylistTile's emoji sizing so the overlay starts pixel-identical.
+const MORPH_EMOJI_SIZE = 56;
+
+type MorphRects = {
+  from: { x: number; y: number; size: number };
+  to: { x: number; y: number; size: number };
+};
 
 // First frame mounts only about a screenful of rows so the push transition
 // starts immediately; the rest mount when it lands.
@@ -114,6 +134,96 @@ export default function PlaylistDetailScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
+
+  // --- Tile→hero art morph -------------------------------------------------
+  // Consume the pressed tile's measured rect exactly once, at first render.
+  const reduceMotion = useReducedMotion();
+  const [handoff] = useState(() => useArtTransitionStore.getState().consume());
+  const [morph, setMorph] = useState<MorphRects | null>(null);
+  // The real hero art stays invisible until the overlay lands on it.
+  const [heroShown, setHeroShown] = useState(!handoff || reduceMotion);
+  const rootRef = useRef<View>(null);
+  const heroArtRef = useRef<View>(null);
+  const morphProgress = useSharedValue(0);
+  const morphOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (!handoff || reduceMotion) return;
+
+    // One frame so the hero has laid out before we measure it.
+    const raf = requestAnimationFrame(() => {
+      const root = rootRef.current;
+      const hero = heroArtRef.current;
+
+      if (!root || !hero) {
+        setHeroShown(true);
+        return;
+      }
+
+      root.measureInWindow((rootX, rootY) => {
+        hero.measureInWindow((heroX, heroY, heroWidth) => {
+          if (!heroWidth) {
+            setHeroShown(true);
+            return;
+          }
+
+          // Both rects re-based into this screen's coordinate space.
+          setMorph({
+            from: {
+              x: handoff.x - rootX,
+              y: handoff.y - rootY,
+              size: handoff.size,
+            },
+            to: { x: heroX - rootX, y: heroY - rootY, size: heroWidth },
+          });
+
+          morphProgress.value = withTiming(
+            1,
+            { duration: MORPH_MS, easing: Easing.out(Easing.cubic) },
+            finished => {
+              if (!finished) return;
+
+              // Land: reveal the real hero under the overlay, then fade the
+              // overlay off it.
+              runOnJS(setHeroShown)(true);
+              morphOpacity.value = withTiming(
+                0,
+                { duration: MORPH_FADE_MS },
+                faded => {
+                  if (faded) runOnJS(setMorph)(null);
+                },
+              );
+            },
+          );
+        });
+      });
+    });
+
+    return () => cancelAnimationFrame(raf);
+    // Mount-only: the handoff is consumed once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const morphStyle = useAnimatedStyle(() => {
+    if (!morph) return { opacity: 0 };
+
+    const progress = morphProgress.value;
+    const scale = morph.to.size / morph.from.size;
+    const travelX =
+      morph.to.x + morph.to.size / 2 - (morph.from.x + morph.from.size / 2);
+    const travelY =
+      morph.to.y + morph.to.size / 2 - (morph.from.y + morph.from.size / 2);
+
+    return {
+      opacity: morphOpacity.value,
+      transform: [
+        { translateX: travelX * progress },
+        { translateY: travelY * progress },
+        { scale: 1 + (scale - 1) * progress },
+      ],
+    };
+  }, [morph]);
+  // -------------------------------------------------------------------------
 
   // "Add song": pick an .mp3, read its ID3 tags, THEN open the editor already
   // prefilled — the pick comes first so a cancel never opens an empty form.
@@ -242,6 +352,9 @@ export default function PlaylistDetailScreen() {
           title: '',
           headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
+          // A quick fade underneath the art morph — a sliding screen would
+          // drag the morph's target rect with it.
+          animation: 'fade',
           headerRight: playlist
             ? () => (
                 <ThemedHost matchContents>
@@ -305,7 +418,7 @@ export default function PlaylistDetailScreen() {
         }}
       />
 
-      <SafeAreaView style={styles.safeArea} edges={[]}>
+      <SafeAreaView ref={rootRef} style={styles.safeArea} edges={[]}>
         <View style={styles.content}>
           {error ? (
             <EmptyState
@@ -329,12 +442,15 @@ export default function PlaylistDetailScreen() {
                   insets.bottom + 96 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
               }}
             >
-              {/* Hero: the artwork IS the header. */}
+              {/* Hero: the artwork IS the header. Invisible until the morph
+                  overlay (if any) lands on it. */}
               <View style={styles.hero}>
                 <View
+                  ref={heroArtRef}
                   style={[
                     styles.heroArt,
                     { backgroundColor: colors.surfaceContainer },
+                    !heroShown && styles.heroArtHidden,
                   ]}
                 >
                   <Text
@@ -435,6 +551,31 @@ export default function PlaylistDetailScreen() {
           )}
         </View>
 
+        {/* The flying artwork: a copy of the pressed tile, translated+scaled
+            from where it was tapped onto the hero slot. */}
+        {morph && handoff ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.morphOverlay,
+              {
+                backgroundColor: colors.surfaceContainer,
+                height: morph.from.size,
+                left: morph.from.x,
+                top: morph.from.y,
+                width: morph.from.size,
+              },
+              morphStyle,
+            ]}
+          >
+            <Text
+              doNotTranslate
+              text={handoff.emoji}
+              style={styles.morphEmoji}
+            />
+          </Animated.View>
+        ) : null}
+
         {miniVisible ? (
           <View style={styles.miniPlayer}>
             <MiniPlayer />
@@ -502,6 +643,18 @@ const styles = StyleSheet.create({
   },
   // Explicit line height so Android doesn't clip the large emoji glyph.
   heroEmoji: { fontSize: HERO_EMOJI_SIZE, lineHeight: HERO_EMOJI_SIZE * 1.4 },
+  heroArtHidden: { opacity: 0 },
+  morphOverlay: {
+    alignItems: 'center',
+    borderRadius: TILE_RADIUS,
+    justifyContent: 'center',
+    position: 'absolute',
+    zIndex: 10,
+  },
+  morphEmoji: {
+    fontSize: MORPH_EMOJI_SIZE,
+    lineHeight: MORPH_EMOJI_SIZE * 1.4,
+  },
   heroName: { fontWeight: '700', marginBottom: 2, textAlign: 'center' },
   heroDescription: { marginTop: 10, textAlign: 'center' },
   actions: { alignSelf: 'stretch', height: 48, marginTop: 16 },

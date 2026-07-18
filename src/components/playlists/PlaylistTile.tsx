@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Playlist } from '@/services/firebase/playlists';
+import { useArtTransitionStore } from '@/store/artTransition';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // YT-Music-style library tile: the "artwork" square (the playlist's emoji as
@@ -47,11 +48,32 @@ export function PlaylistTile({
 }: PlaylistTileProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const setHandoff = useArtTransitionStore(s => s.setHandoff);
 
+  const artRef = useRef<View>(null);
   const initialIndex = useRef(index).current;
   const hasEntered = useRef(false);
   const enterProgress = useSharedValue(0);
   const reduceMotion = useReducedMotion();
+
+  // Measure the artwork in window coordinates and park it for the detail
+  // screen's hero morph, THEN navigate. Falls back to a plain push when the
+  // measure fails (or motion is reduced) — the destination just skips the
+  // overlay.
+  const pressWithHandoff = () => {
+    const art = artRef.current;
+
+    if (reduceMotion || !art) {
+      onPress();
+      return;
+    }
+
+    art.measureInWindow((x, y, width) => {
+      if (width > 0)
+        setHandoff({ x, y, size: width, emoji: playlist.emoji || '🎵' });
+      onPress();
+    });
+  };
 
   useEffect(() => {
     if (hasEntered.current) return;
@@ -83,8 +105,9 @@ export function PlaylistTile({
 
   return (
     <Animated.View style={enterStyle}>
-      <SquashPressable onPress={onPress} onLongPress={onLongPress}>
+      <SquashPressable onPress={pressWithHandoff} onLongPress={onLongPress}>
         <View
+          ref={artRef}
           style={[styles.art, { backgroundColor: colors.surfaceContainer }]}
         >
           <Text
