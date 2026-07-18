@@ -7,6 +7,7 @@ import {
 } from '@/services/firebase/auth';
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { usePlaylistsStore } from '@/store/playlists';
 import { useProfileStore } from '@/store/profile';
@@ -34,6 +35,7 @@ export const useAuthListener = () => {
         usePlayerStore.getState().reset();
         usePlaylistsStore.getState().clear();
         useSongsStore.getState().clear();
+        useClipsStore.getState().clear();
         useProfileStore.getState().clear();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;

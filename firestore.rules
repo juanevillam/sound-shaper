@@ -46,6 +46,12 @@ service cloud.firestore {
       match /songs/{songId} {
         allow read, write: if isSignedIn()
           && request.auth.uid == playlistOwner(playlistId);
+
+        // Personal replay bookmarks into a song — same ownership.
+        match /clips/{clipId} {
+          allow read, write: if isSignedIn()
+            && request.auth.uid == playlistOwner(playlistId);
+        }
       }
     }
   }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   ScrollView,
@@ -8,13 +8,16 @@ import {
 } from 'react-native';
 
 import {
+  Button,
   Column,
   FilledIconButton,
   IconButton,
   Row,
   SegmentedButton,
+  Shape,
   SingleChoiceSegmentedButtonRow,
   Slider,
+  Surface,
   Switch,
   Text,
 } from '@expo/ui/jetpack-compose';
@@ -22,17 +25,24 @@ import {
   fillMaxWidth,
   padding,
   size,
+  weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 import { useAudioPlayerStatus } from 'expo-audio';
 
+import { ClipSaveSheet } from '@/components/player/ClipSaveSheet';
 import { Screen } from '@/components/ui/Screen';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useClipsSubscription } from '@/hooks/useClipsSubscription';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
+import { haptics } from '@/lib/haptics';
 import { audioPlayer, formatTime } from '@/lib/player';
+import { deleteClip } from '@/services/firebase/clips';
+import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { TILE_RADIUS } from '@/styles/shape';
 
@@ -44,12 +54,30 @@ const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
 
 const CONTROL_ICON_SIZE = 32;
 const PLAY_BUTTON_SIZE = 72;
+// A clip needs at least this much room between its marks to be worth saving.
+const MIN_CLIP_MS = 1000;
+
+const CLIP_ROW_SHAPE = Shape.RoundedCorner({
+  cornerRadii: {
+    topStart: 12,
+    topEnd: 12,
+    bottomStart: 12,
+    bottomEnd: 12,
+  },
+});
+
+// Stable fallback for the clips selector: an inline `?? []` would mint a new
+// array per snapshot and loop useSyncExternalStore into "maximum update
+// depth exceeded".
+const NO_CLIPS: never[] = [];
 
 export default function NowPlayingScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { width } = useWindowDimensions();
+  const { showSnackbar } = useSnackbar();
   const current = usePlayerStore(s => s.current);
+  const playlistId = usePlayerStore(s => s.playlistId);
   const toggle = usePlayerStore(s => s.toggle);
   const next = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
@@ -57,12 +85,33 @@ export default function NowPlayingScreen() {
   const setRate = usePlayerStore(s => s.setRate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
   const setKeepPitch = usePlayerStore(s => s.setKeepPitch);
+  const playClip = usePlayerStore(s => s.playClip);
+  const activeClip = usePlayerStore(s => s.activeClip);
+  const clearActiveClip = usePlayerStore(s => s.clearActiveClip);
   const status = useAudioPlayerStatus(audioPlayer);
 
   // While the thumb is being dragged the slider follows the finger, not the
   // 250ms status stream (which would fight it); the seek fires on release.
   const [dragValue, setDragValue] = useState<number | null>(null);
   const lastDragRef = useRef(0);
+
+  // Clip marking: "New clip" captures the start at the current position, the
+  // same button (now "Set end") captures the end, then the save sheet opens.
+  const [markStartMs, setMarkStartMs] = useState<number | null>(null);
+  const [pendingRange, setPendingRange] = useState<{
+    startMs: number;
+    endMs: number;
+  } | null>(null);
+
+  // A track change invalidates a half-made mark.
+  useEffect(() => {
+    setMarkStartMs(null);
+  }, [current?.id]);
+
+  useClipsSubscription(playlistId, current?.id);
+  const clips = useClipsStore(s =>
+    current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
+  );
 
   // Screen minus its 24dp side margins, capped for tablets/landscape.
   const artSize = Math.min(width - 48, 420);
@@ -71,6 +120,34 @@ export default function NowPlayingScreen() {
     // Deep-linked / stale entry with nothing loaded: nothing to show.
     return <Screen />;
   }
+
+  const onMarkPress = () => {
+    haptics.selection();
+    const nowMs = Math.round(status.currentTime * 1000);
+
+    if (markStartMs === null) {
+      setMarkStartMs(nowMs);
+      return;
+    }
+
+    if (nowMs < markStartMs + MIN_CLIP_MS) {
+      // Ended before (or basically at) the start — keep marking.
+      showSnackbar(t('snackbar.clip-too-short'));
+      return;
+    }
+
+    setPendingRange({ startMs: markStartMs, endMs: nowMs });
+    setMarkStartMs(null);
+  };
+
+  const onDeleteClip = (clipId: string) => {
+    if (!playlistId) return;
+
+    haptics.medium();
+    deleteClip({ clipId, playlistId, songId: current.id })
+      .then(() => showSnackbar(t('snackbar.clip-deleted')))
+      .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
+  };
 
   const duration = status.duration > 0 ? status.duration : 1;
   const position = dragValue ?? status.currentTime;
@@ -122,6 +199,9 @@ export default function NowPlayingScreen() {
               }}
               onValueChangeFinished={() => {
                 audioPlayer.seekTo(lastDragRef.current);
+                // A manual scrub ends any clip replay — the listener would
+                // otherwise pause at the stale boundary.
+                clearActiveClip();
                 setDragValue(null);
               }}
               modifiers={[fillMaxWidth()]}
@@ -229,9 +309,114 @@ export default function NowPlayingScreen() {
               </Column>
               <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
             </Row>
+
+            {/* Clips: personal bookmarks into the song. Mark while listening
+                (start, then end), tap a row to jump-play its range — playback
+                parks back at the clip start when it runs out. */}
+            <Row
+              verticalAlignment="center"
+              horizontalArrangement="spaceBetween"
+              modifiers={[fillMaxWidth(), padding(0, 8, 0, 0)]}
+            >
+              <Text
+                color={colors.onSurfaceMuted}
+                style={{ typography: 'labelLarge' }}
+              >
+                {markStartMs !== null
+                  ? `${t('player.clips.title')} · ${formatTime(markStartMs / 1000)} →`
+                  : t('player.clips.title')}
+              </Text>
+              <Button onClick={onMarkPress}>
+                <Text maxLines={1}>
+                  {t(
+                    markStartMs !== null
+                      ? 'player.clips.setEnd'
+                      : 'player.clips.new',
+                  )}
+                </Text>
+              </Button>
+            </Row>
+
+            {clips.length === 0 ? (
+              <Text
+                color={colors.onSurfaceMuted}
+                style={{ typography: 'bodySmall' }}
+              >
+                {t('player.clips.empty')}
+              </Text>
+            ) : (
+              <Column
+                verticalArrangement={{ spacedBy: 2 }}
+                modifiers={[fillMaxWidth(), padding(0, 0, 0, 8)]}
+              >
+                {clips.map(clip => {
+                  const isActive = activeClip?.clipId === clip.id;
+                  const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+
+                  return (
+                    <Surface
+                      key={clip.id}
+                      onClick={() =>
+                        playClip(clip.id, clip.startMs, clip.endMs)
+                      }
+                      color="transparent"
+                      shape={CLIP_ROW_SHAPE}
+                      modifiers={[fillMaxWidth()]}
+                    >
+                      <Row
+                        verticalAlignment="center"
+                        horizontalArrangement={{ spacedBy: 12 }}
+                        modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
+                      >
+                        <Column
+                          verticalArrangement={{ spacedBy: 1 }}
+                          modifiers={[weight(1)]}
+                        >
+                          <Text
+                            color={isActive ? colors.primary : colors.onSurface}
+                            style={{ typography: 'bodyLarge' }}
+                            maxLines={1}
+                          >
+                            {clip.label || range}
+                          </Text>
+                          {clip.label ? (
+                            <Text
+                              color={colors.onSurfaceMuted}
+                              style={{ typography: 'bodySmall' }}
+                            >
+                              {range}
+                            </Text>
+                          ) : null}
+                        </Column>
+                        <IconButton onClick={() => onDeleteClip(clip.id)}>
+                          <AppIcon
+                            name="delete"
+                            size={20}
+                            tint={colors.onSurfaceMuted}
+                            contentDescription={t('player.clips.delete')}
+                          />
+                        </IconButton>
+                      </Row>
+                    </Surface>
+                  );
+                })}
+              </Column>
+            )}
           </Column>
         </ThemedHost>
       </ScrollView>
+
+      {/* Own Host lives inside the sheet (sheets beside other Compose content
+          in one Host flicker the siblings). */}
+      {pendingRange && playlistId && (
+        <ClipSaveSheet
+          playlistId={playlistId}
+          songId={current.id}
+          startMs={pendingRange.startMs}
+          endMs={pendingRange.endMs}
+          onClose={() => setPendingRange(null)}
+        />
+      )}
     </Screen>
   );
 }
