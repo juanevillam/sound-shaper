@@ -37,3 +37,16 @@ export const reported =
       throw error;
     }
   };
+
+/**
+ * Wrap a subscription's onError the same way: the failure is counted in
+ * Crashlytics, then the caller's handler runs (even when it is a silent
+ * `() => {}` — which would otherwise make production Firestore failures
+ * completely invisible).
+ */
+export const reportedOnError =
+  (context: string, onError: (error: Error) => void) =>
+  (error: Error): void => {
+    recordError(error, context);
+    onError(error);
+  };

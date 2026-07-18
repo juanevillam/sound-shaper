@@ -7,6 +7,9 @@ import {
 } from '@/services/firebase/auth';
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { usePlaylistsStore } from '@/store/playlists';
+import { useProfileStore } from '@/store/profile';
+import { useSongsStore } from '@/store/songs';
 
 /**
  * Bridge Firebase auth into the zustand store. Mounted once in the root layout;
@@ -25,6 +28,10 @@ export const useAuthListener = () => {
       if (!user) {
         const wasManual = consumeManualSignOutFlag();
 
+        // Wipe every user-scoped store so the next account starts clean.
+        usePlaylistsStore.getState().clear();
+        useSongsStore.getState().clear();
+        useProfileStore.getState().clear();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
         return;

@@ -3,8 +3,21 @@ import { Platform } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useEnsureDefaultPlaylist } from '@/hooks/useEnsureDefaultPlaylist';
+import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
+import { usePlaylistsSubscription } from '@/hooks/usePlaylistsSubscription';
 import { useI18n } from '@/i18n';
 import { useAuthStore } from '@/store/auth';
+
+function AuthenticatedSubscriptions() {
+  // Session-wide Firestore listeners (own profile + your playlists). Mounted
+  // once here so every screen reads from the store instead of re-subscribing.
+  useOwnProfileSync();
+  usePlaylistsSubscription();
+  // First session ever: create the default "My library" playlist.
+  useEnsureDefaultPlaylist();
+  return null;
+}
 
 export default function AppLayout() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -14,24 +27,44 @@ export default function AppLayout() {
   if (!isAuthenticated) return <Redirect href="/welcome" />;
 
   return (
-    <Stack
-      screenOptions={{
-        // Android: the Material tonal app bar. iOS: the bar matches the screen
-        // background (no tonal band). An unset headerStyle is NOT an option —
-        // RNS's opaque default paints white regardless of the dark trait on
-        // iOS 26.
-        headerStyle: {
-          backgroundColor:
-            Platform.OS === 'ios' ? colors.background : colors.surfaceContainer,
-        },
-        headerShadowVisible: false,
-        headerTintColor: colors.onSurface,
-        contentStyle: { backgroundColor: colors.background },
-        animation: Platform.select({ android: 'fade_from_bottom' }),
-      }}
-    >
-      <Stack.Screen name="home" options={{ title: t('app.title') }} />
-      <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
-    </Stack>
+    <>
+      <AuthenticatedSubscriptions />
+      <Stack
+        screenOptions={{
+          // Android: the Material tonal app bar. iOS: the bar matches the
+          // screen background — an unset headerStyle is NOT an option (RNS's
+          // opaque default paints white regardless of the dark trait).
+          headerStyle: {
+            backgroundColor:
+              Platform.OS === 'ios'
+                ? colors.background
+                : colors.surfaceContainer,
+          },
+          headerShadowVisible: false,
+          headerTintColor: colors.onSurface,
+          contentStyle: { backgroundColor: colors.background },
+          // ONE transition for every Android push: the fast Material
+          // fade-through. iOS keeps its platform default.
+          animation: Platform.select({ android: 'fade_from_bottom' }),
+        }}
+      >
+        {/* The three top-level destinations (Home / Explore / Profile) live in
+            the tab group, which owns its own headers via the bottom-tab
+            navigator. Everything below pushes OVER the bottom bar. */}
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false, title: t('app.title') }}
+        />
+        <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
+        <Stack.Screen
+          name="playlist-detail"
+          options={{ title: t('app.playlistDetail') }}
+        />
+        <Stack.Screen
+          name="manage-account"
+          options={{ title: t('settings.manageAccount.title') }}
+        />
+      </Stack>
+    </>
   );
 }
