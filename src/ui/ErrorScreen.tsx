@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export type ErrorScreenColors = {
   background: string;
@@ -21,7 +21,10 @@ export type ErrorScreenProps = {
 /**
  * Full-screen fallback rendered by an expo-router `ErrorBoundary` when a route
  * throws. Deliberately pure React Native — a crash screen must not depend on
- * `@expo/ui` native hosts, which may be implicated in the crash itself.
+ * `@expo/ui` native hosts, which may be implicated in the crash itself — but
+ * styled to each platform's error-state idiom: Material 3 type roles + filled
+ * button with ripple on Android, `ContentUnavailableView` metrics + borderless
+ * tinted action on iOS. The system font already gives Roboto/SF per platform.
  */
 export const ErrorScreen = ({
   title,
@@ -39,12 +42,23 @@ export const ErrorScreen = ({
       <Pressable
         accessibilityRole="button"
         onPress={onRetry}
+        android_ripple={{ color: `${colors.onPrimary}33` }}
         style={({ pressed }) => [
           styles.button,
-          { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+          Platform.OS === 'android'
+            ? { backgroundColor: colors.primary }
+            : pressed && styles.buttonPressedIos,
         ]}
       >
-        <Text style={[styles.buttonLabel, { color: colors.onPrimary }]}>
+        <Text
+          style={[
+            styles.buttonLabel,
+            {
+              color:
+                Platform.OS === 'android' ? colors.onPrimary : colors.primary,
+            },
+          ]}
+        >
           {retryLabel}
         </Text>
       </Pressable>
@@ -59,25 +73,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
   },
+  // Android: M3 headlineSmall (24/32, regular). iOS: title2 bold, the
+  // ContentUnavailableView headline.
   title: {
-    fontSize: 22,
-    fontWeight: '600',
     textAlign: 'center',
+    ...Platform.select({
+      android: { fontSize: 24, fontWeight: '400', lineHeight: 32 },
+      default: { fontSize: 22, fontWeight: '700' },
+    }),
   },
+  // Android: M3 bodyMedium (14/20, +0.25). iOS: subheadline (15) secondary.
   message: {
-    fontSize: 15,
     marginTop: 8,
     textAlign: 'center',
+    ...Platform.select({
+      android: { fontSize: 14, letterSpacing: 0.25, lineHeight: 20 },
+      default: { fontSize: 15, lineHeight: 20 },
+    }),
   },
+  // Android: M3 filled button (40dp, full-round, 24dp side padding); the fill
+  // color comes inline so the ripple can sit on it. iOS: borderless tinted
+  // action, so no chrome — just the label with the standard press dim.
   button: {
-    borderRadius: 24,
-    marginTop: 24,
-    minHeight: 48,
     justifyContent: 'center',
-    paddingHorizontal: 28,
+    marginTop: 24,
+    ...Platform.select({
+      android: {
+        borderRadius: 20,
+        minHeight: 40,
+        overflow: 'hidden',
+        paddingHorizontal: 24,
+      },
+      default: { minHeight: 44, paddingHorizontal: 16 },
+    }),
   },
+  buttonPressedIos: { opacity: 0.3 },
+  // Android: M3 labelLarge (14, medium, +0.1). iOS: semibold subheadline, the
+  // App Store / Wi-Fi settings "Retry" idiom.
   buttonLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    textAlign: 'center',
+    ...Platform.select({
+      android: { fontSize: 14, fontWeight: '500', letterSpacing: 0.1 },
+      default: { fontSize: 15, fontWeight: '600' },
+    }),
   },
 });
