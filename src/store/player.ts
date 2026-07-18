@@ -19,7 +19,14 @@ type PlayerState = {
   // Keep the original pitch while the rate changes (time-stretch). Off =
   // vinyl-style: slower also means deeper.
   keepPitch: boolean;
+  // A clip being replayed: playback auto-pauses at `endS`. Cleared by a manual
+  // scrub, a track change, or the clip running out. Keyed by the clip id so
+  // the clips list can highlight the active row.
+  activeClip: { clipId: string; startS: number; endS: number } | null;
   playSong: (song: Song, queue: Song[], playlistId: string) => void;
+  /** Jump-play a saved range of the CURRENT song. */
+  playClip: (clipId: string, startMs: number, endMs: number) => void;
+  clearActiveClip: () => void;
   toggle: () => void;
   next: () => void;
   previous: () => void;
@@ -35,6 +42,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   playlistId: null,
   rate: 1,
   keepPitch: true,
+  activeClip: null,
 
   playSong: (song, queue, playlistId) => {
     const { current, rate, keepPitch } = get();
@@ -47,13 +55,27 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
 
-    set({ current: song, queue, playlistId });
+    set({ current: song, queue, playlistId, activeClip: null });
     audioPlayer.replace({ uri: song.audioUrl });
     // Rate/pitch are per-listener settings, not per-song — they persist
     // across track changes, so re-apply them to the fresh source.
     audioPlayer.shouldCorrectPitch = keepPitch;
     audioPlayer.setPlaybackRate(rate);
     audioPlayer.play();
+  },
+
+  playClip: (clipId, startMs, endMs) => {
+    if (!get().current) return;
+
+    set({
+      activeClip: { clipId, startS: startMs / 1000, endS: endMs / 1000 },
+    });
+    audioPlayer.seekTo(startMs / 1000);
+    audioPlayer.play();
+  },
+
+  clearActiveClip: () => {
+    if (get().activeClip) set({ activeClip: null });
   },
 
   toggle: () => {
@@ -72,7 +94,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     if (nextSong) {
       // Bypass the same-song toggle: always a fresh load.
-      set({ current: nextSong });
+      set({ current: nextSong, activeClip: null });
       audioPlayer.replace({ uri: nextSong.audioUrl });
       audioPlayer.shouldCorrectPitch = get().keepPitch;
       audioPlayer.setPlaybackRate(get().rate);
@@ -102,7 +124,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
 
-    set({ current: previousSong });
+    set({ current: previousSong, activeClip: null });
     audioPlayer.replace({ uri: previousSong.audioUrl });
     audioPlayer.shouldCorrectPitch = get().keepPitch;
     audioPlayer.setPlaybackRate(get().rate);
@@ -130,12 +152,29 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playlistId: null,
       rate: 1,
       keepPitch: true,
+      activeClip: null,
     });
   },
 }));
 
-// Auto-advance: when a song runs out, move to the next in its queue. Lives
-// here (not lib/player) so the store→lib import stays one-directional.
+// Transport watcher (lives here, not lib/player, so the store→lib import
+// stays one-directional):
+// - auto-advance when a song runs out;
+// - end an active clip replay: pause at its boundary (the 250ms status
+//   cadence overshoots by at most a beat) and park back on the clip start so
+//   a plain play replays it.
 audioPlayer.addListener('playbackStatusUpdate', status => {
-  if (status.didJustFinish) usePlayerStore.getState().next();
+  const store = usePlayerStore.getState();
+
+  if (status.didJustFinish) {
+    store.next();
+    return;
+  }
+
+  const clip = store.activeClip;
+  if (clip && status.playing && status.currentTime >= clip.endS) {
+    audioPlayer.pause();
+    audioPlayer.seekTo(clip.startS);
+    store.clearActiveClip();
+  }
 });
