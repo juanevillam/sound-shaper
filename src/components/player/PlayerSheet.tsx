@@ -30,7 +30,6 @@ import {
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
-import { useAudioPlayerStatus } from 'expo-audio';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -53,7 +52,7 @@ import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { audioPlayer, formatTime } from '@/lib/player';
+import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
@@ -149,8 +148,10 @@ export function PlayerSheet() {
   const setKeepPitch = usePlayerStore(s => s.setKeepPitch);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
-  const clearActiveClip = usePlayerStore(s => s.clearActiveClip);
-  const status = useAudioPlayerStatus(audioPlayer);
+  const seek = usePlayerStore(s => s.seek);
+  const playing = usePlayerStore(s => s.playing);
+  const storePosition = usePlayerStore(s => s.position);
+  const storeDuration = usePlayerStore(s => s.duration);
 
   // Geometry (all deterministic — no measuring, no flicker). The collapsed
   // banner rests `insets.bottom + gap` above the screen bottom, so its content
@@ -305,7 +306,7 @@ export function PlayerSheet() {
 
   const onMarkPress = () => {
     haptics.selection();
-    const nowMs = Math.round(status.currentTime * 1000);
+    const nowMs = Math.round(storePosition * 1000);
 
     if (markStartMs === null) {
       setMarkStartMs(nowMs);
@@ -330,10 +331,10 @@ export function PlayerSheet() {
       .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
   };
 
-  const duration = status.duration > 0 ? status.duration : 1;
-  const position = dragValue ?? status.currentTime;
+  const duration = storeDuration > 0 ? storeDuration : 1;
+  const position = dragValue ?? storePosition;
   const progressRatio =
-    status.duration > 0 ? Math.min(status.currentTime / status.duration, 1) : 0;
+    storeDuration > 0 ? Math.min(storePosition / storeDuration, 1) : 0;
   const subtitle = current.artist || ' ';
 
   return (
@@ -393,11 +394,9 @@ export function PlayerSheet() {
               hitSlop={8}
               style={styles.miniButton}
               accessibilityRole="button"
-              accessibilityLabel={t(
-                status.playing ? 'player.pause' : 'player.play',
-              )}
+              accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
             >
-              {status.playing ? (
+              {playing ? (
                 <PauseGlyph color={colors.onSurface} />
               ) : (
                 <PlayGlyph color={colors.onSurface} />
@@ -474,9 +473,8 @@ export function PlayerSheet() {
                     setDragValue(value);
                   }}
                   onValueChangeFinished={() => {
-                    audioPlayer.seekTo(lastDragRef.current);
-                    // A manual scrub ends any clip replay.
-                    clearActiveClip();
+                    // seek() also ends any clip replay.
+                    seek(lastDragRef.current);
                     setDragValue(null);
                   }}
                   modifiers={[fillMaxWidth()]}
@@ -495,7 +493,7 @@ export function PlayerSheet() {
                     color={colors.onSurfaceMuted}
                     style={{ typography: 'labelMedium' }}
                   >
-                    {formatTime(status.duration)}
+                    {formatTime(storeDuration)}
                   </Text>
                 </Row>
 
@@ -517,11 +515,11 @@ export function PlayerSheet() {
                     modifiers={[size(PLAY_BUTTON_SIZE, PLAY_BUTTON_SIZE)]}
                   >
                     <AppIcon
-                      name={status.playing ? 'pause' : 'play-arrow'}
+                      name={playing ? 'pause' : 'play-arrow'}
                       size={40}
                       tint={colors.onPrimary}
                       contentDescription={t(
-                        status.playing ? 'player.pause' : 'player.play',
+                        playing ? 'player.pause' : 'player.play',
                       )}
                     />
                   </FilledIconButton>

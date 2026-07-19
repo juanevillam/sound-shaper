@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { Redirect, Stack } from 'expo-router';
 
+import { AudioEngine } from '@/components/player/AudioEngine';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useEnsureDefaultPlaylist } from '@/hooks/useEnsureDefaultPlaylist';
@@ -74,6 +75,8 @@ export default function AppLayout() {
           options={{ title: t('settings.manageAccount.title') }}
         />
       </Stack>
+      {/* The streaming <Audio> element + shaping graph (headless). */}
+      <AudioEngine />
       {/* The player is not a route: banner and full player are ONE surface
           that expands in place over every screen (the YT Music interaction). */}
       <PlayerSheet />
