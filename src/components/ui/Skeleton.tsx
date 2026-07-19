@@ -19,11 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { innerRadius, SHAPE_SM, TILE_RADIUS } from '@/styles/shape';
-
-// Mirrors SongRow's art radius (48dp art inset 8 in a TILE_RADIUS context),
-// so the bone rounds exactly like the art it stands for.
-const SONG_THUMB_RADIUS = innerRadius(TILE_RADIUS, 8, SHAPE_SM);
+import { TILE_RADIUS } from '@/styles/shape';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -94,9 +90,9 @@ export function Skeleton({
   );
 }
 
-/** Stand-in for `PlaylistTile` — the home grid: artwork square + two text
+/** Stand-in for `SongTile` — the home grid: artwork square + two text
  *  lines under it, so the grid doesn't reflow on settle. */
-export function PlaylistTileSkeleton() {
+export function SongTileSkeleton() {
   return (
     <View>
       <Skeleton
@@ -111,29 +107,8 @@ export function PlaylistTileSkeleton() {
   );
 }
 
-/** Stand-in for `SongRow` — the flat 64dp track row (48dp art, two lines). */
-export function SongRowSkeleton() {
-  return (
-    <View style={styles.songRow}>
-      <Skeleton width={48} height={48} radius={SONG_THUMB_RADIUS} />
-      <View style={styles.songBody}>
-        <Skeleton width="70%" height={16} />
-        <Skeleton width="45%" height={12} />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   // aspectRatio drives the height; the fixed-height prop is overridden.
   tileArt: { aspectRatio: 1, marginBottom: 10 },
   tileName: { marginBottom: 6 },
-  songRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 14,
-    height: 64,
-    paddingHorizontal: 16,
-  },
-  songBody: { flex: 1, gap: 6 },
 });

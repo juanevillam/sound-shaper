@@ -7,7 +7,7 @@ import { Vibration } from 'react-native';
 
 // Light UI ticks — brief pulses for discrete one-off choices.
 const SELECTION_MS = 8; // tab switch, segmented toggle, emoji pick
-const MEDIUM_MS = 12; // a committed action — deleting a playlist / song
+const MEDIUM_MS = 12; // a committed action — deleting a song
 
 // Reorder (drag) feedback is a touch firmer than the UI ticks above so a drag
 // feels tactile from start to finish — a grab when you pick a song up, a tick
@@ -19,7 +19,7 @@ const DRAG_DROP_PATTERN = [0, 14, 30, 20]; // [wait, buzz, gap, buzz]
 export const haptics = {
   /** Light tick for a discrete choice: tab switch, segmented toggle, pick. */
   selection: () => Vibration.vibrate(SELECTION_MS),
-  /** A committed action: deleting a playlist / song. */
+  /** A committed action: deleting a song. */
   medium: () => Vibration.vibrate(MEDIUM_MS),
   /** Drag picked up — a firm "grabbed it". */
   dragPickup: () => Vibration.vibrate(DRAG_PICKUP_MS),

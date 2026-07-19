@@ -1,24 +1,23 @@
+import { getAuth } from '@react-native-firebase/auth';
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
   getFirestore,
-  increment,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
-  writeBatch,
   type QueryDocumentSnapshot,
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
 import { uploadSongArt, uploadSongAudio } from '@/services/cloudinary/upload';
 import {
-  PLAYLISTS_COLLECTION,
   SONGS_SUBCOLLECTION,
+  USERS_COLLECTION,
 } from '@/services/firebase/collections';
 import { reported, reportedOnError } from '@/services/firebase/crashlytics';
 
@@ -36,7 +35,6 @@ export type Song = {
   createdAt: number | null;
   id: string;
   name: string;
-  position: number;
   releaseYear: number | null;
   updatedAt: number | null;
 };
@@ -49,8 +47,6 @@ type CreateSongParams = {
   /** Local uri of the picked .mp3 (document-picker cache copy). */
   localAudioUri: string;
   name: string;
-  playlistId: string;
-  position: number;
   releaseYear: number | null;
 };
 
@@ -58,33 +54,38 @@ type UpdateSongParams = {
   album: string;
   artist: string;
   name: string;
-  playlistId: string;
   releaseYear: number | null;
   songId: string;
-};
-
-type DeleteSongParams = {
-  playlistId: string;
-  songId: string;
-};
-
-type ReorderSongsParams = {
-  orderedSongIds: string[];
-  playlistId: string;
 };
 
 type SubscribeToSongsParams = {
   onError: (error: Error) => void;
   onNext: (songs: Song[]) => void;
-  playlistId: string;
 };
 
-const songsCollection = (playlistId: string) =>
+// The library is per-user: users/{uid}/songs. Every call site runs behind the
+// auth gate, so a missing user is a programmer error worth throwing on.
+const requireUid = (): string => {
+  const uid = getAuth().currentUser?.uid;
+  if (!uid) throw new Error('songs: no signed-in user');
+  return uid;
+};
+
+const songsCollection = () =>
   collection(
     getFirestore(),
-    PLAYLISTS_COLLECTION,
-    playlistId,
+    USERS_COLLECTION,
+    requireUid(),
     SONGS_SUBCOLLECTION,
+  );
+
+const songDoc = (songId: string) =>
+  doc(
+    getFirestore(),
+    USERS_COLLECTION,
+    requireUid(),
+    SONGS_SUBCOLLECTION,
+    songId,
   );
 
 const songToModel = (snapshot: QueryDocumentSnapshot): Song => {
@@ -103,21 +104,17 @@ const songToModel = (snapshot: QueryDocumentSnapshot): Song => {
     createdAt: createdAt ? createdAt.toMillis() : null,
     id: snapshot.id,
     name: (data.name as string) ?? '',
-    position: (data.position as number) ?? 0,
     releaseYear: typeof releaseYear === 'number' ? releaseYear : null,
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
   };
 };
 
+/** The whole personal library, newest upload first. */
 export const subscribeToSongs = ({
   onError,
   onNext,
-  playlistId,
 }: SubscribeToSongsParams): (() => void) => {
-  const songsQuery = query(
-    songsCollection(playlistId),
-    orderBy('position', 'asc'),
-  );
+  const songsQuery = query(songsCollection(), orderBy('createdAt', 'desc'));
 
   return onSnapshot(songsQuery, {
     error: reportedOnError('songs.subscribeToSongs', onError),
@@ -128,7 +125,7 @@ export const subscribeToSongs = ({
 /**
  * Create a song: upload the audio to Cloudinary (the one big network wait — the
  * editor holds its Save spinner on it) plus any embedded art, then write the
- * song doc and bump the playlist's `songCount`.
+ * song doc.
  */
 export const createSong = reported(
   'songs.createSong',
@@ -138,14 +135,12 @@ export const createSong = reported(
     art,
     localAudioUri,
     name,
-    playlistId,
-    position,
     releaseYear,
   }: CreateSongParams): Promise<string> => {
     const audio = await uploadSongAudio(localAudioUri);
     const cover = art ? await uploadSongArt(art.base64, art.mime) : null;
 
-    const docRef = await addDoc(songsCollection(playlistId), {
+    const docRef = await addDoc(songsCollection(), {
       album,
       artist,
       artPublicId: cover?.publicId ?? '',
@@ -154,13 +149,7 @@ export const createSong = reported(
       audioUrl: audio.url,
       createdAt: serverTimestamp(),
       name,
-      position,
       releaseYear,
-      updatedAt: serverTimestamp(),
-    });
-
-    await updateDoc(doc(getFirestore(), PLAYLISTS_COLLECTION, playlistId), {
-      songCount: increment(1),
       updatedAt: serverTimestamp(),
     });
 
@@ -175,65 +164,27 @@ export const updateSong = reported(
     album,
     artist,
     name,
-    playlistId,
     releaseYear,
     songId,
   }: UpdateSongParams): Promise<void> => {
-    await updateDoc(
-      doc(
-        getFirestore(),
-        PLAYLISTS_COLLECTION,
-        playlistId,
-        SONGS_SUBCOLLECTION,
-        songId,
-      ),
-      {
-        album,
-        artist,
-        name,
-        releaseYear,
-        updatedAt: serverTimestamp(),
-      },
-    );
-  },
-);
-
-/**
- * Remove a song: delete the doc and decrement the playlist's `songCount`. The
- * Cloudinary audio/art assets are left behind — destroying them needs a signed
- * API call (a backend this app deliberately doesn't have), so orphaned assets
- * are a known gap, same as Topper's pre-Functions state.
- */
-export const deleteSong = reported(
-  'songs.deleteSong',
-  async ({ playlistId, songId }: DeleteSongParams): Promise<void> => {
-    const db = getFirestore();
-
-    await deleteDoc(
-      doc(db, PLAYLISTS_COLLECTION, playlistId, SONGS_SUBCOLLECTION, songId),
-    );
-
-    await updateDoc(doc(db, PLAYLISTS_COLLECTION, playlistId), {
-      songCount: increment(-1),
+    await updateDoc(songDoc(songId), {
+      album,
+      artist,
+      name,
+      releaseYear,
       updatedAt: serverTimestamp(),
     });
   },
 );
 
-/** Persist a new song ordering by writing each song's array index. */
-export const reorderSongs = reported(
-  'songs.reorderSongs',
-  async ({ orderedSongIds, playlistId }: ReorderSongsParams): Promise<void> => {
-    const db = getFirestore();
-    const batch = writeBatch(db);
-
-    orderedSongIds.forEach((songId, index) => {
-      batch.update(
-        doc(db, PLAYLISTS_COLLECTION, playlistId, SONGS_SUBCOLLECTION, songId),
-        { position: index },
-      );
-    });
-
-    await batch.commit();
+/**
+ * Remove a song. The Cloudinary audio/art assets are left behind — destroying
+ * them needs a signed API call (a backend this app deliberately doesn't have),
+ * so orphaned assets are a known gap, same as Topper's pre-Functions state.
+ */
+export const deleteSong = reported(
+  'songs.deleteSong',
+  async (songId: string): Promise<void> => {
+    await deleteDoc(songDoc(songId));
   },
 );

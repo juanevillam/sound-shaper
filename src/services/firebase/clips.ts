@@ -1,3 +1,4 @@
+import { getAuth } from '@react-native-firebase/auth';
 import {
   addDoc,
   collection,
@@ -14,8 +15,8 @@ import {
 
 import {
   CLIPS_SUBCOLLECTION,
-  PLAYLISTS_COLLECTION,
   SONGS_SUBCOLLECTION,
+  USERS_COLLECTION,
 } from '@/services/firebase/collections';
 import { reported, reportedOnError } from '@/services/firebase/crashlytics';
 
@@ -30,31 +31,35 @@ export type Clip = {
   startMs: number;
 };
 
-type ClipPath = {
-  playlistId: string;
-  songId: string;
-};
-
-type CreateClipParams = ClipPath & {
+type CreateClipParams = {
   endMs: number;
   label: string;
+  songId: string;
   startMs: number;
 };
 
-type DeleteClipParams = ClipPath & {
+type DeleteClipParams = {
   clipId: string;
+  songId: string;
 };
 
-type SubscribeToClipsParams = ClipPath & {
+type SubscribeToClipsParams = {
   onError: (error: Error) => void;
   onNext: (clips: Clip[]) => void;
+  songId: string;
 };
 
-const clipsCollection = ({ playlistId, songId }: ClipPath) =>
+const requireUid = (): string => {
+  const uid = getAuth().currentUser?.uid;
+  if (!uid) throw new Error('clips: no signed-in user');
+  return uid;
+};
+
+const clipsCollection = (songId: string) =>
   collection(
     getFirestore(),
-    PLAYLISTS_COLLECTION,
-    playlistId,
+    USERS_COLLECTION,
+    requireUid(),
     SONGS_SUBCOLLECTION,
     songId,
     CLIPS_SUBCOLLECTION,
@@ -77,13 +82,9 @@ const clipToModel = (snapshot: QueryDocumentSnapshot): Clip => {
 export const subscribeToClips = ({
   onError,
   onNext,
-  playlistId,
   songId,
 }: SubscribeToClipsParams): (() => void) => {
-  const clipsQuery = query(
-    clipsCollection({ playlistId, songId }),
-    orderBy('startMs', 'asc'),
-  );
+  const clipsQuery = query(clipsCollection(songId), orderBy('startMs', 'asc'));
 
   return onSnapshot(clipsQuery, {
     error: reportedOnError('clips.subscribeToClips', onError),
@@ -96,11 +97,10 @@ export const createClip = reported(
   async ({
     endMs,
     label,
-    playlistId,
     songId,
     startMs,
   }: CreateClipParams): Promise<string> => {
-    const docRef = await addDoc(clipsCollection({ playlistId, songId }), {
+    const docRef = await addDoc(clipsCollection(songId), {
       createdAt: serverTimestamp(),
       endMs,
       label,
@@ -113,12 +113,12 @@ export const createClip = reported(
 
 export const deleteClip = reported(
   'clips.deleteClip',
-  async ({ clipId, playlistId, songId }: DeleteClipParams): Promise<void> => {
+  async ({ clipId, songId }: DeleteClipParams): Promise<void> => {
     await deleteDoc(
       doc(
         getFirestore(),
-        PLAYLISTS_COLLECTION,
-        playlistId,
+        USERS_COLLECTION,
+        requireUid(),
         SONGS_SUBCOLLECTION,
         songId,
         CLIPS_SUBCOLLECTION,
