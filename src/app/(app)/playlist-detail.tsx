@@ -163,14 +163,18 @@ export default function PlaylistDetailScreen() {
   const morphOpacity = useSharedValue(1);
   // Rects survive the enter morph so the EXIT can fly the art back.
   const rectsRef = useRef<MorphRects | null>(null);
-  // Scrim + content fade over the live home underneath, both directions.
+  // Content fades over the live home underneath (both directions). The scrim
+  // is SEPARATE: it fades IN over home on enter, but STAYS opaque through the
+  // exit so home is fully hidden until the flight lands and router.back reveals
+  // it — otherwise home's real tile shows through and doubles the artwork.
   const screenProgress = useSharedValue(0);
+  const scrimOpacity = useSharedValue(0);
   const closingRef = useRef(false);
 
   useEffect(() => {
-    screenProgress.value = reduceMotion
-      ? 1
-      : withTiming(1, { duration: SCREEN_IN_MS });
+    const config = { duration: SCREEN_IN_MS };
+    screenProgress.value = reduceMotion ? 1 : withTiming(1, config);
+    scrimOpacity.value = reduceMotion ? 1 : withTiming(1, config);
     // Mount-only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -193,12 +197,14 @@ export default function PlaylistDetailScreen() {
       return;
     }
 
-    // Re-arm the overlay at the hero and fly it home.
+    // Re-arm the overlay at the hero and fly it home. The scrim stays opaque
+    // (home hidden); only the content fades — matched to the flight so there's
+    // no blank frame before router.back reveals home under the landed art.
     setHeroShown(false);
     setMorph(rects);
     morphOpacity.value = 1;
     morphProgress.value = 1;
-    screenProgress.value = withTiming(0, { duration: SCREEN_OUT_MS });
+    screenProgress.value = withTiming(0, { duration: EXIT_MORPH_MS });
     morphProgress.value = withTiming(
       0,
       { duration: EXIT_MORPH_MS, easing: Easing.in(Easing.cubic) },
@@ -425,15 +431,20 @@ export default function PlaylistDetailScreen() {
     opacity: screenProgress.value,
   }));
 
+  const scrimStyle = useAnimatedStyle(() => ({
+    opacity: scrimOpacity.value,
+  }));
+
   return (
     <View ref={rootRef} style={styles.root}>
-      {/* Scrim: home stays live underneath the transparent modal; this layer
-          fades it toward the screen background in both directions. */}
+      {/* Scrim over live home: fades IN on enter, then STAYS opaque through the
+          exit (home hidden until router.back) so the flying art is never
+          doubled by home's real tile showing through. */}
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
           { backgroundColor: colors.background },
-          screenStyle,
+          scrimStyle,
         ]}
       />
 
