@@ -79,6 +79,10 @@ const MINI_ART_SIZE = 44;
 const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
+// A little clearance so the collapsed banner floats clearly above the nav bar
+// instead of sitting flush against it.
+const BANNER_BOTTOM_GAP = 8;
+
 const EXPAND_MS = 320;
 const COLLAPSE_MS = 260;
 // Drag-release: past this progress (or flung faster than this) it commits.
@@ -148,8 +152,10 @@ export function PlayerSheet() {
   const clearActiveClip = usePlayerStore(s => s.clearActiveClip);
   const status = useAudioPlayerStatus(audioPlayer);
 
-  // Geometry (all deterministic — no measuring, no flicker).
-  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom;
+  // Geometry (all deterministic — no measuring, no flicker). The collapsed
+  // banner rests `insets.bottom + gap` above the screen bottom, so its content
+  // always clears the Android nav bar.
+  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom + BANNER_BOTTOM_GAP;
   const travel = winH - miniTotal;
   const artFull = Math.min(winW - 48, 420);
   const artExpandedX = (winW - artFull) / 2;
