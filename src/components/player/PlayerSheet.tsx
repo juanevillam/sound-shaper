@@ -28,6 +28,7 @@ import {
   padding,
   size,
   weight,
+  width,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -51,11 +52,13 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
+import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
+import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
@@ -92,6 +95,8 @@ const CONTROL_ICON_SIZE = 32;
 const PLAY_BUTTON_SIZE = 72;
 const RATE_PRESETS = [0.5, 0.75, 1, 1.5, 2];
 const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
+const EQ_LABEL_WIDTH = 40;
+const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 // A clip needs at least this much room between its marks to be worth saving.
 const MIN_CLIP_MS = 1000;
@@ -152,6 +157,12 @@ export function PlayerSheet() {
   const playing = usePlayerStore(s => s.playing);
   const storePosition = usePlayerStore(s => s.position);
   const storeDuration = usePlayerStore(s => s.duration);
+
+  const gains = useShaperStore(s => s.gains);
+  const setBandGain = useShaperStore(s => s.setBandGain);
+  const activePreset = useShaperStore(s => s.activePreset);
+  const applyPreset = useShaperStore(s => s.applyPreset);
+  const resetEq = useShaperStore(s => s.reset);
 
   // Geometry (all deterministic — no measuring, no flicker). The collapsed
   // banner rests `insets.bottom + gap` above the screen bottom, so its content
@@ -336,6 +347,24 @@ export function PlayerSheet() {
   const progressRatio =
     storeDuration > 0 ? Math.min(storePosition / storeDuration, 1) : 0;
   const subtitle = current.artist || ' ';
+
+  // The typed t() needs literal keys, so map preset ids explicitly.
+  const presetLabel = (key: string) => {
+    switch (key) {
+      case 'bass':
+        return t('player.eq.presets.bass');
+      case 'vocal':
+        return t('player.eq.presets.vocal');
+      case 'treble':
+        return t('player.eq.presets.treble');
+      case 'warm':
+        return t('player.eq.presets.warm');
+      case 'bright':
+        return t('player.eq.presets.bright');
+      default:
+        return t('player.eq.presets.flat');
+    }
+  };
 
   return (
     <>
@@ -579,6 +608,86 @@ export function PlayerSheet() {
                   </Column>
                   <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
                 </Row>
+
+                {/* Equalizer — live band gains on the shaping graph. */}
+                <Column
+                  verticalArrangement={{ spacedBy: 6 }}
+                  modifiers={[fillMaxWidth(), padding(0, 16, 0, 4)]}
+                >
+                  <Row
+                    verticalAlignment="center"
+                    horizontalArrangement="spaceBetween"
+                    modifiers={[fillMaxWidth()]}
+                  >
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelLarge' }}
+                    >
+                      {t('player.eq.title')}
+                    </Text>
+                    {activePreset !== 'flat' ? (
+                      <Button onClick={resetEq}>
+                        <Text maxLines={1}>{t('player.eq.reset')}</Text>
+                      </Button>
+                    ) : null}
+                  </Row>
+
+                  {/* Two rows of three — six labels in one segmented row get
+                      clipped to 3 letters on a phone. */}
+                  {[EQ_PRESETS.slice(0, 3), EQ_PRESETS.slice(3)].map(group => (
+                    <SingleChoiceSegmentedButtonRow
+                      key={group[0].i18nKey}
+                      modifiers={[fillMaxWidth()]}
+                    >
+                      {group.map(preset => (
+                        <SegmentedButton
+                          key={preset.i18nKey}
+                          selected={activePreset === preset.i18nKey}
+                          onClick={() => applyPreset(preset.i18nKey)}
+                        >
+                          <SegmentedButton.Label>
+                            <Text maxLines={1}>
+                              {presetLabel(preset.i18nKey)}
+                            </Text>
+                          </SegmentedButton.Label>
+                        </SegmentedButton>
+                      ))}
+                    </SingleChoiceSegmentedButtonRow>
+                  ))}
+
+                  {EQ_BANDS.map((band, index) => (
+                    <Row
+                      key={band.hz}
+                      verticalAlignment="center"
+                      horizontalArrangement={{ spacedBy: 8 }}
+                      modifiers={[fillMaxWidth()]}
+                    >
+                      <Text
+                        color={colors.onSurfaceMuted}
+                        style={{ typography: 'labelMedium' }}
+                        modifiers={[width(EQ_LABEL_WIDTH)]}
+                      >
+                        {band.label}
+                      </Text>
+                      <Slider
+                        value={gains[index]}
+                        min={EQ_MIN_DB}
+                        max={EQ_MAX_DB}
+                        onValueChange={value =>
+                          setBandGain(index, Math.round(value))
+                        }
+                        modifiers={[weight(1)]}
+                      />
+                      <Text
+                        color={colors.onSurface}
+                        style={{ typography: 'labelMedium' }}
+                        modifiers={[width(EQ_LABEL_WIDTH)]}
+                      >
+                        {dbLabel(gains[index])}
+                      </Text>
+                    </Row>
+                  ))}
+                </Column>
 
                 <Row
                   verticalAlignment="center"

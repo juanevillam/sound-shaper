@@ -120,6 +120,19 @@ export const translations = {
       speed: 'Speed',
       keepPitch: 'Keep pitch',
       keepPitchDescription: 'Hold the original tone while the speed changes.',
+      eq: {
+        title: 'Equalizer',
+        reset: 'Flat',
+        preamp: 'Preamp',
+        presets: {
+          flat: 'Flat',
+          bass: 'Bass',
+          vocal: 'Vocal',
+          treble: 'Treble',
+          warm: 'Warm',
+          bright: 'Bright',
+        },
+      },
       clips: {
         title: 'Clips',
         new: 'New clip',
@@ -374,6 +387,19 @@ export const translations = {
       keepPitch: 'Mantener el tono',
       keepPitchDescription:
         'Conserva el tono original mientras cambia la velocidad.',
+      eq: {
+        title: 'Ecualizador',
+        reset: 'Plano',
+        preamp: 'Preamp',
+        presets: {
+          flat: 'Plano',
+          bass: 'Graves',
+          vocal: 'Voz',
+          treble: 'Agudos',
+          warm: 'Cálido',
+          bright: 'Brillante',
+        },
+      },
       clips: {
         title: 'Clips',
         new: 'Nuevo clip',
@@ -631,6 +657,19 @@ export const translations = {
       speed: '速度',
       keepPitch: '保持音调',
       keepPitchDescription: '改变速度时保持原来的音调。',
+      eq: {
+        title: '均衡器',
+        reset: '平坦',
+        preamp: '前置放大',
+        presets: {
+          flat: '平坦',
+          bass: '低音',
+          vocal: '人声',
+          treble: '高音',
+          warm: '温暖',
+          bright: '明亮',
+        },
+      },
       clips: {
         title: '片段',
         new: '新片段',
