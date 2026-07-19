@@ -2,6 +2,7 @@ import { type ImageSourcePropType } from 'react-native';
 
 import Add from '@expo/material-symbols/add.xml';
 import Apps from '@expo/material-symbols/apps.xml';
+import ArrowBack from '@expo/material-symbols/arrow_back.xml';
 import ArrowDownward from '@expo/material-symbols/arrow_downward.xml';
 import ArrowUpward from '@expo/material-symbols/arrow_upward.xml';
 import Block from '@expo/material-symbols/block.xml';
@@ -64,6 +65,7 @@ import { Asset } from 'expo-asset';
 const icons = {
   add: Add,
   apps: Apps,
+  'arrow-back': ArrowBack,
   'arrow-downward': ArrowDownward,
   'arrow-upward': ArrowUpward,
   block: Block,

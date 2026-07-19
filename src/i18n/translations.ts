@@ -15,6 +15,7 @@ export const translations = {
       songEditExisting: 'Edit song',
     },
     common: {
+      back: 'Back',
       cancel: 'Cancel',
       retry: 'Try again',
       pickMedia: 'Choose an emoji',
@@ -267,6 +268,7 @@ export const translations = {
       songEditExisting: 'Editar canción',
     },
     common: {
+      back: 'Atrás',
       cancel: 'Cancelar',
       retry: 'Reintentar',
       pickMedia: 'Elegir un emoji',
@@ -526,6 +528,7 @@ export const translations = {
       songEditExisting: '编辑歌曲',
     },
     common: {
+      back: '返回',
       cancel: '取消',
       retry: '重试',
       pickMedia: '选择表情符号',

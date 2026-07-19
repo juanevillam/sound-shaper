@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { InteractionManager, StyleSheet, View } from 'react-native';
+import {
+  BackHandler,
+  InteractionManager,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import {
   Button,
@@ -15,10 +20,9 @@ import {
 } from '@expo/ui/jetpack-compose';
 import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Animated, {
   Easing,
-  FadeIn,
   runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
@@ -27,10 +31,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Sortable, {
   type SortableGridDragEndParams,
   type SortableGridRenderItem,
@@ -44,7 +45,6 @@ import {
 } from '@/components/songs/EditSongSheet';
 import { SongRow } from '@/components/songs/SongRow';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongRowSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -70,10 +70,17 @@ const HERO_ART_SIZE = 148;
 const HERO_EMOJI_SIZE = Math.round(HERO_ART_SIZE * ART_EMOJI_RATIO);
 const ROW_GAP = 4;
 // The tile→hero art morph: a beat at the source (continuity with the tap),
-// the flight, then a quick opacity handover to the real hero.
+// then the flight. On landing the real hero and the overlay hard-swap in ONE
+// commit (they're pixel-identical there) — a cross-fade raced the hero reveal
+// and dipped the art.
 const MORPH_HOLD_MS = 40;
 const MORPH_MS = 300;
-const MORPH_FADE_MS = 90;
+// The screen's own scrim/content fade (home stays live underneath — this
+// screen is a transparent overlay, so both directions play over it).
+const SCREEN_IN_MS = 240;
+const SCREEN_OUT_MS = 200;
+// Exit flight back to the tile, then the pop.
+const EXIT_MORPH_MS = 280;
 
 type MorphRects = {
   from: { x: number; y: number; size: number };
@@ -138,7 +145,7 @@ export default function PlaylistDetailScreen() {
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
 
-  // --- Tile→hero art morph -------------------------------------------------
+  // --- Container transform (this screen is a transparent overlay) ----------
   // Consume the pressed tile's measured rect exactly once, at first render.
   const reduceMotion = useReducedMotion();
   const [handoff] = useState(() => useArtTransitionStore.getState().consume());
@@ -149,6 +156,75 @@ export default function PlaylistDetailScreen() {
   const heroArtRef = useRef<View>(null);
   const morphProgress = useSharedValue(0);
   const morphOpacity = useSharedValue(1);
+  // Rects survive the enter morph so the EXIT can fly the art back.
+  const rectsRef = useRef<MorphRects | null>(null);
+  // Scrim + content fade over the live home underneath, both directions.
+  const screenProgress = useSharedValue(0);
+  const closingRef = useRef(false);
+
+  useEffect(() => {
+    screenProgress.value = reduceMotion
+      ? 1
+      : withTiming(1, { duration: SCREEN_IN_MS });
+    // Mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The animated exit: content fades, the artwork flies back into its grid
+  // slot, THEN the screen actually pops (with no native animation of its own).
+  const runClose = useCallback(() => {
+    if (closingRef.current) return;
+
+    closingRef.current = true;
+
+    const rects = rectsRef.current;
+
+    if (reduceMotion || !rects) {
+      screenProgress.value = withTiming(
+        0,
+        { duration: reduceMotion ? 0 : SCREEN_OUT_MS },
+        () => runOnJS(router.back)(),
+      );
+      return;
+    }
+
+    // Re-arm the overlay at the hero and fly it home.
+    setHeroShown(false);
+    setMorph(rects);
+    morphOpacity.value = 1;
+    morphProgress.value = 1;
+    screenProgress.value = withTiming(0, { duration: SCREEN_OUT_MS });
+    morphProgress.value = withTiming(
+      0,
+      { duration: EXIT_MORPH_MS, easing: Easing.in(Easing.cubic) },
+      finished => {
+        if (finished) runOnJS(router.back)();
+      },
+    );
+  }, [morphOpacity, morphProgress, reduceMotion, screenProgress]);
+
+  // Android back plays the same exit — unless the player sheet is expanded
+  // (its own handler collapses it; ours yields).
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (usePlayerStore.getState().sheetExpanded) return false;
+
+        runClose();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [runClose]);
+
+  // Reveal the real hero and drop the overlay together, so the handover is a
+  // single invisible commit instead of a fade that can outrun the reveal.
+  const landMorph = useCallback(() => {
+    setHeroShown(true);
+    setMorph(null);
+  }, []);
 
   useEffect(() => {
     if (!handoff || reduceMotion) return;
@@ -170,15 +246,18 @@ export default function PlaylistDetailScreen() {
           return;
         }
 
-        // Both rects re-based into this screen's coordinate space.
-        setMorph({
+        // Both rects re-based into this screen's coordinate space; kept in
+        // the ref so the exit can replay the flight in reverse.
+        const rects: MorphRects = {
           from: {
             x: handoff.x - rootX,
             y: handoff.y - rootY,
             size: handoff.size,
           },
           to: { x: heroX - rootX, y: heroY - rootY, size: heroWidth },
-        });
+        };
+        rectsRef.current = rects;
+        setMorph(rects);
 
         // A short hold at the source keeps continuity with the tapped tile
         // while the screen fades in under the overlay, then the flight.
@@ -188,18 +267,7 @@ export default function PlaylistDetailScreen() {
             1,
             { duration: MORPH_MS, easing: Easing.out(Easing.cubic) },
             finished => {
-              if (!finished) return;
-
-              // Land: reveal the real hero under the overlay, then fade the
-              // overlay off it.
-              runOnJS(setHeroShown)(true);
-              morphOpacity.value = withTiming(
-                0,
-                { duration: MORPH_FADE_MS },
-                faded => {
-                  if (faded) runOnJS(setMorph)(null);
-                },
-              );
+              if (finished) runOnJS(landMorph)();
             },
           ),
         );
@@ -348,292 +416,301 @@ export default function PlaylistDetailScreen() {
     [isTransitionDone, currentSongId, playSong, playlistId, songs],
   );
 
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenProgress.value,
+  }));
+
   return (
-    <Screen>
-      <Stack.Screen
-        options={{
-          // Transparent bar riding the content (YT Music's playlist screen):
-          // just the back arrow + overflow, the identity lives in the hero.
-          title: '',
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-          // No native transition at all: RNS's fade composited over the morph
-          // overlay read as flicker. The content fades itself in (below)
-          // while the overlay owns the motion.
-          animation: 'none',
-          headerRight: playlist
-            ? () => (
-                <ThemedHost matchContents>
-                  <DropdownMenu
-                    expanded={menuOpen}
-                    onDismissRequest={() => setMenuOpen(false)}
-                  >
-                    <DropdownMenu.Trigger>
-                      <IconButton onClick={() => setMenuOpen(true)}>
-                        <Icon
-                          source={iconSource('more-vert')}
-                          tint={colors.onSurface}
-                          contentDescription={t('common.playlistOptions')}
-                        />
-                      </IconButton>
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Items>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setEditPlaylistVisible(true);
-                        }}
-                      >
-                        <DropdownMenuItem.Text>
-                          <ComposeText color={colors.onSurface}>
-                            {t('playlistDetail.menu.edit')}
-                          </ComposeText>
-                        </DropdownMenuItem.Text>
-                        <DropdownMenuItem.LeadingIcon>
-                          <Icon
-                            source={iconSource('edit')}
-                            size={MENU_ICON_SIZE}
-                            tint={colors.onSurface}
-                          />
-                        </DropdownMenuItem.LeadingIcon>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setDeleteVisible(true);
-                        }}
-                      >
-                        <DropdownMenuItem.Text>
-                          <ComposeText color={colors.danger}>
-                            {t('playlistDetail.menu.delete')}
-                          </ComposeText>
-                        </DropdownMenuItem.Text>
-                        <DropdownMenuItem.LeadingIcon>
-                          <Icon
-                            source={iconSource('delete')}
-                            size={MENU_ICON_SIZE}
-                            tint={colors.danger}
-                          />
-                        </DropdownMenuItem.LeadingIcon>
-                      </DropdownMenuItem>
-                    </DropdownMenu.Items>
-                  </DropdownMenu>
-                </ThemedHost>
-              )
-            : undefined,
-        }}
+    <View ref={rootRef} style={styles.root}>
+      {/* Scrim: home stays live underneath the transparent modal; this layer
+          fades it toward the screen background in both directions. */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: colors.background },
+          screenStyle,
+        ]}
       />
 
-      <SafeAreaView ref={rootRef} style={styles.safeArea} edges={[]}>
-        <Animated.View
-          entering={reduceMotion ? undefined : FadeIn.duration(240)}
-          style={styles.content}
-        >
-          {error ? (
-            <EmptyState
-              title={t('playlistDetail.error.title')}
-              subtitle={t('playlistDetail.error.subtitle')}
-              action={
-                playlistId
-                  ? {
-                      label: t('common.retry'),
-                      onPress: () => retrySongs(playlistId),
-                    }
-                  : undefined
-              }
-            />
-          ) : (
-            <Animated.ScrollView
-              ref={scrollableRef}
-              style={styles.list}
-              contentContainerStyle={{
-                paddingBottom:
-                  insets.bottom + 96 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
-              }}
-            >
-              {/* Hero: the artwork IS the header. Invisible until the morph
+      <Animated.View style={[styles.content, screenStyle]}>
+        {/* Self-drawn header (no native bar): back plays the exit morph. */}
+        <View style={[styles.topBar, { paddingTop: insets.top + 4 }]}>
+          <ThemedHost matchContents>
+            <IconButton onClick={runClose}>
+              <Icon
+                source={iconSource('arrow-back')}
+                tint={colors.onSurface}
+                contentDescription={t('common.back')}
+              />
+            </IconButton>
+          </ThemedHost>
+          {playlist ? (
+            <ThemedHost matchContents>
+              <DropdownMenu
+                expanded={menuOpen}
+                onDismissRequest={() => setMenuOpen(false)}
+              >
+                <DropdownMenu.Trigger>
+                  <IconButton onClick={() => setMenuOpen(true)}>
+                    <Icon
+                      source={iconSource('more-vert')}
+                      tint={colors.onSurface}
+                      contentDescription={t('common.playlistOptions')}
+                    />
+                  </IconButton>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Items>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setEditPlaylistVisible(true);
+                    }}
+                  >
+                    <DropdownMenuItem.Text>
+                      <ComposeText color={colors.onSurface}>
+                        {t('playlistDetail.menu.edit')}
+                      </ComposeText>
+                    </DropdownMenuItem.Text>
+                    <DropdownMenuItem.LeadingIcon>
+                      <Icon
+                        source={iconSource('edit')}
+                        size={MENU_ICON_SIZE}
+                        tint={colors.onSurface}
+                      />
+                    </DropdownMenuItem.LeadingIcon>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setDeleteVisible(true);
+                    }}
+                  >
+                    <DropdownMenuItem.Text>
+                      <ComposeText color={colors.danger}>
+                        {t('playlistDetail.menu.delete')}
+                      </ComposeText>
+                    </DropdownMenuItem.Text>
+                    <DropdownMenuItem.LeadingIcon>
+                      <Icon
+                        source={iconSource('delete')}
+                        size={MENU_ICON_SIZE}
+                        tint={colors.danger}
+                      />
+                    </DropdownMenuItem.LeadingIcon>
+                  </DropdownMenuItem>
+                </DropdownMenu.Items>
+              </DropdownMenu>
+            </ThemedHost>
+          ) : null}
+        </View>
+        {error ? (
+          <EmptyState
+            title={t('playlistDetail.error.title')}
+            subtitle={t('playlistDetail.error.subtitle')}
+            action={
+              playlistId
+                ? {
+                    label: t('common.retry'),
+                    onPress: () => retrySongs(playlistId),
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <Animated.ScrollView
+            ref={scrollableRef}
+            style={styles.list}
+            contentContainerStyle={{
+              paddingBottom:
+                insets.bottom + 96 + (miniVisible ? MINI_PLAYER_HEIGHT : 0),
+            }}
+          >
+            {/* Hero: the artwork IS the header. Invisible until the morph
                   overlay (if any) lands on it. */}
-              <View style={styles.hero}>
-                <View
-                  ref={heroArtRef}
-                  style={[
-                    styles.heroArt,
-                    { backgroundColor: colors.surfaceContainer },
-                    !heroShown && styles.heroArtHidden,
-                  ]}
-                >
-                  <Text
-                    doNotTranslate
-                    text={playlist?.emoji || '🎵'}
-                    style={styles.heroEmoji}
-                  />
-                </View>
+            <View style={styles.hero}>
+              <View
+                ref={heroArtRef}
+                style={[
+                  styles.heroArt,
+                  { backgroundColor: colors.surfaceContainer },
+                  !heroShown && styles.heroArtHidden,
+                ]}
+              >
                 <Text
                   doNotTranslate
-                  text={playlist?.name ?? ''}
-                  variant="titleLarge"
-                  numberOfLines={2}
-                  style={styles.heroName}
+                  text={playlist?.emoji || '🎵'}
+                  style={styles.heroEmoji}
                 />
+              </View>
+              <Text
+                doNotTranslate
+                text={playlist?.name ?? ''}
+                variant="titleLarge"
+                numberOfLines={2}
+                style={styles.heroName}
+              />
+              <Text
+                doNotTranslate
+                muted
+                text={`${playlist?.songCount ?? 0} ${t(
+                  (playlist?.songCount ?? 0) === 1 ? 'home.song' : 'home.songs',
+                )}`}
+                variant="bodySmall"
+              />
+              {playlist && playlist.description.length > 0 ? (
                 <Text
                   doNotTranslate
                   muted
-                  text={`${playlist?.songCount ?? 0} ${t(
-                    (playlist?.songCount ?? 0) === 1
-                      ? 'home.song'
-                      : 'home.songs',
-                  )}`}
-                  variant="bodySmall"
+                  text={playlist.description}
+                  variant="bodyMedium"
+                  style={styles.heroDescription}
                 />
-                {playlist && playlist.description.length > 0 ? (
-                  <Text
-                    doNotTranslate
-                    muted
-                    text={playlist.description}
-                    variant="bodyMedium"
-                    style={styles.heroDescription}
-                  />
-                ) : null}
+              ) : null}
 
-                {displaySongs && displaySongs.length > 0 ? (
-                  // FIXED height, not matchContents: a vertically-matching
-                  // Host on the scroll axis of this ScrollView mis-measures
-                  // (see expo-ui-matchcontents-scrollable notes).
-                  <ThemedHost style={styles.actions}>
-                    <Column horizontalAlignment="center">
-                      <Row
-                        horizontalArrangement={{ spacedBy: 12 }}
-                        verticalAlignment="center"
-                      >
-                        <Button onClick={playAll}>
-                          <ComposeText>{t('playlistDetail.play')}</ComposeText>
-                        </Button>
-                        <OutlinedButton onClick={playShuffled}>
-                          <ComposeText color={colors.onSurface}>
-                            {t('playlistDetail.shuffle')}
-                          </ComposeText>
-                        </OutlinedButton>
-                        <OutlinedButton onClick={openCreateSong}>
-                          <ComposeText color={colors.onSurface}>
-                            {t('playlistDetail.fab.addSong')}
-                          </ComposeText>
-                        </OutlinedButton>
-                      </Row>
-                    </Column>
-                  </ThemedHost>
-                ) : null}
-              </View>
+              {displaySongs && displaySongs.length > 0 ? (
+                // FIXED height, not matchContents: a vertically-matching
+                // Host on the scroll axis of this ScrollView mis-measures
+                // (see expo-ui-matchcontents-scrollable notes).
+                <ThemedHost style={styles.actions}>
+                  <Column horizontalAlignment="center">
+                    <Row
+                      horizontalArrangement={{ spacedBy: 12 }}
+                      verticalAlignment="center"
+                    >
+                      <Button onClick={playAll}>
+                        <ComposeText>{t('playlistDetail.play')}</ComposeText>
+                      </Button>
+                      <OutlinedButton onClick={playShuffled}>
+                        <ComposeText color={colors.onSurface}>
+                          {t('playlistDetail.shuffle')}
+                        </ComposeText>
+                      </OutlinedButton>
+                      <OutlinedButton onClick={openCreateSong}>
+                        <ComposeText color={colors.onSurface}>
+                          {t('playlistDetail.fab.addSong')}
+                        </ComposeText>
+                      </OutlinedButton>
+                    </Row>
+                  </Column>
+                </ThemedHost>
+              ) : null}
+            </View>
 
-              {!displaySongs || displaySongs.length === 0 ? (
-                !hasSettled ? (
-                  showSkeleton ? (
-                    <SongListSkeleton />
-                  ) : null
-                ) : (
-                  <View style={styles.emptyWrap}>
-                    <EmptyState
-                      emoji={playlist?.emoji ?? '🎵'}
-                      title={t('playlistDetail.empty.title')}
-                      subtitle={t('playlistDetail.empty.subtitle')}
-                      action={{
-                        label: t('playlistDetail.empty.cta'),
-                        onPress: openCreateSong,
-                      }}
-                    />
-                  </View>
-                )
+            {!displaySongs || displaySongs.length === 0 ? (
+              !hasSettled ? (
+                showSkeleton ? (
+                  <SongListSkeleton />
+                ) : null
               ) : (
-                <Sortable.Grid
-                  columns={1}
-                  data={displaySongs}
-                  keyExtractor={song => song.id}
-                  renderItem={renderSong}
-                  rowGap={ROW_GAP}
-                  scrollableRef={scrollableRef}
-                  overDrag="vertical"
-                  onDragStart={handleDragStart}
-                  onOrderChange={handleOrderChange}
-                  onDragEnd={handleDragEnd}
-                />
-              )}
-            </Animated.ScrollView>
-          )}
-        </Animated.View>
+                <View style={styles.emptyWrap}>
+                  <EmptyState
+                    emoji={playlist?.emoji ?? '🎵'}
+                    title={t('playlistDetail.empty.title')}
+                    subtitle={t('playlistDetail.empty.subtitle')}
+                    action={{
+                      label: t('playlistDetail.empty.cta'),
+                      onPress: openCreateSong,
+                    }}
+                  />
+                </View>
+              )
+            ) : (
+              <Sortable.Grid
+                columns={1}
+                data={displaySongs}
+                keyExtractor={song => song.id}
+                renderItem={renderSong}
+                rowGap={ROW_GAP}
+                scrollableRef={scrollableRef}
+                overDrag="vertical"
+                onDragStart={handleDragStart}
+                onOrderChange={handleOrderChange}
+                onDragEnd={handleDragEnd}
+              />
+            )}
+          </Animated.ScrollView>
+        )}
+      </Animated.View>
 
-        {/* The flying artwork: a copy of the pressed tile, translated+scaled
+      {/* The flying artwork: a copy of the pressed tile, translated+scaled
             from where it was tapped onto the hero slot. */}
-        {morph && handoff ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.morphOverlay,
-              {
-                backgroundColor: colors.surfaceContainer,
-                height: morph.from.size,
-                left: morph.from.x,
-                top: morph.from.y,
-                width: morph.from.size,
-              },
-              morphStyle,
-            ]}
-          >
-            <Text
-              doNotTranslate
-              text={handoff.emoji}
-              // Ratio-sized to the overlay's own square: after the uniform
-              // scale it lands at exactly the hero's emoji size.
-              style={{
-                fontSize: handoff.size * ART_EMOJI_RATIO,
-                lineHeight: handoff.size * ART_EMOJI_RATIO * 1.4,
-              }}
-            />
-          </Animated.View>
-        ) : null}
+      {morph && handoff ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.morphOverlay,
+            {
+              backgroundColor: colors.surfaceContainer,
+              height: morph.from.size,
+              left: morph.from.x,
+              top: morph.from.y,
+              width: morph.from.size,
+            },
+            morphStyle,
+          ]}
+        >
+          <Text
+            doNotTranslate
+            text={handoff.emoji}
+            // Ratio-sized to the overlay's own square: after the uniform
+            // scale it lands at exactly the hero's emoji size.
+            style={{
+              fontSize: handoff.size * ART_EMOJI_RATIO,
+              lineHeight: handoff.size * ART_EMOJI_RATIO * 1.4,
+            }}
+          />
+        </Animated.View>
+      ) : null}
 
-        {editPlaylistVisible && (
-          <EditPlaylistSheet
-            playlistId={playlistId}
-            onClose={() => setEditPlaylistVisible(false)}
+      {editPlaylistVisible && (
+        <EditPlaylistSheet
+          playlistId={playlistId}
+          onClose={() => setEditPlaylistVisible(false)}
+        />
+      )}
+      {pickedFile && playlistId && (
+        <EditSongSheet
+          playlistId={playlistId}
+          pickedFile={pickedFile}
+          onClose={() => setPickedFile(null)}
+        />
+      )}
+      {editingSongId && playlistId && (
+        <EditSongSheet
+          playlistId={playlistId}
+          songId={editingSongId}
+          onClose={() => setEditingSongId(null)}
+        />
+      )}
+      {deleteVisible && (
+        <ThemedHost matchContents>
+          <DestructiveConfirmDialog
+            dialog={{
+              title: t('playlistDetail.deleteConfirm.title'),
+              message: t('playlistDetail.deleteConfirm.message'),
+              confirm: t('playlistDetail.deleteConfirm.confirm'),
+              cancel: t('playlistDetail.deleteConfirm.cancel'),
+            }}
+            colors={{ danger: colors.danger }}
+            busy={deleting}
+            onConfirm={confirmDelete}
+            onDismiss={() => setDeleteVisible(false)}
           />
-        )}
-        {pickedFile && playlistId && (
-          <EditSongSheet
-            playlistId={playlistId}
-            pickedFile={pickedFile}
-            onClose={() => setPickedFile(null)}
-          />
-        )}
-        {editingSongId && playlistId && (
-          <EditSongSheet
-            playlistId={playlistId}
-            songId={editingSongId}
-            onClose={() => setEditingSongId(null)}
-          />
-        )}
-        {deleteVisible && (
-          <ThemedHost matchContents>
-            <DestructiveConfirmDialog
-              dialog={{
-                title: t('playlistDetail.deleteConfirm.title'),
-                message: t('playlistDetail.deleteConfirm.message'),
-                confirm: t('playlistDetail.deleteConfirm.confirm'),
-                cancel: t('playlistDetail.deleteConfirm.cancel'),
-              }}
-              colors={{ danger: colors.danger }}
-              busy={deleting}
-              onConfirm={confirmDelete}
-              onDismiss={() => setDeleteVisible(false)}
-            />
-          </ThemedHost>
-        )}
-      </SafeAreaView>
-    </Screen>
+        </ThemedHost>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  root: { flex: 1 },
   content: { flex: 1 },
+  topBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
   list: { flex: 1 },
   hero: {
     alignItems: 'center',
