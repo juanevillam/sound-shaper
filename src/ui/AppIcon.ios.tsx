@@ -21,6 +21,8 @@ import { type IconName } from './icons';
 const SF_SYMBOLS = {
   add: 'plus',
   apps: 'square.grid.3x3',
+  // iOS back is the chevron, not Material's arrow.
+  'arrow-back': 'chevron.left',
   'arrow-downward': 'arrow.down',
   'arrow-upward': 'arrow.up',
   block: 'nosign',

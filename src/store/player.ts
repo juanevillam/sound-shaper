@@ -23,6 +23,10 @@ type PlayerState = {
   // scrub, a track change, or the clip running out. Keyed by the clip id so
   // the clips list can highlight the active row.
   activeClip: { clipId: string; startS: number; endS: number } | null;
+  // Mirror of the PlayerSheet's expanded state, so screens' own Android-back
+  // handlers can yield to the sheet's collapse handler.
+  sheetExpanded: boolean;
+  setSheetExpanded: (sheetExpanded: boolean) => void;
   playSong: (song: Song, queue: Song[], playlistId: string) => void;
   /** Jump-play a saved range of the CURRENT song. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
@@ -43,6 +47,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   rate: 1,
   keepPitch: true,
   activeClip: null,
+  sheetExpanded: false,
+  setSheetExpanded: sheetExpanded => set({ sheetExpanded }),
 
   playSong: (song, queue, playlistId) => {
     const { current, rate, keepPitch } = get();

@@ -165,6 +165,8 @@ export function PlayerSheet() {
   const springTo = useCallback(
     (target: 0 | 1) => {
       setExpanded(target === 1);
+      // Mirrored so screens' back handlers can yield to the sheet's.
+      usePlayerStore.getState().setSheetExpanded(target === 1);
       progress.value = withTiming(target, {
         duration: reduceMotion ? 0 : target === 1 ? EXPAND_MS : COLLAPSE_MS,
         easing: Easing.out(Easing.cubic),

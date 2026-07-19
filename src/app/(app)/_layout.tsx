@@ -53,9 +53,22 @@ export default function AppLayout() {
             settings gear are set by the screen itself. */}
         <Stack.Screen name="home" options={{ title: t('app.title') }} />
         <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
-        {/* Empty title from the start — the identity lives in the screen's
-            hero, and the default title would flash during the art morph. */}
-        <Stack.Screen name="playlist-detail" options={{ title: '' }} />
+        {/* A transparent overlay, not a page: home stays rendered beneath, so
+            the enter/exit container-transform (scrim + flying artwork, both
+            directions) plays over a live background. The screen draws its own
+            header and drives its own exit before popping. */}
+        <Stack.Screen
+          name="playlist-detail"
+          options={{
+            headerShown: false,
+            presentation: 'transparentModal',
+            animation: 'none',
+            // The screen container MUST be transparent (it inherits the Stack's
+            // opaque background otherwise) so live home shows through during
+            // the whole transform — the screen's own scrim is what fades in.
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen
           name="manage-account"
           options={{ title: t('settings.manageAccount.title') }}
