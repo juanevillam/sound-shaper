@@ -19,7 +19,6 @@ import { formatTime } from '@/lib/player';
 import { createClip } from '@/services/firebase/clips';
 
 type ClipSaveSheetProps = {
-  playlistId: string;
   songId: string;
   /** The captured range (ms), already validated by the marking flow. */
   startMs: number;
@@ -30,7 +29,6 @@ type ClipSaveSheetProps = {
 // The last step of marking a clip: the captured range (read-only — re-mark to
 // change it) plus an optional label. Same sheet idiom as every editor.
 export function ClipSaveSheet({
-  playlistId,
   songId,
   startMs,
   endMs,
@@ -55,7 +53,6 @@ export function ClipSaveSheet({
     createClip({
       endMs,
       label: label.trim(),
-      playlistId,
       songId,
       startMs,
     })

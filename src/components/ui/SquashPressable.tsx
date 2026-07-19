@@ -44,7 +44,7 @@ type SquashPressableProps = {
 /**
  * Pressable with a while-pressing squash (Reanimated, native driver — no
  * React re-renders, so Compose children never re-send props). Used by the
- * playlist/song cards in place of the Compose ripple.
+ * song cards in place of the Compose ripple.
  */
 export function SquashPressable({
   children,

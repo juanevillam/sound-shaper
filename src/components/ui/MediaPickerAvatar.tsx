@@ -15,7 +15,7 @@ type MediaPickerAvatarProps = {
   surfaceColor: string;
   /** Color of the "+" placeholder glyph. */
   contentColor: string;
-  /** Emoji glyph to show (a playlist's emoji). Ignored when imageUrl is set. */
+  /** Emoji glyph fallback. Ignored when imageUrl is set. */
   emoji?: string;
   /** Image to show (a song's cover art — local or remote). Wins over emoji. */
   imageUrl?: string;
@@ -26,10 +26,9 @@ type MediaPickerAvatarProps = {
 const noop = () => {};
 
 /**
- * Circular media picker shared by both editors — the emoji in
- * EditPlaylistSheet and the cover-art preview in EditSongSheet — so the two
- * read AND press identically. Pure RN on purpose (Compose exposes no press
- * state); embedded into the Compose sheets with `<RNHostView matchContents>`.
+ * Circular media slot — the cover-art preview in EditSongSheet. Pure RN on
+ * purpose (Compose exposes no press state); embedded into the Compose sheet
+ * with `<RNHostView matchContents>`.
  */
 export function MediaPickerAvatar({
   onPress,

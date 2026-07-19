@@ -53,7 +53,7 @@ export function AudioEngine() {
     if (!tag) return;
 
     // Wire the freshly-loaded stream through the EQ graph, then play only if
-    // the store wants playback (a track reloaded at the end of a playlist is
+    // the store wants playback (a track reloaded at the end of the queue is
     // parked paused, ready to replay).
     audioEngine.registerHandle(tag);
     audioEngine.buildGraph(tag);

@@ -3,8 +3,9 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Icon, IconButton } from '@expo/ui/jetpack-compose';
-import { DestructiveConfirmDialog, iconSource } from '@portfolio/mobile-ui';
+import { iconSource } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
+import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
 import {
   SafeAreaView,
@@ -12,49 +13,44 @@ import {
 } from 'react-native-safe-area-context';
 
 import { MINI_PLAYER_HEIGHT } from '@/components/player/PlayerSheet';
-import { EditPlaylistSheet } from '@/components/playlists/EditPlaylistSheet';
-import { PlaylistActionsSheet } from '@/components/playlists/PlaylistActionsSheet';
 import {
-  NewPlaylistTile,
-  PlaylistTile,
-} from '@/components/playlists/PlaylistTile';
+  EditSongSheet,
+  type PickedSongFile,
+} from '@/components/songs/EditSongSheet';
+import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
-import {
-  PlaylistTileSkeleton,
-  SKELETON_DELAY_MS,
-} from '@/components/ui/Skeleton';
+import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
-import { haptics } from '@/lib/haptics';
-import { deletePlaylist, type Playlist } from '@/services/firebase/playlists';
+import { readId3Tags } from '@/lib/id3';
+import { type Song } from '@/services/firebase/songs';
 import { usePlayerStore } from '@/store/player';
-import { usePlaylistsStore } from '@/store/playlists';
+import { useSongsStore } from '@/store/songs';
 
 const LIST_PADDING = 16;
 const GRID_GAP = 16;
 
-// The grid rows FlashList renders: real playlists plus the trailing create
-// tile, pre-paired into 2-column rows (FlashList's numColumns + varying tile
-// heights fight each other; hand-pairing keeps rows aligned).
+// The grid rows FlashList renders: songs plus the trailing add tile,
+// pre-paired into 2-column rows (FlashList's numColumns + varying tile heights
+// fight each other; hand-pairing keeps rows aligned).
 type GridRow = {
   id: string;
-  left: Playlist | 'new';
-  right: Playlist | 'new' | null;
+  left: Song | 'add';
+  right: Song | 'add' | null;
 };
 
-const toGridRows = (playlists: Playlist[]): GridRow[] => {
-  const cells: (Playlist | 'new')[] = [...playlists, 'new'];
+const toGridRows = (songs: Song[]): GridRow[] => {
+  const cells: (Song | 'add')[] = [...songs, 'add'];
   const rows: GridRow[] = [];
 
   for (let index = 0; index < cells.length; index += 2) {
     const left = cells[index];
     rows.push({
-      id: typeof left === 'string' ? 'new' : left.id,
+      id: typeof left === 'string' ? 'add' : left.id,
       left,
       right: cells[index + 1] ?? null,
     });
@@ -63,77 +59,84 @@ const toGridRows = (playlists: Playlist[]): GridRow[] => {
   return rows;
 };
 
-// YT-Music-ized home: no app bar — an in-screen wordmark row (app name +
-// settings gear) over a 2-column grid of artwork tiles. The create tile lives
-// IN the grid (no FAB): the library is the whole screen.
+// The whole library on one screen: a wordmark row (app name + settings gear)
+// over a 2-column grid of song tiles — YT Music's album-tile language, one
+// song per tile. No playlists: you upload a song and it's just... there.
+// Tap = play (and the player opens); long-press = edit/delete; the add tile
+// closes the grid.
 export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
-  const { showSnackbar } = useSnackbar();
   const insets = useSafeAreaInsets();
-  const playlists = usePlaylistsStore(s => s.playlists);
-  const error = usePlaylistsStore(s => s.error);
-  const retry = usePlaylistsStore(s => s.retry);
-  const hasSettled = usePlaylistsStore(s => s.hasSettled);
+  const songs = useSongsStore(s => s.songs);
+  const error = useSongsStore(s => s.error);
+  const retry = useSongsStore(s => s.retry);
+  const hasSettled = useSongsStore(s => s.hasSettled);
+  const playSong = usePlayerStore(s => s.playSong);
+  const requestExpand = usePlayerStore(s => s.requestExpand);
+  const currentSongId = usePlayerStore(s => s.current?.id);
   const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
 
-  const [createVisible, setCreateVisible] = useState(false);
-  // The playlist whose long-press action sheet (Edit / Delete) is open.
-  const [menuPlaylist, setMenuPlaylist] = useState<Playlist | null>(null);
-  const [editPlaylistId, setEditPlaylistId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+  const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
+  const [editingSongId, setEditingSongId] = useState<string | null>(null);
 
-  const goToPlaylist = useCallback(
-    (playlistId: string) =>
-      router.push({ pathname: '/playlist-detail', params: { playlistId } }),
-    [],
+  const openAddSong = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'audio/*',
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    const tags = await readId3Tags(asset.uri);
+
+    setPickedFile({ uri: asset.uri, fileName: asset.name, tags });
+  }, []);
+
+  const onPressSong = useCallback(
+    (song: Song) => {
+      playSong(song, songs);
+      // Tapping a tile is "listen to this now" — open the full player on it.
+      requestExpand();
+    },
+    [playSong, requestExpand, songs],
   );
 
-  const confirmDelete = useCallback(() => {
-    if (!deleteTarget) return;
-
-    haptics.medium();
-    setDeleteTarget(null);
-
-    deletePlaylist(deleteTarget.id)
-      .then(() => showSnackbar(t('snackbar.playlist-deleted')))
-      .catch(() => showSnackbar(t('snackbar.playlist-delete-failed')));
-  }, [deleteTarget, showSnackbar, t]);
-
   const firstLoad = !hasSettled;
-  const rows = toGridRows(playlists);
+  const rows = toGridRows(songs);
 
   const renderCell = useCallback(
-    (cell: Playlist | 'new' | null, index: number) => {
+    (cell: Song | 'add' | null) => {
       if (cell === null) return <View style={styles.cell} />;
 
-      if (cell === 'new')
+      if (cell === 'add')
         return (
           <View style={styles.cell}>
-            <NewPlaylistTile onPress={() => setCreateVisible(true)} />
+            <AddSongTile onPress={openAddSong} />
           </View>
         );
 
       return (
         <View style={styles.cell}>
-          <PlaylistTile
-            playlist={cell}
-            index={index}
-            onPress={() => goToPlaylist(cell.id)}
-            onLongPress={() => setMenuPlaylist(cell)}
+          <SongTile
+            song={cell}
+            isCurrent={cell.id === currentSongId}
+            onPress={() => onPressSong(cell)}
+            onLongPress={() => setEditingSongId(cell.id)}
           />
         </View>
       );
     },
-    [goToPlaylist],
+    [openAddSong, onPressSong, currentSongId],
   );
 
   const renderRow = useCallback(
-    ({ item, index }: { item: GridRow; index: number }) => (
+    ({ item }: { item: GridRow }) => (
       <View style={styles.gridRow}>
-        {renderCell(item.left, index * 2)}
-        {renderCell(item.right, index * 2 + 1)}
+        {renderCell(item.left)}
+        {renderCell(item.right)}
       </View>
     ),
     [renderCell],
@@ -166,15 +169,15 @@ export default function HomeScreen() {
             <View style={styles.skeletonGrid}>
               <View style={styles.gridRow}>
                 <View style={styles.cell}>
-                  <PlaylistTileSkeleton />
+                  <SongTileSkeleton />
                 </View>
                 <View style={styles.cell}>
-                  <PlaylistTileSkeleton />
+                  <SongTileSkeleton />
                 </View>
               </View>
               <View style={styles.gridRow}>
                 <View style={styles.cell}>
-                  <PlaylistTileSkeleton />
+                  <SongTileSkeleton />
                 </View>
                 <View style={styles.cell} />
               </View>
@@ -200,37 +203,17 @@ export default function HomeScreen() {
           />
         )}
 
-        {createVisible && (
-          <EditPlaylistSheet onClose={() => setCreateVisible(false)} />
-        )}
-        {editPlaylistId && (
-          <EditPlaylistSheet
-            playlistId={editPlaylistId}
-            onClose={() => setEditPlaylistId(null)}
+        {pickedFile && (
+          <EditSongSheet
+            pickedFile={pickedFile}
+            onClose={() => setPickedFile(null)}
           />
         )}
-        {menuPlaylist && (
-          <PlaylistActionsSheet
-            playlistName={menuPlaylist.name}
-            onClose={() => setMenuPlaylist(null)}
-            onEdit={() => setEditPlaylistId(menuPlaylist.id)}
-            onDelete={() => setDeleteTarget(menuPlaylist)}
+        {editingSongId && (
+          <EditSongSheet
+            songId={editingSongId}
+            onClose={() => setEditingSongId(null)}
           />
-        )}
-        {deleteTarget && (
-          <ThemedHost matchContents>
-            <DestructiveConfirmDialog
-              dialog={{
-                title: t('playlistDetail.deleteConfirm.title'),
-                message: t('playlistDetail.deleteConfirm.message'),
-                confirm: t('playlistDetail.deleteConfirm.confirm'),
-                cancel: t('playlistDetail.deleteConfirm.cancel'),
-              }}
-              colors={{ danger: colors.danger }}
-              onConfirm={confirmDelete}
-              onDismiss={() => setDeleteTarget(null)}
-            />
-          </ThemedHost>
         )}
       </SafeAreaView>
     </Screen>

@@ -5,19 +5,17 @@ import { Redirect, Stack } from 'expo-router';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useEnsureDefaultPlaylist } from '@/hooks/useEnsureDefaultPlaylist';
 import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
-import { usePlaylistsSubscription } from '@/hooks/usePlaylistsSubscription';
+import { useSongsSubscription } from '@/hooks/useSongsSubscription';
 import { useI18n } from '@/i18n';
 import { useAuthStore } from '@/store/auth';
 
 function AuthenticatedSubscriptions() {
-  // Session-wide Firestore listeners (own profile + your playlists). Mounted
-  // once here so every screen reads from the store instead of re-subscribing.
+  // Session-wide Firestore listeners (own profile + the flat song library).
+  // Mounted once here so every screen reads from the store instead of
+  // re-subscribing.
   useOwnProfileSync();
-  usePlaylistsSubscription();
-  // First session ever: create the default "My library" playlist.
-  useEnsureDefaultPlaylist();
+  useSongsSubscription();
   return null;
 }
 
@@ -54,22 +52,6 @@ export default function AppLayout() {
             settings gear are set by the screen itself. */}
         <Stack.Screen name="home" options={{ title: t('app.title') }} />
         <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
-        {/* A transparent overlay, not a page: home stays rendered beneath, so
-            the enter/exit container-transform (scrim + flying artwork, both
-            directions) plays over a live background. The screen draws its own
-            header and drives its own exit before popping. */}
-        <Stack.Screen
-          name="playlist-detail"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'none',
-            // The screen container MUST be transparent (it inherits the Stack's
-            // opaque background otherwise) so live home shows through during
-            // the whole transform — the screen's own scrim is what fades in.
-            contentStyle: { backgroundColor: 'transparent' },
-          }}
-        />
         <Stack.Screen
           name="manage-account"
           options={{ title: t('settings.manageAccount.title') }}

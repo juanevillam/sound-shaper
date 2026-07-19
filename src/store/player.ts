@@ -20,8 +20,10 @@ const RESTART_THRESHOLD_S = 3;
 type PlayerState = {
   current: Song | null;
   queue: Song[];
-  playlistId: string | null;
   loadNonce: number;
+  // Bumped when a surface wants the full player OPENED (tapping a song tile
+  // plays it and expands the sheet, YT-Music style). The PlayerSheet watches it.
+  expandNonce: number;
   rate: number;
   // Keep the original pitch while the rate changes (time-stretch). Off =
   // vinyl-style: slower also means deeper.
@@ -39,7 +41,8 @@ type PlayerState = {
   sheetExpanded: boolean;
   setSheetExpanded: (sheetExpanded: boolean) => void;
 
-  playSong: (song: Song, queue: Song[], playlistId: string) => void;
+  playSong: (song: Song, queue: Song[]) => void;
+  requestExpand: () => void;
   /** Jump-play a saved range of the CURRENT song. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
@@ -70,8 +73,8 @@ const loadReset = (nonce: number) => ({
 export const usePlayerStore = create<PlayerState>()((set, get) => ({
   current: null,
   queue: [],
-  playlistId: null,
   loadNonce: 0,
+  expandNonce: 0,
   rate: 1,
   keepPitch: true,
   position: 0,
@@ -83,14 +86,15 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // Selecting a song always (re)loads and plays it from the start — the
   // <AudioEngine> plays on load because `playing` is true.
-  playSong: (song, queue, playlistId) =>
+  playSong: (song, queue) =>
     set(state => ({
       current: song,
       queue,
-      playlistId,
       playing: true,
       ...loadReset(state.loadNonce),
     })),
+
+  requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
 
   playClip: (clipId, startMs, endMs) => {
     if (!get().current) return;
@@ -176,7 +180,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({
       current: null,
       queue: [],
-      playlistId: null,
       rate: 1,
       keepPitch: true,
       position: 0,

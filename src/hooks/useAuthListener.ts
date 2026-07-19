@@ -9,7 +9,6 @@ import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
-import { usePlaylistsStore } from '@/store/playlists';
 import { useProfileStore } from '@/store/profile';
 import { useSongsStore } from '@/store/songs';
 
@@ -33,7 +32,6 @@ export const useAuthListener = () => {
         // Wipe every user-scoped store so the next account starts clean —
         // including live playback (the songs belong to the signed-out account).
         usePlayerStore.getState().reset();
-        usePlaylistsStore.getState().clear();
         useSongsStore.getState().clear();
         useClipsStore.getState().clear();
         useProfileStore.getState().clear();

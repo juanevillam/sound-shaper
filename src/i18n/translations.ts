@@ -8,9 +8,6 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Settings',
-      playlistEdit: 'New playlist',
-      playlistEditExisting: 'Edit playlist',
-      playlistDetail: 'Playlist',
       songEdit: 'New song',
       songEditExisting: 'Edit song',
     },
@@ -19,7 +16,6 @@ export const translations = {
       cancel: 'Cancel',
       retry: 'Try again',
       pickMedia: 'Choose an emoji',
-      playlistOptions: 'Playlist options',
     },
     welcome: {
       features: {
@@ -54,60 +50,9 @@ export const translations = {
       },
     },
     home: {
-      song: 'song',
-      songs: 'songs',
-      defaultPlaylist: 'My library',
-      fab: { newPlaylist: 'New playlist' },
-      empty: {
-        title: 'No playlists yet',
-        subtitle: 'Create a playlist and start uploading your songs.',
-        cta: 'Create a playlist',
-      },
+      addSong: 'Add song',
       error: {
-        title: 'Could not load your playlists',
-        subtitle: 'Check your connection and try again.',
-      },
-    },
-    playlistEdit: {
-      name: {
-        label: 'Name',
-        placeholder: 'Gym bangers',
-        error: 'Name needs at least 2 characters',
-      },
-      description: {
-        label: 'Description (optional)',
-        placeholder: "What's this playlist for? Make it yours.",
-      },
-      emoji: {
-        change: 'Tap to change emoji',
-        sheetTitle: 'Pick an emoji',
-        recent: 'Recent',
-      },
-      save: 'Create',
-      saveExisting: 'Save',
-    },
-    playlistDetail: {
-      menu: {
-        edit: 'Edit playlist',
-        delete: 'Delete playlist',
-      },
-      deleteConfirm: {
-        title: 'Delete this playlist?',
-        message:
-          'The playlist and all of its songs will be permanently deleted. This cannot be undone.',
-        confirm: 'Delete',
-        cancel: 'Cancel',
-      },
-      play: 'Play',
-      shuffle: 'Shuffle',
-      fab: { addSong: 'Add song' },
-      empty: {
-        title: 'No songs yet',
-        subtitle: 'Add an .mp3 from your device to start this playlist.',
-        cta: 'Add your first song',
-      },
-      error: {
-        title: 'Could not load the songs',
+        title: 'Could not load your songs',
         subtitle: 'Check your connection and try again.',
       },
     },
@@ -120,6 +65,10 @@ export const translations = {
       speed: 'Speed',
       keepPitch: 'Keep pitch',
       keepPitchDescription: 'Hold the original tone while the speed changes.',
+      tabs: {
+        shape: 'Shape',
+        clips: 'Clips',
+      },
       eq: {
         title: 'Equalizer',
         reset: 'Flat',
@@ -237,15 +186,6 @@ export const translations = {
       'apple-sign-in-failed': 'Apple sign-in failed. Please try again.',
       'sign-out-failed': 'Could not log out. Please try again.',
       'session-expired': 'Your session expired. Please sign in again.',
-      'playlist-created': 'Playlist created',
-      'playlist-create-failed':
-        'Could not create the playlist. Please try again.',
-      'playlist-updated': 'Playlist updated',
-      'playlist-update-failed':
-        'Could not update the playlist. Please try again.',
-      'playlist-deleted': 'Playlist deleted',
-      'playlist-delete-failed':
-        'Could not delete the playlist. Please try again.',
       'song-created': 'Song added',
       'song-updated': 'Song updated',
       'song-save-failed': 'Could not save the song. Please try again.',
@@ -274,9 +214,6 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Configuración',
-      playlistEdit: 'Nueva playlist',
-      playlistEditExisting: 'Editar playlist',
-      playlistDetail: 'Playlist',
       songEdit: 'Nueva canción',
       songEditExisting: 'Editar canción',
     },
@@ -285,7 +222,6 @@ export const translations = {
       cancel: 'Cancelar',
       retry: 'Reintentar',
       pickMedia: 'Elegir un emoji',
-      playlistOptions: 'Opciones de la playlist',
     },
     welcome: {
       features: {
@@ -320,60 +256,9 @@ export const translations = {
       },
     },
     home: {
-      song: 'canción',
-      songs: 'canciones',
-      defaultPlaylist: 'Mi biblioteca',
-      fab: { newPlaylist: 'Nueva playlist' },
-      empty: {
-        title: 'Aún no hay playlists',
-        subtitle: 'Crea una playlist y empieza a subir tus canciones.',
-        cta: 'Crear una playlist',
-      },
+      addSong: 'Agregar canción',
       error: {
-        title: 'No se pudieron cargar tus playlists',
-        subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
-      },
-    },
-    playlistEdit: {
-      name: {
-        label: 'Nombre',
-        placeholder: 'Éxitos del gym',
-        error: 'El nombre necesita al menos 2 caracteres',
-      },
-      description: {
-        label: 'Descripción (opcional)',
-        placeholder: '¿Para qué es esta playlist? Hazla tuya.',
-      },
-      emoji: {
-        change: 'Toca para cambiar el emoji',
-        sheetTitle: 'Elige un emoji',
-        recent: 'Recientes',
-      },
-      save: 'Crear',
-      saveExisting: 'Guardar',
-    },
-    playlistDetail: {
-      menu: {
-        edit: 'Editar playlist',
-        delete: 'Eliminar playlist',
-      },
-      deleteConfirm: {
-        title: '¿Eliminar esta playlist?',
-        message:
-          'La playlist y todas sus canciones se eliminarán de forma permanente. Esto no se puede deshacer.',
-        confirm: 'Eliminar',
-        cancel: 'Cancelar',
-      },
-      play: 'Reproducir',
-      shuffle: 'Aleatorio',
-      fab: { addSong: 'Agregar canción' },
-      empty: {
-        title: 'Aún no hay canciones',
-        subtitle: 'Agrega un .mp3 desde tu dispositivo para empezar.',
-        cta: 'Agrega tu primera canción',
-      },
-      error: {
-        title: 'No se pudieron cargar las canciones',
+        title: 'No se pudieron cargar tus canciones',
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
       },
     },
@@ -387,6 +272,10 @@ export const translations = {
       keepPitch: 'Mantener el tono',
       keepPitchDescription:
         'Conserva el tono original mientras cambia la velocidad.',
+      tabs: {
+        shape: 'Moldear',
+        clips: 'Clips',
+      },
       eq: {
         title: 'Ecualizador',
         reset: 'Plano',
@@ -507,15 +396,6 @@ export const translations = {
         'Falló el inicio de sesión con Apple. Inténtalo de nuevo.',
       'sign-out-failed': 'No se pudo cerrar sesión. Inténtalo de nuevo.',
       'session-expired': 'Tu sesión expiró. Inicia sesión de nuevo.',
-      'playlist-created': 'Playlist creada',
-      'playlist-create-failed':
-        'No se pudo crear la playlist. Inténtalo de nuevo.',
-      'playlist-updated': 'Playlist actualizada',
-      'playlist-update-failed':
-        'No se pudo actualizar la playlist. Inténtalo de nuevo.',
-      'playlist-deleted': 'Playlist eliminada',
-      'playlist-delete-failed':
-        'No se pudo eliminar la playlist. Inténtalo de nuevo.',
       'song-created': 'Canción agregada',
       'song-updated': 'Canción actualizada',
       'song-save-failed': 'No se pudo guardar la canción. Inténtalo de nuevo.',
@@ -547,9 +427,6 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: '设置',
-      playlistEdit: '新建歌单',
-      playlistEditExisting: '编辑歌单',
-      playlistDetail: '歌单',
       songEdit: '新建歌曲',
       songEditExisting: '编辑歌曲',
     },
@@ -558,7 +435,6 @@ export const translations = {
       cancel: '取消',
       retry: '重试',
       pickMedia: '选择表情符号',
-      playlistOptions: '歌单选项',
     },
     welcome: {
       features: {
@@ -592,59 +468,9 @@ export const translations = {
       },
     },
     home: {
-      song: '首歌曲',
-      songs: '首歌曲',
-      defaultPlaylist: '我的音乐库',
-      fab: { newPlaylist: '新建歌单' },
-      empty: {
-        title: '还没有歌单',
-        subtitle: '创建一个歌单，开始上传你的歌曲。',
-        cta: '创建歌单',
-      },
+      addSong: '添加歌曲',
       error: {
-        title: '无法加载你的歌单',
-        subtitle: '请检查网络连接后重试。',
-      },
-    },
-    playlistEdit: {
-      name: {
-        label: '名称',
-        placeholder: '健身金曲',
-        error: '名称至少需要 2 个字符',
-      },
-      description: {
-        label: '描述（可选）',
-        placeholder: '这个歌单是做什么的？让它成为你的。',
-      },
-      emoji: {
-        change: '点按更换表情符号',
-        sheetTitle: '选择表情符号',
-        recent: '最近使用',
-      },
-      save: '创建',
-      saveExisting: '保存',
-    },
-    playlistDetail: {
-      menu: {
-        edit: '编辑歌单',
-        delete: '删除歌单',
-      },
-      deleteConfirm: {
-        title: '删除此歌单？',
-        message: '该歌单及其所有歌曲将被永久删除。此操作无法撤销。',
-        confirm: '删除',
-        cancel: '取消',
-      },
-      play: '播放',
-      shuffle: '随机播放',
-      fab: { addSong: '添加歌曲' },
-      empty: {
-        title: '还没有歌曲',
-        subtitle: '从你的设备添加一个 .mp3 开始这个歌单。',
-        cta: '添加第一首歌曲',
-      },
-      error: {
-        title: '无法加载歌曲',
+        title: '无法加载你的歌曲',
         subtitle: '请检查网络连接后重试。',
       },
     },
@@ -657,6 +483,10 @@ export const translations = {
       speed: '速度',
       keepPitch: '保持音调',
       keepPitchDescription: '改变速度时保持原来的音调。',
+      tabs: {
+        shape: '塑形',
+        clips: '片段',
+      },
       eq: {
         title: '均衡器',
         reset: '平坦',
@@ -773,12 +603,6 @@ export const translations = {
       'apple-sign-in-failed': 'Apple 登录失败,请重试。',
       'sign-out-failed': '无法退出登录,请重试。',
       'session-expired': '会话已过期,请重新登录。',
-      'playlist-created': '歌单已创建',
-      'playlist-create-failed': '无法创建歌单,请重试。',
-      'playlist-updated': '歌单已更新',
-      'playlist-update-failed': '无法更新歌单,请重试。',
-      'playlist-deleted': '歌单已删除',
-      'playlist-delete-failed': '无法删除歌单,请重试。',
       'song-created': '歌曲已添加',
       'song-updated': '歌曲已更新',
       'song-save-failed': '无法保存歌曲,请重试。',

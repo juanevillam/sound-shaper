@@ -24,9 +24,6 @@ export type UserProfile = {
   updatedAt: number | null;
   username: string | null;
   usernameLower: string | null;
-  // One-shot flag: the default "My library" playlist has been created for this
-  // account (guards against recreating it after the user deletes it).
-  libraryCreated: boolean;
 };
 
 type SubscribeToUserProfileParams = {
@@ -59,7 +56,6 @@ const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile => {
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
     username: (data.username as string) ?? null,
     usernameLower: (data.usernameLower as string) ?? null,
-    libraryCreated: (data.libraryCreated as boolean) ?? false,
   };
 };
 
@@ -97,7 +93,6 @@ export const upsertOwnProfile = reported(
       updatedAt: serverTimestamp(),
       username: null,
       usernameLower: null,
-      libraryCreated: false,
     });
   },
 );
@@ -118,18 +113,6 @@ export const subscribeToUserProfile = ({
       onNext(profileToModel(snapshot as unknown as QueryDocumentSnapshot));
     },
   });
-
-/** Stamp the one-shot "default playlist created" flag on the profile doc. */
-export const markLibraryCreated = reported(
-  'users.markLibraryCreated',
-  async (uid: string): Promise<void> => {
-    await setDoc(
-      doc(getFirestore(), USERS_COLLECTION, uid),
-      { libraryCreated: true },
-      { merge: true },
-    );
-  },
-);
 
 /**
  * Reserve `username` for `uid` atomically: rejects with `username-taken` when

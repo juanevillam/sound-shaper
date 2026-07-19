@@ -6,12 +6,10 @@
  */
 export const USERS_COLLECTION = 'users';
 export const USERNAMES_COLLECTION = 'usernames';
-export const PLAYLISTS_COLLECTION = 'playlists';
 
-// Subcollection of playlists/{playlistId}.
+// Subcollection of users/{uid} — the flat personal library (playlists were
+// dropped 2026-07-19: you just upload songs, nothing groups them).
 export const SONGS_SUBCOLLECTION = 'songs';
 
-// Future phases (social + clips — see docs/sound-shaper-plan.md).
-export const REACTIONS_SUBCOLLECTION = 'reactions';
-export const COMMENTS_SUBCOLLECTION = 'comments';
+// Subcollection of users/{uid}/songs/{songId} — personal replay bookmarks.
 export const CLIPS_SUBCOLLECTION = 'clips';

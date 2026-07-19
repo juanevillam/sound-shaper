@@ -35,7 +35,6 @@ export type PickedSongFile = {
 };
 
 type EditSongSheetProps = {
-  playlistId: string;
   /** Create mode: the picked file (id3-prefilled). */
   pickedFile?: PickedSongFile;
   /** Edit mode: the song to edit (metadata only — the file never changes). */
@@ -53,7 +52,6 @@ const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
 // behind the Save spinner (the one real network wait), then closes; edit-mode
 // metadata writes are latency-compensated, so they close immediately.
 export function EditSongSheet({
-  playlistId,
   pickedFile,
   songId,
   onClose,
@@ -62,9 +60,9 @@ export function EditSongSheet({
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
 
-  const songs = useSongsStore(s => s.byPlaylistId[playlistId]);
+  const songs = useSongsStore(s => s.songs);
   const editingSong = songId
-    ? songs?.find(entry => entry.id === songId)
+    ? songs.find(entry => entry.id === songId)
     : undefined;
 
   const tags = pickedFile?.tags;
@@ -144,7 +142,6 @@ export function EditSongSheet({
         album: trimmedAlbum,
         artist: trimmedArtist,
         name: trimmedName,
-        playlistId,
         releaseYear,
         songId,
       })
@@ -171,8 +168,6 @@ export function EditSongSheet({
           : null,
         localAudioUri: pickedFile.uri,
         name: trimmedName,
-        playlistId,
-        position: songs?.length ?? 0,
         releaseYear,
       });
 
@@ -192,7 +187,7 @@ export function EditSongSheet({
     haptics.medium();
     setDeleteVisible(false);
 
-    deleteSong({ playlistId, songId })
+    deleteSong(songId)
       .then(() => showSnackbar(t('snackbar.song-deleted')))
       .catch(() => showSnackbar(t('snackbar.song-delete-failed')));
 
