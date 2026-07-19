@@ -90,6 +90,14 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": true
         }
+      ],
+      [
+        "react-native-audio-api",
+        {
+          "androidForegroundService": true,
+          "androidFSTypes": ["mediaPlayback"],
+          "iosBackgroundMode": true
+        }
       ]
     ],
     "experiments": {
