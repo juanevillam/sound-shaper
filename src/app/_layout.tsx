@@ -11,6 +11,10 @@ import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthListener } from '@/hooks/useAuthListener';
@@ -99,18 +103,25 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <KeyboardProvider>
-        <SnackbarProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              // Welcome ↔ app hand-off fades like every other Android push.
-              animation: Platform.select({ android: 'fade_from_bottom' }),
-            }}
-          />
-        </SnackbarProvider>
-      </KeyboardProvider>
+      {/* Explicit provider seeded with the native metrics captured at launch,
+          so insets are correct on the FIRST frame. Without it the app leaned on
+          React Navigation's implicit provider, whose insets can resolve async
+          (0 → real) — that gap dropped the bottom player banner under the nav
+          bar on some frames. */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <KeyboardProvider>
+          <SnackbarProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                // Welcome ↔ app hand-off fades like every other Android push.
+                animation: Platform.select({ android: 'fade_from_bottom' }),
+              }}
+            />
+          </SnackbarProvider>
+        </KeyboardProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
