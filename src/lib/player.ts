@@ -1,23 +1,8 @@
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-
-// The app's ONE audio player, module-level so playback survives navigation
-// (mini-player on the tabs, full now-playing screen, background). Screens
-// observe it with `useAudioPlayerStatus(audioPlayer)`; all control goes
-// through the player store's actions.
-export const audioPlayer = createAudioPlayer(null, { updateInterval: 250 });
-
-/**
- * One-time audio session setup (root layout): keep playing with the screen
- * off / app backgrounded, and behave like a music app toward other audio
- * (take focus, don't mix).
- */
-export const configureAudioSession = (): Promise<void> =>
-  setAudioModeAsync({
-    playsInSilentMode: true,
-    shouldPlayInBackground: true,
-    interruptionMode: 'doNotMix',
-    interruptionModeAndroid: 'doNotMix',
-  });
+// Playback now runs through the sound-shaping graph — see `lib/audioEngine.ts`
+// (the graph + transport) and `components/player/AudioEngine.tsx` (the mounted
+// streaming <Audio> element). The audio session is activated on play and kept
+// alive in the background by the media foreground service the audio-api config
+// plugin installs, so there's no app-start session setup here anymore.
 
 /** Seconds → "m:ss" for the scrubber's time labels. */
 export const formatTime = (seconds: number): string => {

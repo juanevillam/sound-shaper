@@ -1,24 +1,35 @@
 import { create } from 'zustand';
 
-import { audioPlayer } from '@/lib/player';
+import { audioEngine } from '@/lib/audioEngine';
 import { type Song } from '@/services/firebase/songs';
 
 // Restart-vs-previous threshold: past this many seconds into a song, the
 // "previous" control restarts it instead (the universal music-app idiom).
 const RESTART_THRESHOLD_S = 3;
 
-// Global playback state: WHAT is playing (song + its playlist queue) and the
-// user's sound-shaping choices (rate, pitch retention). The live transport
-// state (position/duration/playing) is NOT mirrored here — components read it
-// straight off the shared player with `useAudioPlayerStatus(audioPlayer)`.
+// Global playback state. WHAT is playing (song + its playlist queue), the
+// user's shaping choices (rate, pitch), and the live transport (position /
+// duration / playing) — the last three are fed in by the <AudioEngine> from
+// the streaming <Audio> element; every control goes back out through these
+// actions, which drive the shared audio graph.
+//
+// `loadNonce` is bumped whenever a track should (re)load — the <AudioEngine>
+// keys its <Audio> on `${song.id}#${loadNonce}`, so a bump remounts the
+// element. This is how a finished song replays: a plain play() on an ended
+// <Audio> does nothing, but a remount streams it fresh.
 type PlayerState = {
   current: Song | null;
   queue: Song[];
   playlistId: string | null;
+  loadNonce: number;
   rate: number;
   // Keep the original pitch while the rate changes (time-stretch). Off =
   // vinyl-style: slower also means deeper.
   keepPitch: boolean;
+  // Live transport, mirrored from the <Audio> element.
+  position: number;
+  duration: number;
+  playing: boolean;
   // A clip being replayed: playback auto-pauses at `endS`. Cleared by a manual
   // scrub, a track change, or the clip running out. Keyed by the clip id so
   // the clips list can highlight the active row.
@@ -27,6 +38,7 @@ type PlayerState = {
   // handlers can yield to the sheet's collapse handler.
   sheetExpanded: boolean;
   setSheetExpanded: (sheetExpanded: boolean) => void;
+
   playSong: (song: Song, queue: Song[], playlistId: string) => void;
   /** Jump-play a saved range of the CURRENT song. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
@@ -34,156 +46,167 @@ type PlayerState = {
   toggle: () => void;
   next: () => void;
   previous: () => void;
+  seek: (seconds: number) => void;
   setRate: (rate: number) => void;
   setKeepPitch: (keepPitch: boolean) => void;
   /** Stop and forget everything (sign-out, account wipe). */
   reset: () => void;
+
+  // --- Fed by the <AudioEngine> --------------------------------------------
+  onPosition: (seconds: number) => void;
+  setDuration: (seconds: number) => void;
+  setPlaying: (playing: boolean) => void;
+  onEnded: () => void;
 };
+
+// The fresh-transport reset a (re)load shares.
+const loadReset = (nonce: number) => ({
+  activeClip: null,
+  position: 0,
+  duration: 0,
+  loadNonce: nonce + 1,
+});
 
 export const usePlayerStore = create<PlayerState>()((set, get) => ({
   current: null,
   queue: [],
   playlistId: null,
+  loadNonce: 0,
   rate: 1,
   keepPitch: true,
+  position: 0,
+  duration: 0,
+  playing: false,
   activeClip: null,
   sheetExpanded: false,
   setSheetExpanded: sheetExpanded => set({ sheetExpanded }),
 
-  playSong: (song, queue, playlistId) => {
-    const { current, rate, keepPitch } = get();
-
-    // Tapping the already-loaded song toggles instead of restarting it.
-    if (current?.id === song.id) {
-      get().toggle();
-      // The queue may still have changed (reorder, added songs).
-      set({ queue, playlistId });
-      return;
-    }
-
-    set({ current: song, queue, playlistId, activeClip: null });
-    audioPlayer.replace({ uri: song.audioUrl });
-    // Rate/pitch are per-listener settings, not per-song — they persist
-    // across track changes, so re-apply them to the fresh source.
-    audioPlayer.shouldCorrectPitch = keepPitch;
-    audioPlayer.setPlaybackRate(rate);
-    audioPlayer.play();
-  },
+  // Selecting a song always (re)loads and plays it from the start — the
+  // <AudioEngine> plays on load because `playing` is true.
+  playSong: (song, queue, playlistId) =>
+    set(state => ({
+      current: song,
+      queue,
+      playlistId,
+      playing: true,
+      ...loadReset(state.loadNonce),
+    })),
 
   playClip: (clipId, startMs, endMs) => {
     if (!get().current) return;
 
     set({
       activeClip: { clipId, startS: startMs / 1000, endS: endMs / 1000 },
+      playing: true,
     });
-    audioPlayer.seekTo(startMs / 1000);
-    audioPlayer.play();
+    audioEngine.seek(startMs / 1000);
+    audioEngine.play();
   },
 
   clearActiveClip: () => {
     if (get().activeClip) set({ activeClip: null });
   },
 
+  // Pause/resume the loaded song in place (no reload).
   toggle: () => {
     if (!get().current) return;
 
-    if (audioPlayer.playing) audioPlayer.pause();
-    else audioPlayer.play();
+    if (get().playing) {
+      audioEngine.pause();
+      set({ playing: false });
+    } else {
+      audioEngine.play();
+      set({ playing: true });
+    }
   },
 
   next: () => {
-    const { current, queue, playlistId } = get();
-    if (!current || !playlistId) return;
+    const { current, queue } = get();
+    if (!current) return;
 
     const index = queue.findIndex(song => song.id === current.id);
     const nextSong = index >= 0 ? queue[index + 1] : undefined;
 
     if (nextSong) {
-      // Bypass the same-song toggle: always a fresh load.
-      set({ current: nextSong, activeClip: null });
-      audioPlayer.replace({ uri: nextSong.audioUrl });
-      audioPlayer.shouldCorrectPitch = get().keepPitch;
-      audioPlayer.setPlaybackRate(get().rate);
-      audioPlayer.play();
+      set(state => ({
+        current: nextSong,
+        playing: true,
+        ...loadReset(state.loadNonce),
+      }));
     } else {
-      // End of the playlist: stop, parked at the start of the last song.
-      audioPlayer.pause();
-      audioPlayer.seekTo(0);
+      // End of the playlist: reload the last track parked + paused, so the
+      // play button can replay it.
+      audioEngine.pause();
+      set(state => ({ playing: false, ...loadReset(state.loadNonce) }));
     }
   },
 
   previous: () => {
-    const { current, queue } = get();
+    const { current, queue, position } = get();
     if (!current) return;
-
-    // Deep into a song, "previous" restarts it.
-    if (audioPlayer.currentTime > RESTART_THRESHOLD_S) {
-      audioPlayer.seekTo(0);
-      return;
-    }
 
     const index = queue.findIndex(song => song.id === current.id);
     const previousSong = index > 0 ? queue[index - 1] : undefined;
 
-    if (!previousSong) {
-      audioPlayer.seekTo(0);
+    // Deep into a song (or no earlier track) → restart the current one.
+    if (position > RESTART_THRESHOLD_S || !previousSong) {
+      set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
       return;
     }
 
-    set({ current: previousSong, activeClip: null });
-    audioPlayer.replace({ uri: previousSong.audioUrl });
-    audioPlayer.shouldCorrectPitch = get().keepPitch;
-    audioPlayer.setPlaybackRate(get().rate);
-    audioPlayer.play();
+    set(state => ({
+      current: previousSong,
+      playing: true,
+      ...loadReset(state.loadNonce),
+    }));
   },
 
-  setRate: rate => {
-    set({ rate });
-    audioPlayer.setPlaybackRate(rate);
+  seek: seconds => {
+    audioEngine.seek(seconds);
+    // A manual scrub ends any clip replay.
+    set({ position: seconds, activeClip: null });
   },
 
-  setKeepPitch: keepPitch => {
-    set({ keepPitch });
-    audioPlayer.shouldCorrectPitch = keepPitch;
-    // Re-assert the rate so the pitch mode change takes effect immediately.
-    audioPlayer.setPlaybackRate(get().rate);
-  },
+  setRate: rate => set({ rate }),
+
+  setKeepPitch: keepPitch => set({ keepPitch }),
 
   reset: () => {
-    // Pause + rewind, but DON'T `replace(null)`: the native module rejects a
-    // null source at runtime (crashed sign-out). Clearing `current` already
-    // hides every player surface, and the next playSong replaces the source.
-    audioPlayer.pause();
-    audioPlayer.seekTo(0);
+    audioEngine.pause();
     set({
       current: null,
       queue: [],
       playlistId: null,
       rate: 1,
       keepPitch: true,
+      position: 0,
+      duration: 0,
+      playing: false,
       activeClip: null,
     });
   },
+
+  // --- Fed by the <AudioEngine> --------------------------------------------
+  onPosition: seconds => {
+    set({ position: seconds });
+
+    // End an active clip replay: pause at its boundary and park back on the
+    // clip start so a plain play replays it.
+    const clip = get().activeClip;
+    if (clip && get().playing && seconds >= clip.endS) {
+      audioEngine.pause();
+      audioEngine.seek(clip.startS);
+      set({ activeClip: null, playing: false, position: clip.startS });
+    }
+  },
+
+  setDuration: seconds => {
+    if (seconds > 0 && seconds !== get().duration) set({ duration: seconds });
+  },
+
+  setPlaying: playing => {
+    if (playing !== get().playing) set({ playing });
+  },
+
+  onEnded: () => get().next(),
 }));
-
-// Transport watcher (lives here, not lib/player, so the store→lib import
-// stays one-directional):
-// - auto-advance when a song runs out;
-// - end an active clip replay: pause at its boundary (the 250ms status
-//   cadence overshoots by at most a beat) and park back on the clip start so
-//   a plain play replays it.
-audioPlayer.addListener('playbackStatusUpdate', status => {
-  const store = usePlayerStore.getState();
-
-  if (status.didJustFinish) {
-    store.next();
-    return;
-  }
-
-  const clip = store.activeClip;
-  if (clip && status.playing && status.currentTime >= clip.endS) {
-    audioPlayer.pause();
-    audioPlayer.seekTo(clip.startS);
-    store.clearActiveClip();
-  }
-});
