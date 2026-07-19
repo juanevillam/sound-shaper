@@ -64,6 +64,11 @@ import { useSongsStore } from '@/store/songs';
 import { TILE_RADIUS } from '@/styles/shape';
 
 const MENU_ICON_SIZE = 24;
+// FIXED so the hero's Y is deterministic from the first layout: the bar's
+// Compose icon hosts (matchContents) report 0 height, then expand a beat
+// later — measuring the hero while they're collapsed captured its target rect
+// too high, so the flight landed high and snapped down (and up, in reverse).
+const TOP_BAR_HEIGHT = 56;
 const HERO_ART_SIZE = 148;
 // The shared ratio: the flying tile's uniform scale lands its emoji exactly
 // on this (no size jump at the handover).
@@ -433,8 +438,15 @@ export default function PlaylistDetailScreen() {
       />
 
       <Animated.View style={[styles.content, screenStyle]}>
-        {/* Self-drawn header (no native bar): back plays the exit morph. */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 4 }]}>
+        {/* Self-drawn header (no native bar): back plays the exit morph. Its
+            height is FIXED (icons center in the region below the status bar) so
+            the hero below it never shifts as the Compose icons settle. */}
+        <View
+          style={[
+            styles.topBar,
+            { height: insets.top + TOP_BAR_HEIGHT, paddingTop: insets.top },
+          ]}
+        >
           <ThemedHost matchContents>
             <IconButton onClick={runClose}>
               <Icon
