@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -13,11 +12,11 @@ import {
   Button,
   Column,
   FilledIconButton,
+  FilterChip,
   IconButton,
+  OutlinedButton,
   Row,
-  SegmentedButton,
   Shape,
-  SingleChoiceSegmentedButtonRow,
   Slider,
   Surface,
   Switch,
@@ -25,6 +24,7 @@ import {
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
+  horizontalScroll,
   padding,
   size,
   weight,
@@ -34,9 +34,12 @@ import { AppIcon } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  Extrapolation,
   SlideInDown,
+  interpolate,
   interpolateColor,
   runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -45,6 +48,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipSaveSheet } from '@/components/player/ClipSaveSheet';
+import { ClipTrimmer } from '@/components/player/ClipTrimmer';
+import { PlayerTabs } from '@/components/player/PlayerTabs';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -95,15 +100,26 @@ const SNAP_VELOCITY = 600;
 
 const CONTROL_ICON_SIZE = 32;
 const PLAY_BUTTON_SIZE = 64;
-const RATE_PRESETS = [0.5, 0.75, 1, 1.5, 2];
 const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
 const EQ_LABEL_WIDTH = 36;
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 const SIDE_PADDING = 24;
 
-// A clip needs at least this much room between its marks to be worth saving.
-const MIN_CLIP_MS = 1000;
+// Scrolling the tab pages shrinks the artwork (Spotify/YT-Music collapsing
+// header): full size at rest, ART_MIN_SHRINK of it after SHRINK_RANGE px.
+const SHRINK_RANGE = 140;
+const ART_MIN_SHRINK = 0.55;
+
+// EQ band sliders snap to whole dB; speed snaps to quarter steps.
+const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
+const RATE_MIN = 0.5;
+const RATE_MAX = 2;
+const RATE_STEP = 0.25;
+const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
+
+// Fresh trimmer range for a song: the first stretch, capped to the track.
+const DEFAULT_CLIP_LENGTH_S = 15;
 
 const CLIP_ROW_SHAPE = Shape.RoundedCorner({
   cornerRadii: {
@@ -168,7 +184,6 @@ export function PlayerSheet() {
   const setBandGain = useShaperStore(s => s.setBandGain);
   const activePreset = useShaperStore(s => s.activePreset);
   const applyPreset = useShaperStore(s => s.applyPreset);
-  const resetEq = useShaperStore(s => s.reset);
 
   // Geometry (all deterministic — no measuring, no flicker). The collapsed
   // banner rests `insets.bottom + gap` above the screen bottom, so its content
@@ -293,9 +308,27 @@ export function PlayerSheet() {
     ),
   }));
 
+  // Scroll offset of the active tab page — drives the artwork shrink.
+  const tabScrollY = useSharedValue(0);
+  const onTabScroll = useAnimatedScrollHandler(event => {
+    tabScrollY.value = event.contentOffset.y;
+  });
+
   const artStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    const scale = artScaleMin + (1 - artScaleMin) * p;
+    // Scrolling the tab content shrinks the art toward its top edge. Gated by
+    // `p` so the collapse morph always starts from clean geometry.
+    const shrink =
+      1 -
+      (1 -
+        interpolate(
+          tabScrollY.value,
+          [0, SHRINK_RANGE],
+          [1, ART_MIN_SHRINK],
+          Extrapolation.CLAMP,
+        )) *
+        p;
+    const scale = (artScaleMin + (1 - artScaleMin) * p) * shrink;
     // Centers travel from the mini thumb to the expanded slot.
     const fromCx = MINI_ART_X + MINI_ART_SIZE / 2;
     const fromCy = MINI_ART_Y + MINI_ART_SIZE / 2;
@@ -305,10 +338,24 @@ export function PlayerSheet() {
     return {
       transform: [
         { translateX: (fromCx - toCx) * (1 - p) },
-        { translateY: (fromCy - toCy) * (1 - p) },
+        // The shrink term pins the art's TOP edge instead of its center.
+        {
+          translateY: (fromCy - toCy) * (1 - p) - ((1 - shrink) * artFull) / 2,
+        },
         { scale },
       ],
     };
+  });
+
+  // The fixed section below the art rides up to claim the freed space.
+  const bodyStyle = useAnimatedStyle(() => {
+    const shrink = interpolate(
+      tabScrollY.value,
+      [0, SHRINK_RANGE],
+      [1, ART_MIN_SHRINK],
+      Extrapolation.CLAMP,
+    );
+    return { transform: [{ translateY: -(1 - shrink) * artFull }] };
   });
 
   const miniRowStyle = useAnimatedStyle(() => ({
@@ -329,17 +376,26 @@ export function PlayerSheet() {
   const [dragValue, setDragValue] = useState<number | null>(null);
   const lastDragRef = useRef(0);
 
-  // Clip marking state (start captured, then end, then the save sheet).
-  const [markStartMs, setMarkStartMs] = useState<number | null>(null);
+  // The trimmer's framed range; the save sheet stores it. Re-seeded per song
+  // once its duration is known.
+  const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
   const [pendingRange, setPendingRange] = useState<{
     startMs: number;
     endMs: number;
   } | null>(null);
 
-  // A track change invalidates a half-made mark.
+  const trimmerDuration = Math.floor(storeDuration);
   useEffect(() => {
-    setMarkStartMs(null);
-  }, [current?.id]);
+    setClipRange({
+      startS: 0,
+      endS:
+        trimmerDuration > 0
+          ? Math.min(DEFAULT_CLIP_LENGTH_S, trimmerDuration)
+          : 0,
+    });
+    // Re-seed per track (identified by id), not on every duration tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, trimmerDuration > 0]);
 
   useClipsSubscription(current?.id);
   const clips = useClipsStore(s =>
@@ -348,22 +404,17 @@ export function PlayerSheet() {
 
   if (!current) return null;
 
-  const onMarkPress = () => {
+  const onPreviewClip = () => {
     haptics.selection();
-    const nowMs = Math.round(storePosition * 1000);
+    playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
+  };
 
-    if (markStartMs === null) {
-      setMarkStartMs(nowMs);
-      return;
-    }
-
-    if (nowMs < markStartMs + MIN_CLIP_MS) {
-      showSnackbar(t('snackbar.clip-too-short'));
-      return;
-    }
-
-    setPendingRange({ startMs: markStartMs, endMs: nowMs });
-    setMarkStartMs(null);
+  const onSaveClip = () => {
+    haptics.selection();
+    setPendingRange({
+      startMs: clipRange.startS * 1000,
+      endMs: clipRange.endS * 1000,
+    });
   };
 
   const onDeleteClip = (clipId: string) => {
@@ -376,6 +427,8 @@ export function PlayerSheet() {
   const onSwitchTab = (next: ShaperTab) => {
     if (next === tab) return;
     haptics.selection();
+    // The pages remount at offset 0 (keyed scroller) — drop the art shrink.
+    tabScrollY.value = withTiming(0, { duration: 180 });
     setTab(next);
   };
 
@@ -498,8 +551,11 @@ export function PlayerSheet() {
           </View>
 
           {/* Everything under the art: title + transport stay FIXED; only the
-              tab pages scroll. */}
-          <View style={[styles.expandedBody, { top: contentTop }]}>
+              tab pages scroll (and scrolling them shrinks the art, so the
+              whole block rides up to claim the freed space). */}
+          <Animated.View
+            style={[styles.expandedBody, { top: contentTop }, bodyStyle]}
+          >
             <View style={styles.titleBlock}>
               <AppText
                 doNotTranslate
@@ -600,42 +656,33 @@ export function PlayerSheet() {
               </Column>
             </ThemedHost>
 
-            {/* Shape / Clips switcher — FIXED height (a vertically-matching
-                Host near a scrollable mis-measures). */}
-            <ThemedHost style={styles.tabsHost}>
-              <Column modifiers={[fillMaxWidth()]}>
-                <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
-                  <SegmentedButton
-                    selected={tab === 'shape'}
-                    onClick={() => onSwitchTab('shape')}
-                  >
-                    <SegmentedButton.Label>
-                      <Text maxLines={1}>{t('player.tabs.shape')}</Text>
-                    </SegmentedButton.Label>
-                  </SegmentedButton>
-                  <SegmentedButton
-                    selected={tab === 'clips'}
-                    onClick={() => onSwitchTab('clips')}
-                  >
-                    <SegmentedButton.Label>
-                      <Text maxLines={1}>{t('player.tabs.clips')}</Text>
-                    </SegmentedButton.Label>
-                  </SegmentedButton>
-                </SingleChoiceSegmentedButtonRow>
-              </Column>
-            </ThemedHost>
+            {/* Shape / Clips switcher — real tabs with a gliding underline
+                (segmented buttons read as form controls, not navigation). */}
+            <View style={styles.tabsRow}>
+              <PlayerTabs
+                tabs={[
+                  { key: 'shape', label: t('player.tabs.shape') },
+                  { key: 'clips', label: t('player.tabs.clips') },
+                ]}
+                active={tab}
+                onChange={onSwitchTab}
+              />
+            </View>
 
-            <ScrollView
+            <Animated.ScrollView
+              key={tab}
               style={styles.tabScroll}
               contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
               scrollEnabled={expanded}
               showsVerticalScrollIndicator={false}
+              onScroll={onTabScroll}
+              scrollEventThrottle={16}
             >
-              <ThemedHost
-                matchContents={{ vertical: true }}
-                style={styles.tabHost}
-              >
-                {tab === 'shape' ? (
+              {tab === 'shape' ? (
+                <ThemedHost
+                  matchContents={{ vertical: true }}
+                  style={styles.tabHost}
+                >
                   <Column
                     verticalArrangement={{ spacedBy: 8 }}
                     modifiers={[
@@ -644,48 +691,34 @@ export function PlayerSheet() {
                     ]}
                   >
                     {/* Equalizer — live band gains on the shaping graph. */}
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelLarge' }}
+                    >
+                      {t('player.eq.title')}
+                    </Text>
+
+                    {/* One scrolling row of preset chips ("Flat" doubles as
+                        the reset). */}
                     <Row
                       verticalAlignment="center"
-                      horizontalArrangement="spaceBetween"
-                      modifiers={[fillMaxWidth()]}
+                      horizontalArrangement={{ spacedBy: 8 }}
+                      modifiers={[fillMaxWidth(), horizontalScroll()]}
                     >
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{ typography: 'labelLarge' }}
-                      >
-                        {t('player.eq.title')}
-                      </Text>
-                      {activePreset !== 'flat' ? (
-                        <Button onClick={resetEq}>
-                          <Text maxLines={1}>{t('player.eq.reset')}</Text>
-                        </Button>
-                      ) : null}
-                    </Row>
-
-                    {/* Two rows of three — six labels in one segmented row get
-                        clipped to 3 letters on a phone. */}
-                    {[EQ_PRESETS.slice(0, 3), EQ_PRESETS.slice(3)].map(
-                      group => (
-                        <SingleChoiceSegmentedButtonRow
-                          key={group[0].i18nKey}
-                          modifiers={[fillMaxWidth()]}
+                      {EQ_PRESETS.map(preset => (
+                        <FilterChip
+                          key={preset.i18nKey}
+                          selected={activePreset === preset.i18nKey}
+                          onClick={() => applyPreset(preset.i18nKey)}
                         >
-                          {group.map(preset => (
-                            <SegmentedButton
-                              key={preset.i18nKey}
-                              selected={activePreset === preset.i18nKey}
-                              onClick={() => applyPreset(preset.i18nKey)}
-                            >
-                              <SegmentedButton.Label>
-                                <Text maxLines={1}>
-                                  {presetLabel(preset.i18nKey)}
-                                </Text>
-                              </SegmentedButton.Label>
-                            </SegmentedButton>
-                          ))}
-                        </SingleChoiceSegmentedButtonRow>
-                      ),
-                    )}
+                          <FilterChip.Label>
+                            <Text maxLines={1}>
+                              {presetLabel(preset.i18nKey)}
+                            </Text>
+                          </FilterChip.Label>
+                        </FilterChip>
+                      ))}
+                    </Row>
 
                     {EQ_BANDS.map((band, index) => (
                       <Row
@@ -705,6 +738,7 @@ export function PlayerSheet() {
                           value={gains[index]}
                           min={EQ_MIN_DB}
                           max={EQ_MAX_DB}
+                          steps={EQ_SLIDER_STEPS}
                           onValueChange={value =>
                             setBandGain(index, Math.round(value))
                           }
@@ -720,9 +754,11 @@ export function PlayerSheet() {
                       </Row>
                     ))}
 
-                    {/* Speed + pitch, under the EQ. */}
-                    <Column
-                      verticalArrangement={{ spacedBy: 8 }}
+                    {/* Speed — one stepped slider (quarter-step snaps), the
+                        live value beside the header. */}
+                    <Row
+                      verticalAlignment="center"
+                      horizontalArrangement="spaceBetween"
                       modifiers={[fillMaxWidth(), padding(0, 12, 0, 0)]}
                     >
                       <Text
@@ -731,22 +767,23 @@ export function PlayerSheet() {
                       >
                         {t('player.speed')}
                       </Text>
-                      <SingleChoiceSegmentedButtonRow
-                        modifiers={[fillMaxWidth()]}
+                      <Text
+                        color={colors.onSurface}
+                        style={{ typography: 'labelLarge' }}
                       >
-                        {RATE_PRESETS.map(preset => (
-                          <SegmentedButton
-                            key={preset}
-                            selected={rate === preset}
-                            onClick={() => setRate(preset)}
-                          >
-                            <SegmentedButton.Label>
-                              <Text maxLines={1}>{rateLabel(preset)}</Text>
-                            </SegmentedButton.Label>
-                          </SegmentedButton>
-                        ))}
-                      </SingleChoiceSegmentedButtonRow>
-                    </Column>
+                        {rateLabel(rate)}
+                      </Text>
+                    </Row>
+                    <Slider
+                      value={rate}
+                      min={RATE_MIN}
+                      max={RATE_MAX}
+                      steps={RATE_SLIDER_STEPS}
+                      onValueChange={value =>
+                        setRate(Math.round(value / RATE_STEP) * RATE_STEP)
+                      }
+                      modifiers={[fillMaxWidth()]}
+                    />
 
                     <Row
                       verticalAlignment="center"
@@ -776,38 +813,39 @@ export function PlayerSheet() {
                       />
                     </Row>
                   </Column>
-                ) : (
-                  <Column
-                    verticalArrangement={{ spacedBy: 8 }}
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(SIDE_PADDING, 8, SIDE_PADDING, 0),
-                    ]}
-                  >
+                </ThemedHost>
+              ) : (
+                <View style={styles.clipsPage}>
+                  {/* The trimmer IS the clip creator — frame the range like a
+                      video cut, then preview or save it. */}
+                  <ClipTrimmer
+                    durationS={trimmerDuration}
+                    startS={clipRange.startS}
+                    endS={clipRange.endS}
+                    onChange={(startS, endS) => setClipRange({ startS, endS })}
+                  />
+
+                  <ThemedHost style={styles.clipActionsHost}>
                     <Row
                       verticalAlignment="center"
-                      horizontalArrangement="spaceBetween"
+                      horizontalArrangement={{ spacedBy: 12 }}
                       modifiers={[fillMaxWidth()]}
                     >
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{ typography: 'labelLarge' }}
-                      >
-                        {markStartMs !== null
-                          ? `${t('player.clips.title')} · ${formatTime(markStartMs / 1000)} →`
-                          : t('player.clips.title')}
-                      </Text>
-                      <Button onClick={onMarkPress}>
-                        <Text maxLines={1}>
-                          {t(
-                            markStartMs !== null
-                              ? 'player.clips.setEnd'
-                              : 'player.clips.new',
-                          )}
+                      <OutlinedButton onClick={onPreviewClip}>
+                        <Text color={colors.onSurface} maxLines={1}>
+                          {t('player.clips.preview')}
                         </Text>
+                      </OutlinedButton>
+                      <Button onClick={onSaveClip}>
+                        <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
                       </Button>
                     </Row>
+                  </ThemedHost>
 
+                  <ThemedHost
+                    matchContents={{ vertical: true }}
+                    style={styles.tabHost}
+                  >
                     {clips.length === 0 ? (
                       <Text
                         color={colors.onSurfaceMuted}
@@ -884,11 +922,11 @@ export function PlayerSheet() {
                         })}
                       </Column>
                     )}
-                  </Column>
-                )}
-              </ThemedHost>
-            </ScrollView>
-          </View>
+                  </ThemedHost>
+                </View>
+              )}
+            </Animated.ScrollView>
+          </Animated.View>
         </Animated.View>
 
         {/* THE shared artwork — one element across both states, so the
@@ -1001,13 +1039,18 @@ const styles = StyleSheet.create({
   },
   titleText: { fontWeight: '700' },
   transportHost: { width: '100%' },
-  tabsHost: {
-    height: 48,
+  tabsRow: {
     marginHorizontal: SIDE_PADDING,
-    marginTop: 10,
+    marginTop: 6,
   },
   tabScroll: { flex: 1, marginTop: 4 },
   tabHost: { width: '100%' },
+  clipsPage: {
+    gap: 12,
+    paddingHorizontal: SIDE_PADDING,
+    paddingTop: 12,
+  },
+  clipActionsHost: { height: 48 },
   art: { position: 'absolute' },
   artMedia: { height: '100%', width: '100%' },
 });
