@@ -108,8 +108,11 @@ const SIDE_PADDING = 24;
 
 // Scrolling the tab pages shrinks the artwork (Spotify/YT-Music collapsing
 // header): full size at rest, ART_MIN_SHRINK of it after SHRINK_RANGE px.
+// The title block compresses in step (toward the banner's type scale) so the
+// text never towers over a small artwork.
 const SHRINK_RANGE = 140;
 const ART_MIN_SHRINK = 0.55;
+const TITLE_MIN_SHRINK = 0.72;
 
 // EQ band sliders snap to whole dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
@@ -358,6 +361,21 @@ export function PlayerSheet() {
     return { transform: [{ translateY: -(1 - shrink) * artFull }] };
   });
 
+  // Title + artist compress with the art (scaled from the left edge, so the
+  // text shrinks in place instead of drifting toward center).
+  const titleStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(
+          tabScrollY.value,
+          [0, SHRINK_RANGE],
+          [1, TITLE_MIN_SHRINK],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
   const miniRowStyle = useAnimatedStyle(() => ({
     // Gone quickly so it never ghosts over the expanded chrome.
     opacity: Math.max(0, 1 - progress.value * 3),
@@ -557,20 +575,22 @@ export function PlayerSheet() {
             style={[styles.expandedBody, { top: contentTop }, bodyStyle]}
           >
             <View style={styles.titleBlock}>
-              <AppText
-                doNotTranslate
-                text={current.name}
-                variant="titleLarge"
-                numberOfLines={1}
-                style={styles.titleText}
-              />
-              <AppText
-                doNotTranslate
-                muted
-                text={subtitle}
-                variant="bodyMedium"
-                numberOfLines={1}
-              />
+              <Animated.View style={[styles.titleScaler, titleStyle]}>
+                <AppText
+                  doNotTranslate
+                  text={current.name}
+                  variant="titleLarge"
+                  numberOfLines={1}
+                  style={styles.titleText}
+                />
+                <AppText
+                  doNotTranslate
+                  muted
+                  text={subtitle}
+                  variant="bodyMedium"
+                  numberOfLines={1}
+                />
+              </Animated.View>
             </View>
 
             <ThemedHost
@@ -1032,11 +1052,13 @@ const styles = StyleSheet.create({
     right: 0,
   },
   titleBlock: {
-    gap: 2,
     paddingBottom: 6,
     paddingHorizontal: SIDE_PADDING,
     width: '100%',
   },
+  // The scale pivots on the text's own top-left corner (inside the padding),
+  // so shrinking never drifts the title toward center.
+  titleScaler: { gap: 2, transformOrigin: 'top left' },
   titleText: { fontWeight: '700' },
   transportHost: { width: '100%' },
   tabsRow: {
