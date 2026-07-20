@@ -14,7 +14,6 @@ import {
   FilledIconButton,
   FilterChip,
   IconButton,
-  OutlinedButton,
   Row,
   Shape,
   Slider,
@@ -47,8 +46,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClipSaveSheet } from '@/components/player/ClipSaveSheet';
-import { ClipTrimmer } from '@/components/player/ClipTrimmer';
+import { ClipScrubber } from '@/components/player/ClipScrubber';
 import { PlayerTabs } from '@/components/player/PlayerTabs';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
@@ -60,7 +58,7 @@ import { useI18n } from '@/i18n';
 import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
-import { deleteClip } from '@/services/firebase/clips';
+import { createClip, deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
@@ -394,13 +392,9 @@ export function PlayerSheet() {
   const [dragValue, setDragValue] = useState<number | null>(null);
   const lastDragRef = useRef(0);
 
-  // The trimmer's framed range; the save sheet stores it. Re-seeded per song
-  // once its duration is known.
+  // The framed range on the clips scrubber. Re-seeded per song once its
+  // duration is known.
   const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
-  const [pendingRange, setPendingRange] = useState<{
-    startMs: number;
-    endMs: number;
-  } | null>(null);
 
   const trimmerDuration = Math.floor(storeDuration);
   useEffect(() => {
@@ -427,12 +421,17 @@ export function PlayerSheet() {
     playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
   };
 
+  // Clips are just timestamps — no naming step, the save is one tap.
   const onSaveClip = () => {
     haptics.selection();
-    setPendingRange({
+    createClip({
+      songId: current.id,
       startMs: clipRange.startS * 1000,
       endMs: clipRange.endS * 1000,
-    });
+      label: '',
+    })
+      .then(() => showSnackbar(t('snackbar.clip-created')))
+      .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
   };
 
   const onDeleteClip = (clipId: string) => {
@@ -593,51 +592,77 @@ export function PlayerSheet() {
               </Animated.View>
             </View>
 
+            {/* The timeline. Shape = the plain scrubber; Clips = the SAME
+                timeline carrying the trim handles, so the range is placed
+                while listening (tap the tinted range to preview it). */}
+            {tab === 'shape' ? (
+              <ThemedHost
+                matchContents={{ vertical: true }}
+                style={styles.transportHost}
+              >
+                <Column
+                  horizontalAlignment="center"
+                  verticalArrangement={{ spacedBy: 0 }}
+                  modifiers={[
+                    fillMaxWidth(),
+                    padding(SIDE_PADDING, 0, SIDE_PADDING, 0),
+                  ]}
+                >
+                  <Slider
+                    value={Math.min(position, duration)}
+                    min={0}
+                    max={duration}
+                    onValueChange={value => {
+                      lastDragRef.current = value;
+                      setDragValue(value);
+                    }}
+                    onValueChangeFinished={() => {
+                      // seek() also ends any clip replay.
+                      seek(lastDragRef.current);
+                      setDragValue(null);
+                    }}
+                    modifiers={[fillMaxWidth()]}
+                  />
+                  <Row
+                    horizontalArrangement="spaceBetween"
+                    modifiers={[fillMaxWidth()]}
+                  >
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelMedium' }}
+                    >
+                      {formatTime(position)}
+                    </Text>
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelMedium' }}
+                    >
+                      {formatTime(storeDuration)}
+                    </Text>
+                  </Row>
+                </Column>
+              </ThemedHost>
+            ) : (
+              <View style={styles.clipScrubberWrap}>
+                <ClipScrubber
+                  durationS={trimmerDuration}
+                  positionS={storePosition}
+                  startS={clipRange.startS}
+                  endS={clipRange.endS}
+                  onSeek={seek}
+                  onChangeRange={(startS, endS) =>
+                    setClipRange({ startS, endS })
+                  }
+                  onPreview={onPreviewClip}
+                />
+              </View>
+            )}
+
             <ThemedHost
               matchContents={{ vertical: true }}
               style={styles.transportHost}
             >
-              <Column
-                horizontalAlignment="center"
-                verticalArrangement={{ spacedBy: 0 }}
-                modifiers={[
-                  fillMaxWidth(),
-                  padding(SIDE_PADDING, 0, SIDE_PADDING, 0),
-                ]}
-              >
-                <Slider
-                  value={Math.min(position, duration)}
-                  min={0}
-                  max={duration}
-                  onValueChange={value => {
-                    lastDragRef.current = value;
-                    setDragValue(value);
-                  }}
-                  onValueChangeFinished={() => {
-                    // seek() also ends any clip replay.
-                    seek(lastDragRef.current);
-                    setDragValue(null);
-                  }}
-                  modifiers={[fillMaxWidth()]}
-                />
-                <Row
-                  horizontalArrangement="spaceBetween"
-                  modifiers={[fillMaxWidth()]}
-                >
-                  <Text
-                    color={colors.onSurfaceMuted}
-                    style={{ typography: 'labelMedium' }}
-                  >
-                    {formatTime(position)}
-                  </Text>
-                  <Text
-                    color={colors.onSurfaceMuted}
-                    style={{ typography: 'labelMedium' }}
-                  >
-                    {formatTime(storeDuration)}
-                  </Text>
-                </Row>
-
+              <Column horizontalAlignment="center" modifiers={[fillMaxWidth()]}>
                 <Row
                   verticalAlignment="center"
                   horizontalArrangement={{ spacedBy: 28 }}
@@ -836,26 +861,20 @@ export function PlayerSheet() {
                 </ThemedHost>
               ) : (
                 <View style={styles.clipsPage}>
-                  {/* The trimmer IS the clip creator — frame the range like a
-                      video cut, then preview or save it. */}
-                  <ClipTrimmer
-                    durationS={trimmerDuration}
-                    startS={clipRange.startS}
-                    endS={clipRange.endS}
-                    onChange={(startS, endS) => setClipRange({ startS, endS })}
-                  />
-
+                  {/* The frame lives ON the timeline above; this page is just
+                      save + the saved list. */}
                   <ThemedHost style={styles.clipActionsHost}>
                     <Row
                       verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 12 }}
+                      horizontalArrangement="spaceBetween"
                       modifiers={[fillMaxWidth()]}
                     >
-                      <OutlinedButton onClick={onPreviewClip}>
-                        <Text color={colors.onSurface} maxLines={1}>
-                          {t('player.clips.preview')}
-                        </Text>
-                      </OutlinedButton>
+                      <Text
+                        color={colors.onSurfaceMuted}
+                        style={{ typography: 'labelLarge' }}
+                      >
+                        {t('player.clips.title')}
+                      </Text>
                       <Button onClick={onSaveClip}>
                         <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
                       </Button>
@@ -913,16 +932,8 @@ export function PlayerSheet() {
                                     style={{ typography: 'bodyLarge' }}
                                     maxLines={1}
                                   >
-                                    {clip.label || range}
+                                    {range}
                                   </Text>
-                                  {clip.label ? (
-                                    <Text
-                                      color={colors.onSurfaceMuted}
-                                      style={{ typography: 'bodySmall' }}
-                                    >
-                                      {range}
-                                    </Text>
-                                  ) : null}
                                 </Column>
                                 <IconButton
                                   onClick={() => onDeleteClip(clip.id)}
@@ -973,15 +984,6 @@ export function PlayerSheet() {
           </Animated.View>
         </GestureDetector>
       </Animated.View>
-
-      {pendingRange && (
-        <ClipSaveSheet
-          songId={current.id}
-          startMs={pendingRange.startMs}
-          endMs={pendingRange.endMs}
-          onClose={() => setPendingRange(null)}
-        />
-      )}
     </>
   );
 }
@@ -1061,6 +1063,7 @@ const styles = StyleSheet.create({
   titleScaler: { gap: 2, transformOrigin: 'top left' },
   titleText: { fontWeight: '700' },
   transportHost: { width: '100%' },
+  clipScrubberWrap: { paddingHorizontal: SIDE_PADDING, paddingTop: 6 },
   tabsRow: {
     marginHorizontal: SIDE_PADDING,
     marginTop: 6,
