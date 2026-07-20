@@ -104,13 +104,18 @@ const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 const SIDE_PADDING = 24;
 
-// Scrolling the tab pages shrinks the artwork (Spotify/YT-Music collapsing
-// header): full size at rest, ART_MIN_SHRINK of it after SHRINK_RANGE px.
-// The title block compresses in step (toward the banner's type scale) so the
-// text never towers over a small artwork.
-const SHRINK_RANGE = 140;
-const ART_MIN_SHRINK = 0.55;
-const TITLE_MIN_SHRINK = 0.72;
+// Scrolling the tab pages collapses the header the way YT Music's queue pull
+// does (captured from the real app): the art travels to a LEFT thumbnail, the
+// title/artist slide RIGHT to sit beside it as one compact row, and the whole
+// console below rides up to claim the space.
+const SHRINK_RANGE = 160;
+const ART_COMPACT_SIZE = 56;
+const TITLE_COMPACT_SCALE = 0.72;
+const TITLE_COMPACT_SHIFT_X = ART_COMPACT_SIZE + 12;
+// How far above the old art top the compact header row sits.
+const HEADER_RISE = 8;
+// Extra lift under the title so the transport tucks in below the header.
+const BODY_LIFT_EXTRA = 16;
 
 // EQ band sliders snap to whole dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
@@ -285,19 +290,25 @@ export function PlayerSheet() {
       runOnJS(springTo)(commit ? 1 : 0);
     });
 
-  // Drag the artwork area down to collapse.
-  const dragDown = Gesture.Pan()
-    .enabled(expanded)
-    .activeOffsetY([-12, 12])
-    .onUpdate(event => {
-      progress.value =
-        1 - Math.min(Math.max(event.translationY / travel, 0), 1);
-    })
-    .onEnd(event => {
-      const commit =
-        progress.value < 1 - SNAP_PROGRESS || event.velocityY > SNAP_VELOCITY;
-      runOnJS(springTo)(commit ? 0 : 1);
-    });
+  // Drag down anywhere ABOVE the progress bar (chevron row, artwork, title)
+  // to collapse. A gesture instance can only attach once, so each region gets
+  // its own from the same recipe.
+  const makeDragDown = () =>
+    Gesture.Pan()
+      .enabled(expanded)
+      .activeOffsetY([-12, 12])
+      .onUpdate(event => {
+        progress.value =
+          1 - Math.min(Math.max(event.translationY / travel, 0), 1);
+      })
+      .onEnd(event => {
+        const commit =
+          progress.value < 1 - SNAP_PROGRESS || event.velocityY > SNAP_VELOCITY;
+        runOnJS(springTo)(commit ? 0 : 1);
+      });
+  const dragDown = makeDragDown();
+  const dragDownTop = makeDragDown();
+  const dragDownTitle = makeDragDown();
 
   // --- Animated styles -----------------------------------------------------
   const containerStyle = useAnimatedStyle(() => ({
@@ -317,19 +328,22 @@ export function PlayerSheet() {
 
   const artStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    // Scrolling the tab content shrinks the art toward its top edge. Gated by
-    // `p` so the collapse morph always starts from clean geometry.
-    const shrink =
-      1 -
-      (1 -
-        interpolate(
-          tabScrollY.value,
-          [0, SHRINK_RANGE],
-          [1, ART_MIN_SHRINK],
-          Extrapolation.CLAMP,
-        )) *
-        p;
-    const scale = (artScaleMin + (1 - artScaleMin) * p) * shrink;
+    // 0 = full header, 1 = the compact row. Gated by `p` so the collapse
+    // morph always starts from clean geometry.
+    const n =
+      interpolate(
+        tabScrollY.value,
+        [0, SHRINK_RANGE],
+        [0, 1],
+        Extrapolation.CLAMP,
+      ) * p;
+    // Compact target: a LEFT thumbnail on the header row (YT Music's queue
+    // header), beside the slid-over title block.
+    const compactScale = ART_COMPACT_SIZE / artFull;
+    const compactTx = SIDE_PADDING + ART_COMPACT_SIZE / 2 - winW / 2;
+    const compactTy = ART_COMPACT_SIZE / 2 - HEADER_RISE - artFull / 2;
+    const scale =
+      (artScaleMin + (1 - artScaleMin) * p) * (1 - n * (1 - compactScale));
     // Centers travel from the mini thumb to the expanded slot.
     const fromCx = MINI_ART_X + MINI_ART_SIZE / 2;
     const fromCy = MINI_ART_Y + MINI_ART_SIZE / 2;
@@ -338,41 +352,45 @@ export function PlayerSheet() {
 
     return {
       transform: [
-        { translateX: (fromCx - toCx) * (1 - p) },
-        // The shrink term pins the art's TOP edge instead of its center.
-        {
-          translateY: (fromCy - toCy) * (1 - p) - ((1 - shrink) * artFull) / 2,
-        },
+        { translateX: (fromCx - toCx) * (1 - p) + compactTx * n },
+        { translateY: (fromCy - toCy) * (1 - p) + compactTy * n },
         { scale },
       ],
     };
   });
 
-  // The fixed section below the art rides up to claim the freed space.
+  // The console below rides up so the title lands beside the thumb and the
+  // transport tucks in right under the compact header row.
   const bodyStyle = useAnimatedStyle(() => {
-    const shrink = interpolate(
+    const n = interpolate(
       tabScrollY.value,
       [0, SHRINK_RANGE],
-      [1, ART_MIN_SHRINK],
+      [0, 1],
       Extrapolation.CLAMP,
     );
-    return { transform: [{ translateY: -(1 - shrink) * artFull }] };
+    return {
+      transform: [
+        { translateY: -n * (artFull + BODY_LIFT_EXTRA + HEADER_RISE) },
+      ],
+    };
   });
 
-  // Title + artist compress with the art (scaled from the left edge, so the
-  // text shrinks in place instead of drifting toward center).
-  const titleStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale: interpolate(
-          tabScrollY.value,
-          [0, SHRINK_RANGE],
-          [1, TITLE_MIN_SHRINK],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
+  // Title + artist slide RIGHT beside the thumb while compressing toward the
+  // banner's type scale (scaled from the top-left corner, so no drift).
+  const titleStyle = useAnimatedStyle(() => {
+    const n = interpolate(
+      tabScrollY.value,
+      [0, SHRINK_RANGE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [
+        { translateX: n * TITLE_COMPACT_SHIFT_X },
+        { scale: 1 - n * (1 - TITLE_COMPACT_SCALE) },
+      ],
+    };
+  });
 
   const miniRowStyle = useAnimatedStyle(() => ({
     // Gone quickly so it never ghosts over the expanded chrome.
@@ -555,17 +573,19 @@ export function PlayerSheet() {
           style={[styles.expanded, expandedStyle]}
           pointerEvents={expanded ? 'auto' : 'none'}
         >
-          <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-            <ThemedHost matchContents>
-              <IconButton onClick={collapse}>
-                <AppIcon
-                  name="chevron-down"
-                  tint={colors.onSurface}
-                  contentDescription={t('common.back')}
-                />
-              </IconButton>
-            </ThemedHost>
-          </View>
+          <GestureDetector gesture={dragDownTop}>
+            <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
+              <ThemedHost matchContents>
+                <IconButton onClick={collapse}>
+                  <AppIcon
+                    name="chevron-down"
+                    tint={colors.onSurface}
+                    contentDescription={t('common.back')}
+                  />
+                </IconButton>
+              </ThemedHost>
+            </View>
+          </GestureDetector>
 
           {/* Everything under the art: title + transport stay FIXED; only the
               tab pages scroll (and scrolling them shrinks the art, so the
@@ -573,24 +593,26 @@ export function PlayerSheet() {
           <Animated.View
             style={[styles.expandedBody, { top: contentTop }, bodyStyle]}
           >
-            <View style={styles.titleBlock}>
-              <Animated.View style={[styles.titleScaler, titleStyle]}>
-                <AppText
-                  doNotTranslate
-                  text={current.name}
-                  variant="titleLarge"
-                  numberOfLines={1}
-                  style={styles.titleText}
-                />
-                <AppText
-                  doNotTranslate
-                  muted
-                  text={subtitle}
-                  variant="bodyMedium"
-                  numberOfLines={1}
-                />
-              </Animated.View>
-            </View>
+            <GestureDetector gesture={dragDownTitle}>
+              <View style={styles.titleBlock}>
+                <Animated.View style={[styles.titleScaler, titleStyle]}>
+                  <AppText
+                    doNotTranslate
+                    text={current.name}
+                    variant="titleLarge"
+                    numberOfLines={1}
+                    style={styles.titleText}
+                  />
+                  <AppText
+                    doNotTranslate
+                    muted
+                    text={subtitle}
+                    variant="bodyMedium"
+                    numberOfLines={1}
+                  />
+                </Animated.View>
+              </View>
+            </GestureDetector>
 
             {/* The timeline. Shape = the plain scrubber; Clips = the SAME
                 timeline carrying the trim handles, so the range is placed
