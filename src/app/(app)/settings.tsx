@@ -7,22 +7,16 @@ import {
   legalUrl,
   SettingsScreen,
   type LegalPage,
-  type SettingsAccountProfile,
-  type SettingsUsernameEditor,
 } from '@portfolio/mobile-ui';
 import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { useUsernameEditor } from '@/hooks/useUsernameEditor';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { signOutFromGoogle } from '@/services/firebase/auth';
-import { useAuthStore } from '@/store/auth';
-import { useProfileStore } from '@/store/profile';
 import { useThemeStore } from '@/store/theme';
 import { SUPPORTED_THEMES } from '@/styles/themes';
 
@@ -42,21 +36,8 @@ export default function Settings() {
   const translate = (key: string) => t(key as TranslationKey);
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme);
-  const user = useAuthStore(s => s.user);
-  const firestoreProfile = useProfileStore(s => s.profile);
   const { colors, scheme, seedColor } = useAppTheme();
   const { showSnackbar } = useSnackbar();
-  // Username is editable from both the profile header and here; both routes
-  // share this same editor config.
-  const usernameEditor: SettingsUsernameEditor = useUsernameEditor();
-
-  const profile: SettingsAccountProfile | undefined = user
-    ? {
-        displayName: user.displayName ?? t('settings.account.noName'),
-        username: firestoreProfile?.username ?? undefined,
-        photoUrl: user.photoUrl,
-      }
-    : undefined;
 
   const signOut = async () => {
     try {
@@ -69,21 +50,10 @@ export default function Settings() {
   return (
     <View style={styles.root}>
       <SettingsScreen
+        // Personal app: no profile, no username, no manage-account — the
+        // account block is just the sign-out.
         account={{
           title: t('settings.account.title'),
-          profile,
-          usernameEditor,
-          // The host owns the route so mobile-ui stays app-agnostic. The
-          // Delete-account flow will live behind manage-account (a neutral nav
-          // row, not a red CTA — the WhatsApp/Google idiom).
-          navRows: [
-            {
-              id: 'manage-account',
-              label: t('settings.manageAccount.title'),
-              icon: 'manage-accounts',
-              onPress: () => router.push('/manage-account'),
-            },
-          ],
           signOutLabel: t('settings.signOut'),
           signOutDialog: {
             title: t('settings.signOutDialog.title'),

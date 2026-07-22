@@ -3,27 +3,23 @@ import {
   getDoc,
   getFirestore,
   onSnapshot,
-  runTransaction,
   serverTimestamp,
   setDoc,
   type QueryDocumentSnapshot,
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
-import {
-  USERNAMES_COLLECTION,
-  USERS_COLLECTION,
-} from '@/services/firebase/collections';
+import { USERS_COLLECTION } from '@/services/firebase/collections';
 import { reported, reportedOnError } from '@/services/firebase/crashlytics';
 
+// Personal-only: the profile doc is just the signed-in identity snapshot
+// (usernames were dropped 2026-07-20 along with the whole account section).
 export type UserProfile = {
   createdAt: number | null;
   displayName: string | null;
   photoUrl: string | null;
   uid: string;
   updatedAt: number | null;
-  username: string | null;
-  usernameLower: string | null;
 };
 
 type SubscribeToUserProfileParams = {
@@ -38,11 +34,6 @@ type UpsertOwnProfileParams = {
   uid: string;
 };
 
-type ClaimUsernameParams = {
-  uid: string;
-  username: string;
-};
-
 const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile => {
   const data = snapshot.data();
   const createdAt = data.createdAt as Timestamp | undefined;
@@ -54,8 +45,6 @@ const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile => {
     photoUrl: (data.photoURL as string) ?? null,
     uid: snapshot.id,
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
-    username: (data.username as string) ?? null,
-    usernameLower: (data.usernameLower as string) ?? null,
   };
 };
 
@@ -70,30 +59,18 @@ export const upsertOwnProfile = reported(
     const ref = doc(getFirestore(), USERS_COLLECTION, uid);
     const existing = await getDoc(ref);
 
-    if (existing.exists()) {
-      await setDoc(
-        ref,
-        {
-          displayName,
-          photoURL: photoUrl,
-          updatedAt: serverTimestamp(),
-          ...(existing.get('createdAt') === undefined
-            ? { createdAt: serverTimestamp() }
-            : null),
-        },
-        { merge: true },
-      );
-      return;
-    }
-
-    await setDoc(ref, {
-      createdAt: serverTimestamp(),
-      displayName,
-      photoURL: photoUrl,
-      updatedAt: serverTimestamp(),
-      username: null,
-      usernameLower: null,
-    });
+    await setDoc(
+      ref,
+      {
+        displayName,
+        photoURL: photoUrl,
+        updatedAt: serverTimestamp(),
+        ...(existing.exists() && existing.get('createdAt') !== undefined
+          ? null
+          : { createdAt: serverTimestamp() }),
+      },
+      { merge: true },
+    );
   },
 );
 
@@ -113,46 +90,3 @@ export const subscribeToUserProfile = ({
       onNext(profileToModel(snapshot as unknown as QueryDocumentSnapshot));
     },
   });
-
-/**
- * Reserve `username` for `uid` atomically: rejects with `username-taken` when
- * another uid holds it, and frees the previous reservation on rename.
- */
-export const claimUsername = reported(
-  'users.claimUsername',
-  async ({ uid, username }: ClaimUsernameParams): Promise<void> => {
-    const db = getFirestore();
-    const usernameLower = username.toLowerCase();
-    const usernameRef = doc(db, USERNAMES_COLLECTION, usernameLower);
-    const userRef = doc(db, USERS_COLLECTION, uid);
-
-    await runTransaction(db, async tx => {
-      const existing = await tx.get(usernameRef);
-
-      if (
-        existing.exists() &&
-        (existing.data() as { uid?: string })?.uid !== uid
-      )
-        throw new Error('username-taken');
-
-      const userSnapshot = await tx.get(userRef);
-      const previousLower =
-        (userSnapshot.data() as { usernameLower?: string | null } | undefined)
-          ?.usernameLower ?? null;
-
-      if (previousLower && previousLower !== usernameLower)
-        tx.delete(doc(db, USERNAMES_COLLECTION, previousLower));
-
-      tx.set(usernameRef, { uid });
-      tx.set(
-        userRef,
-        {
-          updatedAt: serverTimestamp(),
-          username,
-          usernameLower,
-        },
-        { merge: true },
-      );
-    });
-  },
-);

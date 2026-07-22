@@ -5,7 +5,6 @@
  * account-deletion sweep and firestore.rules must then be checked against.
  */
 export const USERS_COLLECTION = 'users';
-export const USERNAMES_COLLECTION = 'usernames';
 
 // Subcollection of users/{uid} — the flat personal library (playlists were
 // dropped 2026-07-19: you just upload songs, nothing groups them).

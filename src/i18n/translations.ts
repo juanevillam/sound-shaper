@@ -65,9 +65,10 @@ export const translations = {
       speed: 'Speed',
       keepPitch: 'Keep pitch',
       keepPitchDescription: 'Hold the original tone while the speed changes.',
-      tabs: {
-        shape: 'Shape',
-        clips: 'Clips',
+      shape: {
+        title: 'Shape',
+        custom: 'Custom',
+        pitchOff: 'pitch off',
       },
       eq: {
         title: 'Equalizer',
@@ -84,9 +85,11 @@ export const translations = {
       },
       clips: {
         title: 'Clips',
-        saveClip: 'Save clip',
+        new: 'New clip',
+        preview: 'Preview',
+        saveClip: 'Save',
         empty:
-          'Frame a range with the handles on the timeline — tap it to preview.',
+          'Tap "New clip" and frame your favorite part on the progress bar.',
         delete: 'Delete clip',
       },
     },
@@ -128,16 +131,6 @@ export const translations = {
     settings: {
       account: {
         title: 'Account',
-        noName: 'Your account',
-      },
-      username: {
-        addPrompt: 'Tap to add your username',
-        dialog: {
-          title: 'Choose a username',
-          fieldLabel: 'Username',
-          confirm: 'Save',
-          cancel: 'Cancel',
-        },
       },
       general: {
         title: 'General',
@@ -162,15 +155,6 @@ export const translations = {
         cancel: 'Cancel',
         confirm: 'Log out',
       },
-      manageAccount: {
-        title: 'Manage account',
-        infoTitle: 'Account info',
-        name: 'Name',
-        email: 'Email',
-        username: 'Username',
-        usernameUnset: 'Not set yet',
-        memberSince: 'Member since',
-      },
       about: {
         title: 'About',
         appVersion: 'Sound Shaper version',
@@ -191,12 +175,6 @@ export const translations = {
       'clip-save-failed': 'Could not save the clip. Please try again.',
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': 'Could not delete the clip. Please try again.',
-      'username-invalid':
-        'Usernames are 3-20 letters, numbers, or underscores.',
-      'username-taken': 'That username is already taken.',
-      'username-updated': 'Username updated',
-      'username-update-failed':
-        'Could not update the username. Please try again.',
     },
   },
   es: {
@@ -266,9 +244,10 @@ export const translations = {
       keepPitch: 'Mantener el tono',
       keepPitchDescription:
         'Conserva el tono original mientras cambia la velocidad.',
-      tabs: {
-        shape: 'Moldear',
-        clips: 'Clips',
+      shape: {
+        title: 'Moldear',
+        custom: 'Personalizado',
+        pitchOff: 'tono libre',
       },
       eq: {
         title: 'Ecualizador',
@@ -285,9 +264,11 @@ export const translations = {
       },
       clips: {
         title: 'Clips',
-        saveClip: 'Guardar clip',
+        new: 'Nuevo clip',
+        preview: 'Escuchar',
+        saveClip: 'Guardar',
         empty:
-          'Encuadra un rango con los controles de la línea de tiempo — tócalo para escucharlo.',
+          'Toca "Nuevo clip" y encuadra tu parte favorita en la barra de progreso.',
         delete: 'Eliminar clip',
       },
     },
@@ -329,16 +310,6 @@ export const translations = {
     settings: {
       account: {
         title: 'Cuenta',
-        noName: 'Tu cuenta',
-      },
-      username: {
-        addPrompt: 'Toca para agregar tu nombre de usuario',
-        dialog: {
-          title: 'Elige un nombre de usuario',
-          fieldLabel: 'Nombre de usuario',
-          confirm: 'Guardar',
-          cancel: 'Cancelar',
-        },
       },
       general: {
         title: 'General',
@@ -364,15 +335,6 @@ export const translations = {
         cancel: 'Cancelar',
         confirm: 'Cerrar sesión',
       },
-      manageAccount: {
-        title: 'Gestionar cuenta',
-        infoTitle: 'Información de la cuenta',
-        name: 'Nombre',
-        email: 'Correo',
-        username: 'Nombre de usuario',
-        usernameUnset: 'Sin definir',
-        memberSince: 'Miembro desde',
-      },
       about: {
         title: 'Acerca de',
         appVersion: 'Versión de Sound Shaper',
@@ -396,12 +358,6 @@ export const translations = {
       'clip-save-failed': 'No se pudo guardar el clip. Inténtalo de nuevo.',
       'clip-deleted': 'Clip eliminado',
       'clip-delete-failed': 'No se pudo eliminar el clip. Inténtalo de nuevo.',
-      'username-invalid':
-        'Los nombres de usuario tienen 3-20 letras, números o guiones bajos.',
-      'username-taken': 'Ese nombre de usuario ya está en uso.',
-      'username-updated': 'Nombre de usuario actualizado',
-      'username-update-failed':
-        'No se pudo actualizar el nombre de usuario. Inténtalo de nuevo.',
     },
   },
   zh: {
@@ -469,9 +425,10 @@ export const translations = {
       speed: '速度',
       keepPitch: '保持音调',
       keepPitchDescription: '改变速度时保持原来的音调。',
-      tabs: {
-        shape: '塑形',
-        clips: '片段',
+      shape: {
+        title: '塑形',
+        custom: '自定义',
+        pitchOff: '不保持音调',
       },
       eq: {
         title: '均衡器',
@@ -488,8 +445,10 @@ export const translations = {
       },
       clips: {
         title: '片段',
-        saveClip: '保存片段',
-        empty: '用时间轴上的手柄框选一段——点按试听。',
+        new: '新片段',
+        preview: '试听',
+        saveClip: '保存',
+        empty: '点按"新片段"，在进度条上框选你最喜欢的部分。',
         delete: '删除片段',
       },
     },
@@ -530,16 +489,6 @@ export const translations = {
     settings: {
       account: {
         title: '账户',
-        noName: '你的账户',
-      },
-      username: {
-        addPrompt: '点按以添加用户名',
-        dialog: {
-          title: '选择用户名',
-          fieldLabel: '用户名',
-          confirm: '保存',
-          cancel: '取消',
-        },
       },
       general: {
         title: '通用',
@@ -564,15 +513,6 @@ export const translations = {
         cancel: '取消',
         confirm: '退出登录',
       },
-      manageAccount: {
-        title: '管理账号',
-        infoTitle: '账号信息',
-        name: '姓名',
-        email: '邮箱',
-        username: '用户名',
-        usernameUnset: '尚未设置',
-        memberSince: '注册时间',
-      },
       about: {
         title: '关于',
         appVersion: 'Sound Shaper 版本',
@@ -593,10 +533,6 @@ export const translations = {
       'clip-save-failed': '无法保存片段,请重试。',
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段,请重试。',
-      'username-invalid': '用户名为 3-20 个字母、数字或下划线。',
-      'username-taken': '该用户名已被占用。',
-      'username-updated': '用户名已更新',
-      'username-update-failed': '无法更新用户名,请重试。',
     },
   },
 } as const;
