@@ -7,9 +7,11 @@ import {
   legalUrl,
   SettingsScreen,
   type LegalPage,
+  type SettingsAccountProfile,
 } from '@portfolio/mobile-ui';
 import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -17,6 +19,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { signOutFromGoogle } from '@/services/firebase/auth';
+import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
 import { SUPPORTED_THEMES } from '@/styles/themes';
 
@@ -36,8 +39,17 @@ export default function Settings() {
   const translate = (key: string) => t(key as TranslationKey);
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme);
+  const user = useAuthStore(s => s.user);
   const { colors, scheme, seedColor } = useAppTheme();
   const { showSnackbar } = useSnackbar();
+
+  // Identity display only — personal app, so no username line or editor.
+  const profile: SettingsAccountProfile | undefined = user
+    ? {
+        displayName: user.displayName ?? t('settings.account.noName'),
+        photoUrl: user.photoUrl,
+      }
+    : undefined;
 
   const signOut = async () => {
     try {
@@ -50,10 +62,18 @@ export default function Settings() {
   return (
     <View style={styles.root}>
       <SettingsScreen
-        // Personal app: no profile, no username, no manage-account — the
-        // account block is just the sign-out.
         account={{
           title: t('settings.account.title'),
+          profile,
+          // Deletion lives behind manage-account (the WhatsApp/Google idiom).
+          navRows: [
+            {
+              id: 'manage-account',
+              label: t('settings.manageAccount.title'),
+              icon: 'manage-accounts',
+              onPress: () => router.push('/manage-account'),
+            },
+          ],
           signOutLabel: t('settings.signOut'),
           signOutDialog: {
             title: t('settings.signOutDialog.title'),

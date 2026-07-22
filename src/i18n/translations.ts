@@ -70,6 +70,17 @@ export const translations = {
         custom: 'Custom',
         pitchOff: 'pitch off',
       },
+      menu: {
+        label: 'Song options',
+        info: 'Song info',
+        edit: 'Edit song',
+      },
+      info: {
+        artist: 'Artist',
+        album: 'Album',
+        year: 'Release year',
+        none: 'This song has no extra details.',
+      },
       eq: {
         title: 'Equalizer',
         reset: 'Flat',
@@ -88,8 +99,9 @@ export const translations = {
         new: 'New clip',
         preview: 'Preview',
         saveClip: 'Save',
-        empty:
-          'Tap "New clip" and frame your favorite part on the progress bar.',
+        empty: 'Frame your favorite part above and save it.',
+        none: 'No clips yet',
+        count: '{n} saved',
         delete: 'Delete clip',
       },
     },
@@ -131,6 +143,24 @@ export const translations = {
     settings: {
       account: {
         title: 'Account',
+        noName: 'Your account',
+      },
+      manageAccount: {
+        title: 'Manage account',
+        infoTitle: 'Account info',
+        name: 'Name',
+        email: 'Email',
+        memberSince: 'Member since',
+        dangerTitle: 'Danger zone',
+        deleteAccount: 'Delete account',
+        deleteAccountHint: 'Your songs and clips are removed permanently.',
+        deleteDialog: {
+          title: 'Delete this account?',
+          message:
+            'All your songs and clips will be permanently deleted. This cannot be undone.',
+          confirm: 'Delete',
+          cancel: 'Cancel',
+        },
       },
       general: {
         title: 'General',
@@ -175,6 +205,10 @@ export const translations = {
       'clip-save-failed': 'Could not save the clip. Please try again.',
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': 'Could not delete the clip. Please try again.',
+      'delete-account-failed':
+        'Could not delete the account. Please try again.',
+      'delete-account-reauth':
+        'Please log out, sign in again, and retry deleting.',
     },
   },
   es: {
@@ -249,6 +283,17 @@ export const translations = {
         custom: 'Personalizado',
         pitchOff: 'tono libre',
       },
+      menu: {
+        label: 'Opciones de la canción',
+        info: 'Información',
+        edit: 'Editar canción',
+      },
+      info: {
+        artist: 'Artista',
+        album: 'Álbum',
+        year: 'Año de lanzamiento',
+        none: 'Esta canción no tiene más detalles.',
+      },
       eq: {
         title: 'Ecualizador',
         reset: 'Plano',
@@ -267,8 +312,9 @@ export const translations = {
         new: 'Nuevo clip',
         preview: 'Escuchar',
         saveClip: 'Guardar',
-        empty:
-          'Toca "Nuevo clip" y encuadra tu parte favorita en la barra de progreso.',
+        empty: 'Encuadra tu parte favorita arriba y guárdala.',
+        none: 'Aún no hay clips',
+        count: '{n} guardados',
         delete: 'Eliminar clip',
       },
     },
@@ -310,6 +356,24 @@ export const translations = {
     settings: {
       account: {
         title: 'Cuenta',
+        noName: 'Tu cuenta',
+      },
+      manageAccount: {
+        title: 'Gestionar cuenta',
+        infoTitle: 'Información de la cuenta',
+        name: 'Nombre',
+        email: 'Correo',
+        memberSince: 'Miembro desde',
+        dangerTitle: 'Zona de riesgo',
+        deleteAccount: 'Eliminar cuenta',
+        deleteAccountHint: 'Tus canciones y clips se eliminan permanentemente.',
+        deleteDialog: {
+          title: '¿Eliminar esta cuenta?',
+          message:
+            'Todas tus canciones y clips se eliminarán permanentemente. Esto no se puede deshacer.',
+          confirm: 'Eliminar',
+          cancel: 'Cancelar',
+        },
       },
       general: {
         title: 'General',
@@ -358,6 +422,10 @@ export const translations = {
       'clip-save-failed': 'No se pudo guardar el clip. Inténtalo de nuevo.',
       'clip-deleted': 'Clip eliminado',
       'clip-delete-failed': 'No se pudo eliminar el clip. Inténtalo de nuevo.',
+      'delete-account-failed':
+        'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
+      'delete-account-reauth':
+        'Cierra sesión, vuelve a iniciarla e inténtalo de nuevo.',
     },
   },
   zh: {
@@ -430,6 +498,17 @@ export const translations = {
         custom: '自定义',
         pitchOff: '不保持音调',
       },
+      menu: {
+        label: '歌曲选项',
+        info: '歌曲信息',
+        edit: '编辑歌曲',
+      },
+      info: {
+        artist: '艺术家',
+        album: '专辑',
+        year: '发行年份',
+        none: '这首歌没有更多信息。',
+      },
       eq: {
         title: '均衡器',
         reset: '平坦',
@@ -448,7 +527,9 @@ export const translations = {
         new: '新片段',
         preview: '试听',
         saveClip: '保存',
-        empty: '点按"新片段"，在进度条上框选你最喜欢的部分。',
+        empty: '在上方框选你最喜欢的部分并保存。',
+        none: '还没有片段',
+        count: '已存 {n} 个',
         delete: '删除片段',
       },
     },
@@ -489,6 +570,23 @@ export const translations = {
     settings: {
       account: {
         title: '账户',
+        noName: '你的账户',
+      },
+      manageAccount: {
+        title: '管理账户',
+        infoTitle: '账户信息',
+        name: '姓名',
+        email: '邮箱',
+        memberSince: '注册时间',
+        dangerTitle: '危险区域',
+        deleteAccount: '删除账户',
+        deleteAccountHint: '你的歌曲和片段将被永久删除。',
+        deleteDialog: {
+          title: '删除此账户？',
+          message: '你的所有歌曲和片段将被永久删除。此操作无法撤销。',
+          confirm: '删除',
+          cancel: '取消',
+        },
       },
       general: {
         title: '通用',
@@ -533,6 +631,8 @@ export const translations = {
       'clip-save-failed': '无法保存片段,请重试。',
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段,请重试。',
+      'delete-account-failed': '无法删除账户,请重试。',
+      'delete-account-reauth': '请退出登录后重新登录,再重试删除。',
     },
   },
 } as const;

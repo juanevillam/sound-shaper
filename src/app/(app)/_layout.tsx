@@ -52,6 +52,10 @@ export default function AppLayout() {
             settings gear are set by the screen itself. */}
         <Stack.Screen name="home" options={{ title: t('app.title') }} />
         <Stack.Screen name="settings" options={{ title: t('app.settings') }} />
+        <Stack.Screen
+          name="manage-account"
+          options={{ title: t('settings.manageAccount.title') }}
+        />
       </Stack>
       {/* The streaming <Audio> element + shaping graph (headless). */}
       <AudioEngine />

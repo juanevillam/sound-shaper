@@ -9,6 +9,7 @@ import Block from '@expo/material-symbols/block.xml';
 import Check from '@expo/material-symbols/check.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Close from '@expo/material-symbols/close.xml';
+import ContentCut from '@expo/material-symbols/content_cut.xml';
 import DarkMode from '@expo/material-symbols/dark_mode.xml';
 import Delete from '@expo/material-symbols/delete.xml';
 import DeleteForever from '@expo/material-symbols/delete_forever.xml';
@@ -71,6 +72,7 @@ const icons = {
   'arrow-upward': ArrowUpward,
   block: Block,
   check: Check,
+  'content-cut': ContentCut,
   chevron: ChevronRight,
   'chevron-down': KeyboardArrowDown,
   close: Close,
