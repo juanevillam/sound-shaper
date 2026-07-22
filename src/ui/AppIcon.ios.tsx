@@ -77,6 +77,7 @@ const SF_SYMBOLS = {
   star: 'star',
   'star-filled': 'star.fill',
   trophy: 'trophy',
+  tune: 'slider.horizontal.3',
   'visibility-off': 'eye.slash',
   widgets: 'square.grid.2x2',
 } satisfies Record<IconName, NonNullable<ImageProps['systemName']>>;

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -12,33 +13,27 @@ import {
   Button,
   Column,
   FilledIconButton,
-  FilterChip,
   IconButton,
+  OutlinedButton,
   Row,
   Shape,
   Slider,
   Surface,
-  Switch,
   Text,
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
-  horizontalScroll,
   padding,
   size,
   weight,
-  width,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
-  Extrapolation,
   SlideInDown,
-  interpolate,
   interpolateColor,
   runOnJS,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -46,8 +41,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClipScrubber } from '@/components/player/ClipScrubber';
-import { PlayerTabs } from '@/components/player/PlayerTabs';
+import { ClipHandles } from '@/components/player/ClipHandles';
+import { rateLabel, ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -55,13 +50,12 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
-import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
 import { createClip, deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
-import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import { useShaperStore } from '@/store/shaper';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
@@ -71,10 +65,11 @@ import { TILE_RADIUS } from '@/styles/shape';
 // the single shared artwork element scales/travels from the 44dp thumb to the
 // expanded square, the mini row cross-fades into the expanded controls.
 //
-// Expanded structure (the premium pass): art + title + scrubber + transport
-// are FIXED — they never scroll away — and everything below them lives behind
-// a Shape / Clips switcher. Shape is the flagship page: the equalizer with its
-// presets, then speed and pitch. Clips is the bookmarking page.
+// The expanded surface is a FIXED console (nothing structural scrolls — only
+// the clips list): art, title, the ONE native scrubber, transport, a "Shape"
+// card that opens the sound-shaping bottom sheet, and the clips section.
+// Clip framing = trim brackets overlaid on the scrubber (Google Photos), so
+// playback keeps working while the range is placed.
 // ---------------------------------------------------------------------------
 
 /** CONTENT height of the collapsed banner (consumers add the bottom inset). */
@@ -86,10 +81,6 @@ const MINI_ART_SIZE = 44;
 const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
-// A little clearance so the collapsed banner floats clearly above the nav bar
-// instead of sitting flush against it.
-const BANNER_BOTTOM_GAP = 8;
-
 const EXPAND_MS = 320;
 const COLLAPSE_MS = 260;
 // Drag-release: past this progress (or flung faster than this) it commits.
@@ -98,33 +89,9 @@ const SNAP_VELOCITY = 600;
 
 const CONTROL_ICON_SIZE = 32;
 const PLAY_BUTTON_SIZE = 64;
-const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
-const EQ_LABEL_WIDTH = 36;
-const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
-
 const SIDE_PADDING = 24;
 
-// Scrolling the tab pages collapses the header the way YT Music's queue pull
-// does (captured from the real app): the art travels to a LEFT thumbnail, the
-// title/artist slide RIGHT to sit beside it as one compact row, and the whole
-// console below rides up to claim the space.
-const SHRINK_RANGE = 160;
-const ART_COMPACT_SIZE = 56;
-const TITLE_COMPACT_SCALE = 0.72;
-const TITLE_COMPACT_SHIFT_X = ART_COMPACT_SIZE + 12;
-// How far above the old art top the compact header row sits.
-const HEADER_RISE = 8;
-// Extra lift under the title so the transport tucks in below the header.
-const BODY_LIFT_EXTRA = 16;
-
-// EQ band sliders snap to whole dB; speed snaps to quarter steps.
-const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
-const RATE_MIN = 0.5;
-const RATE_MAX = 2;
-const RATE_STEP = 0.25;
-const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
-
-// Fresh trimmer range for a song: the first stretch, capped to the track.
+// A freshly framed clip: centered on the playhead, this long, snapped in.
 const DEFAULT_CLIP_LENGTH_S = 15;
 
 const CLIP_ROW_SHAPE = Shape.RoundedCorner({
@@ -139,8 +106,6 @@ const CLIP_ROW_SHAPE = Shape.RoundedCorner({
 // Stable fallback for the clips selector (an inline `?? []` loops
 // useSyncExternalStore into "maximum update depth exceeded").
 const NO_CLIPS: never[] = [];
-
-type ShaperTab = 'shape' | 'clips';
 
 // Hand-drawn transport glyphs for the collapsed row (Compose Icons here would
 // blink on navigation returns — the drag-dots lesson).
@@ -175,9 +140,7 @@ export function PlayerSheet() {
   const nextSong = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
   const rate = usePlayerStore(s => s.rate);
-  const setRate = usePlayerStore(s => s.setRate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
-  const setKeepPitch = usePlayerStore(s => s.setKeepPitch);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
   const seek = usePlayerStore(s => s.seek);
@@ -186,17 +149,11 @@ export function PlayerSheet() {
   const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
 
-  const gains = useShaperStore(s => s.gains);
-  const setBandGain = useShaperStore(s => s.setBandGain);
   const activePreset = useShaperStore(s => s.activePreset);
-  const applyPreset = useShaperStore(s => s.applyPreset);
 
-  // Geometry (all deterministic — no measuring, no flicker). The collapsed
-  // banner rests `insets.bottom + gap` above the screen bottom, so its content
-  // always clears the Android nav bar. The expanded art is deliberately
-  // moderate (~58% width) so the transport and the shaping tools share the
-  // screen with it instead of living below the fold.
-  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom + BANNER_BOTTOM_GAP;
+  // Geometry (all deterministic — no measuring, no flicker). The expanded art
+  // is moderate (~58% width) so the whole console fits without scrolling.
+  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom;
   const travel = winH - miniTotal;
   const artFull = Math.min(Math.round(winW * 0.58), 260);
   const artExpandedX = (winW - artFull) / 2;
@@ -208,8 +165,6 @@ export function PlayerSheet() {
   const [expanded, setExpanded] = useState(false);
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
-
-  const [tab, setTab] = useState<ShaperTab>('shape');
 
   const springTo = useCallback(
     (target: 0 | 1) => {
@@ -290,8 +245,8 @@ export function PlayerSheet() {
       runOnJS(springTo)(commit ? 1 : 0);
     });
 
-  // Drag down anywhere ABOVE the progress bar (chevron row, artwork, title)
-  // to collapse. A gesture instance can only attach once, so each region gets
+  // Drag down anywhere above the scrubber (chevron row, artwork, title) to
+  // collapse. A gesture instance can only attach once, so each region gets
   // its own from the same recipe.
   const makeDragDown = () =>
     Gesture.Pan()
@@ -320,30 +275,9 @@ export function PlayerSheet() {
     ),
   }));
 
-  // Scroll offset of the active tab page — drives the artwork shrink.
-  const tabScrollY = useSharedValue(0);
-  const onTabScroll = useAnimatedScrollHandler(event => {
-    tabScrollY.value = event.contentOffset.y;
-  });
-
   const artStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    // 0 = full header, 1 = the compact row. Gated by `p` so the collapse
-    // morph always starts from clean geometry.
-    const n =
-      interpolate(
-        tabScrollY.value,
-        [0, SHRINK_RANGE],
-        [0, 1],
-        Extrapolation.CLAMP,
-      ) * p;
-    // Compact target: a LEFT thumbnail on the header row (YT Music's queue
-    // header), beside the slid-over title block.
-    const compactScale = ART_COMPACT_SIZE / artFull;
-    const compactTx = SIDE_PADDING + ART_COMPACT_SIZE / 2 - winW / 2;
-    const compactTy = ART_COMPACT_SIZE / 2 - HEADER_RISE - artFull / 2;
-    const scale =
-      (artScaleMin + (1 - artScaleMin) * p) * (1 - n * (1 - compactScale));
+    const scale = artScaleMin + (1 - artScaleMin) * p;
     // Centers travel from the mini thumb to the expanded slot.
     const fromCx = MINI_ART_X + MINI_ART_SIZE / 2;
     const fromCy = MINI_ART_Y + MINI_ART_SIZE / 2;
@@ -352,42 +286,9 @@ export function PlayerSheet() {
 
     return {
       transform: [
-        { translateX: (fromCx - toCx) * (1 - p) + compactTx * n },
-        { translateY: (fromCy - toCy) * (1 - p) + compactTy * n },
+        { translateX: (fromCx - toCx) * (1 - p) },
+        { translateY: (fromCy - toCy) * (1 - p) },
         { scale },
-      ],
-    };
-  });
-
-  // The console below rides up so the title lands beside the thumb and the
-  // transport tucks in right under the compact header row.
-  const bodyStyle = useAnimatedStyle(() => {
-    const n = interpolate(
-      tabScrollY.value,
-      [0, SHRINK_RANGE],
-      [0, 1],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [
-        { translateY: -n * (artFull + BODY_LIFT_EXTRA + HEADER_RISE) },
-      ],
-    };
-  });
-
-  // Title + artist slide RIGHT beside the thumb while compressing toward the
-  // banner's type scale (scaled from the top-left corner, so no drift).
-  const titleStyle = useAnimatedStyle(() => {
-    const n = interpolate(
-      tabScrollY.value,
-      [0, SHRINK_RANGE],
-      [0, 1],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [
-        { translateX: n * TITLE_COMPACT_SHIFT_X },
-        { scale: 1 - n * (1 - TITLE_COMPACT_SCALE) },
       ],
     };
   });
@@ -410,22 +311,18 @@ export function PlayerSheet() {
   const [dragValue, setDragValue] = useState<number | null>(null);
   const lastDragRef = useRef(0);
 
-  // The framed range on the clips scrubber. Re-seeded per song once its
-  // duration is known.
+  // The sound-shaping bottom sheet.
+  const [shaperVisible, setShaperVisible] = useState(false);
+
+  // Clip framing: OFF by default; "New clip" drops the brackets on the
+  // scrubber around the playhead.
+  const [clipMode, setClipMode] = useState(false);
   const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
 
-  const trimmerDuration = Math.floor(storeDuration);
+  // A track change exits clip mode (the frame belonged to the old song).
   useEffect(() => {
-    setClipRange({
-      startS: 0,
-      endS:
-        trimmerDuration > 0
-          ? Math.min(DEFAULT_CLIP_LENGTH_S, trimmerDuration)
-          : 0,
-    });
-    // Re-seed per track (identified by id), not on every duration tick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id, trimmerDuration > 0]);
+    setClipMode(false);
+  }, [current?.id]);
 
   useClipsSubscription(current?.id);
   const clips = useClipsStore(s =>
@@ -433,6 +330,20 @@ export function PlayerSheet() {
   );
 
   if (!current) return null;
+
+  const trimmerDuration = Math.floor(storeDuration);
+
+  const onNewClip = () => {
+    haptics.selection();
+    const half = DEFAULT_CLIP_LENGTH_S / 2;
+    const start = Math.max(0, Math.round(storePosition - half));
+    const end = Math.min(
+      trimmerDuration || DEFAULT_CLIP_LENGTH_S,
+      start + DEFAULT_CLIP_LENGTH_S,
+    );
+    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    setClipMode(true);
+  };
 
   const onPreviewClip = () => {
     haptics.selection();
@@ -442,6 +353,7 @@ export function PlayerSheet() {
   // Clips are just timestamps — no naming step, the save is one tap.
   const onSaveClip = () => {
     haptics.selection();
+    setClipMode(false);
     createClip({
       songId: current.id,
       startMs: clipRange.startS * 1000,
@@ -459,23 +371,17 @@ export function PlayerSheet() {
       .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
   };
 
-  const onSwitchTab = (next: ShaperTab) => {
-    if (next === tab) return;
-    haptics.selection();
-    // The pages remount at offset 0 (keyed scroller) — drop the art shrink.
-    tabScrollY.value = withTiming(0, { duration: 180 });
-    setTab(next);
-  };
-
   const duration = storeDuration > 0 ? storeDuration : 1;
   const position = dragValue ?? storePosition;
   const progressRatio =
     storeDuration > 0 ? Math.min(storePosition / storeDuration, 1) : 0;
   const subtitle = current.artist || ' ';
 
-  // The typed t() needs literal keys, so map preset ids explicitly.
-  const presetLabel = (key: string) => {
-    switch (key) {
+  // Shape-card summary: the active preset (or "Custom") plus the live rate.
+  const presetSummary = (() => {
+    switch (activePreset) {
+      case 'flat':
+        return t('player.eq.presets.flat');
       case 'bass':
         return t('player.eq.presets.bass');
       case 'vocal':
@@ -487,9 +393,12 @@ export function PlayerSheet() {
       case 'bright':
         return t('player.eq.presets.bright');
       default:
-        return t('player.eq.presets.flat');
+        return t('player.shape.custom');
     }
-  };
+  })();
+  const shapeSummary = `${presetSummary} · ${rateLabel(rate)}${
+    keepPitch ? '' : ` · ${t('player.shape.pitchOff')}`
+  }`;
 
   return (
     <>
@@ -547,6 +456,7 @@ export function PlayerSheet() {
               onPress={toggle}
               hitSlop={8}
               style={styles.miniButton}
+              android_ripple={miniRipple(colors.surfaceVariant)}
               accessibilityRole="button"
               accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
             >
@@ -560,6 +470,7 @@ export function PlayerSheet() {
               onPress={nextSong}
               hitSlop={8}
               style={styles.miniButton}
+              android_ripple={miniRipple(colors.surfaceVariant)}
               accessibilityRole="button"
               accessibilityLabel={t('player.next')}
             >
@@ -587,48 +498,39 @@ export function PlayerSheet() {
             </View>
           </GestureDetector>
 
-          {/* Everything under the art: title + transport stay FIXED; only the
-              tab pages scroll (and scrolling them shrinks the art, so the
-              whole block rides up to claim the freed space). */}
-          <Animated.View
-            style={[styles.expandedBody, { top: contentTop }, bodyStyle]}
-          >
+          {/* The console below the art — a fixed column, nothing scrolls
+              except the clips list. */}
+          <View style={[styles.expandedBody, { top: contentTop }]}>
             <GestureDetector gesture={dragDownTitle}>
               <View style={styles.titleBlock}>
-                <Animated.View style={[styles.titleScaler, titleStyle]}>
-                  <AppText
-                    doNotTranslate
-                    text={current.name}
-                    variant="titleLarge"
-                    numberOfLines={1}
-                    style={styles.titleText}
-                  />
-                  <AppText
-                    doNotTranslate
-                    muted
-                    text={subtitle}
-                    variant="bodyMedium"
-                    numberOfLines={1}
-                  />
-                </Animated.View>
+                <AppText
+                  doNotTranslate
+                  text={current.name}
+                  variant="titleLarge"
+                  numberOfLines={1}
+                  style={styles.titleText}
+                />
+                <AppText
+                  doNotTranslate
+                  muted
+                  text={subtitle}
+                  variant="bodyMedium"
+                  numberOfLines={1}
+                />
               </View>
             </GestureDetector>
 
-            {/* The timeline. Shape = the plain scrubber; Clips = the SAME
-                timeline carrying the trim handles, so the range is placed
-                while listening (tap the tinted range to preview it). */}
-            {tab === 'shape' ? (
+            {/* THE scrubber — always the native slider. In clip mode the trim
+                brackets ride on top of it while it keeps seeking. */}
+            <View style={styles.sliderBlock}>
               <ThemedHost
                 matchContents={{ vertical: true }}
-                style={styles.transportHost}
+                style={styles.host}
               >
                 <Column
                   horizontalAlignment="center"
                   verticalArrangement={{ spacedBy: 0 }}
-                  modifiers={[
-                    fillMaxWidth(),
-                    padding(SIDE_PADDING, 0, SIDE_PADDING, 0),
-                  ]}
+                  modifiers={[fillMaxWidth()]}
                 >
                   <Slider
                     value={Math.min(position, duration)}
@@ -655,6 +557,14 @@ export function PlayerSheet() {
                     >
                       {formatTime(position)}
                     </Text>
+                    {clipMode ? (
+                      <Text
+                        color={colors.primary}
+                        style={{ typography: 'labelMedium' }}
+                      >
+                        {`${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`}
+                      </Text>
+                    ) : null}
                     <Text
                       color={colors.onSurfaceMuted}
                       style={{ typography: 'labelMedium' }}
@@ -664,26 +574,19 @@ export function PlayerSheet() {
                   </Row>
                 </Column>
               </ThemedHost>
-            ) : (
-              <View style={styles.clipScrubberWrap}>
-                <ClipScrubber
-                  durationS={trimmerDuration}
-                  positionS={storePosition}
-                  startS={clipRange.startS}
-                  endS={clipRange.endS}
-                  onSeek={seek}
-                  onChangeRange={(startS, endS) =>
-                    setClipRange({ startS, endS })
-                  }
-                  onPreview={onPreviewClip}
-                />
-              </View>
-            )}
+              {clipMode ? (
+                <View style={styles.handlesRegion} pointerEvents="box-none">
+                  <ClipHandles
+                    durationS={trimmerDuration}
+                    startS={clipRange.startS}
+                    endS={clipRange.endS}
+                    onChange={(startS, endS) => setClipRange({ startS, endS })}
+                  />
+                </View>
+              ) : null}
+            </View>
 
-            <ThemedHost
-              matchContents={{ vertical: true }}
-              style={styles.transportHost}
-            >
+            <ThemedHost matchContents={{ vertical: true }} style={styles.host}>
               <Column horizontalAlignment="center" modifiers={[fillMaxWidth()]}>
                 <Row
                   verticalAlignment="center"
@@ -723,263 +626,167 @@ export function PlayerSheet() {
               </Column>
             </ThemedHost>
 
-            {/* Shape / Clips switcher — real tabs with a gliding underline
-                (segmented buttons read as form controls, not navigation). */}
-            <View style={styles.tabsRow}>
-              <PlayerTabs
-                tabs={[
-                  { key: 'shape', label: t('player.tabs.shape') },
-                  { key: 'clips', label: t('player.tabs.clips') },
-                ]}
-                active={tab}
-                onChange={onSwitchTab}
-              />
-            </View>
-
-            <Animated.ScrollView
-              key={tab}
-              style={styles.tabScroll}
-              contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-              scrollEnabled={expanded}
-              showsVerticalScrollIndicator={false}
-              onScroll={onTabScroll}
-              scrollEventThrottle={16}
-            >
-              {tab === 'shape' ? (
-                <ThemedHost
-                  matchContents={{ vertical: true }}
-                  style={styles.tabHost}
+            {/* The Shape card — every shaping control lives one tap away in a
+                bottom sheet, with the live settings summarized here. */}
+            <ThemedHost style={styles.shapeCardHost}>
+              <Surface
+                onClick={() => setShaperVisible(true)}
+                color={colors.surfaceContainer}
+                shape={CLIP_ROW_SHAPE}
+                modifiers={[fillMaxWidth()]}
+              >
+                <Row
+                  verticalAlignment="center"
+                  horizontalArrangement={{ spacedBy: 16 }}
+                  modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
                 >
+                  <AppIcon
+                    name="tune"
+                    size={24}
+                    tint={colors.primary}
+                    contentDescription={t('player.shape.title')}
+                  />
                   <Column
-                    verticalArrangement={{ spacedBy: 8 }}
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(SIDE_PADDING, 8, SIDE_PADDING, 0),
-                    ]}
+                    verticalArrangement={{ spacedBy: 1 }}
+                    modifiers={[weight(1)]}
                   >
-                    {/* Equalizer — live band gains on the shaping graph. */}
+                    <Text
+                      color={colors.onSurface}
+                      style={{ typography: 'bodyLarge' }}
+                    >
+                      {t('player.shape.title')}
+                    </Text>
                     <Text
                       color={colors.onSurfaceMuted}
-                      style={{ typography: 'labelLarge' }}
+                      style={{ typography: 'bodySmall' }}
+                      maxLines={1}
                     >
-                      {t('player.eq.title')}
+                      {shapeSummary}
                     </Text>
-
-                    {/* One scrolling row of preset chips ("Flat" doubles as
-                        the reset). */}
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 8 }}
-                      modifiers={[fillMaxWidth(), horizontalScroll()]}
-                    >
-                      {EQ_PRESETS.map(preset => (
-                        <FilterChip
-                          key={preset.i18nKey}
-                          selected={activePreset === preset.i18nKey}
-                          onClick={() => applyPreset(preset.i18nKey)}
-                        >
-                          <FilterChip.Label>
-                            <Text maxLines={1}>
-                              {presetLabel(preset.i18nKey)}
-                            </Text>
-                          </FilterChip.Label>
-                        </FilterChip>
-                      ))}
-                    </Row>
-
-                    {EQ_BANDS.map((band, index) => (
-                      <Row
-                        key={band.hz}
-                        verticalAlignment="center"
-                        horizontalArrangement={{ spacedBy: 8 }}
-                        modifiers={[fillMaxWidth()]}
-                      >
-                        <Text
-                          color={colors.onSurfaceMuted}
-                          style={{ typography: 'labelMedium' }}
-                          modifiers={[width(EQ_LABEL_WIDTH)]}
-                        >
-                          {band.label}
-                        </Text>
-                        <Slider
-                          value={gains[index]}
-                          min={EQ_MIN_DB}
-                          max={EQ_MAX_DB}
-                          steps={EQ_SLIDER_STEPS}
-                          onValueChange={value =>
-                            setBandGain(index, Math.round(value))
-                          }
-                          modifiers={[weight(1)]}
-                        />
-                        <Text
-                          color={colors.onSurface}
-                          style={{ typography: 'labelMedium' }}
-                          modifiers={[width(EQ_LABEL_WIDTH)]}
-                        >
-                          {dbLabel(gains[index])}
-                        </Text>
-                      </Row>
-                    ))}
-
-                    {/* Speed — one stepped slider (quarter-step snaps), the
-                        live value beside the header. */}
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement="spaceBetween"
-                      modifiers={[fillMaxWidth(), padding(0, 12, 0, 0)]}
-                    >
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{ typography: 'labelLarge' }}
-                      >
-                        {t('player.speed')}
-                      </Text>
-                      <Text
-                        color={colors.onSurface}
-                        style={{ typography: 'labelLarge' }}
-                      >
-                        {rateLabel(rate)}
-                      </Text>
-                    </Row>
-                    <Slider
-                      value={rate}
-                      min={RATE_MIN}
-                      max={RATE_MAX}
-                      steps={RATE_SLIDER_STEPS}
-                      onValueChange={value =>
-                        setRate(Math.round(value / RATE_STEP) * RATE_STEP)
-                      }
-                      modifiers={[fillMaxWidth()]}
-                    />
-
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement="spaceBetween"
-                      modifiers={[fillMaxWidth(), padding(0, 8, 0, 8)]}
-                    >
-                      <Column
-                        verticalArrangement={{ spacedBy: 2 }}
-                        modifiers={[weight(1)]}
-                      >
-                        <Text
-                          color={colors.onSurface}
-                          style={{ typography: 'bodyLarge' }}
-                        >
-                          {t('player.keepPitch')}
-                        </Text>
-                        <Text
-                          color={colors.onSurfaceMuted}
-                          style={{ typography: 'bodySmall' }}
-                        >
-                          {t('player.keepPitchDescription')}
-                        </Text>
-                      </Column>
-                      <Switch
-                        value={keepPitch}
-                        onCheckedChange={setKeepPitch}
-                      />
-                    </Row>
                   </Column>
-                </ThemedHost>
-              ) : (
-                <View style={styles.clipsPage}>
-                  {/* The frame lives ON the timeline above; this page is just
-                      save + the saved list. */}
-                  <ThemedHost style={styles.clipActionsHost}>
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement="spaceBetween"
-                      modifiers={[fillMaxWidth()]}
-                    >
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{ typography: 'labelLarge' }}
-                      >
-                        {t('player.clips.title')}
-                      </Text>
-                      <Button onClick={onSaveClip}>
-                        <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
-                      </Button>
-                    </Row>
-                  </ThemedHost>
+                  <AppIcon
+                    name="chevron"
+                    size={22}
+                    tint={colors.onSurfaceMuted}
+                  />
+                </Row>
+              </Surface>
+            </ThemedHost>
 
-                  <ThemedHost
-                    matchContents={{ vertical: true }}
-                    style={styles.tabHost}
+            {/* Clips: New clip drops the brackets on the scrubber; while
+                framing, the row swaps to Preview / Save / dismiss. */}
+            <ThemedHost style={styles.clipsHeaderHost}>
+              <Row
+                verticalAlignment="center"
+                horizontalArrangement={{ spacedBy: 8 }}
+                modifiers={[fillMaxWidth()]}
+              >
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelLarge' }}
+                  modifiers={[weight(1)]}
+                >
+                  {t('player.clips.title')}
+                </Text>
+                {clipMode ? (
+                  <>
+                    <IconButton onClick={() => setClipMode(false)}>
+                      <AppIcon
+                        name="close"
+                        size={20}
+                        tint={colors.onSurfaceMuted}
+                        contentDescription={t('common.cancel')}
+                      />
+                    </IconButton>
+                    <OutlinedButton onClick={onPreviewClip}>
+                      <Text color={colors.onSurface} maxLines={1}>
+                        {t('player.clips.preview')}
+                      </Text>
+                    </OutlinedButton>
+                    <Button onClick={onSaveClip}>
+                      <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={onNewClip}>
+                    <Text maxLines={1}>{t('player.clips.new')}</Text>
+                  </Button>
+                )}
+              </Row>
+            </ThemedHost>
+
+            <ScrollView
+              style={styles.clipsList}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <ThemedHost
+                matchContents={{ vertical: true }}
+                style={styles.host}
+              >
+                {clips.length === 0 ? (
+                  <Text
+                    color={colors.onSurfaceMuted}
+                    style={{ typography: 'bodySmall' }}
                   >
-                    {clips.length === 0 ? (
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{ typography: 'bodySmall' }}
-                      >
-                        {t('player.clips.empty')}
-                      </Text>
-                    ) : (
-                      <Column
-                        verticalArrangement={{ spacedBy: 2 }}
-                        modifiers={[fillMaxWidth(), padding(0, 0, 0, 8)]}
-                      >
-                        {clips.map(clip => {
-                          const isActive = activeClip?.clipId === clip.id;
-                          const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+                    {/* While framing, the how-to hint would be stale noise. */}
+                    {clipMode ? ' ' : t('player.clips.empty')}
+                  </Text>
+                ) : (
+                  <Column
+                    verticalArrangement={{ spacedBy: 2 }}
+                    modifiers={[fillMaxWidth()]}
+                  >
+                    {clips.map(clip => {
+                      const isActive = activeClip?.clipId === clip.id;
+                      const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
-                          return (
-                            <Surface
-                              key={clip.id}
-                              onClick={() =>
-                                playClip(clip.id, clip.startMs, clip.endMs)
-                              }
-                              color="transparent"
-                              shape={CLIP_ROW_SHAPE}
-                              modifiers={[fillMaxWidth()]}
+                      return (
+                        <Surface
+                          key={clip.id}
+                          onClick={() =>
+                            playClip(clip.id, clip.startMs, clip.endMs)
+                          }
+                          color="transparent"
+                          shape={CLIP_ROW_SHAPE}
+                          modifiers={[fillMaxWidth()]}
+                        >
+                          <Row
+                            verticalAlignment="center"
+                            horizontalArrangement={{ spacedBy: 12 }}
+                            modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
+                          >
+                            <Column
+                              verticalArrangement={{ spacedBy: 1 }}
+                              modifiers={[weight(1)]}
                             >
-                              <Row
-                                verticalAlignment="center"
-                                horizontalArrangement={{ spacedBy: 12 }}
-                                modifiers={[
-                                  fillMaxWidth(),
-                                  padding(12, 4, 0, 4),
-                                ]}
+                              <Text
+                                color={
+                                  isActive ? colors.primary : colors.onSurface
+                                }
+                                style={{ typography: 'bodyLarge' }}
+                                maxLines={1}
                               >
-                                <Column
-                                  verticalArrangement={{ spacedBy: 1 }}
-                                  modifiers={[weight(1)]}
-                                >
-                                  <Text
-                                    color={
-                                      isActive
-                                        ? colors.primary
-                                        : colors.onSurface
-                                    }
-                                    style={{ typography: 'bodyLarge' }}
-                                    maxLines={1}
-                                  >
-                                    {range}
-                                  </Text>
-                                </Column>
-                                <IconButton
-                                  onClick={() => onDeleteClip(clip.id)}
-                                >
-                                  <AppIcon
-                                    name="delete"
-                                    size={20}
-                                    tint={colors.onSurfaceMuted}
-                                    contentDescription={t(
-                                      'player.clips.delete',
-                                    )}
-                                  />
-                                </IconButton>
-                              </Row>
-                            </Surface>
-                          );
-                        })}
-                      </Column>
-                    )}
-                  </ThemedHost>
-                </View>
-              )}
-            </Animated.ScrollView>
-          </Animated.View>
+                                {range}
+                              </Text>
+                            </Column>
+                            <IconButton onClick={() => onDeleteClip(clip.id)}>
+                              <AppIcon
+                                name="delete"
+                                size={20}
+                                tint={colors.onSurfaceMuted}
+                                contentDescription={t('player.clips.delete')}
+                              />
+                            </IconButton>
+                          </Row>
+                        </Surface>
+                      );
+                    })}
+                  </Column>
+                )}
+              </ThemedHost>
+            </ScrollView>
+          </View>
         </Animated.View>
 
         {/* THE shared artwork — one element across both states, so the
@@ -1006,9 +813,18 @@ export function PlayerSheet() {
           </Animated.View>
         </GestureDetector>
       </Animated.View>
+
+      {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
     </>
   );
 }
+
+// Borderless ripple matching the Compose IconButton feedback elsewhere.
+const miniRipple = (color: string) => ({
+  borderless: true,
+  color,
+  radius: 26,
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -1072,32 +888,37 @@ const styles = StyleSheet.create({
   expandedBody: {
     bottom: 0,
     left: 0,
+    paddingHorizontal: SIDE_PADDING,
     position: 'absolute',
     right: 0,
   },
   titleBlock: {
+    gap: 2,
     paddingBottom: 6,
-    paddingHorizontal: SIDE_PADDING,
     width: '100%',
   },
-  // The scale pivots on the text's own top-left corner (inside the padding),
-  // so shrinking never drifts the title toward center.
-  titleScaler: { gap: 2, transformOrigin: 'top left' },
   titleText: { fontWeight: '700' },
-  transportHost: { width: '100%' },
-  clipScrubberWrap: { paddingHorizontal: SIDE_PADDING, paddingTop: 6 },
-  tabsRow: {
-    marginHorizontal: SIDE_PADDING,
-    marginTop: 6,
+  host: { width: '100%' },
+  sliderBlock: { position: 'relative', width: '100%' },
+  // The brackets ride the slider row (the host's first ~44dp).
+  handlesRegion: {
+    height: 44,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
-  tabScroll: { flex: 1, marginTop: 4 },
-  tabHost: { width: '100%' },
-  clipsPage: {
-    gap: 12,
-    paddingHorizontal: SIDE_PADDING,
-    paddingTop: 12,
+  shapeCardHost: {
+    height: 76,
+    marginTop: 10,
+    width: '100%',
   },
-  clipActionsHost: { height: 48 },
+  clipsHeaderHost: {
+    height: 48,
+    marginTop: 8,
+    width: '100%',
+  },
+  clipsList: { flex: 1, marginTop: 4 },
   art: { position: 'absolute' },
   artMedia: { height: '100%', width: '100%' },
 });

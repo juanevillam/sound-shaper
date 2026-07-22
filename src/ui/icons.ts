@@ -48,6 +48,7 @@ import SkipNext from '@expo/material-symbols/skip_next.xml';
 import SkipPrevious from '@expo/material-symbols/skip_previous.xml';
 import Star from '@expo/material-symbols/star.xml';
 import Trophy from '@expo/material-symbols/trophy.xml';
+import Tune from '@expo/material-symbols/tune.xml';
 import VisibilityOff from '@expo/material-symbols/visibility_off.xml';
 import Widgets from '@expo/material-symbols/widgets.xml';
 import { Asset } from 'expo-asset';
@@ -117,6 +118,7 @@ const icons = {
   star: Star,
   'star-filled': require('./assets/icons/star-filled.xml'),
   trophy: Trophy,
+  tune: Tune,
   'visibility-off': VisibilityOff,
   widgets: Widgets,
 } satisfies Record<string, ImageSourcePropType>;
