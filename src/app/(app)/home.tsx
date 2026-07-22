@@ -26,6 +26,7 @@ import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
+import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
 import { type Song } from '@/services/firebase/songs';
 import { usePlayerStore } from '@/store/player';
@@ -154,7 +155,12 @@ export default function HomeScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
           <ThemedHost matchContents>
-            <IconButton onClick={() => router.push('/settings')}>
+            <IconButton
+              onClick={() => {
+                haptics.selection();
+                router.push('/settings');
+              }}
+            >
               <Icon
                 source={iconSource('settings')}
                 tint={colors.onSurface}

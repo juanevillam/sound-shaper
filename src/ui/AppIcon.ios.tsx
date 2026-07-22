@@ -27,6 +27,7 @@ const SF_SYMBOLS = {
   'arrow-upward': 'arrow.up',
   block: 'nosign',
   check: 'checkmark',
+  'content-cut': 'scissors',
   chevron: 'chevron.right',
   'chevron-down': 'chevron.down',
   close: 'xmark',

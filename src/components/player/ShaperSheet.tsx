@@ -87,21 +87,30 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
       >
         <Column
           verticalArrangement={{ spacedBy: 10 }}
-          // No top padding: the sheet's native drag handle supplies the gap.
-          modifiers={[padding(24, 0, 24, 28), fillMaxWidth()]}
+          // Horizontal padding lives on each SECTION, not here — the chips row
+          // must scroll edge-to-edge (outside padding would clip the chips at
+          // both ends mid-scroll).
+          modifiers={[padding(0, 0, 0, 28), fillMaxWidth()]}
         >
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
+            modifiers={[padding(24, 0, 24, 0)]}
           >
             {t('player.eq.title')}
           </Text>
 
-          {/* One scrolling row of preset chips ("Flat" doubles as reset). */}
+          {/* One scrolling row of preset chips ("Flat" doubles as reset).
+              Padding AFTER horizontalScroll = content padding: the row bleeds
+              to the sheet edges, the chips start/end 24 inside. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement={{ spacedBy: 8 }}
-            modifiers={[fillMaxWidth(), horizontalScroll()]}
+            modifiers={[
+              fillMaxWidth(),
+              horizontalScroll(),
+              padding(24, 0, 24, 0),
+            ]}
           >
             {EQ_PRESETS.map(preset => (
               <FilterChip
@@ -121,7 +130,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               key={band.hz}
               verticalAlignment="center"
               horizontalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth()]}
+              modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
             >
               <Text
                 color={colors.onSurfaceMuted}
@@ -152,7 +161,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(0, 10, 0, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 10, 24, 0)]}
           >
             <Text
               color={colors.onSurfaceMuted}
@@ -172,13 +181,13 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             onValueChange={value =>
               setRate(Math.round(value / RATE_STEP) * RATE_STEP)
             }
-            modifiers={[fillMaxWidth()]}
+            modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
           />
 
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(0, 6, 0, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 6, 24, 0)]}
           >
             <Column
               verticalArrangement={{ spacedBy: 2 }}
