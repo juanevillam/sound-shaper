@@ -87,7 +87,7 @@ const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
 // Clearance under the collapsed banner's content, above the nav-bar inset.
-const BANNER_BOTTOM_GAP = 12;
+const BANNER_BOTTOM_GAP = 8;
 
 const EXPAND_MS = 320;
 const COLLAPSE_MS = 260;
