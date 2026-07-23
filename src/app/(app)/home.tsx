@@ -2,8 +2,6 @@ import { useCallback, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { Icon, IconButton } from '@expo/ui/jetpack-compose';
-import { iconSource } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
@@ -19,14 +17,12 @@ import {
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
-import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
-import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
 import { type Song } from '@/services/firebase/songs';
 import { usePlayerStore } from '@/store/player';
@@ -67,7 +63,6 @@ const toGridRows = (songs: Song[]): GridRow[] => {
 // closes the grid.
 export default function HomeScreen() {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const songs = useSongsStore(s => s.songs);
   const error = useSongsStore(s => s.error);
@@ -154,20 +149,11 @@ export default function HomeScreen() {
         {/* Wordmark row where the app bar would be — the YT Music idiom. */}
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
-          <ThemedHost matchContents>
-            <IconButton
-              onClick={() => {
-                haptics.selection();
-                router.push('/settings');
-              }}
-            >
-              <Icon
-                source={iconSource('settings')}
-                tint={colors.onSurface}
-                contentDescription={t('app.settings')}
-              />
-            </IconButton>
-          </ThemedHost>
+          <RippleIconButton
+            name="settings"
+            onPress={() => router.push('/settings')}
+            accessibilityLabel={t('app.settings')}
+          />
         </View>
 
         {firstLoad ? (

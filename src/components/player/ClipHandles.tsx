@@ -12,8 +12,9 @@ import Animated, {
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 // Trim brackets laid OVER the native scrubber (Google Photos): the player's
-// M3 slider keeps seeking, the brackets frame the clip on top of it. TERTIARY
-// palette throughout so the frame never reads as the progress bar. Three drag
+// M3 slider keeps seeking, the brackets frame the clip on top of it. NEUTRAL
+// onSurface palette (white in dark, near-black in light), so the frame never
+// reads as the primary-colored progress bar. Three drag
 // zones — each bracket resizes its edge, the tinted middle slides the WHOLE
 // clip (length preserved). Horizontal pans only.
 
@@ -137,7 +138,7 @@ export function ClipHandles({
             <Animated.View
               style={[
                 styles.range,
-                { backgroundColor: colors.tertiaryContainer },
+                { backgroundColor: colors.onSurface },
                 rangeStyle,
               ]}
             />
@@ -147,15 +148,12 @@ export function ClipHandles({
               style={[
                 styles.handle,
                 styles.handleStart,
-                { backgroundColor: colors.onTertiaryContainer },
+                { backgroundColor: colors.onSurface },
                 startHandleStyle,
               ]}
             >
               <View
-                style={[
-                  styles.grip,
-                  { backgroundColor: colors.tertiaryContainer },
-                ]}
+                style={[styles.grip, { backgroundColor: colors.background }]}
               />
             </Animated.View>
           </GestureDetector>
@@ -164,15 +162,12 @@ export function ClipHandles({
               style={[
                 styles.handle,
                 styles.handleEnd,
-                { backgroundColor: colors.onTertiaryContainer },
+                { backgroundColor: colors.onSurface },
                 endHandleStyle,
               ]}
             >
               <View
-                style={[
-                  styles.grip,
-                  { backgroundColor: colors.tertiaryContainer },
-                ]}
+                style={[styles.grip, { backgroundColor: colors.background }]}
               />
             </Animated.View>
           </GestureDetector>
@@ -193,8 +188,8 @@ const styles = StyleSheet.create({
   range: {
     borderRadius: 4,
     bottom: 8,
-    // A tint over the slider — readable through, clearly not the track.
-    opacity: 0.45,
+    // A faint neutral veil — readable through, clearly not the track.
+    opacity: 0.16,
     position: 'absolute',
     top: 8,
   },
