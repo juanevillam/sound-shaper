@@ -51,6 +51,14 @@ export const translations = {
     },
     home: {
       addSong: 'Add song',
+      sort: {
+        label: 'Sort songs',
+        recent: 'Recently added',
+        oldest: 'Oldest first',
+        title: 'Title',
+        artist: 'Artist',
+        album: 'Album',
+      },
       error: {
         title: 'Could not load your songs',
         subtitle: 'Check your connection and try again.',
@@ -263,6 +271,14 @@ export const translations = {
     },
     home: {
       addSong: 'Agregar canción',
+      sort: {
+        label: 'Ordenar canciones',
+        recent: 'Agregadas recientemente',
+        oldest: 'Más antiguas primero',
+        title: 'Título',
+        artist: 'Artista',
+        album: 'Álbum',
+      },
       error: {
         title: 'No se pudieron cargar tus canciones',
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
@@ -479,6 +495,14 @@ export const translations = {
     },
     home: {
       addSong: '添加歌曲',
+      sort: {
+        label: '歌曲排序',
+        recent: '最近添加',
+        oldest: '最早添加',
+        title: '标题',
+        artist: '艺术家',
+        album: '专辑',
+      },
       error: {
         title: '无法加载你的歌曲',
         subtitle: '请检查网络连接后重试。',
