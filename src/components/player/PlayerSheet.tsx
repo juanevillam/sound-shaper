@@ -530,15 +530,24 @@ export function PlayerSheet() {
           style={[styles.expanded, expandedStyle]}
           pointerEvents={expanded ? 'auto' : 'none'}
         >
+          {/* One full-width drag-to-close zone spanning everything above the
+              console (header row, the gutters beside the art). Buttons and
+              the art render ABOVE it, so they keep their own touches. */}
           <GestureDetector gesture={dragDownTop}>
-            <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-              <RippleIconButton
-                name="chevron-down"
-                onPress={collapse}
-                accessibilityLabel={t('common.back')}
-              />
-              {/* Song overflow: metadata + the same edit/delete sheet the
-                  library's long-press opens. */}
+            <View style={[styles.dragZone, { height: contentTop }]} />
+          </GestureDetector>
+
+          <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
+            <RippleIconButton
+              name="chevron-down"
+              onPress={collapse}
+              accessibilityLabel={t('common.back')}
+            />
+            {/* Song overflow: metadata + the same edit/delete sheet the
+                library's long-press opens. The ripple Pressable sits ON TOP
+                of the Compose trigger (whose own state layer is invisible);
+                the DropdownMenu still anchors to the icon under it. */}
+            <View style={styles.menuAnchor}>
               <ThemedHost matchContents>
                 <DropdownMenu
                   expanded={menuOpen}
@@ -595,8 +604,16 @@ export function PlayerSheet() {
                   </DropdownMenu.Items>
                 </DropdownMenu>
               </ThemedHost>
+              <Pressable
+                onPress={() => setMenuOpen(true)}
+                hitSlop={8}
+                style={StyleSheet.absoluteFill}
+                android_ripple={ripple}
+                accessibilityRole="button"
+                accessibilityLabel={t('player.menu.label')}
+              />
             </View>
-          </GestureDetector>
+          </View>
 
           {/* The console below the art — a fixed column, nothing scrolls. */}
           <View style={[styles.expandedBody, { top: contentTop }]}>
@@ -985,6 +1002,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingLeft: 12,
     paddingRight: 12,
+  },
+  // The invisible drag-to-close surface behind the whole header region.
+  dragZone: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  menuAnchor: {
+    alignItems: 'center',
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
   },
   expandedBody: {
     bottom: 0,
