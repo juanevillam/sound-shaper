@@ -52,6 +52,8 @@ type PlayerState = {
   seek: (seconds: number) => void;
   setRate: (rate: number) => void;
   setKeepPitch: (keepPitch: boolean) => void;
+  /** A song was deleted: drop it from the queue, and if it's loaded, stop. */
+  songDeleted: (songId: string) => void;
   /** Stop and forget everything (sign-out, account wipe). */
   reset: () => void;
 
@@ -174,6 +176,30 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setRate: rate => set({ rate }),
 
   setKeepPitch: keepPitch => set({ keepPitch }),
+
+  songDeleted: songId => {
+    const { current, queue } = get();
+    const nextQueue = queue.filter(song => song.id !== songId);
+
+    // A queued-but-not-loaded song vanished: just keep the queue honest.
+    if (current?.id !== songId) {
+      set({ queue: nextQueue });
+      return;
+    }
+
+    // The loaded song was deleted — stop playback and clear the player so the
+    // banner disappears (a deleted song must not stay playable).
+    audioEngine.pause();
+    set(state => ({
+      queue: nextQueue,
+      current: null,
+      playing: false,
+      activeClip: null,
+      position: 0,
+      duration: 0,
+      loadNonce: state.loadNonce + 1,
+    }));
+  },
 
   reset: () => {
     audioEngine.pause();
