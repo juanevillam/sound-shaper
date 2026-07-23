@@ -47,8 +47,8 @@ import Settings from '@expo/material-symbols/settings.xml';
 import Share from '@expo/material-symbols/share.xml';
 import SkipNext from '@expo/material-symbols/skip_next.xml';
 import SkipPrevious from '@expo/material-symbols/skip_previous.xml';
-import Sort from '@expo/material-symbols/sort.xml';
 import Star from '@expo/material-symbols/star.xml';
+import SwapVert from '@expo/material-symbols/swap_vert.xml';
 import Trophy from '@expo/material-symbols/trophy.xml';
 import Tune from '@expo/material-symbols/tune.xml';
 import VisibilityOff from '@expo/material-symbols/visibility_off.xml';
@@ -118,7 +118,7 @@ const icons = {
   share: Share,
   'skip-next': SkipNext,
   'skip-previous': SkipPrevious,
-  sort: Sort,
+  sort: SwapVert,
   star: Star,
   'star-filled': require('./assets/icons/star-filled.xml'),
   trophy: Trophy,

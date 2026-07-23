@@ -12,3 +12,7 @@ export const SONGS_SUBCOLLECTION = 'songs';
 
 // Subcollection of users/{uid}/songs/{songId} — personal replay bookmarks.
 export const CLIPS_SUBCOLLECTION = 'clips';
+
+// Subcollection of users/{uid} — the user's own saved sound shapes (EQ gains
+// + speed + keep-pitch). Global, not per-song: shaping carries across songs.
+export const SHAPES_SUBCOLLECTION = 'shapes';

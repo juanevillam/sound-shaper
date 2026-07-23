@@ -57,7 +57,6 @@ export const translations = {
         oldest: 'Oldest first',
         title: 'Title',
         artist: 'Artist',
-        album: 'Album',
       },
       error: {
         title: 'Could not load your songs',
@@ -77,6 +76,12 @@ export const translations = {
         title: 'Shape',
         custom: 'Custom',
         pitchOff: 'pitch off',
+      },
+      shapes: {
+        save: 'Save',
+        saveTitle: 'Save this shape',
+        nameLabel: 'Name',
+        delete: 'Delete shape',
       },
       menu: {
         label: 'Song options',
@@ -213,6 +218,10 @@ export const translations = {
       'clip-save-failed': 'Could not save the clip. Please try again.',
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': 'Could not delete the clip. Please try again.',
+      'shape-created': 'Shape saved',
+      'shape-save-failed': 'Could not save the shape. Please try again.',
+      'shape-deleted': 'Shape deleted',
+      'shape-delete-failed': 'Could not delete the shape. Please try again.',
       'delete-account-failed':
         'Could not delete the account. Please try again.',
       'delete-account-reauth':
@@ -277,7 +286,6 @@ export const translations = {
         oldest: 'Más antiguas primero',
         title: 'Título',
         artist: 'Artista',
-        album: 'Álbum',
       },
       error: {
         title: 'No se pudieron cargar tus canciones',
@@ -298,6 +306,12 @@ export const translations = {
         title: 'Moldear',
         custom: 'Personalizado',
         pitchOff: 'tono libre',
+      },
+      shapes: {
+        save: 'Guardar',
+        saveTitle: 'Guardar este ajuste',
+        nameLabel: 'Nombre',
+        delete: 'Eliminar ajuste',
       },
       menu: {
         label: 'Opciones de la canción',
@@ -438,6 +452,11 @@ export const translations = {
       'clip-save-failed': 'No se pudo guardar el clip. Inténtalo de nuevo.',
       'clip-deleted': 'Clip eliminado',
       'clip-delete-failed': 'No se pudo eliminar el clip. Inténtalo de nuevo.',
+      'shape-created': 'Ajuste guardado',
+      'shape-save-failed': 'No se pudo guardar el ajuste. Inténtalo de nuevo.',
+      'shape-deleted': 'Ajuste eliminado',
+      'shape-delete-failed':
+        'No se pudo eliminar el ajuste. Inténtalo de nuevo.',
       'delete-account-failed':
         'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
       'delete-account-reauth':
@@ -501,7 +520,6 @@ export const translations = {
         oldest: '最早添加',
         title: '标题',
         artist: '艺术家',
-        album: '专辑',
       },
       error: {
         title: '无法加载你的歌曲',
@@ -521,6 +539,12 @@ export const translations = {
         title: '塑形',
         custom: '自定义',
         pitchOff: '不保持音调',
+      },
+      shapes: {
+        save: '保存',
+        saveTitle: '保存此设置',
+        nameLabel: '名称',
+        delete: '删除设置',
       },
       menu: {
         label: '歌曲选项',
@@ -655,6 +679,10 @@ export const translations = {
       'clip-save-failed': '无法保存片段,请重试。',
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段,请重试。',
+      'shape-created': '设置已保存',
+      'shape-save-failed': '无法保存设置,请重试。',
+      'shape-deleted': '设置已删除',
+      'shape-delete-failed': '无法删除设置,请重试。',
       'delete-account-failed': '无法删除账户,请重试。',
       'delete-account-reauth': '请退出登录后重新登录,再重试删除。',
     },
