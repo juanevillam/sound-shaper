@@ -48,6 +48,7 @@ import { ClipsSheet } from '@/components/player/ClipsSheet';
 import { rateLabel, ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
+import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -84,6 +85,9 @@ const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT - PROGRESS_HEIGHT;
 const MINI_ART_SIZE = 44;
 const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
+
+// Clearance under the collapsed banner's content, above the nav-bar inset.
+const BANNER_BOTTOM_GAP = 12;
 
 const EXPAND_MS = 320;
 const COLLAPSE_MS = 260;
@@ -163,7 +167,7 @@ export function PlayerSheet() {
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is moderate (~58% width) so the whole console fits without scrolling.
-  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom;
+  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom + BANNER_BOTTOM_GAP;
   const travel = winH - miniTotal;
   const artFull = Math.min(Math.round(winW * 0.58), 260);
   const artExpandedX = (winW - artFull) / 2;
@@ -194,10 +198,7 @@ export function PlayerSheet() {
     springTo(1);
   }, [springTo]);
 
-  const collapse = useCallback(() => {
-    haptics.selection();
-    springTo(0);
-  }, [springTo]);
+  const collapse = useCallback(() => springTo(0), [springTo]);
 
   // A surface asked for the full player (tapping a song tile). If the sheet is
   // just mounting (nothing was loaded before), jump straight to the expanded
@@ -358,18 +359,10 @@ export function PlayerSheet() {
     queue.findIndex(song => song.id === current.id) > 0 ||
     storePosition > 3; /* deep in a song "previous" restarts it */
 
-  const onToggle = () => {
-    haptics.selection();
-    toggle();
-  };
-  const onNext = () => {
-    haptics.selection();
-    nextSong();
-  };
-  const onPrevious = () => {
-    haptics.selection();
-    previous();
-  };
+  // Icon buttons signal presses with their RIPPLE, never vibration.
+  const onToggle = toggle;
+  const onNext = nextSong;
+  const onPrevious = previous;
 
   const trimmerDuration = Math.floor(storeDuration);
 
@@ -539,15 +532,11 @@ export function PlayerSheet() {
         >
           <GestureDetector gesture={dragDownTop}>
             <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-              <ThemedHost matchContents>
-                <IconButton onClick={collapse}>
-                  <AppIcon
-                    name="chevron-down"
-                    tint={colors.onSurface}
-                    contentDescription={t('common.back')}
-                  />
-                </IconButton>
-              </ThemedHost>
+              <RippleIconButton
+                name="chevron-down"
+                onPress={collapse}
+                accessibilityLabel={t('common.back')}
+              />
               {/* Song overflow: metadata + the same edit/delete sheet the
                   library's long-press opens. */}
               <ThemedHost matchContents>
@@ -556,12 +545,7 @@ export function PlayerSheet() {
                   onDismissRequest={() => setMenuOpen(false)}
                 >
                   <DropdownMenu.Trigger>
-                    <IconButton
-                      onClick={() => {
-                        haptics.selection();
-                        setMenuOpen(true);
-                      }}
-                    >
+                    <IconButton onClick={() => setMenuOpen(true)}>
                       <AppIcon
                         name="more-vert"
                         tint={colors.onSurface}
@@ -675,8 +659,10 @@ export function PlayerSheet() {
                     </Text>
                     {clipMode ? (
                       <Text
-                        color={colors.onTertiaryContainer}
+                        color={colors.onSurface}
                         style={{ typography: 'labelMedium' }}
+                        // Air above (slider) and below (transport).
+                        modifiers={[padding(0, 8, 0, 10)]}
                       >
                         {`${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`}
                       </Text>
@@ -756,12 +742,7 @@ export function PlayerSheet() {
                   horizontalArrangement={{ spacedBy: 8 }}
                   modifiers={[fillMaxWidth()]}
                 >
-                  <IconButton
-                    onClick={() => {
-                      haptics.selection();
-                      setClipMode(false);
-                    }}
-                  >
+                  <IconButton onClick={() => setClipMode(false)}>
                     <AppIcon
                       name="close"
                       size={22}
