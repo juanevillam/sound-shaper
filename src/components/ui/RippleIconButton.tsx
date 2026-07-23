@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@expo/ui/jetpack-compose';
 import { iconSource, type IconName } from '@portfolio/mobile-ui';
@@ -6,10 +6,10 @@ import { iconSource, type IconName } from '@portfolio/mobile-ui';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
-// Icon button with a GUARANTEED visible ripple: the touch lives on an RN
-// Pressable (android_ripple), the glyph is a non-clickable Compose Icon that
-// lets every touch through. Used where the Compose IconButton's own state
-// layer reads too faint (dark surfaces).
+// Icon button with a GUARANTEED visible ripple. The Pressable sits ON TOP of
+// the Compose icon (a Compose Host consumes touches at the Android layer even
+// under RN pointerEvents="none", so a pass-through underlay doesn't work) —
+// topmost sibling wins the touch, the icon below is purely visual.
 
 const BUTTON_SIZE = 48;
 
@@ -31,22 +31,8 @@ export function RippleIconButton({
   const { colors, scheme } = useAppTheme();
 
   return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={8}
-      style={styles.button}
-      android_ripple={{
-        borderless: true,
-        // Theme-safe literal — the dynamic palette tokens reject alpha
-        // suffixes.
-        color:
-          scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-        radius: BUTTON_SIZE / 2,
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-    >
-      <ThemedHost matchContents pointerEvents="none">
+    <View style={styles.button}>
+      <ThemedHost matchContents>
         <Icon
           source={iconSource(name)}
           size={size}
@@ -54,7 +40,22 @@ export function RippleIconButton({
           contentDescription={accessibilityLabel}
         />
       </ThemedHost>
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        hitSlop={8}
+        style={StyleSheet.absoluteFill}
+        android_ripple={{
+          borderless: true,
+          // Theme-safe literal — the dynamic palette tokens reject alpha
+          // suffixes.
+          color:
+            scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
+          radius: BUTTON_SIZE / 2,
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      />
+    </View>
   );
 }
 
