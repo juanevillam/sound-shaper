@@ -1,6 +1,9 @@
 import { useRef } from 'react';
 
+import { useWindowDimensions } from 'react-native';
+
 import {
+  Box,
   Column,
   FilterChip,
   ModalBottomSheet,
@@ -11,9 +14,12 @@ import {
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
+  background,
   fillMaxWidth,
   horizontalScroll,
+  offset,
   padding,
+  size as sizeModifier,
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
@@ -37,6 +43,12 @@ const RATE_MIN = 0.5;
 const RATE_MAX = 2;
 const RATE_STEP = 0.25;
 const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
+// Where 1× sits on the speed track (fraction of its width).
+const RATE_DEFAULT_FRACTION = (1 - RATE_MIN) / (RATE_MAX - RATE_MIN);
+const SIDE = 24;
+// The "this is the default" tick drawn under a slider's track.
+const MARKER_W = 2;
+const MARKER_H = 14;
 
 export const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
@@ -48,7 +60,13 @@ type ShaperSheetProps = {
 export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const { width: winW } = useWindowDimensions();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
+
+  // Deterministic slider widths (full-width sheet, SIDE padding per edge).
+  const speedSliderW = winW - SIDE * 2;
+  const speedMarkerX =
+    Math.round(speedSliderW * RATE_DEFAULT_FRACTION) - MARKER_W / 2;
 
   const rate = usePlayerStore(s => s.rate);
   const setRate = usePlayerStore(s => s.setRate);
@@ -139,14 +157,23 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               >
                 {band.label}
               </Text>
-              <Slider
-                value={gains[index]}
-                min={EQ_MIN_DB}
-                max={EQ_MAX_DB}
-                steps={EQ_SLIDER_STEPS}
-                onValueChange={value => setBandGain(index, Math.round(value))}
-                modifiers={[weight(1)]}
-              />
+              {/* Center tick = 0 dB, so "back to default" has a target. */}
+              <Box contentAlignment="center" modifiers={[weight(1)]}>
+                <Box
+                  modifiers={[
+                    sizeModifier(MARKER_W, MARKER_H),
+                    background(colors.onSurfaceMuted),
+                  ]}
+                />
+                <Slider
+                  value={gains[index]}
+                  min={EQ_MIN_DB}
+                  max={EQ_MAX_DB}
+                  steps={EQ_SLIDER_STEPS}
+                  onValueChange={value => setBandGain(index, Math.round(value))}
+                  modifiers={[fillMaxWidth()]}
+                />
+              </Box>
               <Text
                 color={colors.onSurface}
                 style={{ typography: 'labelMedium' }}
@@ -173,16 +200,29 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               {rateLabel(rate)}
             </Text>
           </Row>
-          <Slider
-            value={rate}
-            min={RATE_MIN}
-            max={RATE_MAX}
-            steps={RATE_SLIDER_STEPS}
-            onValueChange={value =>
-              setRate(Math.round(value / RATE_STEP) * RATE_STEP)
-            }
-            modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
-          />
+          {/* Tick at the 1× position — the default is findable at a glance. */}
+          <Box
+            contentAlignment="centerStart"
+            modifiers={[fillMaxWidth(), padding(SIDE, 0, SIDE, 0)]}
+          >
+            <Box
+              modifiers={[
+                offset(speedMarkerX, 0),
+                sizeModifier(MARKER_W, MARKER_H),
+                background(colors.onSurfaceMuted),
+              ]}
+            />
+            <Slider
+              value={rate}
+              min={RATE_MIN}
+              max={RATE_MAX}
+              steps={RATE_SLIDER_STEPS}
+              onValueChange={value =>
+                setRate(Math.round(value / RATE_STEP) * RATE_STEP)
+              }
+              modifiers={[fillMaxWidth()]}
+            />
+          </Box>
 
           <Row
             verticalAlignment="center"

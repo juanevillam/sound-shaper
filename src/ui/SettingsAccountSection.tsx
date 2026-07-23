@@ -219,9 +219,13 @@ const ProfileRow = memo(
       <ListItem.HeadlineContent>
         <Text color={colors.onSurface}>{profile.displayName}</Text>
       </ListItem.HeadlineContent>
-      <ListItem.SupportingContent>
-        <Text color={colors.onSurfaceMuted}>{usernameLabel}</Text>
-      </ListItem.SupportingContent>
+      {/* No username (apps without handles): omit the slot entirely so the
+          name centers vertically instead of floating over an empty line. */}
+      {usernameLabel ? (
+        <ListItem.SupportingContent>
+          <Text color={colors.onSurfaceMuted}>{usernameLabel}</Text>
+        </ListItem.SupportingContent>
+      ) : null}
     </ListItem>
   ),
 );
