@@ -1,12 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import {
   Button,
   Column,
   IconButton,
   ModalBottomSheet,
-  OutlinedButton,
-  RNHostView,
   Row,
   Shape,
   Surface,
@@ -20,22 +18,19 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 
-import { ClipTrimmer } from '@/components/player/ClipTrimmer';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
-import { createClip, deleteClip } from '@/services/firebase/clips';
+import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 
-// The clips studio — the Shape sheet's sibling: frame a new clip on the
-// tertiary trimmer (drag the edges to resize, the middle to slide the whole
-// clip), preview/save it, and manage the saved ones below.
-
-const DEFAULT_CLIP_LENGTH_S = 15;
+// The saved-clips manager (the Shape sheet's sibling): play or delete what
+// you've framed, or jump into framing a new one — the framing itself happens
+// ON the player's scrubber, where the sound is.
 
 const CLIP_ROW_SHAPE = Shape.RoundedCorner({
   cornerRadii: {
@@ -49,10 +44,12 @@ const CLIP_ROW_SHAPE = Shape.RoundedCorner({
 const NO_CLIPS: never[] = [];
 
 type ClipsSheetProps = {
+  /** Close the sheet and drop the trim brackets on the player's scrubber. */
+  onNewClip: () => void;
   onClose: () => void;
 };
 
-export function ClipsSheet({ onClose }: ClipsSheetProps) {
+export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
@@ -61,44 +58,12 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
-  const storeDuration = usePlayerStore(s => s.duration);
-  const position = usePlayerStore(s => s.position);
 
   const clips = useClipsStore(s =>
     current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
-  const durationS = Math.floor(storeDuration);
-
-  // Seeded once per open, centered on where the user is listening right now.
-  const [clipRange, setClipRange] = useState(() => {
-    const half = DEFAULT_CLIP_LENGTH_S / 2;
-    const start = Math.max(0, Math.round(position - half));
-    const end = Math.min(
-      durationS || DEFAULT_CLIP_LENGTH_S,
-      start + DEFAULT_CLIP_LENGTH_S,
-    );
-    return { startS: start, endS: Math.max(end, start + 1) };
-  });
-
   if (!current) return null;
-
-  const onPreview = () => {
-    haptics.selection();
-    playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
-  };
-
-  const onSave = () => {
-    haptics.selection();
-    createClip({
-      songId: current.id,
-      startMs: clipRange.startS * 1000,
-      endMs: clipRange.endS * 1000,
-      label: '',
-    })
-      .then(() => showSnackbar(t('snackbar.clip-created')))
-      .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
-  };
 
   const onDelete = (clipId: string) => {
     haptics.medium();
@@ -118,44 +83,27 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
           verticalArrangement={{ spacedBy: 12 }}
           modifiers={[padding(24, 0, 24, 28), fillMaxWidth()]}
         >
-          <Text
-            color={colors.onSurfaceMuted}
-            style={{ typography: 'labelLarge' }}
-          >
-            {t('player.clips.new')}
-          </Text>
-
-          <RNHostView matchContents>
-            <ClipTrimmer
-              durationS={durationS}
-              startS={clipRange.startS}
-              endS={clipRange.endS}
-              onChange={(startS, endS) => setClipRange({ startS, endS })}
-            />
-          </RNHostView>
-
           <Row
             verticalAlignment="center"
-            horizontalArrangement={{ spacedBy: 12 }}
+            horizontalArrangement={{ spacedBy: 8 }}
             modifiers={[fillMaxWidth()]}
           >
-            <OutlinedButton onClick={onPreview}>
-              <Text color={colors.onSurface} maxLines={1}>
-                {t('player.clips.preview')}
-              </Text>
-            </OutlinedButton>
-            <Button onClick={onSave}>
-              <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
+            <Text
+              color={colors.onSurfaceMuted}
+              style={{ typography: 'labelLarge' }}
+              modifiers={[weight(1)]}
+            >
+              {t('player.clips.title')}
+            </Text>
+            <Button
+              onClick={() => {
+                haptics.selection();
+                onNewClip();
+              }}
+            >
+              <Text maxLines={1}>{t('player.clips.new')}</Text>
             </Button>
           </Row>
-
-          <Text
-            color={colors.onSurfaceMuted}
-            style={{ typography: 'labelLarge' }}
-            modifiers={[padding(0, 10, 0, 0)]}
-          >
-            {t('player.clips.title')}
-          </Text>
 
           {clips.length === 0 ? (
             <Text

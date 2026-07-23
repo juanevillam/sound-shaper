@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 
 import {
+  Button,
   Column,
   DropdownMenu,
   DropdownMenuItem,
   FilledIconButton,
   IconButton,
+  OutlinedButton,
   Row,
   Shape,
   Slider,
@@ -41,6 +43,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
 import { rateLabel, ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
@@ -50,9 +53,11 @@ import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
+import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
@@ -138,6 +143,7 @@ export function PlayerSheet() {
   const { width: winW, height: winH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const pathname = usePathname();
+  const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
   const queue = usePlayerStore(s => s.queue);
@@ -146,6 +152,7 @@ export function PlayerSheet() {
   const previous = usePlayerStore(s => s.previous);
   const rate = usePlayerStore(s => s.rate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
+  const playClip = usePlayerStore(s => s.playClip);
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
   const storePosition = usePlayerStore(s => s.position);
@@ -319,6 +326,15 @@ export function PlayerSheet() {
 
   // The bottom sheets + the title overflow menu.
   const [shaperVisible, setShaperVisible] = useState(false);
+
+  // Clip framing ON the scrubber: entered from the Clips sheet's "New clip",
+  // exited by save / dismiss / track change.
+  const [clipMode, setClipMode] = useState(false);
+  const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
+
+  useEffect(() => {
+    setClipMode(false);
+  }, [current?.id]);
   const [clipsVisible, setClipsVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
@@ -353,6 +369,35 @@ export function PlayerSheet() {
   const onPrevious = () => {
     haptics.selection();
     previous();
+  };
+
+  const trimmerDuration = Math.floor(storeDuration);
+
+  // From the Clips sheet: close it, drop the brackets around the playhead.
+  const onStartFraming = () => {
+    setClipsVisible(false);
+    const start = Math.max(0, Math.round(storePosition - 7));
+    const end = Math.min(trimmerDuration || 15, start + 15);
+    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    setClipMode(true);
+  };
+
+  const onPreviewClip = () => {
+    haptics.selection();
+    playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
+  };
+
+  const onSaveClip = () => {
+    haptics.selection();
+    setClipMode(false);
+    createClip({
+      songId: current.id,
+      startMs: clipRange.startS * 1000,
+      endMs: clipRange.endS * 1000,
+      label: '',
+    })
+      .then(() => showSnackbar(t('snackbar.clip-created')))
+      .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
   };
 
   const duration = storeDuration > 0 ? storeDuration : 1;
@@ -590,45 +635,79 @@ export function PlayerSheet() {
               </View>
             </GestureDetector>
 
+            {/* THE scrubber — always the native slider. While framing, the
+                tertiary trim brackets ride on top (Google Photos): edges
+                resize, the tinted middle slides the whole clip. */}
+            <View style={styles.sliderBlock}>
+              <ThemedHost
+                matchContents={{ vertical: true }}
+                style={styles.host}
+              >
+                <Column
+                  horizontalAlignment="center"
+                  verticalArrangement={{ spacedBy: 0 }}
+                  modifiers={[fillMaxWidth()]}
+                >
+                  <Slider
+                    value={Math.min(position, duration)}
+                    min={0}
+                    max={duration}
+                    onValueChange={value => {
+                      lastDragRef.current = value;
+                      setDragValue(value);
+                    }}
+                    onValueChangeFinished={() => {
+                      // seek() also ends any clip replay.
+                      seek(lastDragRef.current);
+                      setDragValue(null);
+                    }}
+                    modifiers={[fillMaxWidth()]}
+                  />
+                  <Row
+                    horizontalArrangement="spaceBetween"
+                    modifiers={[fillMaxWidth()]}
+                  >
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelMedium' }}
+                    >
+                      {formatTime(position)}
+                    </Text>
+                    {clipMode ? (
+                      <Text
+                        color={colors.onTertiaryContainer}
+                        style={{ typography: 'labelMedium' }}
+                      >
+                        {`${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`}
+                      </Text>
+                    ) : null}
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'labelMedium' }}
+                    >
+                      {formatTime(storeDuration)}
+                    </Text>
+                  </Row>
+                </Column>
+              </ThemedHost>
+              {clipMode ? (
+                <View style={styles.handlesRegion} pointerEvents="box-none">
+                  <ClipHandles
+                    durationS={trimmerDuration}
+                    startS={clipRange.startS}
+                    endS={clipRange.endS}
+                    onChange={(startS, endS) => setClipRange({ startS, endS })}
+                  />
+                </View>
+              ) : null}
+            </View>
+
             <ThemedHost matchContents={{ vertical: true }} style={styles.host}>
               <Column
                 horizontalAlignment="center"
                 verticalArrangement={{ spacedBy: 0 }}
                 modifiers={[fillMaxWidth()]}
               >
-                <Slider
-                  value={Math.min(position, duration)}
-                  min={0}
-                  max={duration}
-                  onValueChange={value => {
-                    lastDragRef.current = value;
-                    setDragValue(value);
-                  }}
-                  onValueChangeFinished={() => {
-                    // seek() also ends any clip replay.
-                    seek(lastDragRef.current);
-                    setDragValue(null);
-                  }}
-                  modifiers={[fillMaxWidth()]}
-                />
-                <Row
-                  horizontalArrangement="spaceBetween"
-                  modifiers={[fillMaxWidth()]}
-                >
-                  <Text
-                    color={colors.onSurfaceMuted}
-                    style={{ typography: 'labelMedium' }}
-                  >
-                    {formatTime(position)}
-                  </Text>
-                  <Text
-                    color={colors.onSurfaceMuted}
-                    style={{ typography: 'labelMedium' }}
-                  >
-                    {formatTime(storeDuration)}
-                  </Text>
-                </Row>
-
                 <Row
                   verticalAlignment="center"
                   horizontalArrangement={{ spacedBy: 28 }}
@@ -667,102 +746,147 @@ export function PlayerSheet() {
               </Column>
             </ThemedHost>
 
-            {/* Shape + Clips — the two studios, one card each. */}
-            <ThemedHost style={styles.cardHost}>
-              <Surface
-                onClick={() => {
-                  haptics.selection();
-                  setShaperVisible(true);
-                }}
-                color={colors.surfaceContainer}
-                shape={CARD_SHAPE}
-                modifiers={[fillMaxWidth()]}
+            {/* While framing a clip, the action row takes the cards' place. */}
+            {clipMode ? (
+              <ThemedHost
+                style={[styles.clipActionsHost, styles.firstCardHost]}
               >
                 <Row
                   verticalAlignment="center"
-                  horizontalArrangement={{ spacedBy: 16 }}
-                  modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
+                  horizontalArrangement={{ spacedBy: 8 }}
+                  modifiers={[fillMaxWidth()]}
                 >
-                  <AppIcon
-                    name="tune"
-                    size={24}
-                    tint={colors.primary}
-                    contentDescription={t('player.shape.title')}
-                  />
-                  <Column
-                    verticalArrangement={{ spacedBy: 1 }}
-                    modifiers={[weight(1)]}
+                  <IconButton
+                    onClick={() => {
+                      haptics.selection();
+                      setClipMode(false);
+                    }}
                   >
-                    <Text
-                      color={colors.onSurface}
-                      style={{ typography: 'bodyLarge' }}
-                    >
-                      {t('player.shape.title')}
-                    </Text>
+                    <AppIcon
+                      name="close"
+                      size={22}
+                      tint={colors.onSurfaceMuted}
+                      contentDescription={t('common.cancel')}
+                    />
+                  </IconButton>
+                  <Column modifiers={[weight(1)]}>
                     <Text
                       color={colors.onSurfaceMuted}
-                      style={{ typography: 'bodySmall' }}
-                      maxLines={1}
+                      style={{ typography: 'labelLarge' }}
                     >
-                      {shapeSummary}
+                      {t('player.clips.new')}
                     </Text>
                   </Column>
-                  <AppIcon
-                    name="chevron"
-                    size={22}
-                    tint={colors.onSurfaceMuted}
-                  />
+                  <OutlinedButton onClick={onPreviewClip}>
+                    <Text color={colors.onSurface} maxLines={1}>
+                      {t('player.clips.preview')}
+                    </Text>
+                  </OutlinedButton>
+                  <Button onClick={onSaveClip}>
+                    <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
+                  </Button>
                 </Row>
-              </Surface>
-            </ThemedHost>
+              </ThemedHost>
+            ) : (
+              <>
+                {/* Shape + Clips — the two studios, one card each. */}
+                <ThemedHost style={[styles.cardHost, styles.firstCardHost]}>
+                  <Surface
+                    onClick={() => {
+                      haptics.selection();
+                      setShaperVisible(true);
+                    }}
+                    color={colors.surfaceContainer}
+                    shape={CARD_SHAPE}
+                    modifiers={[fillMaxWidth()]}
+                  >
+                    <Row
+                      verticalAlignment="center"
+                      horizontalArrangement={{ spacedBy: 16 }}
+                      modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
+                    >
+                      <AppIcon
+                        name="tune"
+                        size={24}
+                        tint={colors.primary}
+                        contentDescription={t('player.shape.title')}
+                      />
+                      <Column
+                        verticalArrangement={{ spacedBy: 1 }}
+                        modifiers={[weight(1)]}
+                      >
+                        <Text
+                          color={colors.onSurface}
+                          style={{ typography: 'bodyLarge' }}
+                        >
+                          {t('player.shape.title')}
+                        </Text>
+                        <Text
+                          color={colors.onSurfaceMuted}
+                          style={{ typography: 'bodySmall' }}
+                          maxLines={1}
+                        >
+                          {shapeSummary}
+                        </Text>
+                      </Column>
+                      <AppIcon
+                        name="chevron"
+                        size={22}
+                        tint={colors.onSurfaceMuted}
+                      />
+                    </Row>
+                  </Surface>
+                </ThemedHost>
 
-            <ThemedHost style={styles.cardHost}>
-              <Surface
-                onClick={() => {
-                  haptics.selection();
-                  setClipsVisible(true);
-                }}
-                color={colors.surfaceContainer}
-                shape={CARD_SHAPE}
-                modifiers={[fillMaxWidth()]}
-              >
-                <Row
-                  verticalAlignment="center"
-                  horizontalArrangement={{ spacedBy: 16 }}
-                  modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
-                >
-                  <AppIcon
-                    name="content-cut"
-                    size={24}
-                    tint={colors.primary}
-                    contentDescription={t('player.clips.title')}
-                  />
-                  <Column
-                    verticalArrangement={{ spacedBy: 1 }}
-                    modifiers={[weight(1)]}
+                <ThemedHost style={styles.cardHost}>
+                  <Surface
+                    onClick={() => {
+                      haptics.selection();
+                      setClipsVisible(true);
+                    }}
+                    color={colors.surfaceContainer}
+                    shape={CARD_SHAPE}
+                    modifiers={[fillMaxWidth()]}
                   >
-                    <Text
-                      color={colors.onSurface}
-                      style={{ typography: 'bodyLarge' }}
+                    <Row
+                      verticalAlignment="center"
+                      horizontalArrangement={{ spacedBy: 16 }}
+                      modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
                     >
-                      {t('player.clips.title')}
-                    </Text>
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{ typography: 'bodySmall' }}
-                      maxLines={1}
-                    >
-                      {clipsSummary}
-                    </Text>
-                  </Column>
-                  <AppIcon
-                    name="chevron"
-                    size={22}
-                    tint={colors.onSurfaceMuted}
-                  />
-                </Row>
-              </Surface>
-            </ThemedHost>
+                      <AppIcon
+                        name="content-cut"
+                        size={24}
+                        tint={colors.primary}
+                        contentDescription={t('player.clips.title')}
+                      />
+                      <Column
+                        verticalArrangement={{ spacedBy: 1 }}
+                        modifiers={[weight(1)]}
+                      >
+                        <Text
+                          color={colors.onSurface}
+                          style={{ typography: 'bodyLarge' }}
+                        >
+                          {t('player.clips.title')}
+                        </Text>
+                        <Text
+                          color={colors.onSurfaceMuted}
+                          style={{ typography: 'bodySmall' }}
+                          maxLines={1}
+                        >
+                          {clipsSummary}
+                        </Text>
+                      </Column>
+                      <AppIcon
+                        name="chevron"
+                        size={22}
+                        tint={colors.onSurfaceMuted}
+                      />
+                    </Row>
+                  </Surface>
+                </ThemedHost>
+              </>
+            )}
           </View>
         </Animated.View>
 
@@ -792,7 +916,12 @@ export function PlayerSheet() {
       </Animated.View>
 
       {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
-      {clipsVisible && <ClipsSheet onClose={() => setClipsVisible(false)} />}
+      {clipsVisible && (
+        <ClipsSheet
+          onNewClip={onStartFraming}
+          onClose={() => setClipsVisible(false)}
+        />
+      )}
       {infoVisible && (
         <SongInfoSheet song={current} onClose={() => setInfoVisible(false)} />
       )}
@@ -890,11 +1019,26 @@ const styles = StyleSheet.create({
   },
   titleText: { fontWeight: '700' },
   host: { width: '100%' },
-  cardHost: {
-    height: 76,
-    marginTop: 10,
+  sliderBlock: { position: 'relative', width: '100%' },
+  // The brackets ride the slider row (the host's first ~44dp).
+  handlesRegion: {
+    height: 44,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  clipActionsHost: {
+    height: 56,
     width: '100%',
   },
+  cardHost: {
+    height: 76,
+    marginTop: 12,
+    width: '100%',
+  },
+  // Extra air between the transport and the first card.
+  firstCardHost: { marginTop: 28 },
   art: { position: 'absolute' },
   artMedia: { height: '100%', width: '100%' },
 });
