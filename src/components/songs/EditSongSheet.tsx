@@ -24,6 +24,7 @@ import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { type Id3Tags } from '@/lib/id3';
 import { createSong, deleteSong, updateSong } from '@/services/firebase/songs';
+import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
 
 /** A freshly picked .mp3, parsed: the parent runs the document picker + ID3
@@ -186,6 +187,10 @@ export function EditSongSheet({
 
     haptics.medium();
     setDeleteVisible(false);
+
+    // Clear it from the player up front — a deleted song must not linger in
+    // the now-playing banner or stay playable.
+    usePlayerStore.getState().songDeleted(songId);
 
     deleteSong(songId)
       .then(() => showSnackbar(t('snackbar.song-deleted')))
