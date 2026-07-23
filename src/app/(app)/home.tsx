@@ -16,6 +16,7 @@ import {
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
+import { SortMenu } from '@/components/songs/SortMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { Screen } from '@/components/ui/Screen';
@@ -24,16 +25,19 @@ import { Text } from '@/components/ui/Text';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import { readId3Tags } from '@/lib/id3';
+import { sortSongs } from '@/lib/sortSongs';
 import { type Song } from '@/services/firebase/songs';
+import { useLibraryStore } from '@/store/library';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
 
 const LIST_PADDING = 16;
 const GRID_GAP = 16;
 
-// The grid rows FlashList renders: songs plus the trailing add tile,
-// pre-paired into 2-column rows (FlashList's numColumns + varying tile heights
-// fight each other; hand-pairing keeps rows aligned).
+// The grid rows FlashList renders: the add tile plus the songs, pre-paired
+// into 2-column rows (FlashList's numColumns + varying tile heights fight each
+// other; hand-pairing keeps rows aligned). The add tile leads so it stays
+// reachable no matter how long the library grows.
 type GridRow = {
   id: string;
   left: Song | 'add';
@@ -41,7 +45,7 @@ type GridRow = {
 };
 
 const toGridRows = (songs: Song[]): GridRow[] => {
-  const cells: (Song | 'add')[] = [...songs, 'add'];
+  const cells: (Song | 'add')[] = ['add', ...songs];
   const rows: GridRow[] = [];
 
   for (let index = 0; index < cells.length; index += 2) {
@@ -73,6 +77,7 @@ export default function HomeScreen() {
   const currentSongId = usePlayerStore(s => s.current?.id);
   const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
+  const sortMode = useLibraryStore(s => s.sortMode);
 
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -101,7 +106,7 @@ export default function HomeScreen() {
   );
 
   const firstLoad = !hasSettled;
-  const rows = toGridRows(songs);
+  const rows = toGridRows(sortSongs(songs, sortMode));
 
   const renderCell = useCallback(
     (cell: Song | 'add' | null) => {
@@ -149,11 +154,14 @@ export default function HomeScreen() {
         {/* Wordmark row where the app bar would be — the YT Music idiom. */}
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
-          <RippleIconButton
-            name="settings"
-            onPress={() => router.push('/settings')}
-            accessibilityLabel={t('app.settings')}
-          />
+          <View style={styles.headerActions}>
+            {songs.length > 1 ? <SortMenu /> : null}
+            <RippleIconButton
+              name="settings"
+              onPress={() => router.push('/settings')}
+              accessibilityLabel={t('app.settings')}
+            />
+          </View>
         </View>
 
         {firstLoad ? (
@@ -223,6 +231,7 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   wordmark: { fontWeight: '700' },
+  headerActions: { alignItems: 'center', flexDirection: 'row' },
   list: { flex: 1 },
   gridRow: {
     flexDirection: 'row',

@@ -75,6 +75,7 @@ const SF_SYMBOLS = {
   share: 'square.and.arrow.up',
   'skip-next': 'forward.end.fill',
   'skip-previous': 'backward.end.fill',
+  sort: 'arrow.up.arrow.down',
   star: 'star',
   'star-filled': 'star.fill',
   trophy: 'trophy',
