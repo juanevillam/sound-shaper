@@ -6,13 +6,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 // left it (the Firestore query stays newest-first; ordering is client-side —
 // the whole personal library is already in memory).
 
-export const SORT_MODES = [
-  'recent',
-  'oldest',
-  'title',
-  'artist',
-  'album',
-] as const;
+export const SORT_MODES = ['recent', 'oldest', 'title', 'artist'] as const;
 
 export type SortMode = (typeof SORT_MODES)[number];
 

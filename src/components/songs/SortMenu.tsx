@@ -40,8 +40,6 @@ export function SortMenu() {
         return t('home.sort.title');
       case 'artist':
         return t('home.sort.artist');
-      case 'album':
-        return t('home.sort.album');
       default:
         return t('home.sort.recent');
     }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
+import { NowPlayingBars } from '@/components/songs/NowPlayingBars';
 import { SongArt } from '@/components/ui/SongArt';
 import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text } from '@/components/ui/Text';
@@ -21,6 +22,10 @@ type SongTileProps = {
   song: Song;
   /** Tinted primary while this song is the loaded one. */
   isCurrent: boolean;
+  /** Drives the now-playing bars: animating while playing, frozen paused. */
+  isPlaying: boolean;
+  /** Playback speed, so the bars beat in time with the music. */
+  rate: number;
   onPress: () => void;
   onLongPress: () => void;
 };
@@ -28,6 +33,8 @@ type SongTileProps = {
 export function SongTile({
   song,
   isCurrent,
+  isPlaying,
+  rate,
   onPress,
   onLongPress,
 }: SongTileProps) {
@@ -51,6 +58,11 @@ export function SongTile({
           }
           style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
         />
+        {isCurrent ? (
+          <View style={styles.nowPlaying} pointerEvents="none">
+            <NowPlayingBars playing={isPlaying} rate={rate} />
+          </View>
+        ) : null}
       </View>
       <Text
         doNotTranslate
@@ -92,6 +104,7 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  nowPlaying: { bottom: 8, left: 8, position: 'absolute' },
   art: { aspectRatio: 1, marginBottom: 10, width: '100%' },
   artMedia: { height: '100%', width: '100%' },
   addBox: {

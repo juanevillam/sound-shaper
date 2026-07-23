@@ -21,9 +21,13 @@ type ShaperState = {
   gains: number[]; // per-band, dB
   preamp: number; // dB
   activePreset: string | null; // i18nKey while gains match a preset, else null
+  /** Id of the user's saved shape currently applied, if any. */
+  activeShapeId: string | null;
   setBandGain: (index: number, db: number) => void;
   setPreamp: (db: number) => void;
   applyPreset: (i18nKey: string) => void;
+  /** Apply one of the user's saved shapes (its EQ curve). */
+  applyShape: (shapeId: string, gains: number[]) => void;
   reset: () => void;
   isFlat: () => boolean;
 };
@@ -38,11 +42,13 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
   gains: flat(),
   preamp: 0,
   activePreset: 'flat',
+  activeShapeId: null,
 
   setBandGain: (index, db) => {
     const gains = get().gains.slice();
     gains[index] = db;
-    set({ gains, activePreset: matchPreset(gains) });
+    // Hand-tweaking a band leaves whatever preset/shape was applied.
+    set({ gains, activePreset: matchPreset(gains), activeShapeId: null });
     audioEngine.setBandGain(index, db);
   },
 
@@ -55,13 +61,20 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     const preset = EQ_PRESETS.find(entry => entry.i18nKey === i18nKey);
     if (!preset) return;
     const gains = [...preset.gains];
-    set({ gains, activePreset: i18nKey });
+    set({ gains, activePreset: i18nKey, activeShapeId: null });
+    audioEngine.apply(gains, get().preamp);
+  },
+
+  applyShape: (shapeId, shapeGains) => {
+    // A saved curve may predate a band change — pad/trim to today's bands.
+    const gains = EQ_BANDS.map((_, index) => shapeGains[index] ?? 0);
+    set({ gains, activePreset: matchPreset(gains), activeShapeId: shapeId });
     audioEngine.apply(gains, get().preamp);
   },
 
   reset: () => {
     const gains = flat();
-    set({ gains, preamp: 0, activePreset: 'flat' });
+    set({ gains, preamp: 0, activePreset: 'flat', activeShapeId: null });
     audioEngine.apply(gains, 0);
   },
 

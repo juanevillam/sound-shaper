@@ -41,7 +41,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
@@ -62,6 +65,7 @@ import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
+import { useShapesStore } from '@/store/shapes';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
@@ -144,6 +148,20 @@ export function PlayerSheet() {
   const { t } = useI18n();
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  // Android hands back a bottom inset of 0 on some cold starts, resumes and
+  // config changes — which would drop the collapsed banner UNDER the
+  // navigation bar. Defend on two fronts: fall back to the metrics captured at
+  // launch, and latch the largest value seen this session (the inset only
+  // grows while the nav bar stays put).
+  const launchBottomInset = initialWindowMetrics?.insets.bottom ?? 0;
+  const [bottomInset, setBottomInset] = useState(
+    Math.max(insets.bottom, launchBottomInset),
+  );
+  useEffect(() => {
+    setBottomInset(current =>
+      Math.max(current, insets.bottom, launchBottomInset),
+    );
+  }, [insets.bottom, launchBottomInset]);
   const { width: winW, height: winH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const pathname = usePathname();
@@ -164,10 +182,14 @@ export function PlayerSheet() {
   const expandNonce = usePlayerStore(s => s.expandNonce);
 
   const activePreset = useShaperStore(s => s.activePreset);
+  const activeShapeId = useShaperStore(s => s.activeShapeId);
+  const activeShape =
+    useShapesStore(s => s.shapes.find(shape => shape.id === activeShapeId)) ??
+    null;
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is moderate (~58% width) so the whole console fits without scrolling.
-  const miniTotal = MINI_PLAYER_HEIGHT + insets.bottom + BANNER_BOTTOM_GAP;
+  const miniTotal = MINI_PLAYER_HEIGHT + bottomInset + BANNER_BOTTOM_GAP;
   const travel = winH - miniTotal;
   const artFull = Math.min(Math.round(winW * 0.58), 260);
   const artExpandedX = (winW - artFull) / 2;
@@ -399,8 +421,10 @@ export function PlayerSheet() {
     storeDuration > 0 ? Math.min(storePosition / storeDuration, 1) : 0;
   const subtitle = current.artist || ' ';
 
-  // Card summaries: live settings at a glance.
+  // Card summaries: live settings at a glance. A saved shape names itself.
   const presetSummary = (() => {
+    if (activeShape) return activeShape.name;
+
     switch (activePreset) {
       case 'flat':
         return t('player.eq.presets.flat');

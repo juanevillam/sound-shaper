@@ -30,6 +30,12 @@ service cloud.firestore {
           allow read, write: if isUser(uid);
         }
       }
+
+      // The user's own saved sound shapes (EQ + speed + keep-pitch). Global to
+      // the account rather than per-song, so they sit beside `songs`.
+      match /shapes/{shapeId} {
+        allow read, write: if isUser(uid);
+      }
     }
 
   }

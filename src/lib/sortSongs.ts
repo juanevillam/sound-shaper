@@ -12,9 +12,9 @@ const collator = new Intl.Collator(undefined, {
 });
 
 /** Untagged songs sort AFTER tagged ones instead of clumping at the top. */
-const byField = (field: 'artist' | 'album') => (a: Song, b: Song) => {
-  const left = a[field].trim();
-  const right = b[field].trim();
+const byArtist = (a: Song, b: Song) => {
+  const left = a.artist.trim();
+  const right = b.artist.trim();
 
   if (!left && !right) return collator.compare(a.name, b.name);
   if (!left) return 1;
@@ -32,8 +32,7 @@ const comparators: Record<SortMode, (a: Song, b: Song) => number> = {
   recent: (a, b) => createdAt(b) - createdAt(a),
   oldest: (a, b) => createdAt(a) - createdAt(b),
   title: (a, b) => collator.compare(a.name, b.name),
-  artist: byField('artist'),
-  album: byField('album'),
+  artist: byArtist,
 };
 
 /** Returns a NEW sorted array — never mutates the store's list. */

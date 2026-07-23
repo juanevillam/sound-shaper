@@ -75,6 +75,8 @@ export default function HomeScreen() {
   const playSong = usePlayerStore(s => s.playSong);
   const requestExpand = usePlayerStore(s => s.requestExpand);
   const currentSongId = usePlayerStore(s => s.current?.id);
+  const isPlaying = usePlayerStore(s => s.playing);
+  const rate = usePlayerStore(s => s.rate);
   const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
   const sortMode = useLibraryStore(s => s.sortMode);
@@ -124,13 +126,15 @@ export default function HomeScreen() {
           <SongTile
             song={cell}
             isCurrent={cell.id === currentSongId}
+            isPlaying={cell.id === currentSongId && isPlaying}
+            rate={rate}
             onPress={() => onPressSong(cell)}
             onLongPress={() => setEditingSongId(cell.id)}
           />
         </View>
       );
     },
-    [openAddSong, onPressSong, currentSongId],
+    [openAddSong, onPressSong, currentSongId, isPlaying, rate],
   );
 
   const renderRow = useCallback(

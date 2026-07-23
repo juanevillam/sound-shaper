@@ -1,35 +1,48 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { useWindowDimensions } from 'react-native';
 
 import {
+  BasicAlertDialog,
   Box,
   Column,
   FilterChip,
+  IconButton,
   ModalBottomSheet,
+  OutlinedTextField,
   Row,
   Slider,
+  Surface,
   Switch,
   Text,
+  TextButton,
+  useNativeState,
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
   background,
+  clip as clipModifier,
   fillMaxWidth,
   horizontalScroll,
   offset,
   padding,
+  Shapes,
   size as sizeModifier,
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
+import { AppIcon } from '@portfolio/mobile-ui';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useShapesSubscription } from '@/hooks/useShapesSubscription';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
+import { createShape, deleteShape } from '@/services/firebase/shapes';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import { useShapesStore } from '@/store/shapes';
 
 // All the sound-shaping controls in one native bottom sheet (the YT-Music /
 // pro-app idiom for secondary controls): EQ presets + stepped band sliders,
@@ -49,6 +62,8 @@ const SIDE = 24;
 // The "this is the default" tick drawn under a slider's track.
 const MARKER_W = 2;
 const MARKER_H = 14;
+const DIALOG_WIDTH = 312;
+const SHAPE_NAME_MAX = 24;
 
 export const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
@@ -77,6 +92,46 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const setBandGain = useShaperStore(s => s.setBandGain);
   const activePreset = useShaperStore(s => s.activePreset);
   const applyPreset = useShaperStore(s => s.applyPreset);
+  const applyShape = useShaperStore(s => s.applyShape);
+  const activeShapeId = useShaperStore(s => s.activeShapeId);
+
+  // The user's own saved shapes, live beside the built-in presets.
+  useShapesSubscription();
+  const shapes = useShapesStore(s => s.shapes);
+  const { showSnackbar } = useSnackbar();
+
+  const [saveOpen, setSaveOpen] = useState(false);
+  const activeShape = shapes.find(shape => shape.id === activeShapeId) ?? null;
+
+  const onSaveShape = (rawName: string) => {
+    const name = rawName.trim();
+    if (!name) return;
+
+    setSaveOpen(false);
+    // Save the WHOLE config, not just the curve — speed and pitch are part of
+    // how a shape sounds.
+    createShape({ gains, keepPitch, name, rate })
+      .then(() => showSnackbar(t('snackbar.shape-created')))
+      .catch(() => showSnackbar(t('snackbar.shape-save-failed')));
+  };
+
+  const onDeleteShape = () => {
+    if (!activeShape) return;
+
+    deleteShape(activeShape.id)
+      .then(() => showSnackbar(t('snackbar.shape-deleted')))
+      .catch(() => showSnackbar(t('snackbar.shape-delete-failed')));
+  };
+
+  // Applying a saved shape restores its speed and pitch too.
+  const onApplyShape = (shapeId: string) => {
+    const shape = shapes.find(entry => entry.id === shapeId);
+    if (!shape) return;
+
+    applyShape(shape.id, shape.gains);
+    setRate(shape.rate);
+    setKeepPitch(shape.keepPitch);
+  };
 
   // The typed t() needs literal keys, so map preset ids explicitly.
   const presetLabel = (key: string) => {
@@ -110,17 +165,40 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // both ends mid-scroll).
           modifiers={[padding(0, 0, 0, 28), fillMaxWidth()]}
         >
-          <Text
-            color={colors.onSurfaceMuted}
-            style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 0, 24, 0)]}
+          {/* Header: the section name, plus Save (capture the current config)
+              and Delete (only while one of your saved shapes is applied). */}
+          <Row
+            verticalAlignment="center"
+            horizontalArrangement="spaceBetween"
+            modifiers={[fillMaxWidth(), padding(24, 0, 12, 0)]}
           >
-            {t('player.eq.title')}
-          </Text>
+            <Text
+              color={colors.onSurfaceMuted}
+              style={{ typography: 'labelLarge' }}
+            >
+              {t('player.eq.title')}
+            </Text>
+            <Row verticalAlignment="center">
+              {activeShape ? (
+                <IconButton onClick={onDeleteShape}>
+                  <AppIcon
+                    name="delete"
+                    size={20}
+                    tint={colors.onSurfaceMuted}
+                    contentDescription={t('player.shapes.delete')}
+                  />
+                </IconButton>
+              ) : null}
+              <TextButton onClick={() => setSaveOpen(true)}>
+                <Text color={colors.primary}>{t('player.shapes.save')}</Text>
+              </TextButton>
+            </Row>
+          </Row>
 
-          {/* One scrolling row of preset chips ("Flat" doubles as reset).
-              Padding AFTER horizontalScroll = content padding: the row bleeds
-              to the sheet edges, the chips start/end 24 inside. */}
+          {/* One scrolling row: built-in presets ("Flat" doubles as reset),
+              then your saved shapes. Padding AFTER horizontalScroll = content
+              padding: the row bleeds to the sheet edges, the chips start/end
+              24 inside. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement={{ spacedBy: 8 }}
@@ -133,11 +211,24 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {EQ_PRESETS.map(preset => (
               <FilterChip
                 key={preset.i18nKey}
-                selected={activePreset === preset.i18nKey}
+                selected={
+                  activeShapeId === null && activePreset === preset.i18nKey
+                }
                 onClick={() => applyPreset(preset.i18nKey)}
               >
                 <FilterChip.Label>
                   <Text maxLines={1}>{presetLabel(preset.i18nKey)}</Text>
+                </FilterChip.Label>
+              </FilterChip>
+            ))}
+            {shapes.map(shape => (
+              <FilterChip
+                key={shape.id}
+                selected={activeShapeId === shape.id}
+                onClick={() => onApplyShape(shape.id)}
+              >
+                <FilterChip.Label>
+                  <Text maxLines={1}>{shape.name}</Text>
                 </FilterChip.Label>
               </FilterChip>
             ))}
@@ -250,6 +341,78 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           </Row>
         </Column>
       </ModalBottomSheet>
+
+      {saveOpen ? (
+        <SaveShapeDialog
+          onCancel={() => setSaveOpen(false)}
+          onSave={onSaveShape}
+        />
+      ) : null}
     </ThemedHost>
+  );
+}
+
+type SaveShapeDialogProps = {
+  onCancel: () => void;
+  onSave: (name: string) => void;
+};
+
+/**
+ * Names the shape being saved. Its own component so every open remounts it
+ * with an empty field, and so `useNativeState` (the Compose-side binding)
+ * re-initialises with it — the JS mirror is what our logic reads.
+ */
+function SaveShapeDialog({ onCancel, onSave }: SaveShapeDialogProps) {
+  const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const nameState = useNativeState('');
+  const [name, setName] = useState('');
+
+  return (
+    <BasicAlertDialog onDismissRequest={onCancel}>
+      <Surface
+        tonalElevation={6}
+        modifiers={[
+          width(DIALOG_WIDTH),
+          clipModifier(Shapes.RoundedCorner(28)),
+        ]}
+      >
+        <Column modifiers={[fillMaxWidth()]}>
+          <Text
+            color={colors.onSurface}
+            style={{ typography: 'headlineSmall' }}
+            modifiers={[padding(24, 24, 24, 16)]}
+          >
+            {t('player.shapes.saveTitle')}
+          </Text>
+          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}>
+            <OutlinedTextField
+              value={nameState}
+              onValueChange={next => setName(next.slice(0, SHAPE_NAME_MAX))}
+              singleLine
+              modifiers={[fillMaxWidth()]}
+            >
+              <OutlinedTextField.Label>
+                <Text>{t('player.shapes.nameLabel')}</Text>
+              </OutlinedTextField.Label>
+            </OutlinedTextField>
+          </Column>
+          <Row
+            horizontalArrangement="end"
+            modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
+          >
+            <TextButton onClick={onCancel}>
+              <Text>{t('common.cancel')}</Text>
+            </TextButton>
+            <TextButton
+              enabled={name.trim().length > 0}
+              onClick={() => onSave(name)}
+            >
+              <Text>{t('player.shapes.save')}</Text>
+            </TextButton>
+          </Row>
+        </Column>
+      </Surface>
+    </BasicAlertDialog>
   );
 }
