@@ -48,7 +48,7 @@ const EQ_LABEL_WIDTH = 36;
 // The five band rows are the sheet's bulk. Compressed from the slider's
 // natural ~48dp so the tail of the sheet (speed, keep-pitch and its
 // description) still fits when fully expanded.
-const EQ_ROW_HEIGHT = 32;
+const EQ_ROW_HEIGHT = 40;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -146,7 +146,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           the rest. */}
       <ModalBottomSheet ref={sheetRef} onDismissRequest={onClose}>
         <Column
-          verticalArrangement={{ spacedBy: 10 }}
+          verticalArrangement={{ spacedBy: 4 }}
           // Horizontal padding lives on each SECTION, not here — the chips row
           // must scroll edge-to-edge (outside padding would clip the chips at
           // both ends mid-scroll).
@@ -166,7 +166,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 0, 24, 0)]}
+            modifiers={[padding(24, 2, 24, 0)]}
           >
             {t('player.shapes.presets')}
           </Text>
@@ -205,7 +205,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               <Text
                 color={colors.onSurfaceMuted}
                 style={{ typography: 'labelLarge' }}
-                modifiers={[padding(24, 6, 24, 0)]}
+                modifiers={[padding(24, 18, 24, 0)]}
               >
                 {t('player.shapes.mine')}
               </Text>
@@ -238,7 +238,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 10, 24, 0)]}
+            modifiers={[padding(24, 18, 24, 0)]}
           >
             {t('player.eq.title')}
           </Text>
@@ -247,7 +247,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'bodySmall' }}
-            modifiers={[padding(24, 0, 24, 2)]}
+            modifiers={[padding(24, 0, 24, 6)]}
           >
             {t('player.eq.hint')}
           </Text>
@@ -292,7 +292,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 10, 24, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 18, 24, 0)]}
           >
             <Text
               color={colors.onSurfaceMuted}
