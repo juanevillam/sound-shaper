@@ -65,6 +65,7 @@ export const translations = {
     },
     player: {
       title: 'Now playing',
+      empty: 'There are no sounds yet',
       play: 'Play',
       pause: 'Pause',
       next: 'Next sound',
@@ -295,6 +296,7 @@ export const translations = {
     },
     player: {
       title: 'Reproduciendo',
+      empty: 'Aún no hay sonidos',
       play: 'Reproducir',
       pause: 'Pausar',
       next: 'Siguiente sonido',
@@ -529,6 +531,7 @@ export const translations = {
     },
     player: {
       title: '正在播放',
+      empty: '还没有音频',
       play: '播放',
       pause: '暂停',
       next: '下一首',
