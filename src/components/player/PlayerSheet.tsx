@@ -13,7 +13,6 @@ import {
   Column,
   DropdownMenu,
   DropdownMenuItem,
-  FilledIconButton,
   IconButton,
   OutlinedButton,
   Row,
@@ -25,7 +24,6 @@ import {
 import {
   fillMaxWidth,
   padding,
-  size,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
@@ -56,6 +54,7 @@ import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { SongArt } from '@/components/ui/SongArt';
+import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -112,7 +111,6 @@ const COLLAPSE_MS = 260;
 const SNAP_PROGRESS = 0.28;
 const SNAP_VELOCITY = 600;
 
-const CONTROL_ICON_SIZE = 32;
 const PLAY_BUTTON_SIZE = 64;
 const SIDE_PADDING = 24;
 const MENU_ICON_SIZE = 24;
@@ -767,49 +765,42 @@ export function PlayerSheet() {
               ) : null}
             </View>
 
-            <ThemedHost matchContents={{ vertical: true }} style={styles.host}>
-              <Column
-                horizontalAlignment="center"
-                verticalArrangement={{ spacedBy: 0 }}
-                modifiers={[fillMaxWidth()]}
+            {/* Transport in RN, not Compose: these need the SAME
+                while-pressing squash the home tiles use, and a Compose
+                IconButton's state layer is invisible on this dark surface. */}
+            <View style={styles.transportRow}>
+              <SquashPressable
+                onPress={onPrevious}
+                hitSlop={12}
+                style={styles.transportSide}
+                accessibilityLabel={t('player.previous')}
               >
-                <Row
-                  verticalAlignment="center"
-                  horizontalArrangement={{ spacedBy: 28 }}
-                  modifiers={[padding(0, 4, 0, 4)]}
-                >
-                  <IconButton onClick={onPrevious} modifiers={[size(52, 52)]}>
-                    <AppIcon
-                      name="skip-previous"
-                      size={CONTROL_ICON_SIZE}
-                      tint={colors.onSurface}
-                      contentDescription={t('player.previous')}
-                    />
-                  </IconButton>
-                  <FilledIconButton
-                    onClick={onToggle}
-                    modifiers={[size(PLAY_BUTTON_SIZE, PLAY_BUTTON_SIZE)]}
-                  >
-                    <AppIcon
-                      name={playing ? 'pause' : 'play-arrow'}
-                      size={36}
-                      tint={colors.onPrimary}
-                      contentDescription={t(
-                        playing ? 'player.pause' : 'player.play',
-                      )}
-                    />
-                  </FilledIconButton>
-                  <IconButton onClick={onNext} modifiers={[size(52, 52)]}>
-                    <AppIcon
-                      name="skip-next"
-                      size={CONTROL_ICON_SIZE}
-                      tint={colors.onSurface}
-                      contentDescription={t('player.next')}
-                    />
-                  </IconButton>
-                </Row>
-              </Column>
-            </ThemedHost>
+                <PreviousGlyph color={colors.onSurface} />
+              </SquashPressable>
+              <SquashPressable
+                onPress={onToggle}
+                hitSlop={12}
+                style={[
+                  styles.transportPlay,
+                  { backgroundColor: colors.primary },
+                ]}
+                accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
+              >
+                {playing ? (
+                  <PauseGlyph color={colors.onPrimary} />
+                ) : (
+                  <PlayGlyph color={colors.onPrimary} />
+                )}
+              </SquashPressable>
+              <SquashPressable
+                onPress={onNext}
+                hitSlop={12}
+                style={styles.transportSide}
+                accessibilityLabel={t('player.next')}
+              >
+                <NextGlyph color={colors.onSurface} />
+              </SquashPressable>
+            </View>
 
             {/* While framing a clip, the action row takes the cards' place. */}
             {clipMode ? (
@@ -1243,6 +1234,27 @@ const styles = StyleSheet.create({
   },
   titleText: { fontWeight: '700' },
   host: { width: '100%' },
+  transportRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 28,
+    justifyContent: 'center',
+    paddingVertical: 4,
+    width: '100%',
+  },
+  transportSide: {
+    alignItems: 'center',
+    height: 52,
+    justifyContent: 'center',
+    width: 52,
+  },
+  transportPlay: {
+    alignItems: 'center',
+    borderRadius: PLAY_BUTTON_SIZE / 2,
+    height: PLAY_BUTTON_SIZE,
+    justifyContent: 'center',
+    width: PLAY_BUTTON_SIZE,
+  },
   sliderBlock: { position: 'relative', width: '100%' },
   // The brackets ride the slider row (the host's first ~44dp).
   handlesRegion: {
