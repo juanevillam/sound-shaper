@@ -63,22 +63,29 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
           >
             {/* Lightest at the top behind the artwork, solid by the time it
                 reaches the transport and the cards. */}
-            {/* Never reaches full opacity: a stop that hits 1 kills the wash
-                outright, which reads as the artwork ending in a hard gap
-                partway down the screen. It only dims enough to keep the
-                controls legible, so the tint runs edge to edge. */}
+            {/* Darkens CONTINUOUSLY toward the controls: artwork colours vary
+                wildly between sounds, and the cards below need a predictable
+                surface to sit on. It never plateaus — a flat run of full
+                opacity is what read as a hard gap before — so the wash still
+                reaches the bottom edge, just heavily dimmed by the time it
+                gets under the Shape and Clips cards. */}
             <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
             <Stop
-              offset="0.45"
+              offset="0.32"
               stopColor={colors.background}
-              stopOpacity="0.28"
+              stopOpacity="0.18"
             />
             <Stop
-              offset="0.75"
+              offset="0.58"
               stopColor={colors.background}
-              stopOpacity="0.48"
+              stopOpacity="0.55"
             />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="0.6" />
+            <Stop
+              offset="0.8"
+              stopColor={colors.background}
+              stopOpacity="0.85"
+            />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.96" />
           </SvgLinearGradient>
         </Defs>
         <Rect

@@ -33,7 +33,9 @@ import { usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  Extrapolation,
   SlideInDown,
+  interpolate,
   interpolateColor,
   runOnJS,
   useAnimatedStyle,
@@ -100,6 +102,9 @@ const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
 // Clearance under the collapsed banner's content, above the nav-bar inset.
 const BANNER_BOTTOM_GAP = 8;
+
+// The wash starts appearing only this far into the expansion.
+const BACKDROP_FADE_START = 0.8;
 
 const EXPAND_MS = 320;
 const COLLAPSE_MS = 260;
@@ -176,7 +181,6 @@ export function PlayerSheet() {
   const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
-  const queue = usePlayerStore(s => s.queue);
   const toggle = usePlayerStore(s => s.toggle);
   const nextSong = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
@@ -352,10 +356,16 @@ export function PlayerSheet() {
     opacity: Math.min(1, Math.max(0, (progress.value - 0.45) * 1.8)),
   }));
 
-  // Linear with the drag: the wash is part of the surface, not chrome that
-  // arrives late.
+  // Held back until the sheet is nearly open. Mid-drag the surface is still
+  // reading as the banner growing, and a visible wash there looks like a
+  // stray layer rather than part of the player.
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
+    opacity: interpolate(
+      progress.value,
+      [BACKDROP_FADE_START, 1],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
   }));
 
   const hairlineStyle = useAnimatedStyle(() => ({
@@ -398,10 +408,6 @@ export function PlayerSheet() {
   // Nothing loaded yet: the banner still holds its place (YT Music keeps it
   // parked), primed with the first sound — or saying the library is empty.
   if (!current) return <IdleBanner bottomInset={bottomInset} />;
-
-  const hasPrevious =
-    queue.findIndex(song => song.id === current.id) > 0 ||
-    storePosition > 3; /* deep in a song "previous" restarts it */
 
   // Icon buttons signal presses with their RIPPLE, never vibration.
   const onToggle = toggle;
@@ -542,18 +548,18 @@ export function PlayerSheet() {
                 />
               </View>
             </Pressable>
-            {hasPrevious ? (
-              <Pressable
-                onPress={onPrevious}
-                hitSlop={8}
-                style={styles.miniButton}
-                android_ripple={ripple}
-                accessibilityRole="button"
-                accessibilityLabel={t('player.previous')}
-              >
-                <PreviousGlyph color={colors.onSurface} />
-              </Pressable>
-            ) : null}
+            {/* Skipping wraps, so previous always leads somewhere — the
+                banner never drops a control depending on queue position. */}
+            <Pressable
+              onPress={onPrevious}
+              hitSlop={8}
+              style={styles.miniButton}
+              android_ripple={ripple}
+              accessibilityRole="button"
+              accessibilityLabel={t('player.previous')}
+            >
+              <PreviousGlyph color={colors.onSurface} />
+            </Pressable>
             <Pressable
               onPress={onToggle}
               hitSlop={8}
