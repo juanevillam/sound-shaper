@@ -19,7 +19,6 @@ import {
 import {
   clip as clipModifier,
   fillMaxWidth,
-  height,
   horizontalScroll,
   padding,
   Shapes,
@@ -46,10 +45,6 @@ import { useShapesStore } from '@/store/shapes';
 // playing graph directly.
 
 const EQ_LABEL_WIDTH = 36;
-// The five band rows are the sheet's bulk. Compressed from the slider's
-// natural ~48dp so the tail of the sheet (speed, keep-pitch and its
-// description) still fits when fully expanded.
-const EQ_ROW_HEIGHT = 36;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -153,11 +148,11 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // both ends mid-scroll). verticalScroll is a safety net for short
           // screens — the sheet's own drag wins over it at this height, so the
           // content is also sized to fit outright.
-          modifiers={[fillMaxWidth(), verticalScroll(), padding(0, 0, 0, 24)]}
+          modifiers={[fillMaxWidth(), verticalScroll(), padding(0, 0, 0, 16)]}
         >
           {/* The shared sheet header: title left, filled action pill right —
               the same bar every other sheet in the portfolio uses. */}
-          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 4)]}>
+          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}>
             <SheetBar
               title={t('player.shape.title')}
               saveLabel={t('player.shapes.save')}
@@ -208,7 +203,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               <Text
                 color={colors.onSurfaceMuted}
                 style={{ typography: 'labelLarge' }}
-                modifiers={[padding(24, 18, 24, 0)]}
+                modifiers={[padding(24, 12, 24, 0)]}
               >
                 {t('player.shapes.mine')}
               </Text>
@@ -241,7 +236,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 18, 24, 0)]}
+            modifiers={[padding(24, 12, 24, 0)]}
           >
             {t('player.eq.title')}
           </Text>
@@ -250,7 +245,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'bodySmall' }}
-            modifiers={[padding(24, 0, 24, 6)]}
+            modifiers={[padding(24, 0, 24, 0)]}
           >
             {t('player.eq.hint')}
           </Text>
@@ -260,11 +255,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               key={band.hz}
               verticalAlignment="center"
               horizontalArrangement={{ spacedBy: 8 }}
-              modifiers={[
-                fillMaxWidth(),
-                height(EQ_ROW_HEIGHT),
-                padding(24, 0, 24, 0),
-              ]}
+              modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
             >
               <Text
                 color={colors.onSurfaceMuted}
@@ -295,7 +286,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 18, 24, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 12, 24, 0)]}
           >
             <Text
               color={colors.onSurfaceMuted}
@@ -326,7 +317,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 20, 24, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 14, 24, 0)]}
           >
             <Column
               verticalArrangement={{ spacedBy: 2 }}

@@ -72,7 +72,7 @@ export const translations = {
       previous: 'Previous sound',
       speed: 'Speed',
       keepPitch: 'Keep pitch',
-      keepPitchDescription: 'Hold the original tone while the speed changes.',
+      keepPitchDescription: 'Keeps the original tone at any speed.',
       shape: {
         title: 'Shape',
         custom: 'Custom',
@@ -306,8 +306,7 @@ export const translations = {
       previous: 'Sonido anterior',
       speed: 'Velocidad',
       keepPitch: 'Mantener el tono',
-      keepPitchDescription:
-        'Conserva el tono original mientras cambia la velocidad.',
+      keepPitchDescription: 'Conserva el tono original a cualquier velocidad.',
       shape: {
         title: 'Moldear',
         custom: 'Personalizado',
@@ -544,7 +543,7 @@ export const translations = {
       previous: '上一首',
       speed: '速度',
       keepPitch: '保持音调',
-      keepPitchDescription: '改变速度时保持原来的音调。',
+      keepPitchDescription: '任何速度下都保持原始音调。',
       shape: {
         title: '塑形',
         custom: '自定义',
