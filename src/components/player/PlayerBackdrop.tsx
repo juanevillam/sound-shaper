@@ -83,19 +83,19 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop
               offset="0.36"
               stopColor={colors.background}
-              stopOpacity="0.42"
+              stopOpacity="0.34"
             />
             <Stop
-              offset="0.48"
+              offset="0.5"
+              stopColor={colors.background}
+              stopOpacity="0.68"
+            />
+            <Stop
+              offset="0.66"
               stopColor={colors.background}
               stopOpacity="0.82"
             />
-            <Stop
-              offset="0.6"
-              stopColor={colors.background}
-              stopOpacity="0.93"
-            />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="0.96" />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.86" />
           </SvgLinearGradient>
         </Defs>
         <Rect
