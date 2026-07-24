@@ -19,7 +19,8 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 //
 // The fade is a real SVG gradient rather than stacked translucent views, which
 // would band badly on a dark surface. react-native-svg is already a dependency,
-// so this costs no native module.
+// so this costs no native module. The gradient dims but never fully hides the
+// artwork — the wash has to reach both screen edges or it reads as a gap.
 
 const BACKDROP_BLUR = 60;
 // Strong enough to feel like the sound is tinting the screen, short of
@@ -69,19 +70,22 @@ export function PlayerBackdrop({ artUrl, topBleed }: PlayerBackdropProps) {
           >
             {/* Lightest at the top behind the artwork, solid by the time it
                 reaches the transport and the cards. */}
+            {/* Never reaches full opacity: a stop that hits 1 kills the wash
+                outright, which reads as the artwork ending in a hard gap
+                partway down the screen. It only dims enough to keep the
+                controls legible, so the tint runs edge to edge. */}
             <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
             <Stop
-              offset="0.5"
+              offset="0.45"
               stopColor={colors.background}
-              stopOpacity="0.35"
+              stopOpacity="0.28"
             />
             <Stop
-              offset="0.78"
+              offset="0.75"
               stopColor={colors.background}
-              stopOpacity="0.92"
+              stopOpacity="0.48"
             />
-            <Stop offset="0.9" stopColor={colors.background} stopOpacity="1" />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="1" />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.6" />
           </SvgLinearGradient>
         </Defs>
         <Rect
