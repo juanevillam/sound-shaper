@@ -21,6 +21,8 @@ type PlayerState = {
   current: Song | null;
   queue: Song[];
   loadNonce: number;
+  /** A (re)load is in flight; ignore the old stream's parting position. */
+  pendingStart: boolean;
   // Bumped when a surface wants the full player OPENED (tapping a song tile
   // plays it and expands the sheet, YT-Music style). The PlayerSheet watches it.
   expandNonce: number;
@@ -64,18 +66,25 @@ type PlayerState = {
   onEnded: () => void;
 };
 
+// A freshly loaded stream always starts at 0, but the OUTGOING <Audio> can
+// emit one last position before it unmounts. Below this, a reported time
+// counts as "the new stream has actually started".
+const START_EPSILON_S = 1;
+
 // The fresh-transport reset a (re)load shares.
 const loadReset = (nonce: number) => ({
   activeClip: null,
   position: 0,
   duration: 0,
   loadNonce: nonce + 1,
+  pendingStart: true,
 });
 
 export const usePlayerStore = create<PlayerState>()((set, get) => ({
   current: null,
   queue: [],
   loadNonce: 0,
+  pendingStart: false,
   expandNonce: 0,
   rate: 1,
   keepPitch: true,
@@ -126,36 +135,43 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
 
+  // Skipping WRAPS: past the last sound comes the first, and back from the
+  // first comes the last. Reaching the end by playing through does not — see
+  // `onEnded`.
   next: () => {
     const { current, queue } = get();
     if (!current) return;
 
     const index = queue.findIndex(song => song.id === current.id);
-    const nextSong = index >= 0 ? queue[index + 1] : undefined;
+    const nextSong =
+      queue.length > 0 ? queue[(index + 1) % queue.length] : undefined;
 
-    if (nextSong) {
-      set(state => ({
-        current: nextSong,
-        playing: true,
-        ...loadReset(state.loadNonce),
-      }));
-    } else {
-      // End of the playlist: reload the last track parked + paused, so the
-      // play button can replay it.
-      audioEngine.pause();
-      set(state => ({ playing: false, ...loadReset(state.loadNonce) }));
-    }
+    if (!nextSong) return;
+
+    set(state => ({
+      current: nextSong,
+      playing: true,
+      ...loadReset(state.loadNonce),
+    }));
   },
 
   previous: () => {
     const { current, queue, position } = get();
     if (!current) return;
 
-    const index = queue.findIndex(song => song.id === current.id);
-    const previousSong = index > 0 ? queue[index - 1] : undefined;
+    // Deep into a sound, "previous" restarts it — the universal player idiom.
+    if (position > RESTART_THRESHOLD_S) {
+      set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
+      return;
+    }
 
-    // Deep into a song (or no earlier track) → restart the current one.
-    if (position > RESTART_THRESHOLD_S || !previousSong) {
+    const index = queue.findIndex(song => song.id === current.id);
+    const previousSong =
+      queue.length > 0
+        ? queue[(index - 1 + queue.length) % queue.length]
+        : undefined;
+
+    if (!previousSong) {
       set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
       return;
     }
@@ -217,6 +233,15 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- Fed by the <AudioEngine> --------------------------------------------
   onPosition: seconds => {
+    // Drop the outgoing stream's parting reading: it would undo the reset and
+    // make the transport think we are still deep into the previous sound —
+    // which turned "previous, previous" into two restarts instead of a step
+    // back a track.
+    if (get().pendingStart) {
+      if (seconds > START_EPSILON_S) return;
+      set({ pendingStart: false });
+    }
+
     set({ position: seconds });
 
     // End an active clip replay: pause at its boundary and park back on the
@@ -237,5 +262,21 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (playing !== get().playing) set({ playing });
   },
 
-  onEnded: () => get().next(),
+  // Playing THROUGH the last sound parks it paused rather than looping the
+  // library forever; only an explicit skip wraps.
+  onEnded: () => {
+    const { current, queue } = get();
+    if (!current) return;
+
+    const index = queue.findIndex(song => song.id === current.id);
+    const isLast = index === -1 || index === queue.length - 1;
+
+    if (isLast) {
+      audioEngine.pause();
+      set(state => ({ playing: false, ...loadReset(state.loadNonce) }));
+      return;
+    }
+
+    get().next();
+  },
 }));
