@@ -19,6 +19,7 @@ import {
 import {
   clip as clipModifier,
   fillMaxWidth,
+  height,
   horizontalScroll,
   padding,
   Shapes,
@@ -44,6 +45,10 @@ import { useShapesStore } from '@/store/shapes';
 // playing graph directly.
 
 const EQ_LABEL_WIDTH = 36;
+// The five band rows are the sheet's bulk. Compressed from the slider's
+// natural ~48dp so the tail of the sheet (speed, keep-pitch and its
+// description) still fits when fully expanded.
+const EQ_ROW_HEIGHT = 34;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -145,7 +150,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // Horizontal padding lives on each SECTION, not here — the chips row
           // must scroll edge-to-edge (outside padding would clip the chips at
           // both ends mid-scroll).
-          modifiers={[padding(0, 0, 0, 28), fillMaxWidth()]}
+          modifiers={[padding(0, 0, 0, 48), fillMaxWidth()]}
         >
           {/* The shared sheet header: title left, filled action pill right —
               the same bar every other sheet in the portfolio uses. */}
@@ -233,7 +238,11 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               key={band.hz}
               verticalAlignment="center"
               horizontalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
+              modifiers={[
+                fillMaxWidth(),
+                height(EQ_ROW_HEIGHT),
+                padding(24, 0, 24, 0),
+              ]}
             >
               <Text
                 color={colors.onSurfaceMuted}
