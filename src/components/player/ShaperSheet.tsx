@@ -23,6 +23,7 @@ import {
   horizontalScroll,
   padding,
   Shapes,
+  verticalScroll,
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
@@ -48,7 +49,7 @@ const EQ_LABEL_WIDTH = 36;
 // The five band rows are the sheet's bulk. Compressed from the slider's
 // natural ~48dp so the tail of the sheet (speed, keep-pitch and its
 // description) still fits when fully expanded.
-const EQ_ROW_HEIGHT = 40;
+const EQ_ROW_HEIGHT = 36;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -149,8 +150,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           verticalArrangement={{ spacedBy: 4 }}
           // Horizontal padding lives on each SECTION, not here — the chips row
           // must scroll edge-to-edge (outside padding would clip the chips at
-          // both ends mid-scroll).
-          modifiers={[padding(0, 0, 0, 48), fillMaxWidth()]}
+          // both ends mid-scroll). verticalScroll is a safety net for short
+          // screens — the sheet's own drag wins over it at this height, so the
+          // content is also sized to fit outright.
+          modifiers={[fillMaxWidth(), verticalScroll(), padding(0, 0, 0, 24)]}
         >
           {/* The shared sheet header: title left, filled action pill right —
               the same bar every other sheet in the portfolio uses. */}
@@ -318,19 +321,28 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           />
 
           {/* Keep pitch belongs WITH speed — it only decides whether changing
-              the speed also changes how high the sound is — so it rides on the
-              same line instead of reading as a third, unrelated section. */}
+              the speed also changes how high the sound is — but it is its own
+              control, so it gets real separation from the slider. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 2, 24, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 20, 24, 0)]}
           >
-            <Column modifiers={[weight(1)]}>
+            <Column
+              verticalArrangement={{ spacedBy: 2 }}
+              modifiers={[weight(1), padding(0, 0, 16, 0)]}
+            >
+              <Text
+                color={colors.onSurface}
+                style={{ typography: 'bodyLarge' }}
+              >
+                {t('player.keepPitch')}
+              </Text>
               <Text
                 color={colors.onSurfaceMuted}
                 style={{ typography: 'bodySmall' }}
               >
-                {t('player.keepPitch')}
+                {t('player.keepPitchDescription')}
               </Text>
             </Column>
             <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
