@@ -90,6 +90,10 @@ export const MINI_PLAYER_HEIGHT = 64;
 const PROGRESS_HEIGHT = 2;
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT - PROGRESS_HEIGHT;
 const MINI_ART_SIZE = 44;
+// The artwork is ONE element scaled between the two states, so a fixed
+// borderRadius renders ~5x smaller when collapsed. These are the radii we want
+// to SEE at each end; the style divides by the live scale to hit them.
+const MINI_ART_RADIUS = 12;
 const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
@@ -323,7 +327,13 @@ export function PlayerSheet() {
     const toCx = artExpandedX + artFull / 2;
     const toCy = artExpandedY + artFull / 2;
 
+    // Counter-scale the corner so the rendered radius lands on the values
+    // above instead of shrinking with the artwork.
+    const renderedRadius =
+      MINI_ART_RADIUS + (TILE_RADIUS - MINI_ART_RADIUS) * p;
+
     return {
+      borderRadius: renderedRadius / scale,
       transform: [
         { translateX: (fromCx - toCx) * (1 - p) },
         { translateY: (fromCy - toCy) * (1 - p) },
@@ -936,7 +946,7 @@ export function PlayerSheet() {
             <SongArt
               artUrl={current.artUrl || undefined}
               emojiSize={88}
-              style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
+              style={styles.artMedia}
             />
           </Animated.View>
         </GestureDetector>
@@ -1021,7 +1031,8 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           <SongArt
             artUrl={first?.artUrl || undefined}
             emojiSize={22}
-            style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
+            // Same corner the loaded banner's thumb renders at.
+            style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
           />
         </View>
         <View style={styles.idleInfo}>
@@ -1197,6 +1208,6 @@ const styles = StyleSheet.create({
   },
   // Extra air between the transport and the first card.
   firstCardHost: { marginTop: 28 },
-  art: { position: 'absolute' },
+  art: { overflow: 'hidden', position: 'absolute' },
   artMedia: { height: '100%', width: '100%' },
 });
