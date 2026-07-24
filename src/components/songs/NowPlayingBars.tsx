@@ -51,6 +51,13 @@ function Bar({ delay, duration, playing, still }: BarProps) {
     }
 
     if (playing) {
+      // A reversing withRepeat oscillates between the value it STARTS from and
+      // 1. Changing the rate re-runs this effect mid-breath, so restarting
+      // from wherever the bar happens to be shrinks the range — and once it
+      // collapses near 1 the bars look frozen and never recover. Always
+      // restart from the low end so the full range is guaranteed.
+      cancelAnimation(scale);
+      scale.value = REST_SCALE;
       scale.value = withDelay(
         delay,
         withRepeat(
