@@ -1019,13 +1019,16 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   const ordered = sortSongs(songs, sortMode);
   const first = ordered[0] ?? null;
 
-  const start = () => {
-    if (!first) return;
+  // Parked on the first sound, so skipping behaves exactly as it would once
+  // something is loaded: next steps forward, previous wraps to the last.
+  const startAt = (song: (typeof ordered)[number] | undefined) => {
+    if (!song) return;
 
     haptics.selection();
-    playSong(first, ordered);
+    playSong(song, ordered);
     requestExpand();
   };
+  const start = () => startAt(first);
 
   const ripple = {
     borderless: true,
@@ -1086,16 +1089,38 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           )}
         </View>
         {first ? (
-          <Pressable
-            onPress={start}
-            hitSlop={8}
-            style={styles.miniButton}
-            android_ripple={ripple}
-            accessibilityRole="button"
-            accessibilityLabel={t('player.play')}
-          >
-            <PlayGlyph color={colors.onSurface} />
-          </Pressable>
+          <>
+            <Pressable
+              onPress={() => startAt(ordered[ordered.length - 1])}
+              hitSlop={8}
+              style={styles.miniButton}
+              android_ripple={ripple}
+              accessibilityRole="button"
+              accessibilityLabel={t('player.previous')}
+            >
+              <PreviousGlyph color={colors.onSurface} />
+            </Pressable>
+            <Pressable
+              onPress={start}
+              hitSlop={8}
+              style={styles.miniButton}
+              android_ripple={ripple}
+              accessibilityRole="button"
+              accessibilityLabel={t('player.play')}
+            >
+              <PlayGlyph color={colors.onSurface} />
+            </Pressable>
+            <Pressable
+              onPress={() => startAt(ordered[1] ?? first)}
+              hitSlop={8}
+              style={styles.miniButton}
+              android_ripple={ripple}
+              accessibilityRole="button"
+              accessibilityLabel={t('player.next')}
+            >
+              <NextGlyph color={colors.onSurface} />
+            </Pressable>
+          </>
         ) : null}
       </Pressable>
     </View>

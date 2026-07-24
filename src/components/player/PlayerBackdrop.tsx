@@ -71,21 +71,28 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
                 gets under the Shape and Clips cards. */}
             <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
             <Stop
-              offset="0.32"
+              offset="0.28"
               stopColor={colors.background}
-              stopOpacity="0.18"
+              stopOpacity="0.14"
             />
             <Stop
-              offset="0.58"
+              offset="0.5"
               stopColor={colors.background}
-              stopOpacity="0.55"
+              stopOpacity="0.5"
+            />
+            {/* By here the Shape and Clips cards begin — the wash has to be
+                nearly gone or a bright cover fights them. */}
+            <Stop
+              offset="0.62"
+              stopColor={colors.background}
+              stopOpacity="0.88"
             />
             <Stop
-              offset="0.8"
+              offset="0.78"
               stopColor={colors.background}
-              stopOpacity="0.85"
+              stopOpacity="0.95"
             />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="0.96" />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.97" />
           </SvgLinearGradient>
         </Defs>
         <Rect
