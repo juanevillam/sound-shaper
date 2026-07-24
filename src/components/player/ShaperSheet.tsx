@@ -19,6 +19,7 @@ import {
 import {
   clip as clipModifier,
   fillMaxWidth,
+  height,
   horizontalScroll,
   padding,
   Shapes,
@@ -45,6 +46,10 @@ import { useShapesStore } from '@/store/shapes';
 // playing graph directly.
 
 const EQ_LABEL_WIDTH = 36;
+// The bands stay COMPACT — Speed is the control people reach for, so it keeps
+// its full size while the five bands read as a tighter group. The gap between
+// them comes from the column's spacing, not from padding each row out.
+const EQ_ROW_HEIGHT = 34;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -250,37 +255,46 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {t('player.eq.hint')}
           </Text>
 
-          {EQ_BANDS.map((band, index) => (
-            <Row
-              key={band.hz}
-              verticalAlignment="center"
-              horizontalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
-            >
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelMedium' }}
-                modifiers={[width(EQ_LABEL_WIDTH)]}
+          <Column
+            verticalArrangement={{ spacedBy: 12 }}
+            modifiers={[fillMaxWidth(), padding(0, 4, 0, 0)]}
+          >
+            {EQ_BANDS.map((band, index) => (
+              <Row
+                key={band.hz}
+                verticalAlignment="center"
+                horizontalArrangement={{ spacedBy: 8 }}
+                modifiers={[
+                  fillMaxWidth(),
+                  height(EQ_ROW_HEIGHT),
+                  padding(24, 0, 24, 0),
+                ]}
               >
-                {band.label}
-              </Text>
-              <Slider
-                value={gains[index]}
-                min={EQ_MIN_DB}
-                max={EQ_MAX_DB}
-                steps={EQ_SLIDER_STEPS}
-                onValueChange={value => setBandGain(index, Math.round(value))}
-                modifiers={[weight(1)]}
-              />
-              <Text
-                color={colors.onSurface}
-                style={{ typography: 'labelMedium' }}
-                modifiers={[width(EQ_LABEL_WIDTH)]}
-              >
-                {dbLabel(gains[index])}
-              </Text>
-            </Row>
-          ))}
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'labelMedium' }}
+                  modifiers={[width(EQ_LABEL_WIDTH)]}
+                >
+                  {band.label}
+                </Text>
+                <Slider
+                  value={gains[index]}
+                  min={EQ_MIN_DB}
+                  max={EQ_MAX_DB}
+                  steps={EQ_SLIDER_STEPS}
+                  onValueChange={value => setBandGain(index, Math.round(value))}
+                  modifiers={[weight(1)]}
+                />
+                <Text
+                  color={colors.onSurface}
+                  style={{ typography: 'labelMedium' }}
+                  modifiers={[width(EQ_LABEL_WIDTH)]}
+                >
+                  {dbLabel(gains[index])}
+                </Text>
+              </Row>
+            ))}
+          </Column>
 
           {/* Speed — stepped quarter increments, live value beside the header. */}
           <Row
