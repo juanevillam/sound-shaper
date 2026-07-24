@@ -59,9 +59,11 @@ const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
 // Where 1× sits on the speed track (fraction of its width).
 const RATE_DEFAULT_FRACTION = (1 - RATE_MIN) / (RATE_MAX - RATE_MIN);
 const SIDE = 24;
-// The "this is the default" tick drawn under a slider's track.
+// The "this is the default" tick. A Box stacks children in order, so the tick
+// must be drawn AFTER the slider or the opaque track hides it — and it stands
+// taller than the track so it reads as a marker rather than a step dot.
 const MARKER_W = 2;
-const MARKER_H = 14;
+const MARKER_H = 26;
 const DIALOG_WIDTH = 312;
 const SHAPE_NAME_MAX = 24;
 
@@ -239,12 +241,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               </Text>
               {/* Center tick = 0 dB, so "back to default" has a target. */}
               <Box contentAlignment="center" modifiers={[weight(1)]}>
-                <Box
-                  modifiers={[
-                    sizeModifier(MARKER_W, MARKER_H),
-                    background(colors.onSurfaceMuted),
-                  ]}
-                />
                 <Slider
                   value={gains[index]}
                   min={EQ_MIN_DB}
@@ -252,6 +248,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                   steps={EQ_SLIDER_STEPS}
                   onValueChange={value => setBandGain(index, Math.round(value))}
                   modifiers={[fillMaxWidth()]}
+                />
+                <Box
+                  modifiers={[
+                    sizeModifier(MARKER_W, MARKER_H),
+                    background(colors.onSurfaceMuted),
+                  ]}
                 />
               </Box>
               <Text
@@ -285,13 +287,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             contentAlignment="centerStart"
             modifiers={[fillMaxWidth(), padding(SIDE, 0, SIDE, 0)]}
           >
-            <Box
-              modifiers={[
-                offset(speedMarkerX, 0),
-                sizeModifier(MARKER_W, MARKER_H),
-                background(colors.onSurfaceMuted),
-              ]}
-            />
             <Slider
               value={rate}
               min={RATE_MIN}
@@ -301,6 +296,13 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 setRate(Math.round(value / RATE_STEP) * RATE_STEP)
               }
               modifiers={[fillMaxWidth()]}
+            />
+            <Box
+              modifiers={[
+                offset(speedMarkerX, 0),
+                sizeModifier(MARKER_W, MARKER_H),
+                background(colors.onSurfaceMuted),
+              ]}
             />
           </Box>
 
