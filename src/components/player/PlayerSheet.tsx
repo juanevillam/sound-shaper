@@ -54,7 +54,6 @@ import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { SongArt } from '@/components/ui/SongArt';
-import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -765,25 +764,35 @@ export function PlayerSheet() {
               ) : null}
             </View>
 
-            {/* Transport in RN, not Compose: these need the SAME
-                while-pressing squash the home tiles use, and a Compose
-                IconButton's state layer is invisible on this dark surface. */}
+            {/* Transport in RN, not Compose: a Compose IconButton's state
+                layer is invisible on this dark surface, so these carry their
+                own ripple — the YT Music idiom for a transport row. */}
             <View style={styles.transportRow}>
-              <SquashPressable
+              <Pressable
                 onPress={onPrevious}
                 hitSlop={12}
                 style={styles.transportSide}
+                android_ripple={ripple}
+                accessibilityRole="button"
                 accessibilityLabel={t('player.previous')}
               >
                 <PreviousGlyph color={colors.onSurface} />
-              </SquashPressable>
-              <SquashPressable
+              </Pressable>
+              <Pressable
                 onPress={onToggle}
                 hitSlop={12}
                 style={[
                   styles.transportPlay,
                   { backgroundColor: colors.primary },
                 ]}
+                // Circular and sized to the pill, so the ripple fills the
+                // button instead of bleeding past it.
+                android_ripple={{
+                  borderless: true,
+                  color: 'rgba(255,255,255,0.28)',
+                  radius: PLAY_BUTTON_SIZE / 2,
+                }}
+                accessibilityRole="button"
                 accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
               >
                 {playing ? (
@@ -791,15 +800,17 @@ export function PlayerSheet() {
                 ) : (
                   <PlayGlyph color={colors.onPrimary} />
                 )}
-              </SquashPressable>
-              <SquashPressable
+              </Pressable>
+              <Pressable
                 onPress={onNext}
                 hitSlop={12}
                 style={styles.transportSide}
+                android_ripple={ripple}
+                accessibilityRole="button"
                 accessibilityLabel={t('player.next')}
               >
                 <NextGlyph color={colors.onSurface} />
-              </SquashPressable>
+              </Pressable>
             </View>
 
             {/* While framing a clip, the action row takes the cards' place. */}
