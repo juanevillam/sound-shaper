@@ -7,8 +7,8 @@ import {
   Box,
   Column,
   FilterChip,
-  IconButton,
   ModalBottomSheet,
+  OutlinedButton,
   OutlinedTextField,
   Row,
   Slider,
@@ -31,8 +31,8 @@ import {
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
-import { AppIcon } from '@portfolio/mobile-ui';
 
+import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useShapesSubscription } from '@/hooks/useShapesSubscription';
@@ -165,35 +165,24 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // both ends mid-scroll).
           modifiers={[padding(0, 0, 0, 28), fillMaxWidth()]}
         >
-          {/* Header: the section name, plus Save (capture the current config)
-              and Delete (only while one of your saved shapes is applied). */}
-          <Row
-            verticalAlignment="center"
-            horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 0, 12, 0)]}
+          {/* The shared sheet header: title left, filled action pill right —
+              the same bar every other sheet in the portfolio uses. */}
+          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 4)]}>
+            <SheetBar
+              title={t('player.shape.title')}
+              saveLabel={t('player.shapes.save')}
+              saving={false}
+              onSave={() => setSaveOpen(true)}
+            />
+          </Column>
+
+          <Text
+            color={colors.onSurfaceMuted}
+            style={{ typography: 'labelLarge' }}
+            modifiers={[padding(24, 0, 24, 0)]}
           >
-            <Text
-              color={colors.onSurfaceMuted}
-              style={{ typography: 'labelLarge' }}
-            >
-              {t('player.eq.title')}
-            </Text>
-            <Row verticalAlignment="center">
-              {activeShape ? (
-                <IconButton onClick={onDeleteShape}>
-                  <AppIcon
-                    name="delete"
-                    size={20}
-                    tint={colors.onSurfaceMuted}
-                    contentDescription={t('player.shapes.delete')}
-                  />
-                </IconButton>
-              ) : null}
-              <TextButton onClick={() => setSaveOpen(true)}>
-                <Text color={colors.primary}>{t('player.shapes.save')}</Text>
-              </TextButton>
-            </Row>
-          </Row>
+            {t('player.eq.title')}
+          </Text>
 
           {/* One scrolling row: built-in presets ("Flat" doubles as reset),
               then your saved shapes. Padding AFTER horizontalScroll = content
@@ -339,6 +328,19 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             </Column>
             <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
           </Row>
+
+          {/* Destructive action lives at the BOTTOM of the sheet, never in the
+              header — only while one of your saved shapes is applied. */}
+          {activeShape ? (
+            <Row
+              horizontalArrangement="center"
+              modifiers={[fillMaxWidth(), padding(24, 12, 24, 0)]}
+            >
+              <OutlinedButton onClick={onDeleteShape}>
+                <Text color={colors.danger}>{t('player.shapes.delete')}</Text>
+              </OutlinedButton>
+            </Row>
+          ) : null}
         </Column>
       </ModalBottomSheet>
 

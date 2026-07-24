@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 
 import {
-  Button,
   Column,
   IconButton,
   ModalBottomSheet,
@@ -18,6 +17,7 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
 
+import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -83,27 +83,16 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
           verticalArrangement={{ spacedBy: 12 }}
           modifiers={[padding(24, 0, 24, 28), fillMaxWidth()]}
         >
-          <Row
-            verticalAlignment="center"
-            horizontalArrangement={{ spacedBy: 8 }}
-            modifiers={[fillMaxWidth()]}
-          >
-            <Text
-              color={colors.onSurfaceMuted}
-              style={{ typography: 'labelLarge' }}
-              modifiers={[weight(1)]}
-            >
-              {t('player.clips.title')}
-            </Text>
-            <Button
-              onClick={() => {
-                haptics.selection();
-                onNewClip();
-              }}
-            >
-              <Text maxLines={1}>{t('player.clips.new')}</Text>
-            </Button>
-          </Row>
+          {/* The shared sheet header — same bar as every other sheet. */}
+          <SheetBar
+            title={t('player.clips.title')}
+            saveLabel={t('player.clips.new')}
+            saving={false}
+            onSave={() => {
+              haptics.selection();
+              onNewClip();
+            }}
+          />
 
           {clips.length === 0 ? (
             <Text
