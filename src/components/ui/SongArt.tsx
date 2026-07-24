@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import {
   StyleSheet,
   Text,
@@ -35,9 +37,20 @@ export function SongArt({
   emojiSize = 24,
 }: SongArtProps) {
   const { colors } = useAppTheme();
+  // Art that fails to load degrades to the glyph instead of a dead grey box.
+  const [failed, setFailed] = useState(false);
 
-  if (artUrl)
-    return <ArtImage uri={artUrl} displayWidth={displayWidth} style={style} />;
+  useEffect(() => setFailed(false), [artUrl]);
+
+  if (artUrl && !failed)
+    return (
+      <ArtImage
+        uri={artUrl}
+        displayWidth={displayWidth}
+        style={style}
+        onError={() => setFailed(true)}
+      />
+    );
 
   return (
     <View

@@ -95,12 +95,11 @@ export function Skeleton({
 export function SongTileSkeleton() {
   return (
     <View>
-      <Skeleton
-        width="100%"
-        height={undefined}
-        radius={TILE_RADIUS}
-        style={styles.tileArt}
-      />
+      {/* Yoga ignores aspectRatio once width AND height are both set, so the
+          square comes from a wrapper and the block just fills it. */}
+      <View style={styles.tileArt}>
+        <Skeleton radius={TILE_RADIUS} style={styles.fill} />
+      </View>
       <Skeleton width="75%" height={16} style={styles.tileName} />
       <Skeleton width="40%" height={12} />
     </View>
@@ -108,7 +107,7 @@ export function SongTileSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  // aspectRatio drives the height; the fixed-height prop is overridden.
-  tileArt: { aspectRatio: 1, marginBottom: 10 },
+  tileArt: { aspectRatio: 1, marginBottom: 10, width: '100%' },
+  fill: { height: '100%', width: '100%' },
   tileName: { marginBottom: 6 },
 });
