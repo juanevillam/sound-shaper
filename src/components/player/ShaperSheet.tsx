@@ -48,7 +48,7 @@ const EQ_LABEL_WIDTH = 36;
 // The five band rows are the sheet's bulk. Compressed from the slider's
 // natural ~48dp so the tail of the sheet (speed, keep-pitch and its
 // description) still fits when fully expanded.
-const EQ_ROW_HEIGHT = 34;
+const EQ_ROW_HEIGHT = 32;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
@@ -168,7 +168,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             style={{ typography: 'labelLarge' }}
             modifiers={[padding(24, 0, 24, 0)]}
           >
-            {t('player.eq.title')}
+            {t('player.shapes.presets')}
           </Text>
 
           {/* Built-in presets ("Flat" doubles as reset). Padding AFTER
@@ -232,6 +232,25 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               </Row>
             </>
           ) : null}
+
+          {/* THE equalizer: these five frequency bands and nothing else.
+              Speed and keep-pitch below are a separate idea. */}
+          <Text
+            color={colors.onSurfaceMuted}
+            style={{ typography: 'labelLarge' }}
+            modifiers={[padding(24, 10, 24, 0)]}
+          >
+            {t('player.eq.title')}
+          </Text>
+          {/* The band numbers are hertz, which means nothing to most people —
+              say what the ends of the range actually sound like. */}
+          <Text
+            color={colors.onSurfaceMuted}
+            style={{ typography: 'bodySmall' }}
+            modifiers={[padding(24, 0, 24, 2)]}
+          >
+            {t('player.eq.hint')}
+          </Text>
 
           {EQ_BANDS.map((band, index) => (
             <Row
@@ -298,26 +317,20 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
           />
 
+          {/* Keep pitch belongs WITH speed — it only decides whether changing
+              the speed also changes how high the sound is — so it rides on the
+              same line instead of reading as a third, unrelated section. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 6, 24, 0)]}
+            modifiers={[fillMaxWidth(), padding(24, 2, 24, 0)]}
           >
-            <Column
-              verticalArrangement={{ spacedBy: 2 }}
-              modifiers={[weight(1)]}
-            >
-              <Text
-                color={colors.onSurface}
-                style={{ typography: 'bodyLarge' }}
-              >
-                {t('player.keepPitch')}
-              </Text>
+            <Column modifiers={[weight(1)]}>
               <Text
                 color={colors.onSurfaceMuted}
                 style={{ typography: 'bodySmall' }}
               >
-                {t('player.keepPitchDescription')}
+                {t('player.keepPitch')}
               </Text>
             </Column>
             <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
