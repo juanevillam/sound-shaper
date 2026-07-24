@@ -61,11 +61,14 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
+import { sortSongs } from '@/lib/sortSongs';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
+import { useLibraryStore } from '@/store/library';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
+import { useSongsStore } from '@/store/songs';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
@@ -368,14 +371,16 @@ export function PlayerSheet() {
     current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
-  if (!current) return null;
-
   // Settings-ish screens: the floating banner reads as clutter there.
   if (
     pathname.startsWith('/settings') ||
     pathname.startsWith('/manage-account')
   )
     return null;
+
+  // Nothing loaded yet: the banner still holds its place (YT Music keeps it
+  // parked), primed with the first sound — or saying the library is empty.
+  if (!current) return <IdleBanner bottomInset={bottomInset} />;
 
   const hasPrevious =
     queue.findIndex(song => song.id === current.id) > 0 ||
@@ -957,7 +962,125 @@ export function PlayerSheet() {
   );
 }
 
+type IdleBannerProps = {
+  bottomInset: number;
+};
+
+/**
+ * The banner with nothing loaded. It keeps its place so the bottom of the app
+ * never jumps, and it is primed with the first sound in the library — press
+ * play and it starts, exactly like YT Music's parked bar. With an empty
+ * library it just says so and stays inert: expanding needs a sound's info to
+ * animate from, and there isn't one.
+ */
+function IdleBanner({ bottomInset }: IdleBannerProps) {
+  const { t } = useI18n();
+  const { colors, scheme } = useAppTheme();
+  const songs = useSongsStore(s => s.songs);
+  const sortMode = useLibraryStore(s => s.sortMode);
+  const playSong = usePlayerStore(s => s.playSong);
+  const requestExpand = usePlayerStore(s => s.requestExpand);
+
+  // Same order the home grid shows, so "the first one" means what it looks
+  // like it means.
+  const ordered = sortSongs(songs, sortMode);
+  const first = ordered[0] ?? null;
+
+  const start = () => {
+    if (!first) return;
+
+    haptics.selection();
+    playSong(first, ordered);
+    requestExpand();
+  };
+
+  const ripple = {
+    borderless: true,
+    color: scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
+    radius: 26,
+  };
+
+  return (
+    <View
+      style={[
+        styles.idleContainer,
+        {
+          backgroundColor: colors.surfaceContainer,
+          paddingBottom: bottomInset + BANNER_BOTTOM_GAP,
+        },
+      ]}
+    >
+      <Pressable
+        style={styles.miniRow}
+        onPress={start}
+        disabled={!first}
+        accessibilityRole="button"
+        accessibilityLabel={first ? first.name : t('player.empty')}
+      >
+        <View style={styles.idleArt}>
+          <SongArt
+            artUrl={first?.artUrl || undefined}
+            emojiSize={22}
+            style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
+          />
+        </View>
+        <View style={styles.idleInfo}>
+          {first ? (
+            <>
+              <AppText
+                doNotTranslate
+                text={first.name}
+                variant="bodyMedium"
+                numberOfLines={1}
+              />
+              <AppText
+                doNotTranslate
+                muted
+                text={first.artist || ' '}
+                variant="bodySmall"
+                numberOfLines={1}
+              />
+            </>
+          ) : (
+            <AppText
+              doNotTranslate
+              muted
+              text={t('player.empty')}
+              variant="bodyMedium"
+              numberOfLines={1}
+            />
+          )}
+        </View>
+        {first ? (
+          <Pressable
+            onPress={start}
+            hitSlop={8}
+            style={styles.miniButton}
+            android_ripple={ripple}
+            accessibilityRole="button"
+            accessibilityLabel={t('player.play')}
+          >
+            <PlayGlyph color={colors.onSurface} />
+          </Pressable>
+        ) : null}
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  idleContainer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  idleArt: {
+    height: MINI_ART_SIZE,
+    marginLeft: MINI_ART_X,
+    width: MINI_ART_SIZE,
+  },
+  idleInfo: { flex: 1, gap: 1, paddingLeft: 12 },
   container: {
     bottom: 0,
     left: 0,

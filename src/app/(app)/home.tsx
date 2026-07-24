@@ -77,7 +77,6 @@ export default function HomeScreen() {
   const currentSongId = usePlayerStore(s => s.current?.id);
   const isPlaying = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
-  const miniVisible = usePlayerStore(s => s.current !== null);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
   const sortMode = useLibraryStore(s => s.sortMode);
 
@@ -147,8 +146,8 @@ export default function HomeScreen() {
     [renderCell],
   );
 
-  const listBottomPadding =
-    insets.bottom + 24 + (miniVisible ? MINI_PLAYER_HEIGHT : 0);
+  // The banner is always parked at the bottom now, so always clear it.
+  const listBottomPadding = insets.bottom + 24 + MINI_PLAYER_HEIGHT;
 
   return (
     <Screen>
