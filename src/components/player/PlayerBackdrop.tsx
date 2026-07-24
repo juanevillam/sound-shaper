@@ -22,20 +22,33 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // so this costs no native module.
 
 const BACKDROP_BLUR = 60;
-// The artwork reads as a wash, not a wallpaper.
-const BACKDROP_OPACITY = 0.45;
+// Strong enough to feel like the sound is tinting the screen, short of
+// wallpaper.
+const BACKDROP_OPACITY = 0.62;
 
 type PlayerBackdropProps = {
   artUrl?: string;
+  /** Bleed this far ABOVE the sheet so the wash reaches the screen's edge. */
+  topBleed: number;
 };
 
-export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
+export function PlayerBackdrop({ artUrl, topBleed }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
 
   if (!artUrl) return null;
 
+  // The sheet's own box starts below the status bar, so filling it leaves a
+  // black band up top and the immersion breaks. Reach past it.
+  const bleed = {
+    bottom: 0,
+    left: 0,
+    position: 'absolute' as const,
+    right: 0,
+    top: -topBleed,
+  };
+
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={bleed} pointerEvents="none">
       <Image
         source={{ uri: artUrl }}
         style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
@@ -56,13 +69,18 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
           >
             {/* Lightest at the top behind the artwork, solid by the time it
                 reaches the transport and the cards. */}
-            <Stop offset="0" stopColor={colors.background} stopOpacity="0.1" />
+            <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
             <Stop
-              offset="0.45"
+              offset="0.5"
               stopColor={colors.background}
-              stopOpacity="0.55"
+              stopOpacity="0.35"
             />
-            <Stop offset="0.8" stopColor={colors.background} stopOpacity="1" />
+            <Stop
+              offset="0.78"
+              stopColor={colors.background}
+              stopOpacity="0.92"
+            />
+            <Stop offset="0.9" stopColor={colors.background} stopOpacity="1" />
             <Stop offset="1" stopColor={colors.background} stopOpacity="1" />
           </SvgLinearGradient>
         </Defs>

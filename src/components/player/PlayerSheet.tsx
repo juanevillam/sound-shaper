@@ -570,7 +570,10 @@ export function PlayerSheet() {
           style={[styles.expanded, expandedStyle]}
           pointerEvents={expanded ? 'auto' : 'none'}
         >
-          <PlayerBackdrop artUrl={current.artUrl || undefined} />
+          <PlayerBackdrop
+            artUrl={current.artUrl || undefined}
+            topBleed={insets.top}
+          />
 
           {/* One full-width drag-to-close zone spanning everything above the
               console (header row, the gutters beside the art). Buttons and
