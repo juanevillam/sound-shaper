@@ -47,8 +47,8 @@ const EQ_LABEL_WIDTH = 36;
 // Band sliders snap per dB; speed snaps to quarter steps.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
-const RATE_MAX = 2;
-const RATE_STEP = 0.25;
+const RATE_MAX = 1.5;
+const RATE_STEP = 0.1;
 const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
 const DIALOG_WIDTH = 312;
 const SHAPE_NAME_MAX = 24;
@@ -259,7 +259,9 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             max={RATE_MAX}
             steps={RATE_SLIDER_STEPS}
             onValueChange={value =>
-              setRate(Math.round(value / RATE_STEP) * RATE_STEP)
+              // Float math on 0.1 steps drifts (0.7000000000000001), so snap
+              // to one decimal.
+              setRate(Math.round(value / RATE_STEP) / 10)
             }
             modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
           />
