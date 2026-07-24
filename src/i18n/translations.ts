@@ -81,6 +81,7 @@ export const translations = {
       shapes: {
         save: 'Save',
         saveTitle: 'Save this shape',
+        presets: 'Presets',
         mine: 'My shapes',
         nameLabel: 'Name',
         delete: 'Delete shape',
@@ -98,6 +99,7 @@ export const translations = {
       },
       eq: {
         title: 'Equalizer',
+        hint: 'Bass on the left, treble on the right',
         reset: 'Flat',
         preamp: 'Preamp',
         presets: {
@@ -314,6 +316,7 @@ export const translations = {
       shapes: {
         save: 'Guardar',
         saveTitle: 'Guardar este ajuste',
+        presets: 'Ajustes rápidos',
         mine: 'Mis ajustes',
         nameLabel: 'Nombre',
         delete: 'Eliminar ajuste',
@@ -331,6 +334,7 @@ export const translations = {
       },
       eq: {
         title: 'Ecualizador',
+        hint: 'Graves a la izquierda, agudos a la derecha',
         reset: 'Plano',
         preamp: 'Preamp',
         presets: {
@@ -549,6 +553,7 @@ export const translations = {
       shapes: {
         save: '保存',
         saveTitle: '保存此设置',
+        presets: '预设',
         mine: '我的设置',
         nameLabel: '名称',
         delete: '删除设置',
@@ -566,6 +571,7 @@ export const translations = {
       },
       eq: {
         title: '均衡器',
+        hint: '左侧低音，右侧高音',
         reset: '平坦',
         preamp: '前置放大',
         presets: {
