@@ -22,6 +22,11 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // so this costs no native module. The gradient dims but never fully hides the
 // artwork — the wash has to reach both screen edges or it reads as a gap.
 
+// Rather than reasoning about which box is inset by what, the wash simply
+// overscans the sheet in every direction — there is nothing to leave a gap at
+// either edge, whatever the insets do.
+const OVERSCAN = 320;
+
 const BACKDROP_BLUR = 60;
 // Strong enough to feel like the sound is tinting the screen, short of
 // wallpaper.
@@ -29,27 +34,15 @@ const BACKDROP_OPACITY = 0.62;
 
 type PlayerBackdropProps = {
   artUrl?: string;
-  /** Bleed this far ABOVE the sheet so the wash reaches the screen's edge. */
-  topBleed: number;
 };
 
-export function PlayerBackdrop({ artUrl, topBleed }: PlayerBackdropProps) {
+export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
 
   if (!artUrl) return null;
 
-  // The sheet's own box starts below the status bar, so filling it leaves a
-  // black band up top and the immersion breaks. Reach past it.
-  const bleed = {
-    bottom: 0,
-    left: 0,
-    position: 'absolute' as const,
-    right: 0,
-    top: -topBleed,
-  };
-
   return (
-    <View style={bleed} pointerEvents="none">
+    <View style={styles.bleed} pointerEvents="none">
       <Image
         source={{ uri: artUrl }}
         style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
@@ -99,3 +92,13 @@ export function PlayerBackdrop({ artUrl, topBleed }: PlayerBackdropProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  bleed: {
+    bottom: -OVERSCAN,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: -OVERSCAN,
+  },
+});

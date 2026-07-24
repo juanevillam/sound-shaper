@@ -352,6 +352,12 @@ export function PlayerSheet() {
     opacity: Math.min(1, Math.max(0, (progress.value - 0.45) * 1.8)),
   }));
 
+  // Linear with the drag: the wash is part of the surface, not chrome that
+  // arrives late.
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+  }));
+
   const hairlineStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, 1 - progress.value * 3),
   }));
@@ -480,6 +486,16 @@ export function PlayerSheet() {
         entering={reduceMotion ? undefined : SlideInDown.duration(220)}
         style={[styles.container, { height: winH }, containerStyle]}
       >
+        {/* The artwork wash sits behind EVERY layer of the sheet and tracks
+            the drag directly, so it grows in with the surface instead of
+            popping once the expanded chrome crosses its fade threshold. */}
+        <Animated.View
+          style={[styles.backdropLayer, backdropStyle]}
+          pointerEvents="none"
+        >
+          <PlayerBackdrop artUrl={current.artUrl || undefined} />
+        </Animated.View>
+
         {/* Collapsed chrome: hairline progress + the banner row. */}
         <Animated.View
           style={[
@@ -570,11 +586,6 @@ export function PlayerSheet() {
           style={[styles.expanded, expandedStyle]}
           pointerEvents={expanded ? 'auto' : 'none'}
         >
-          <PlayerBackdrop
-            artUrl={current.artUrl || undefined}
-            topBleed={insets.top}
-          />
-
           {/* One full-width drag-to-close zone spanning everything above the
               console (header row, the gutters beside the art). Buttons and
               the art render ABOVE it, so they keep their own touches. */}
@@ -1103,6 +1114,13 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
+  },
+  backdropLayer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   hairlineTrack: { height: PROGRESS_HEIGHT, width: '100%' },
   hairlineFill: { height: PROGRESS_HEIGHT },
