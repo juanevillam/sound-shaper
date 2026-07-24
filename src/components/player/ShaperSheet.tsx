@@ -135,11 +135,11 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
 
   return (
     <ThemedHost matchContents>
-      <ModalBottomSheet
-        ref={sheetRef}
-        onDismissRequest={onClose}
-        skipPartiallyExpanded
-      >
+      {/* No skipPartiallyExpanded: this sheet's content is tall (two chip
+          rows, five bands, speed, pitch), and forcing the expanded state made
+          it swallow the whole screen. It now rests half-height — drag up for
+          the rest. */}
+      <ModalBottomSheet ref={sheetRef} onDismissRequest={onClose}>
         <Column
           verticalArrangement={{ spacedBy: 10 }}
           // Horizontal padding lives on each SECTION, not here — the chips row
@@ -166,10 +166,9 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {t('player.eq.title')}
           </Text>
 
-          {/* One scrolling row: built-in presets ("Flat" doubles as reset),
-              then your saved shapes. Padding AFTER horizontalScroll = content
-              padding: the row bleeds to the sheet edges, the chips start/end
-              24 inside. */}
+          {/* Built-in presets ("Flat" doubles as reset). Padding AFTER
+              horizontalScroll = content padding: the row bleeds to the sheet
+              edges, the chips start/end 24 inside. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement={{ spacedBy: 8 }}
@@ -192,18 +191,42 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 </FilterChip.Label>
               </FilterChip>
             ))}
-            {shapes.map(shape => (
-              <FilterChip
-                key={shape.id}
-                selected={activeShapeId === shape.id}
-                onClick={() => onApplyShape(shape.id)}
-              >
-                <FilterChip.Label>
-                  <Text maxLines={1}>{shape.name}</Text>
-                </FilterChip.Label>
-              </FilterChip>
-            ))}
           </Row>
+
+          {/* Your OWN shapes get their own labelled row — mixing them into the
+              built-in presets made the two read as one undifferentiated set. */}
+          {shapes.length > 0 ? (
+            <>
+              <Text
+                color={colors.onSurfaceMuted}
+                style={{ typography: 'labelLarge' }}
+                modifiers={[padding(24, 6, 24, 0)]}
+              >
+                {t('player.shapes.mine')}
+              </Text>
+              <Row
+                verticalAlignment="center"
+                horizontalArrangement={{ spacedBy: 8 }}
+                modifiers={[
+                  fillMaxWidth(),
+                  horizontalScroll(),
+                  padding(24, 0, 24, 0),
+                ]}
+              >
+                {shapes.map(shape => (
+                  <FilterChip
+                    key={shape.id}
+                    selected={activeShapeId === shape.id}
+                    onClick={() => onApplyShape(shape.id)}
+                  >
+                    <FilterChip.Label>
+                      <Text maxLines={1}>{shape.name}</Text>
+                    </FilterChip.Label>
+                  </FilterChip>
+                ))}
+              </Row>
+            </>
+          ) : null}
 
           {EQ_BANDS.map((band, index) => (
             <Row
