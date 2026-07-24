@@ -69,30 +69,33 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
                 opacity is what read as a hard gap before — so the wash still
                 reaches the bottom edge, just heavily dimmed by the time it
                 gets under the Shape and Clips cards. */}
+            {/* The wash lives in the top third, around the artwork. Below it
+                the fall-off is deliberately steep so the title, transport and
+                especially the Shape / Clips cards sit on a settled surface
+                whatever colour the cover is — while the bottom still keeps a
+                trace of tint rather than cutting to flat black. */}
             <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
             <Stop
-              offset="0.28"
+              offset="0.2"
               stopColor={colors.background}
-              stopOpacity="0.14"
+              stopOpacity="0.1"
             />
             <Stop
-              offset="0.5"
+              offset="0.36"
               stopColor={colors.background}
-              stopOpacity="0.5"
-            />
-            {/* By here the Shape and Clips cards begin — the wash has to be
-                nearly gone or a bright cover fights them. */}
-            <Stop
-              offset="0.62"
-              stopColor={colors.background}
-              stopOpacity="0.88"
+              stopOpacity="0.42"
             />
             <Stop
-              offset="0.78"
+              offset="0.48"
               stopColor={colors.background}
-              stopOpacity="0.95"
+              stopOpacity="0.82"
             />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="0.97" />
+            <Stop
+              offset="0.6"
+              stopColor={colors.background}
+              stopOpacity="0.93"
+            />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.96" />
           </SvgLinearGradient>
         </Defs>
         <Rect
