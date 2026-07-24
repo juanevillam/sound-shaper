@@ -48,6 +48,7 @@ import {
 
 import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
+import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { rateLabel, ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
@@ -569,6 +570,8 @@ export function PlayerSheet() {
           style={[styles.expanded, expandedStyle]}
           pointerEvents={expanded ? 'auto' : 'none'}
         >
+          <PlayerBackdrop artUrl={current.artUrl || undefined} />
+
           {/* One full-width drag-to-close zone spanning everything above the
               console (header row, the gutters beside the art). Buttons and
               the art render ABOVE it, so they keep their own touches. */}
