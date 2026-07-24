@@ -81,6 +81,7 @@ export const translations = {
       shapes: {
         save: 'Save',
         saveTitle: 'Save this shape',
+        mine: 'My shapes',
         nameLabel: 'Name',
         delete: 'Delete shape',
       },
@@ -313,6 +314,7 @@ export const translations = {
       shapes: {
         save: 'Guardar',
         saveTitle: 'Guardar este ajuste',
+        mine: 'Mis ajustes',
         nameLabel: 'Nombre',
         delete: 'Eliminar ajuste',
       },
@@ -547,6 +549,7 @@ export const translations = {
       shapes: {
         save: '保存',
         saveTitle: '保存此设置',
+        mine: '我的设置',
         nameLabel: '名称',
         delete: '删除设置',
       },
