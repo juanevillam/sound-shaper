@@ -8,8 +8,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Settings',
-      songEdit: 'New song',
-      songEditExisting: 'Edit song',
+      songEdit: 'New sound',
+      songEditExisting: 'Edit sound',
     },
     common: {
       back: 'Back',
@@ -20,9 +20,9 @@ export const translations = {
     welcome: {
       features: {
         library: {
-          title: 'Your songs, your way',
+          title: 'Your sounds, your way',
           subtitle:
-            'Upload the tracks you already have and play them your way.',
+            'Upload the sounds you already have and play them your way.',
         },
         shape: {
           title: 'Shape the sound',
@@ -30,7 +30,7 @@ export const translations = {
         },
         clip: {
           title: 'Clip the best parts',
-          subtitle: "Mark a song's best seconds and jump right back to them.",
+          subtitle: "Mark a sound's best seconds and jump right back to them.",
         },
       },
       button: {
@@ -50,16 +50,16 @@ export const translations = {
       },
     },
     home: {
-      addSong: 'Add song',
+      addSong: 'Add sound',
       sort: {
-        label: 'Sort songs',
+        label: 'Sort sounds',
         recent: 'Recently added',
         oldest: 'Oldest first',
         title: 'Title',
         artist: 'Artist',
       },
       error: {
-        title: 'Could not load your songs',
+        title: 'Could not load your sounds',
         subtitle: 'Check your connection and try again.',
       },
     },
@@ -67,8 +67,8 @@ export const translations = {
       title: 'Now playing',
       play: 'Play',
       pause: 'Pause',
-      next: 'Next song',
-      previous: 'Previous song',
+      next: 'Next sound',
+      previous: 'Previous sound',
       speed: 'Speed',
       keepPitch: 'Keep pitch',
       keepPitchDescription: 'Hold the original tone while the speed changes.',
@@ -84,15 +84,15 @@ export const translations = {
         delete: 'Delete shape',
       },
       menu: {
-        label: 'Song options',
-        info: 'Song info',
-        edit: 'Edit song',
+        label: 'Sound options',
+        info: 'Sound info',
+        edit: 'Edit sound',
       },
       info: {
         artist: 'Artist',
         album: 'Album',
         year: 'Release year',
-        none: 'This song has no extra details.',
+        none: 'This sound has no extra details.',
       },
       eq: {
         title: 'Equalizer',
@@ -141,14 +141,14 @@ export const translations = {
         embedded: 'Cover art from the file',
         none: 'This file has no cover art',
       },
-      uploading: 'Uploading song…',
+      uploading: 'Uploading sound…',
       save: 'Add',
       saveExisting: 'Save',
-      delete: 'Delete song',
+      delete: 'Delete sound',
       deleteConfirm: {
-        title: 'Delete this song?',
+        title: 'Delete this sound?',
         message:
-          'The song and its file will be removed. This cannot be undone.',
+          'The sound and its file will be removed. This cannot be undone.',
         confirm: 'Delete',
         cancel: 'Cancel',
       },
@@ -166,11 +166,11 @@ export const translations = {
         memberSince: 'Member since',
         dangerTitle: 'Danger zone',
         deleteAccount: 'Delete account',
-        deleteAccountHint: 'Your songs and clips are removed permanently.',
+        deleteAccountHint: 'Your sounds and clips are removed permanently.',
         deleteDialog: {
           title: 'Delete this account?',
           message:
-            'All your songs and clips will be permanently deleted. This cannot be undone.',
+            'All your sounds and clips will be permanently deleted. This cannot be undone.',
           confirm: 'Delete',
           cancel: 'Cancel',
         },
@@ -209,11 +209,11 @@ export const translations = {
       'apple-sign-in-failed': 'Apple sign-in failed. Please try again.',
       'sign-out-failed': 'Could not log out. Please try again.',
       'session-expired': 'Your session expired. Please sign in again.',
-      'song-created': 'Song added',
-      'song-updated': 'Song updated',
-      'song-save-failed': 'Could not save the song. Please try again.',
-      'song-deleted': 'Song deleted',
-      'song-delete-failed': 'Could not delete the song. Please try again.',
+      'song-created': 'Sound added',
+      'song-updated': 'Sound updated',
+      'song-save-failed': 'Could not save the sound. Please try again.',
+      'song-deleted': 'Sound deleted',
+      'song-delete-failed': 'Could not delete the sound. Please try again.',
       'clip-created': 'Clip saved',
       'clip-save-failed': 'Could not save the clip. Please try again.',
       'clip-deleted': 'Clip deleted',
@@ -237,8 +237,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Configuración',
-      songEdit: 'Nueva canción',
-      songEditExisting: 'Editar canción',
+      songEdit: 'Nuevo sonido',
+      songEditExisting: 'Editar sonido',
     },
     common: {
       back: 'Atrás',
@@ -249,8 +249,9 @@ export const translations = {
     welcome: {
       features: {
         library: {
-          title: 'Tus canciones, a tu manera',
-          subtitle: 'Sube las pistas que ya tienes y reprodúcelas a tu manera.',
+          title: 'Tus sonidos, a tu manera',
+          subtitle:
+            'Sube los sonidos que ya tienes y reprodúcelos a tu manera.',
         },
         shape: {
           title: 'Modela el sonido',
@@ -259,7 +260,7 @@ export const translations = {
         clip: {
           title: 'Recorta las mejores partes',
           subtitle:
-            'Marca los mejores segundos de una canción y vuelve a ellos al instante.',
+            'Marca los mejores segundos de un sonido y vuelve a ellos al instante.',
         },
       },
       button: {
@@ -279,16 +280,16 @@ export const translations = {
       },
     },
     home: {
-      addSong: 'Agregar canción',
+      addSong: 'Agregar sonido',
       sort: {
-        label: 'Ordenar canciones',
+        label: 'Ordenar sonidos',
         recent: 'Agregadas recientemente',
         oldest: 'Más antiguas primero',
         title: 'Título',
         artist: 'Artista',
       },
       error: {
-        title: 'No se pudieron cargar tus canciones',
+        title: 'No se pudieron cargar tus sonidos',
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
       },
     },
@@ -296,8 +297,8 @@ export const translations = {
       title: 'Reproduciendo',
       play: 'Reproducir',
       pause: 'Pausar',
-      next: 'Siguiente canción',
-      previous: 'Canción anterior',
+      next: 'Siguiente sonido',
+      previous: 'Sonido anterior',
       speed: 'Velocidad',
       keepPitch: 'Mantener el tono',
       keepPitchDescription:
@@ -314,15 +315,15 @@ export const translations = {
         delete: 'Eliminar ajuste',
       },
       menu: {
-        label: 'Opciones de la canción',
+        label: 'Opciones del sonido',
         info: 'Información',
-        edit: 'Editar canción',
+        edit: 'Editar sonido',
       },
       info: {
         artist: 'Artista',
         album: 'Álbum',
         year: 'Año de lanzamiento',
-        none: 'Esta canción no tiene más detalles.',
+        none: 'Este sonido no tiene más detalles.',
       },
       eq: {
         title: 'Ecualizador',
@@ -371,14 +372,14 @@ export const translations = {
         embedded: 'Carátula tomada del archivo',
         none: 'Este archivo no tiene carátula',
       },
-      uploading: 'Subiendo canción…',
+      uploading: 'Subiendo sonido…',
       save: 'Agregar',
       saveExisting: 'Guardar',
-      delete: 'Eliminar canción',
+      delete: 'Eliminar sonido',
       deleteConfirm: {
-        title: '¿Eliminar esta canción?',
+        title: '¿Eliminar este sonido?',
         message:
-          'La canción y su archivo se eliminarán. Esto no se puede deshacer.',
+          'El sonido y su archivo se eliminarán. Esto no se puede deshacer.',
         confirm: 'Eliminar',
         cancel: 'Cancelar',
       },
@@ -396,11 +397,11 @@ export const translations = {
         memberSince: 'Miembro desde',
         dangerTitle: 'Zona de riesgo',
         deleteAccount: 'Eliminar cuenta',
-        deleteAccountHint: 'Tus canciones y clips se eliminan permanentemente.',
+        deleteAccountHint: 'Tus sonidos y clips se eliminan permanentemente.',
         deleteDialog: {
           title: '¿Eliminar esta cuenta?',
           message:
-            'Todas tus canciones y clips se eliminarán permanentemente. Esto no se puede deshacer.',
+            'Todos tus sonidos y clips se eliminarán permanentemente. Esto no se puede deshacer.',
           confirm: 'Eliminar',
           cancel: 'Cancelar',
         },
@@ -442,12 +443,12 @@ export const translations = {
         'Falló el inicio de sesión con Apple. Inténtalo de nuevo.',
       'sign-out-failed': 'No se pudo cerrar sesión. Inténtalo de nuevo.',
       'session-expired': 'Tu sesión expiró. Inicia sesión de nuevo.',
-      'song-created': 'Canción agregada',
-      'song-updated': 'Canción actualizada',
-      'song-save-failed': 'No se pudo guardar la canción. Inténtalo de nuevo.',
-      'song-deleted': 'Canción eliminada',
+      'song-created': 'Sonido agregado',
+      'song-updated': 'Sonido actualizado',
+      'song-save-failed': 'No se pudo guardar el sonido. Inténtalo de nuevo.',
+      'song-deleted': 'Sonido eliminado',
       'song-delete-failed':
-        'No se pudo eliminar la canción. Inténtalo de nuevo.',
+        'No se pudo eliminar el sonido. Inténtalo de nuevo.',
       'clip-created': 'Clip guardado',
       'clip-save-failed': 'No se pudo guardar el clip. Inténtalo de nuevo.',
       'clip-deleted': 'Clip eliminado',
@@ -472,8 +473,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: '设置',
-      songEdit: '新建歌曲',
-      songEditExisting: '编辑歌曲',
+      songEdit: '新建音频',
+      songEditExisting: '编辑音频',
     },
     common: {
       back: '返回',
@@ -484,7 +485,7 @@ export const translations = {
     welcome: {
       features: {
         library: {
-          title: '你的歌曲，随你所愿',
+          title: '你的音频，随你所愿',
           subtitle: '上传你已有的曲目，按你喜欢的方式播放。',
         },
         shape: {
@@ -513,16 +514,16 @@ export const translations = {
       },
     },
     home: {
-      addSong: '添加歌曲',
+      addSong: '添加音频',
       sort: {
-        label: '歌曲排序',
+        label: '音频排序',
         recent: '最近添加',
         oldest: '最早添加',
         title: '标题',
         artist: '艺术家',
       },
       error: {
-        title: '无法加载你的歌曲',
+        title: '无法加载你的音频',
         subtitle: '请检查网络连接后重试。',
       },
     },
@@ -547,9 +548,9 @@ export const translations = {
         delete: '删除设置',
       },
       menu: {
-        label: '歌曲选项',
-        info: '歌曲信息',
-        edit: '编辑歌曲',
+        label: '音频选项',
+        info: '音频信息',
+        edit: '编辑音频',
       },
       info: {
         artist: '艺术家',
@@ -604,13 +605,13 @@ export const translations = {
         embedded: '封面来自文件',
         none: '此文件没有封面',
       },
-      uploading: '正在上传歌曲…',
+      uploading: '正在上传音频…',
       save: '添加',
       saveExisting: '保存',
-      delete: '删除歌曲',
+      delete: '删除音频',
       deleteConfirm: {
-        title: '删除这首歌曲？',
-        message: '歌曲及其文件将被删除。此操作无法撤销。',
+        title: '删除此音频？',
+        message: '音频及其文件将被删除。此操作无法撤销。',
         confirm: '删除',
         cancel: '取消',
       },
@@ -628,10 +629,10 @@ export const translations = {
         memberSince: '注册时间',
         dangerTitle: '危险区域',
         deleteAccount: '删除账户',
-        deleteAccountHint: '你的歌曲和片段将被永久删除。',
+        deleteAccountHint: '你的音频和片段将被永久删除。',
         deleteDialog: {
           title: '删除此账户？',
-          message: '你的所有歌曲和片段将被永久删除。此操作无法撤销。',
+          message: '你的所有音频和片段将被永久删除。此操作无法撤销。',
           confirm: '删除',
           cancel: '取消',
         },
@@ -670,11 +671,11 @@ export const translations = {
       'apple-sign-in-failed': 'Apple 登录失败,请重试。',
       'sign-out-failed': '无法退出登录,请重试。',
       'session-expired': '会话已过期,请重新登录。',
-      'song-created': '歌曲已添加',
-      'song-updated': '歌曲已更新',
-      'song-save-failed': '无法保存歌曲,请重试。',
-      'song-deleted': '歌曲已删除',
-      'song-delete-failed': '无法删除歌曲,请重试。',
+      'song-created': '音频已添加',
+      'song-updated': '音频已更新',
+      'song-save-failed': '无法保存音频,请重试。',
+      'song-deleted': '音频已删除',
+      'song-delete-failed': '无法删除音频,请重试。',
       'clip-created': '片段已保存',
       'clip-save-failed': '无法保存片段,请重试。',
       'clip-deleted': '片段已删除',
