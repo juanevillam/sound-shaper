@@ -15,8 +15,10 @@
     "@portfolio/core": "*",
     "expo-asset": "*",
     "expo-image": "*",
+    "expo-router": "*",
     "react": "*",
     "react-native": "*",
+    "react-native-gesture-handler": "*",
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-svg": "*"
