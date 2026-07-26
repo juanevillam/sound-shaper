@@ -94,7 +94,14 @@ export const SettingsScreen = ({
               // LabeledContent with empty trailing text reads as a broken row.
               const content = row.value ? (
                 <LabeledContent key={row.label} label={row.label}>
-                  <Text>{row.value}</Text>
+                  {/* SwiftUI dims a LabeledContent's trailing text to the
+                      secondary style, which reads as "disabled" next to the
+                      link rows — those sit inside a `foregroundStyle`
+                      wrapper, so their value stays full-strength. Match them:
+                      a read-only value is not a disabled one. */}
+                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
+                    {row.value}
+                  </Text>
                 </LabeledContent>
               ) : (
                 <Text key={row.label}>{row.label}</Text>
