@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@expo/ui": "~57.0.4",
+    "@expo/ui": "~57.0.7",
     "@portfolio/core": "*",
     "@portfolio/mobile-ui": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -20,7 +20,7 @@
     "@react-native-firebase/firestore": "24.1.1",
     "@react-native-google-signin/google-signin": "^16.1.2",
     "@shopify/flash-list": "2.0.2",
-    "expo": "~57.0.2",
+    "expo": "~57.0.7",
     "expo-apple-authentication": "~57.0.0",
     "expo-application": "~57.0.0",
     "expo-audio": "~57.0.2",
