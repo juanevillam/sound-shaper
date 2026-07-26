@@ -6,6 +6,7 @@ import { legalUrl, WelcomeScreen, type AuthAction } from '@portfolio/mobile-ui';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
+import { BrandMark } from '@/components/ui/BrandMark';
 import { useAppleSignIn } from '@/hooks/useAppleSignIn';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useGoogleSignIn } from '@/hooks/useGoogleSignIn';
@@ -56,10 +57,9 @@ export default function Welcome() {
       : [googleAction];
 
   return (
-    // Brand deferred: no `logo` prop yet, so WelcomeScreen renders the app
-    // initial in the hero tile. Swap in a <BrandMark /> at the brand phase.
     <WelcomeScreen
       appName={APP_NAME}
+      logo={({ size, color }) => <BrandMark size={size} color={color} />}
       features={[
         {
           emoji: '🎵',
