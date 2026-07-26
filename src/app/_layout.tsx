@@ -9,6 +9,7 @@ import {
 } from '@portfolio/mobile-ui';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
@@ -91,6 +92,17 @@ export default function RootLayout() {
   useEffect(() => {
     preloadIcons().catch(() => {});
   }, []);
+
+  // iOS: paint the native root view the theme background. `contentStyle` colors
+  // each screen, but the react-native-screens root behind them defaults to the
+  // system background and flashes (white in dark mode) during push/pop
+  // transitions — this keeps that layer themed so back/forward never flickers.
+  // iOS-only: Android's window is frozen for release.
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
+    }
+  }, [colors.background]);
 
   if (!ready) return null;
 
