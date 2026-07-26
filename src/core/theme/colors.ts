@@ -24,6 +24,14 @@ export type AppColors = {
   primary: string;
   onPrimary: string;
   primaryMuted: string;
+  // Full M3 accent roles beyond primary — distinct, harmonious hues the dynamic
+  // palette derives from the same source color. Surfaced so showcase demos can
+  // prove components accept any themed accent (not just primary), while staying
+  // 100% OS-derived (no hardcoded colors).
+  secondary: string;
+  onSecondary: string;
+  tertiary: string;
+  onTertiary: string;
   danger: string;
   // M3 container / on-container pairs — the decorative palette used by
   // showcase demos (colored boxes, carousel pages, list rows).
@@ -61,6 +69,10 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     primary: m.primary,
     onPrimary: m.onPrimary,
     primaryMuted: m.primaryContainer,
+    secondary: m.secondary,
+    onSecondary: m.onSecondary,
+    tertiary: m.tertiary,
+    onTertiary: m.onTertiary,
     danger: m.error,
     primaryContainer: m.primaryContainer,
     onPrimaryContainer: m.onPrimaryContainer,
@@ -121,6 +133,10 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#007AFF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#CCE4FF',
+    secondary: '#5856D6',
+    onSecondary: '#FFFFFF',
+    tertiary: '#AF52DE',
+    onTertiary: '#FFFFFF',
     danger: '#FF3B30',
     primaryContainer: '#CCE4FF',
     onPrimaryContainer: '#00428C',
@@ -147,6 +163,10 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#0A84FF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#0D3A66',
+    secondary: '#5E5CE6',
+    onSecondary: '#FFFFFF',
+    tertiary: '#BF5AF2',
+    onTertiary: '#FFFFFF',
     danger: '#FF453A',
     primaryContainer: '#0D3A66',
     onPrimaryContainer: '#A8CFFF',
@@ -176,6 +196,10 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#6750A4',
     onPrimary: '#FFFFFF',
     primaryMuted: '#EADDFF',
+    secondary: '#625B71',
+    onSecondary: '#FFFFFF',
+    tertiary: '#7D5260',
+    onTertiary: '#FFFFFF',
     danger: '#B3261E',
     primaryContainer: '#EADDFF',
     onPrimaryContainer: '#21005D',
@@ -202,6 +226,10 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#D0BCFF',
     onPrimary: '#381E72',
     primaryMuted: '#4F378B',
+    secondary: '#CCC2DC',
+    onSecondary: '#332D41',
+    tertiary: '#EFB8C8',
+    onTertiary: '#492532',
     danger: '#F2B8B5',
     primaryContainer: '#4F378B',
     onPrimaryContainer: '#EADDFF',
