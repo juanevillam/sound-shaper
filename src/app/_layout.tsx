@@ -6,8 +6,9 @@ import {
   ErrorScreen,
   preloadIcons,
   setSplashHidden,
+  useNavigationTheme,
 } from '@portfolio/mobile-ui';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, ThemeProvider, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -65,6 +66,7 @@ export default function RootLayout() {
   const themeHydrated = useThemeStore(s => s.hasHydrated);
   const theme = useThemeStore(s => s.theme);
   const { colors } = useAppTheme();
+  const navigationTheme = useNavigationTheme();
 
   useAuthListener();
 
@@ -114,18 +116,20 @@ export default function RootLayout() {
           (0 → real) — that gap dropped the bottom player banner under the nav
           bar on some frames. */}
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <KeyboardProvider>
-          <SnackbarProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-                // Welcome ↔ app hand-off fades like every other Android push.
-                animation: Platform.select({ android: 'fade_from_bottom' }),
-              }}
-            />
-          </SnackbarProvider>
-        </KeyboardProvider>
+        <ThemeProvider value={navigationTheme}>
+          <KeyboardProvider>
+            <SnackbarProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
+                  // Welcome ↔ app hand-off fades like every other Android push.
+                  animation: Platform.select({ android: 'fade_from_bottom' }),
+                }}
+              />
+            </SnackbarProvider>
+          </KeyboardProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

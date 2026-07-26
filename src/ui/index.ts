@@ -37,7 +37,9 @@ export {
   type SnackbarAction,
   type SnackbarContextValue,
 } from './snackbar';
+export { SnackbarProvider } from './SnackbarProvider';
 export { SwiftUIHost } from './SwiftUIHost';
+export { useNavigationTheme } from './useNavigationTheme';
 export { createText, type TextProps, type TextVariant } from './createText';
 export {
   GROUP_ROW_GAP,
