@@ -39,6 +39,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import {
@@ -109,6 +110,21 @@ const COLLAPSE_MS = 260;
 // Drag-release: past this progress (or flung faster than this) it commits.
 const SNAP_PROGRESS = 0.28;
 const SNAP_VELOCITY = 600;
+
+// Swipe the artwork/title sideways to skip. Thresholds mirror the vertical
+// drag's feel: a deliberate drag OR a flick commits.
+const SKIP_DISTANCE = 64;
+const SKIP_VELOCITY = 500;
+// How far the outgoing song slides before the incoming one takes its place —
+// short, because the swap itself is instant and a long throw reads as lag.
+const SKIP_EXIT = 96;
+const SKIP_EXIT_MS = 120;
+// The horizontal drag has to beat the vertical one to activate, and give up if
+// the finger is really heading down (that is the collapse gesture).
+const SKIP_ACTIVATE_X = 14;
+const SKIP_FAIL_Y = 28;
+// Settles without overshoot — a bouncy song swap looks like a glitch.
+const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 
 const PLAY_BUTTON_SIZE = 64;
 const SIDE_PADDING = 24;
@@ -310,6 +326,89 @@ export function PlayerSheet() {
   const dragDownTop = makeDragDown();
   const dragDownTitle = makeDragDown();
 
+  // Swipe the art or the title sideways to change song — the idiom every music
+  // app uses, so the expanded player stops depending on the two small transport
+  // buttons. Left goes forward, matching a carousel: the next song comes in from
+  // the right. Skipping wraps, so both directions always lead somewhere.
+  const swipeX = useSharedValue(0);
+
+  const skip = useCallback(
+    (direction: 1 | -1) => {
+      haptics.selection();
+      if (direction === -1) nextSong();
+      else previous();
+    },
+    [nextSong, previous],
+  );
+
+  // Same one-instance-per-region rule as the drag-down recipe above.
+  const makeSkipSwipe = () =>
+    Gesture.Pan()
+      .enabled(expanded)
+      .activeOffsetX([-SKIP_ACTIVATE_X, SKIP_ACTIVATE_X])
+      .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
+      .onUpdate(event => {
+        swipeX.value = event.translationX;
+      })
+      .onEnd(event => {
+        const direction: 1 | -1 = event.translationX < 0 ? -1 : 1;
+        const commit =
+          Math.abs(event.translationX) > SKIP_DISTANCE ||
+          Math.abs(event.velocityX) > SKIP_VELOCITY;
+
+        if (!commit) {
+          swipeX.value = withSpring(0, SETTLE_SPRING);
+          return;
+        }
+
+        if (reduceMotion) {
+          swipeX.value = 0;
+          runOnJS(skip)(direction);
+          return;
+        }
+
+        // Carry the outgoing song off, swap underneath, then let the incoming
+        // one settle in from the opposite edge.
+        swipeX.value = withTiming(
+          direction * SKIP_EXIT,
+          { duration: SKIP_EXIT_MS, easing: Easing.out(Easing.cubic) },
+          finished => {
+            if (!finished) return;
+            swipeX.value = direction * -SKIP_EXIT;
+            runOnJS(skip)(direction);
+            swipeX.value = withSpring(0, SETTLE_SPRING);
+          },
+        );
+      });
+  const skipSwipeArt = makeSkipSwipe();
+  const skipSwipeTitle = makeSkipSwipe();
+  const skipSwipeTop = makeSkipSwipe();
+
+  // Whichever axis crosses its threshold first wins; the loser is cancelled, so
+  // a diagonal drag never both skips and collapses.
+  const artGesture = Gesture.Race(skipSwipeArt, dragDown);
+  const titleGesture = Gesture.Race(skipSwipeTitle, dragDownTitle);
+  // The full-width band above the console (header row, gutters beside the art)
+  // skips too, so the swipe target is the whole top of the sheet rather than
+  // just the artwork square.
+  const topGesture = Gesture.Race(skipSwipeTop, dragDownTop);
+
+  // Fades a little on the way out so the swap reads as a change of content
+  // rather than the same art sliding back and forth.
+  const swipeFade = (x: number) => {
+    'worklet';
+    return 1 - Math.min(Math.abs(x) / (winW * 0.6), 0.35);
+  };
+
+  const titleSwipeStyle = useAnimatedStyle(() => ({
+    opacity: swipeFade(swipeX.value),
+    transform: [{ translateX: swipeX.value }],
+  }));
+
+  const artSwipeStyle = useAnimatedStyle(() => ({
+    opacity: swipeFade(swipeX.value),
+  }));
+
   // --- Animated styles -----------------------------------------------------
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: (1 - progress.value) * travel }],
@@ -337,7 +436,9 @@ export function PlayerSheet() {
     return {
       borderRadius: renderedRadius / scale,
       transform: [
-        { translateX: (fromCx - toCx) * (1 - p) },
+        // The skip swipe rides on top of the expand travel. Only reachable at
+        // p = 1 (scale 1), so it needs no counter-scaling.
+        { translateX: (fromCx - toCx) * (1 - p) + swipeX.value },
         { translateY: (fromCy - toCy) * (1 - p) },
         { scale },
       ],
@@ -592,7 +693,7 @@ export function PlayerSheet() {
           {/* One full-width drag-to-close zone spanning everything above the
               console (header row, the gutters beside the art). Buttons and
               the art render ABOVE it, so they keep their own touches. */}
-          <GestureDetector gesture={dragDownTop}>
+          <GestureDetector gesture={topGesture}>
             <View style={[styles.dragZone, { height: contentTop }]} />
           </GestureDetector>
 
@@ -676,8 +777,8 @@ export function PlayerSheet() {
 
           {/* The console below the art — a fixed column, nothing scrolls. */}
           <View style={[styles.expandedBody, { top: contentTop }]}>
-            <GestureDetector gesture={dragDownTitle}>
-              <View style={styles.titleBlock}>
+            <GestureDetector gesture={titleGesture}>
+              <Animated.View style={[styles.titleBlock, titleSwipeStyle]}>
                 <AppText
                   doNotTranslate
                   text={current.name}
@@ -692,7 +793,7 @@ export function PlayerSheet() {
                   variant="bodyMedium"
                   numberOfLines={1}
                 />
-              </View>
+              </Animated.View>
             </GestureDetector>
 
             {/* THE scrubber — always the native slider. While framing, the
@@ -955,7 +1056,7 @@ export function PlayerSheet() {
         {/* THE shared artwork — one element across both states, so the
             transition can't pop or resize discontinuously. Drag it down to
             collapse when expanded. */}
-        <GestureDetector gesture={dragDown}>
+        <GestureDetector gesture={artGesture}>
           <Animated.View
             style={[
               styles.art,
@@ -966,6 +1067,7 @@ export function PlayerSheet() {
                 width: artFull,
               },
               artStyle,
+              artSwipeStyle,
             ]}
           >
             <SongArt
