@@ -18,6 +18,11 @@ type ArtImageProps = {
   displayWidth?: number;
   /** Raised when the art can't be fetched, so the caller can fall back. */
   onError?: () => void;
+  /**
+   * Cross-dissolve length. Pass 0 where the caller animates the swap itself —
+   * two stacked fades just make the art look slow to arrive.
+   */
+  fadeMs?: number;
   uri: string;
 };
 
@@ -31,7 +36,13 @@ const BACKDROP_BLUR = 18;
 // load synchronously and skip it, so lists of already-seen art never flash.
 const FADE_MS = 200;
 
-export function ArtImage({ style, displayWidth, onError, uri }: ArtImageProps) {
+export function ArtImage({
+  style,
+  displayWidth,
+  onError,
+  fadeMs = FADE_MS,
+  uri,
+}: ArtImageProps) {
   const source = { uri: displayWidth ? thumbUrl(uri, displayWidth) : uri };
   // Until the art decodes the slot PULSES: a still grey square is
   // indistinguishable from a broken image, which is exactly how a slow load
@@ -53,7 +64,7 @@ export function ArtImage({ style, displayWidth, onError, uri }: ArtImageProps) {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         blurRadius={BACKDROP_BLUR}
-        transition={FADE_MS}
+        transition={fadeMs}
         recyclingKey={uri}
         cachePolicy="memory-disk"
       />
@@ -61,7 +72,7 @@ export function ArtImage({ style, displayWidth, onError, uri }: ArtImageProps) {
         source={source}
         style={StyleSheet.absoluteFill}
         contentFit="contain"
-        transition={FADE_MS}
+        transition={fadeMs}
         recyclingKey={uri}
         cachePolicy="memory-disk"
         onLoad={() => setLoaded(true)}
