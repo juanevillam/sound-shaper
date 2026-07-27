@@ -93,7 +93,7 @@ const MINI_ART_SIZE = 44;
 // The artwork is ONE element scaled between the two states, so a fixed
 // borderRadius renders ~5x smaller when collapsed. These are the radii we want
 // to SEE at each end; the style divides by the live scale to hit them.
-const MINI_ART_RADIUS = 12;
+const MINI_ART_RADIUS = 8;
 const MINI_ART_X = 16;
 const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
@@ -220,7 +220,7 @@ export function PlayerSheet() {
   const artExpandedX = (winW - artFull) / 2;
   const artExpandedY = insets.top + 60;
   const artScaleMin = MINI_ART_SIZE / artFull;
-  const contentTop = artExpandedY + artFull + 20;
+  const contentTop = artExpandedY + artFull + 36;
 
   const progress = useSharedValue(0);
   const [expanded, setExpanded] = useState(false);
@@ -424,14 +424,27 @@ export function PlayerSheet() {
   );
 
   useEffect(() => {
-    // Recentre BEFORE the new pair lands, so the cover that slid in is still
-    // the one under the finger when the song changes.
-    if (pendingRecentreRef.current) {
-      pendingRecentreRef.current = false;
-      recentre();
+    if (!pendingRecentreRef.current) {
+      setNeighbours(readNeighbours());
+      return;
     }
 
-    setNeighbours(readNeighbours());
+    pendingRecentreRef.current = false;
+    recentre();
+
+    // `recentre` writes a SHARED VALUE, which lands on the next UI frame, but
+    // this render commits right away. Swapping the pair now would mount the
+    // song AFTER the one just swiped to at the pager's still-offset centre —
+    // the ghost title. Let the recentre reach the screen first.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setNeighbours(readNeighbours()));
+    });
+
+    return () => {
+      cancelAnimationFrame(outer);
+      if (inner) cancelAnimationFrame(inner);
+    };
   }, [current?.id, queue, readNeighbours, recentre]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
@@ -1104,11 +1117,11 @@ export function PlayerSheet() {
                       <Row
                         verticalAlignment="center"
                         horizontalArrangement={{ spacedBy: 10 }}
-                        modifiers={[fillMaxWidth(), padding(12, 12, 12, 12)]}
+                        modifiers={[fillMaxWidth(), padding(14, 18, 14, 18)]}
                       >
                         <AppIcon
                           name={card.icon}
-                          size={22}
+                          size={26}
                           tint={colors.primary}
                           contentDescription={card.label}
                         />
@@ -1467,8 +1480,8 @@ const styles = StyleSheet.create({
   },
   titleSlot: { width: '100%' },
   titleBlock: {
-    gap: 2,
-    paddingBottom: 6,
+    gap: 3,
+    paddingBottom: 18,
     width: '100%',
   },
   // Overlays the real title block, so a neighbour's text costs no layout.
@@ -1510,7 +1523,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cardHost: {
-    height: 72,
+    height: 96,
     marginTop: 12,
     width: '100%',
   },
