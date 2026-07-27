@@ -120,7 +120,6 @@ const SKIP_VELOCITY = 500;
 // is on screen the instant it slides in — waiting for the store swap (~140ms of
 // re-render) and a fresh image decode is what used to make it arrive late.
 const PAGE_MS = 240;
-const SKIP_FADE_IN_MS = 110;
 // The horizontal drag has to beat the vertical one to activate, and give up if
 // the finger is really heading down (that is the collapse gesture).
 const SKIP_ACTIVATE_X = 14;
@@ -334,9 +333,6 @@ export function PlayerSheet() {
   // buttons. Left goes forward, matching a carousel: the next song comes in from
   // the right. Skipping wraps, so both directions always lead somewhere.
   const swipeX = useSharedValue(0);
-  // Explicit, not derived from swipeX: the swap needs to happen while the art is
-  // fully transparent, and a distance-based fade can't express that.
-  const swipeOpacity = useSharedValue(1);
 
   // The neighbours sit one screen-width away on either side, mounted and painted
   // while the player is open. That is the whole trick: paging one in is a
@@ -359,13 +355,11 @@ export function PlayerSheet() {
   // artwork element now holds the same image, so this handoff is invisible.
   const recentre = useCallback(() => {
     swipeX.value = 0;
-    swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
-  }, [swipeOpacity, swipeX]);
+  }, [swipeX]);
 
   const settleBack = useCallback(() => {
     swipeX.value = withSpring(0, SETTLE_SPRING);
-    swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
-  }, [swipeOpacity, swipeX]);
+  }, [swipeX]);
 
   // Set while a page is in flight and waiting on the song to change.
   const pendingRecentreRef = useRef(false);
@@ -411,8 +405,8 @@ export function PlayerSheet() {
         return;
       }
 
-      // Carry the current cover out and the neighbour in, together.
-      swipeOpacity.value = withTiming(0, { duration: PAGE_MS * 0.5 });
+      // Carry the current cover out and the neighbour in, together. Nothing
+      // fades: both covers are real, so this is just a slide.
       swipeX.value = withTiming(
         direction * winW,
         { duration: PAGE_MS, easing: Easing.out(Easing.cubic) },
@@ -421,16 +415,7 @@ export function PlayerSheet() {
         },
       );
     },
-    [
-      nextSong,
-      previous,
-      queue.length,
-      settleBack,
-      skip,
-      swipeOpacity,
-      swipeX,
-      winW,
-    ],
+    [nextSong, previous, queue.length, settleBack, skip, swipeX, winW],
   );
 
   useEffect(() => {
@@ -447,8 +432,6 @@ export function PlayerSheet() {
       .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
       .onUpdate(event => {
         swipeX.value = event.translationX;
-        swipeOpacity.value =
-          1 - Math.min(Math.abs(event.translationX) / (winW * 0.6), 0.35);
       })
       .onEnd(event => {
         const direction: 1 | -1 = event.translationX < 0 ? -1 : 1;
@@ -458,7 +441,6 @@ export function PlayerSheet() {
 
         if (reduceMotion) {
           swipeX.value = 0;
-          swipeOpacity.value = 1;
           if (commit) runOnJS(skip)(direction);
           return;
         }
@@ -477,11 +459,6 @@ export function PlayerSheet() {
   // skips too, so the swipe target is the whole top of the sheet rather than
   // just the artwork square.
   const topGesture = Gesture.Race(skipSwipeTop, dragDownTop);
-
-  const titleSwipeStyle = useAnimatedStyle(() => ({
-    opacity: swipeOpacity.value,
-    transform: [{ translateX: swipeX.value }],
-  }));
 
   // The artwork itself never fades now — the neighbour paging in IS the
   // transition, and fading would only hide the thing we want seen sooner.
@@ -858,22 +835,64 @@ export function PlayerSheet() {
           {/* The console below the art — a fixed column, nothing scrolls. */}
           <View style={[styles.expandedBody, { top: contentTop }]}>
             <GestureDetector gesture={titleGesture}>
-              <Animated.View style={[styles.titleBlock, titleSwipeStyle]}>
-                <AppText
-                  doNotTranslate
-                  text={current.name}
-                  variant="titleLarge"
-                  numberOfLines={1}
-                  style={styles.titleText}
-                />
-                <AppText
-                  doNotTranslate
-                  muted
-                  text={subtitle}
-                  variant="bodyMedium"
-                  numberOfLines={1}
-                />
-              </Animated.View>
+              <View style={styles.titleSlot}>
+                <Animated.View style={[styles.titleBlock, pagerStyle]}>
+                  <AppText
+                    doNotTranslate
+                    text={current.name}
+                    variant="titleLarge"
+                    numberOfLines={1}
+                    style={styles.titleText}
+                  />
+                  <AppText
+                    doNotTranslate
+                    muted
+                    text={subtitle}
+                    variant="bodyMedium"
+                    numberOfLines={1}
+                  />
+                </Animated.View>
+
+                {/* The neighbours' text rides the same pager as their artwork,
+                    so the title arrives WITH the swipe. Absolutely positioned,
+                    so they never affect the console's layout. */}
+                {expanded
+                  ? (
+                      [
+                        { song: neighbours.previous, side: -1 },
+                        { song: neighbours.next, side: 1 },
+                      ] as const
+                    ).map(({ song, side }) =>
+                      song ? (
+                        <Animated.View
+                          key={`title:${side}:${song.id}`}
+                          pointerEvents="none"
+                          style={[
+                            styles.titleBlock,
+                            styles.titleGhost,
+                            { left: side * winW },
+                            pagerStyle,
+                          ]}
+                        >
+                          <AppText
+                            doNotTranslate
+                            text={song.name}
+                            variant="titleLarge"
+                            numberOfLines={1}
+                            style={styles.titleText}
+                          />
+                          <AppText
+                            doNotTranslate
+                            muted
+                            text={song.artist || ' '}
+                            variant="bodyMedium"
+                            numberOfLines={1}
+                          />
+                        </Animated.View>
+                      ) : null,
+                    )
+                  : null}
+              </View>
             </GestureDetector>
 
             {/* THE scrubber — always the native slider. While framing, the
@@ -1153,6 +1172,7 @@ export function PlayerSheet() {
                   style={[
                     styles.art,
                     {
+                      borderRadius: TILE_RADIUS,
                       height: artFull,
                       left: artExpandedX + side * winW,
                       top: artExpandedY,
@@ -1458,11 +1478,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
   },
+  titleSlot: { width: '100%' },
   titleBlock: {
     gap: 2,
     paddingBottom: 6,
     width: '100%',
   },
+  // Overlays the real title block, so a neighbour's text costs no layout.
+  titleGhost: { position: 'absolute', top: 0 },
   titleText: { fontWeight: '700' },
   host: { width: '100%' },
   transportRow: {

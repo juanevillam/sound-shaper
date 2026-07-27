@@ -28,6 +28,11 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 const OVERSCAN = 320;
 
 const BACKDROP_BLUR = 60;
+// Long enough to read as the wash CHANGING rather than being replaced — the
+// whole screen is tinted by it, so a hard cut is the most violent thing in the
+// player. Also covers the gap between a skip's page animation and the store
+// swap that brings the new art here.
+const BACKDROP_FADE_MS = 420;
 // Strong enough to feel like the sound is tinting the screen, short of
 // wallpaper.
 const BACKDROP_OPACITY = 0.62;
@@ -48,8 +53,11 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
         style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
         contentFit="cover"
         blurRadius={BACKDROP_BLUR}
-        transition={220}
-        recyclingKey={artUrl}
+        // NO recyclingKey: this is one long-lived view, not a recycled row, and
+        // a changing recyclingKey CLEARS the old image instead of letting
+        // expo-image cross-dissolve into the new one — which is exactly what
+        // made the wash snap from one song's colour to the next.
+        transition={BACKDROP_FADE_MS}
         cachePolicy="memory-disk"
       />
       <Svg style={StyleSheet.absoluteFill}>
