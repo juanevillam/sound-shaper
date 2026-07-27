@@ -27,7 +27,6 @@ import {
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
-import { Image } from 'expo-image';
 import { usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -68,7 +67,7 @@ import { sortSongs } from '@/lib/sortSongs';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { useLibraryStore } from '@/store/library';
-import { usePlayerStore } from '@/store/player';
+import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
 import { useSongsStore } from '@/store/songs';
@@ -116,14 +115,11 @@ const SNAP_VELOCITY = 600;
 // drag's feel: a deliberate drag OR a flick commits.
 const SKIP_DISTANCE = 64;
 const SKIP_VELOCITY = 500;
-// How far the outgoing song slides before the incoming one takes its place —
-// short, because the swap itself is instant and a long throw reads as lag.
-const SKIP_EXIT = 96;
-const SKIP_EXIT_MS = 100;
-// The incoming song starts further out than the old art left off-centre, so the
-// arrival is visibly MOVING. Swapping the song re-renders the whole player
-// (~0.3s), and a static invisible gap reads worse than a longer glide.
-const SKIP_ENTER = 64;
+// A committed swipe pages the neighbour's artwork all the way in. Both
+// neighbours are ALREADY mounted and painted off-screen, so the incoming cover
+// is on screen the instant it slides in — waiting for the store swap (~140ms of
+// re-render) and a fresh image decode is what used to make it arrive late.
+const PAGE_MS = 240;
 const SKIP_FADE_IN_MS = 110;
 // The horizontal drag has to beat the vertical one to activate, and give up if
 // the finger is really heading down (that is the collapse gesture).
@@ -200,6 +196,7 @@ export function PlayerSheet() {
   const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
+  const queue = usePlayerStore(s => s.queue);
   const toggle = usePlayerStore(s => s.toggle);
   const nextSong = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
@@ -341,65 +338,106 @@ export function PlayerSheet() {
   // fully transparent, and a distance-based fade can't express that.
   const swipeOpacity = useSharedValue(1);
 
-  // The art is invisible from the moment the outgoing song leaves until this
-  // runs, so nothing can show the OLD artwork mid-swap.
-  const revealAfterSkip = useCallback(() => {
+  // The neighbours sit one screen-width away on either side, mounted and painted
+  // while the player is open. That is the whole trick: paging one in is a
+  // transform on an image that is ALREADY decoded, so it appears immediately
+  // instead of after the store swap and a fresh decode.
+  const neighbours = (() => {
+    if (!current || queue.length < 2) return { previous: null, next: null };
+
+    const index = queue.findIndex(song => song.id === current.id);
+    if (index < 0) return { previous: null, next: null };
+
+    return {
+      previous: queue[(index - 1 + queue.length) % queue.length] ?? null,
+      next: queue[(index + 1) % queue.length] ?? null,
+    };
+  })();
+
+  // Snaps the pager back to centre. Called once the song has actually changed:
+  // the incoming cover is already sitting in the artwork slot, and the real
+  // artwork element now holds the same image, so this handoff is invisible.
+  const recentre = useCallback(() => {
+    swipeX.value = 0;
+    swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
+  }, [swipeOpacity, swipeX]);
+
+  const settleBack = useCallback(() => {
     swipeX.value = withSpring(0, SETTLE_SPRING);
     swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
   }, [swipeOpacity, swipeX]);
 
-  // Set when a skip is mid-flight and waiting on the song to actually change.
-  const pendingRevealRef = useRef(false);
+  // Set while a page is in flight and waiting on the song to change.
+  const pendingRecentreRef = useRef(false);
 
   const skip = useCallback(
     (direction: 1 | -1) => {
-      haptics.selection();
-
       const before = usePlayerStore.getState().current?.id;
       if (direction === -1) nextSong();
       else previous();
-      const after = usePlayerStore.getState().current?.id;
 
-      // `previous()` RESTARTS the song when more than RESTART_THRESHOLD_S in, so
-      // the id can legitimately stay put — nothing will re-render, and waiting
-      // for a change would leave the art invisible forever.
-      if (after === before) {
-        revealAfterSkip();
+      if (usePlayerStore.getState().current?.id === before) {
+        // Nothing re-renders, so nothing would ever recentre us.
+        recentre();
         return;
       }
 
-      pendingRevealRef.current = true;
+      pendingRecentreRef.current = true;
     },
-    [nextSong, previous, revealAfterSkip],
+    [nextSong, previous, recentre],
   );
 
-  // Reveal only once the new song has actually rendered. A fixed delay can't
-  // work here: the artwork is a remote image, so the swap lands whenever it
-  // lands, and revealing early shows the previous cover.
+  // Decided on the JS thread because it reads live transport state.
+  const onSwipeRelease = useCallback(
+    (direction: 1 | -1, commit: boolean) => {
+      if (!commit) {
+        settleBack();
+        return;
+      }
+
+      haptics.selection();
+
+      const { position } = usePlayerStore.getState();
+      // `previous()` restarts the song when deep into it, and a lone song wraps
+      // to itself — in both cases no neighbour arrives, so paging one in would
+      // be a lie. Settle back and let the action speak.
+      const staysPut =
+        queue.length < 2 || (direction === 1 && position > RESTART_THRESHOLD_S);
+
+      if (staysPut) {
+        settleBack();
+        if (direction === -1) nextSong();
+        else previous();
+        return;
+      }
+
+      // Carry the current cover out and the neighbour in, together.
+      swipeOpacity.value = withTiming(0, { duration: PAGE_MS * 0.5 });
+      swipeX.value = withTiming(
+        direction * winW,
+        { duration: PAGE_MS, easing: Easing.out(Easing.cubic) },
+        finished => {
+          if (finished) runOnJS(skip)(direction);
+        },
+      );
+    },
+    [
+      nextSong,
+      previous,
+      queue.length,
+      settleBack,
+      skip,
+      swipeOpacity,
+      swipeX,
+      winW,
+    ],
+  );
+
   useEffect(() => {
-    if (!pendingRevealRef.current) return;
-    pendingRevealRef.current = false;
-    revealAfterSkip();
-  }, [current?.id, revealAfterSkip]);
-
-  // Keep the neighbours' covers warm so the swap is a cache hit rather than a
-  // fetch — expo-image serves cached bitmaps synchronously, which is what makes
-  // the reveal land immediately instead of after a skeleton.
-  useEffect(() => {
-    const queue = usePlayerStore.getState().queue;
-    if (!current || queue.length < 2) return;
-
-    const index = queue.findIndex(song => song.id === current.id);
-    const neighbours = [
-      queue[(index + 1) % queue.length],
-      queue[(index - 1 + queue.length) % queue.length],
-    ];
-    const urls = neighbours
-      .map(song => song?.artUrl)
-      .filter((url): url is string => !!url);
-
-    if (urls.length > 0) Image.prefetch(urls, { cachePolicy: 'memory-disk' });
-  }, [current]);
+    if (!pendingRecentreRef.current) return;
+    pendingRecentreRef.current = false;
+    recentre();
+  }, [current?.id, recentre]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
   const makeSkipSwipe = () =>
@@ -418,42 +456,14 @@ export function PlayerSheet() {
           Math.abs(event.translationX) > SKIP_DISTANCE ||
           Math.abs(event.velocityX) > SKIP_VELOCITY;
 
-        if (!commit) {
-          swipeX.value = withSpring(0, SETTLE_SPRING);
-          swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
-          return;
-        }
-
         if (reduceMotion) {
           swipeX.value = 0;
           swipeOpacity.value = 1;
-          runOnJS(skip)(direction);
+          if (commit) runOnJS(skip)(direction);
           return;
         }
 
-        // Keep going the way the finger was already going. Animating to a FIXED
-        // offset would pull the art back inward whenever the drag went further
-        // than that, which reads as a bounce right before the song changes.
-        const exitTo =
-          direction *
-          Math.max(Math.abs(event.translationX) + SKIP_EXIT, SKIP_EXIT);
-
-        // Fade fully out before swapping: the store update lands on the JS
-        // thread a frame or two later, so anything visible in between is still
-        // the OUTGOING song — and seeing it fly in from the incoming side is the
-        // other half of the flicker.
-        swipeOpacity.value = withTiming(0, { duration: SKIP_EXIT_MS });
-        swipeX.value = withTiming(
-          exitTo,
-          { duration: SKIP_EXIT_MS, easing: Easing.out(Easing.cubic) },
-          finished => {
-            if (!finished) return;
-            // Park invisibly on the far side. `skip` triggers the reveal once
-            // the new song is on screen — see revealAfterSkip.
-            swipeX.value = direction * -SKIP_ENTER;
-            runOnJS(skip)(direction);
-          },
-        );
+        runOnJS(onSwipeRelease)(direction, commit);
       });
   const skipSwipeArt = makeSkipSwipe();
   const skipSwipeTitle = makeSkipSwipe();
@@ -473,8 +483,10 @@ export function PlayerSheet() {
     transform: [{ translateX: swipeX.value }],
   }));
 
-  const artSwipeStyle = useAnimatedStyle(() => ({
-    opacity: swipeOpacity.value,
+  // The artwork itself never fades now — the neighbour paging in IS the
+  // transition, and fading would only hide the thing we want seen sooner.
+  const pagerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: swipeX.value }],
   }));
 
   // --- Animated styles -----------------------------------------------------
@@ -1124,6 +1136,42 @@ export function PlayerSheet() {
         {/* THE shared artwork — one element across both states, so the
             transition can't pop or resize discontinuously. Drag it down to
             collapse when expanded. */}
+        {/* The neighbours' covers, parked one screen-width out on each side.
+            Mounted whenever the player is open so their bitmaps are decoded
+            BEFORE any swipe — paging one in then costs nothing. */}
+        {expanded
+          ? (
+              [
+                { song: neighbours.previous, side: -1 },
+                { song: neighbours.next, side: 1 },
+              ] as const
+            ).map(({ song, side }) =>
+              song ? (
+                <Animated.View
+                  key={`${side}:${song.id}`}
+                  pointerEvents="none"
+                  style={[
+                    styles.art,
+                    {
+                      height: artFull,
+                      left: artExpandedX + side * winW,
+                      top: artExpandedY,
+                      width: artFull,
+                    },
+                    pagerStyle,
+                  ]}
+                >
+                  <SongArt
+                    artUrl={song.artUrl || undefined}
+                    emojiSize={88}
+                    fadeMs={0}
+                    style={styles.artMedia}
+                  />
+                </Animated.View>
+              ) : null,
+            )
+          : null}
+
         <GestureDetector gesture={artGesture}>
           <Animated.View
             style={[
@@ -1135,7 +1183,6 @@ export function PlayerSheet() {
                 width: artFull,
               },
               artStyle,
-              artSwipeStyle,
             ]}
           >
             <SongArt
