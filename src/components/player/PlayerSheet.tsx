@@ -27,6 +27,7 @@ import {
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
+import { Image } from 'expo-image';
 import { usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -118,7 +119,12 @@ const SKIP_VELOCITY = 500;
 // How far the outgoing song slides before the incoming one takes its place —
 // short, because the swap itself is instant and a long throw reads as lag.
 const SKIP_EXIT = 96;
-const SKIP_EXIT_MS = 120;
+const SKIP_EXIT_MS = 100;
+// The incoming song starts further out than the old art left off-centre, so the
+// arrival is visibly MOVING. Swapping the song re-renders the whole player
+// (~0.3s), and a static invisible gap reads worse than a longer glide.
+const SKIP_ENTER = 64;
+const SKIP_FADE_IN_MS = 110;
 // The horizontal drag has to beat the vertical one to activate, and give up if
 // the finger is really heading down (that is the collapse gesture).
 const SKIP_ACTIVATE_X = 14;
@@ -331,15 +337,69 @@ export function PlayerSheet() {
   // buttons. Left goes forward, matching a carousel: the next song comes in from
   // the right. Skipping wraps, so both directions always lead somewhere.
   const swipeX = useSharedValue(0);
+  // Explicit, not derived from swipeX: the swap needs to happen while the art is
+  // fully transparent, and a distance-based fade can't express that.
+  const swipeOpacity = useSharedValue(1);
+
+  // The art is invisible from the moment the outgoing song leaves until this
+  // runs, so nothing can show the OLD artwork mid-swap.
+  const revealAfterSkip = useCallback(() => {
+    swipeX.value = withSpring(0, SETTLE_SPRING);
+    swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
+  }, [swipeOpacity, swipeX]);
+
+  // Set when a skip is mid-flight and waiting on the song to actually change.
+  const pendingRevealRef = useRef(false);
 
   const skip = useCallback(
     (direction: 1 | -1) => {
       haptics.selection();
+
+      const before = usePlayerStore.getState().current?.id;
       if (direction === -1) nextSong();
       else previous();
+      const after = usePlayerStore.getState().current?.id;
+
+      // `previous()` RESTARTS the song when more than RESTART_THRESHOLD_S in, so
+      // the id can legitimately stay put — nothing will re-render, and waiting
+      // for a change would leave the art invisible forever.
+      if (after === before) {
+        revealAfterSkip();
+        return;
+      }
+
+      pendingRevealRef.current = true;
     },
-    [nextSong, previous],
+    [nextSong, previous, revealAfterSkip],
   );
+
+  // Reveal only once the new song has actually rendered. A fixed delay can't
+  // work here: the artwork is a remote image, so the swap lands whenever it
+  // lands, and revealing early shows the previous cover.
+  useEffect(() => {
+    if (!pendingRevealRef.current) return;
+    pendingRevealRef.current = false;
+    revealAfterSkip();
+  }, [current?.id, revealAfterSkip]);
+
+  // Keep the neighbours' covers warm so the swap is a cache hit rather than a
+  // fetch — expo-image serves cached bitmaps synchronously, which is what makes
+  // the reveal land immediately instead of after a skeleton.
+  useEffect(() => {
+    const queue = usePlayerStore.getState().queue;
+    if (!current || queue.length < 2) return;
+
+    const index = queue.findIndex(song => song.id === current.id);
+    const neighbours = [
+      queue[(index + 1) % queue.length],
+      queue[(index - 1 + queue.length) % queue.length],
+    ];
+    const urls = neighbours
+      .map(song => song?.artUrl)
+      .filter((url): url is string => !!url);
+
+    if (urls.length > 0) Image.prefetch(urls, { cachePolicy: 'memory-disk' });
+  }, [current]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
   const makeSkipSwipe = () =>
@@ -349,6 +409,8 @@ export function PlayerSheet() {
       .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
       .onUpdate(event => {
         swipeX.value = event.translationX;
+        swipeOpacity.value =
+          1 - Math.min(Math.abs(event.translationX) / (winW * 0.6), 0.35);
       })
       .onEnd(event => {
         const direction: 1 | -1 = event.translationX < 0 ? -1 : 1;
@@ -358,25 +420,38 @@ export function PlayerSheet() {
 
         if (!commit) {
           swipeX.value = withSpring(0, SETTLE_SPRING);
+          swipeOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS });
           return;
         }
 
         if (reduceMotion) {
           swipeX.value = 0;
+          swipeOpacity.value = 1;
           runOnJS(skip)(direction);
           return;
         }
 
-        // Carry the outgoing song off, swap underneath, then let the incoming
-        // one settle in from the opposite edge.
+        // Keep going the way the finger was already going. Animating to a FIXED
+        // offset would pull the art back inward whenever the drag went further
+        // than that, which reads as a bounce right before the song changes.
+        const exitTo =
+          direction *
+          Math.max(Math.abs(event.translationX) + SKIP_EXIT, SKIP_EXIT);
+
+        // Fade fully out before swapping: the store update lands on the JS
+        // thread a frame or two later, so anything visible in between is still
+        // the OUTGOING song — and seeing it fly in from the incoming side is the
+        // other half of the flicker.
+        swipeOpacity.value = withTiming(0, { duration: SKIP_EXIT_MS });
         swipeX.value = withTiming(
-          direction * SKIP_EXIT,
+          exitTo,
           { duration: SKIP_EXIT_MS, easing: Easing.out(Easing.cubic) },
           finished => {
             if (!finished) return;
-            swipeX.value = direction * -SKIP_EXIT;
+            // Park invisibly on the far side. `skip` triggers the reveal once
+            // the new song is on screen — see revealAfterSkip.
+            swipeX.value = direction * -SKIP_ENTER;
             runOnJS(skip)(direction);
-            swipeX.value = withSpring(0, SETTLE_SPRING);
           },
         );
       });
@@ -393,20 +468,13 @@ export function PlayerSheet() {
   // just the artwork square.
   const topGesture = Gesture.Race(skipSwipeTop, dragDownTop);
 
-  // Fades a little on the way out so the swap reads as a change of content
-  // rather than the same art sliding back and forth.
-  const swipeFade = (x: number) => {
-    'worklet';
-    return 1 - Math.min(Math.abs(x) / (winW * 0.6), 0.35);
-  };
-
   const titleSwipeStyle = useAnimatedStyle(() => ({
-    opacity: swipeFade(swipeX.value),
+    opacity: swipeOpacity.value,
     transform: [{ translateX: swipeX.value }],
   }));
 
   const artSwipeStyle = useAnimatedStyle(() => ({
-    opacity: swipeFade(swipeX.value),
+    opacity: swipeOpacity.value,
   }));
 
   // --- Animated styles -----------------------------------------------------
@@ -1073,6 +1141,9 @@ export function PlayerSheet() {
             <SongArt
               artUrl={current.artUrl || undefined}
               emojiSize={88}
+              // The skip swipe fades this element itself; an inner dissolve on
+              // top of it just delays the new cover by its own duration.
+              fadeMs={0}
               style={styles.artMedia}
             />
           </Animated.View>

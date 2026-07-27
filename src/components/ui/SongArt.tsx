@@ -25,6 +25,8 @@ type SongArtProps = {
   displayWidth?: number;
   /** Glyph size, scaled to the box (≈24 on a 56px thumb, 40 on a cover). */
   emojiSize?: number;
+  /** Forwarded to ArtImage — 0 when the caller animates the swap itself. */
+  fadeMs?: number;
 };
 
 // A song's media slot: its embedded cover art if the file had one, otherwise a
@@ -35,6 +37,7 @@ export function SongArt({
   artUrl,
   displayWidth,
   emojiSize = 24,
+  fadeMs,
 }: SongArtProps) {
   const { colors } = useAppTheme();
   // Art that fails to load degrades to the glyph instead of a dead grey box.
@@ -47,6 +50,7 @@ export function SongArt({
       <ArtImage
         uri={artUrl}
         displayWidth={displayWidth}
+        fadeMs={fadeMs}
         style={style}
         onError={() => setFailed(true)}
       />
