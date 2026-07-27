@@ -63,10 +63,8 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
-import { sortSongs } from '@/lib/sortSongs';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
-import { useLibraryStore } from '@/store/library';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
@@ -1242,13 +1240,12 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   const { t } = useI18n();
   const { colors, scheme } = useAppTheme();
   const songs = useSongsStore(s => s.songs);
-  const sortMode = useLibraryStore(s => s.sortMode);
   const playSong = usePlayerStore(s => s.playSong);
   const requestExpand = usePlayerStore(s => s.requestExpand);
 
   // Same order the home grid shows, so "the first one" means what it looks
   // like it means.
-  const ordered = sortSongs(songs, sortMode);
+  const ordered = songs;
   const first = ordered[0] ?? null;
 
   // Parked on the first sound, so skipping behaves exactly as it would once
