@@ -36,6 +36,13 @@ service cloud.firestore {
       match /shapes/{shapeId} {
         allow read, write: if isUser(uid);
       }
+
+      // Earned trophies — private to you, one doc per trophy id holding its
+      // `achievedAt`, so awards survive a reinstall.
+      match /trophies/{trophyId} {
+        allow read: if isUser(uid);
+        allow write: if isUser(uid);
+      }
     }
 
   }

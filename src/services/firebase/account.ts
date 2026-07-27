@@ -9,7 +9,9 @@ import {
 
 import {
   CLIPS_SUBCOLLECTION,
+  SHAPES_SUBCOLLECTION,
   SONGS_SUBCOLLECTION,
+  TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
 import { reported } from '@/services/firebase/crashlytics';
@@ -35,7 +37,9 @@ export const deleteAccount = reported(
       db,
       USERS_COLLECTION,
       user.uid,
+      SHAPES_SUBCOLLECTION,
       SONGS_SUBCOLLECTION,
+      TROPHIES_SUBCOLLECTION,
     );
 
     const songs = await getDocs(songsRef);
@@ -45,13 +49,28 @@ export const deleteAccount = reported(
           db,
           USERS_COLLECTION,
           user.uid,
+          SHAPES_SUBCOLLECTION,
           SONGS_SUBCOLLECTION,
+          TROPHIES_SUBCOLLECTION,
           song.id,
           CLIPS_SUBCOLLECTION,
         ),
       );
       await Promise.all(clips.docs.map(clip => deleteDoc(clip.ref)));
       await deleteDoc(song.ref);
+    }
+
+    // Deleting the user doc does NOT remove its subcollections, so every one
+    // of them has to be swept by hand — shapes and trophies included, or a
+    // recreated account would inherit the old one's saved shapes and awards.
+    for (const subcollection of [
+      SHAPES_SUBCOLLECTION,
+      TROPHIES_SUBCOLLECTION,
+    ]) {
+      const docs = await getDocs(
+        collection(db, USERS_COLLECTION, user.uid, subcollection),
+      );
+      await Promise.all(docs.docs.map(entry => deleteDoc(entry.ref)));
     }
 
     await deleteDoc(doc(db, USERS_COLLECTION, user.uid));

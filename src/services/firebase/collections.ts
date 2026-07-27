@@ -16,3 +16,7 @@ export const CLIPS_SUBCOLLECTION = 'clips';
 // Subcollection of users/{uid} — the user's own saved sound shapes (EQ gains
 // + speed + keep-pitch). Global, not per-song: shaping carries across songs.
 export const SHAPES_SUBCOLLECTION = 'shapes';
+
+// Subcollection of users/{uid} — earned trophies, one doc per trophy id
+// holding its `achievedAt`, so they survive a reinstall.
+export const TROPHIES_SUBCOLLECTION = 'trophies';

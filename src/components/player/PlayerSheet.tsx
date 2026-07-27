@@ -27,6 +27,7 @@ import {
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { AppIcon } from '@portfolio/mobile-ui';
+import { awardTrophy } from '@portfolio/trophies';
 import { usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -57,6 +58,7 @@ import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { TROPHY_IDS } from '@/constants/trophies';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -617,7 +619,12 @@ export function PlayerSheet() {
       endMs: clipRange.endS * 1000,
       label: '',
     })
-      .then(() => showSnackbar(t('snackbar.clip-created')))
+      .then(() => {
+        // Awarded here rather than from a store: the clips cache only holds
+        // songs you have opened, so it can't answer "have you ever saved one".
+        awardTrophy(TROPHY_IDS.firstClip);
+        showSnackbar(t('snackbar.clip-created'));
+      })
       .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
   };
 
