@@ -338,17 +338,24 @@ export function PlayerSheet() {
   // while the player is open. That is the whole trick: paging one in is a
   // transform on an image that is ALREADY decoded, so it appears immediately
   // instead of after the store swap and a fresh decode.
-  const neighbours = (() => {
-    if (!current || queue.length < 2) return { previous: null, next: null };
+  const readNeighbours = useCallback(() => {
+    const { current: playing, queue: songs } = usePlayerStore.getState();
+    if (!playing || songs.length < 2) return { previous: null, next: null };
 
-    const index = queue.findIndex(song => song.id === current.id);
+    const index = songs.findIndex(song => song.id === playing.id);
     if (index < 0) return { previous: null, next: null };
 
     return {
-      previous: queue[(index - 1 + queue.length) % queue.length] ?? null,
-      next: queue[(index + 1) % queue.length] ?? null,
+      previous: songs[(index - 1 + songs.length) % songs.length] ?? null,
+      next: songs[(index + 1) % songs.length] ?? null,
     };
-  })();
+  }, []);
+
+  // Held in state, NOT derived per render: the frame that commits a skip must
+  // still show the pair we paged with. Refreshing them in that same frame drops
+  // the NEW next-song into the centre slot (the pager is still offset by a
+  // screen width), which flashes a third song's title for a frame or two.
+  const [neighbours, setNeighbours] = useState(readNeighbours);
 
   // Snaps the pager back to centre. Called once the song has actually changed:
   // the incoming cover is already sitting in the artwork slot, and the real
@@ -419,10 +426,15 @@ export function PlayerSheet() {
   );
 
   useEffect(() => {
-    if (!pendingRecentreRef.current) return;
-    pendingRecentreRef.current = false;
-    recentre();
-  }, [current?.id, recentre]);
+    // Recentre BEFORE the new pair lands, so the cover that slid in is still
+    // the one under the finger when the song changes.
+    if (pendingRecentreRef.current) {
+      pendingRecentreRef.current = false;
+      recentre();
+    }
+
+    setNeighbours(readNeighbours());
+  }, [current?.id, queue, readNeighbours, recentre]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
   const makeSkipSwipe = () =>
@@ -1050,104 +1062,82 @@ export function PlayerSheet() {
                 </Row>
               </ThemedHost>
             ) : (
-              <>
-                {/* Shape + Clips — the two studios, one card each. */}
-                <ThemedHost style={[styles.cardHost, styles.firstCardHost]}>
-                  <Surface
-                    onClick={() => {
-                      haptics.selection();
-                      setShaperVisible(true);
-                    }}
-                    color={colors.surfaceContainer}
-                    shape={CARD_SHAPE}
-                    modifiers={[fillMaxWidth()]}
-                  >
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 16 }}
-                      modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
+              /* Shape + Clips — the two studios, side by side as the console's
+                 footer. OUTLINED (Material 3's own variant for exactly this):
+                 a filled surface sat as two grey slabs on top of the artwork
+                 wash and cut the gradient in half. Transparent + a hairline
+                 outline keeps the wash running edge to edge, and one row of two
+                 instead of two stacked rows gives ~90dp of it back. */
+              <ThemedHost style={[styles.cardHost, styles.firstCardHost]}>
+                <Row
+                  verticalAlignment="center"
+                  horizontalArrangement={{ spacedBy: 12 }}
+                  modifiers={[fillMaxWidth()]}
+                >
+                  {(
+                    [
+                      {
+                        icon: 'tune',
+                        key: 'shape',
+                        label: t('player.shape.title'),
+                        onPress: () => setShaperVisible(true),
+                        summary: shapeSummary,
+                      },
+                      {
+                        icon: 'content-cut',
+                        key: 'clips',
+                        label: t('player.clips.title'),
+                        onPress: () => setClipsVisible(true),
+                        summary: clipsSummary,
+                      },
+                    ] as const
+                  ).map(card => (
+                    <Surface
+                      key={card.key}
+                      onClick={() => {
+                        haptics.selection();
+                        card.onPress();
+                      }}
+                      color="transparent"
+                      border={{ width: 1, color: colors.border }}
+                      shape={CARD_SHAPE}
+                      modifiers={[weight(1)]}
                     >
-                      <AppIcon
-                        name="tune"
-                        size={24}
-                        tint={colors.primary}
-                        contentDescription={t('player.shape.title')}
-                      />
-                      <Column
-                        verticalArrangement={{ spacedBy: 1 }}
-                        modifiers={[weight(1)]}
+                      <Row
+                        verticalAlignment="center"
+                        horizontalArrangement={{ spacedBy: 10 }}
+                        modifiers={[fillMaxWidth(), padding(12, 12, 12, 12)]}
                       >
-                        <Text
-                          color={colors.onSurface}
-                          style={{ typography: 'bodyLarge' }}
+                        <AppIcon
+                          name={card.icon}
+                          size={22}
+                          tint={colors.primary}
+                          contentDescription={card.label}
+                        />
+                        <Column
+                          verticalArrangement={{ spacedBy: 1 }}
+                          modifiers={[weight(1)]}
                         >
-                          {t('player.shape.title')}
-                        </Text>
-                        <Text
-                          color={colors.onSurfaceMuted}
-                          style={{ typography: 'bodySmall' }}
-                          maxLines={1}
-                        >
-                          {shapeSummary}
-                        </Text>
-                      </Column>
-                      <AppIcon
-                        name="chevron"
-                        size={22}
-                        tint={colors.onSurfaceMuted}
-                      />
-                    </Row>
-                  </Surface>
-                </ThemedHost>
-
-                <ThemedHost style={styles.cardHost}>
-                  <Surface
-                    onClick={() => {
-                      haptics.selection();
-                      setClipsVisible(true);
-                    }}
-                    color={colors.surfaceContainer}
-                    shape={CARD_SHAPE}
-                    modifiers={[fillMaxWidth()]}
-                  >
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 16 }}
-                      modifiers={[fillMaxWidth(), padding(16, 14, 12, 14)]}
-                    >
-                      <AppIcon
-                        name="content-cut"
-                        size={24}
-                        tint={colors.primary}
-                        contentDescription={t('player.clips.title')}
-                      />
-                      <Column
-                        verticalArrangement={{ spacedBy: 1 }}
-                        modifiers={[weight(1)]}
-                      >
-                        <Text
-                          color={colors.onSurface}
-                          style={{ typography: 'bodyLarge' }}
-                        >
-                          {t('player.clips.title')}
-                        </Text>
-                        <Text
-                          color={colors.onSurfaceMuted}
-                          style={{ typography: 'bodySmall' }}
-                          maxLines={1}
-                        >
-                          {clipsSummary}
-                        </Text>
-                      </Column>
-                      <AppIcon
-                        name="chevron"
-                        size={22}
-                        tint={colors.onSurfaceMuted}
-                      />
-                    </Row>
-                  </Surface>
-                </ThemedHost>
-              </>
+                          <Text
+                            color={colors.onSurface}
+                            style={{ typography: 'bodyLarge' }}
+                            maxLines={1}
+                          >
+                            {card.label}
+                          </Text>
+                          <Text
+                            color={colors.onSurfaceMuted}
+                            style={{ typography: 'bodySmall' }}
+                            maxLines={1}
+                          >
+                            {card.summary}
+                          </Text>
+                        </Column>
+                      </Row>
+                    </Surface>
+                  ))}
+                </Row>
+              </ThemedHost>
             )}
           </View>
         </Animated.View>
@@ -1523,7 +1513,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cardHost: {
-    height: 76,
+    height: 72,
     marginTop: 12,
     width: '100%',
   },
