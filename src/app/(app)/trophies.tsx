@@ -1,9 +1,12 @@
+import { useState } from 'react';
+
 import { StyleSheet } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 import { TrophiesScreen, useTrophies } from '@portfolio/trophies';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TrophyDetailSheet } from '@/components/trophies/TrophyDetailSheet';
 import { Screen } from '@/components/ui/Screen';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
@@ -14,6 +17,11 @@ export default function TrophiesRoute() {
   const { t, locale } = useI18n();
   const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total } = useTrophies(copy);
+
+  // Tapping a row opens its detail sheet — the objective is worth reading in
+  // full, and the list truncates longer ones.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = trophies.find(trophy => trophy.id === selectedId) ?? null;
 
   // `t` doesn't interpolate, so fill the count placeholders by hand (the same
   // idiom the account/meta strings use).
@@ -51,8 +59,20 @@ export default function TrophiesRoute() {
           }}
           strings={{ progress, percent, ...screenStrings }}
           formatDate={formatDate}
+          onTrophyPress={setSelectedId}
         />
       </SafeAreaView>
+
+      {selected ? (
+        <TrophyDetailSheet
+          trophy={selected}
+          tierName={screenStrings.tierNames[selected.tier]}
+          achievedLabel={screenStrings.achievedLabel}
+          lockedLabel={screenStrings.lockedLabel}
+          formatDate={formatDate}
+          onClose={() => setSelectedId(null)}
+        />
+      ) : null}
     </Screen>
   );
 }

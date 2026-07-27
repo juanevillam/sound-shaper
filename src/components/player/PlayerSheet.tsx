@@ -581,7 +581,8 @@ export function PlayerSheet() {
   // Settings-ish screens: the floating banner reads as clutter there.
   if (
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/manage-account')
+    pathname.startsWith('/manage-account') ||
+    pathname.startsWith('/trophies')
   )
     return null;
 
