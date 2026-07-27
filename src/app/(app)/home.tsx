@@ -16,7 +16,6 @@ import {
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
-import { SortMenu } from '@/components/songs/SortMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { Screen } from '@/components/ui/Screen';
@@ -25,9 +24,7 @@ import { Text } from '@/components/ui/Text';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import { readId3Tags } from '@/lib/id3';
-import { sortSongs } from '@/lib/sortSongs';
 import { type Song } from '@/services/firebase/songs';
-import { useLibraryStore } from '@/store/library';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
 
@@ -78,7 +75,6 @@ export default function HomeScreen() {
   const isPlaying = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
-  const sortMode = useLibraryStore(s => s.sortMode);
 
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -107,7 +103,7 @@ export default function HomeScreen() {
   );
 
   const firstLoad = !hasSettled;
-  const rows = toGridRows(sortSongs(songs, sortMode));
+  const rows = toGridRows(songs);
 
   const renderCell = useCallback(
     (cell: Song | 'add' | null) => {
@@ -158,7 +154,6 @@ export default function HomeScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
           <View style={styles.headerActions}>
-            {songs.length > 1 ? <SortMenu /> : null}
             <RippleIconButton
               name="settings"
               onPress={() => router.push('/settings')}

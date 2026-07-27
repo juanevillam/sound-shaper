@@ -51,13 +51,6 @@ export const translations = {
     },
     home: {
       addSong: 'Add sound',
-      sort: {
-        label: 'Sort sounds',
-        recent: 'Recently added',
-        oldest: 'Oldest first',
-        title: 'Title',
-        artist: 'Artist',
-      },
       error: {
         title: 'Could not load your sounds',
         subtitle: 'Check your connection and try again.',
@@ -285,13 +278,6 @@ export const translations = {
     },
     home: {
       addSong: 'Agregar sonido',
-      sort: {
-        label: 'Ordenar sonidos',
-        recent: 'Agregadas recientemente',
-        oldest: 'Más antiguas primero',
-        title: 'Título',
-        artist: 'Artista',
-      },
       error: {
         title: 'No se pudieron cargar tus sonidos',
         subtitle: 'Revisa tu conexión e inténtalo de nuevo.',
@@ -522,13 +508,6 @@ export const translations = {
     },
     home: {
       addSong: '添加音频',
-      sort: {
-        label: '音频排序',
-        recent: '最近添加',
-        oldest: '最早添加',
-        title: '标题',
-        artist: '艺术家',
-      },
       error: {
         title: '无法加载你的音频',
         subtitle: '请检查网络连接后重试。',
