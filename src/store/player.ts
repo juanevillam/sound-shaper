@@ -5,7 +5,7 @@ import { type Song } from '@/services/firebase/songs';
 
 // Restart-vs-previous threshold: past this many seconds into a song, the
 // "previous" control restarts it instead (the universal music-app idiom).
-const RESTART_THRESHOLD_S = 3;
+export const RESTART_THRESHOLD_S = 3;
 
 // Global playback state. WHAT is playing (song + its playlist queue), the
 // user's shaping choices (rate, pitch), and the live transport (position /
