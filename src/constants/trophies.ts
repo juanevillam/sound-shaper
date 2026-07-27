@@ -19,8 +19,10 @@ export const TROPHY_IDS = {
 
 // Trophy display names — ALWAYS English, never localized. The names are "-er"
 // wordplay and that rule is inherently English, so they read identically in
-// every locale (a translated "Escuchador" breaks the concept). Single source of
-// truth; the i18n `items.*` only localize the description.
+// every locale (a translated "Escuchador" breaks the concept). The platinum is
+// the exception to the one-word rule: it carries the app's full name, the way
+// Topper's does. Single source of truth; the i18n `items.*` only localize the
+// description.
 export const TROPHY_TITLES: Record<string, string> = {
   [TROPHY_IDS.firstSound]: 'Uploader',
   [TROPHY_IDS.firstShape]: 'Tuner',
@@ -28,7 +30,7 @@ export const TROPHY_TITLES: Record<string, string> = {
   [TROPHY_IDS.library]: 'Stacker',
   [TROPHY_IDS.listening]: 'Listener',
   [TROPHY_IDS.savedShapes]: 'Refiner',
-  [TROPHY_IDS.platinum]: 'Shaper',
+  [TROPHY_IDS.platinum]: 'Sound Shaper',
 };
 
 // Thresholds for the count-based trophies. Single-sourced here and folded into
@@ -36,9 +38,9 @@ export const TROPHY_TITLES: Record<string, string> = {
 // number never desyncs the description from the objective.
 export const LIBRARY_SOUND_COUNT = 3;
 export const SAVED_SHAPE_COUNT = 3;
-// A deliberately odd number — it reads as a real listening habit rather than a
-// round target, and it is roughly an album a day for a week.
-export const LISTENING_MINUTES = 133;
+// Roughly an album a day for a week — long enough to mean the app is actually
+// in use, short enough to be reachable.
+export const LISTENING_MINUTES = 130;
 
 /**
  * The trophy set, in display order (most prestigious first — the platinum tops
