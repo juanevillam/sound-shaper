@@ -150,11 +150,48 @@ export const translations = {
         cancel: 'Cancel',
       },
     },
+    trophies: {
+      title: 'Trophies',
+      progress: '{earned} of {total} earned',
+      locked: 'Locked',
+      earned: 'Earned',
+      unlocked: 'Trophy unlocked',
+      tier: {
+        bronze: 'Bronze',
+        silver: 'Silver',
+        gold: 'Gold',
+        platinum: 'Platinum',
+      },
+      items: {
+        'first-sound': {
+          description: 'Add your first sound.',
+        },
+        'first-shape': {
+          description: 'Shape a sound — bend a band, the preamp or the speed.',
+        },
+        'first-clip': {
+          description: 'Save your first clip.',
+        },
+        library: {
+          description: 'Keep {count} sounds in your library.',
+        },
+        listening: {
+          description: 'Listen for {count} minutes in total.',
+        },
+        'saved-shapes': {
+          description: 'Save {count} shapes of your own.',
+        },
+        platinum: {
+          description: 'Earn every other trophy.',
+        },
+      },
+    },
     settings: {
       account: {
         title: 'Account',
         noName: 'Your account',
       },
+      trophies: 'Trophies',
       manageAccount: {
         title: 'Manage account',
         infoTitle: 'Account info',
@@ -377,11 +414,49 @@ export const translations = {
         cancel: 'Cancelar',
       },
     },
+    trophies: {
+      title: 'Trofeos',
+      progress: '{earned} de {total} conseguidos',
+      locked: 'Bloqueado',
+      earned: 'Conseguido',
+      unlocked: 'Trofeo desbloqueado',
+      tier: {
+        bronze: 'Bronce',
+        silver: 'Plata',
+        gold: 'Oro',
+        platinum: 'Platino',
+      },
+      items: {
+        'first-sound': {
+          description: 'Agrega tu primer sonido.',
+        },
+        'first-shape': {
+          description:
+            'Moldea un sonido: mueve una banda, el preamp o la velocidad.',
+        },
+        'first-clip': {
+          description: 'Guarda tu primer clip.',
+        },
+        library: {
+          description: 'Ten {count} sonidos en tu biblioteca.',
+        },
+        listening: {
+          description: 'Escucha {count} minutos en total.',
+        },
+        'saved-shapes': {
+          description: 'Guarda {count} moldes propios.',
+        },
+        platinum: {
+          description: 'Consigue todos los demás trofeos.',
+        },
+      },
+    },
     settings: {
       account: {
         title: 'Cuenta',
         noName: 'Tu cuenta',
       },
+      trophies: 'Trofeos',
       manageAccount: {
         title: 'Gestionar cuenta',
         infoTitle: 'Información de la cuenta',
@@ -606,11 +681,48 @@ export const translations = {
         cancel: '取消',
       },
     },
+    trophies: {
+      title: '奖杯',
+      progress: '已获得 {earned} / {total}',
+      locked: '未解锁',
+      earned: '已获得',
+      unlocked: '奖杯已解锁',
+      tier: {
+        bronze: '铜杯',
+        silver: '银杯',
+        gold: '金杯',
+        platinum: '白金杯',
+      },
+      items: {
+        'first-sound': {
+          description: '添加你的第一个音频。',
+        },
+        'first-shape': {
+          description: '塑造一个音频：调整频段、前置放大或速度。',
+        },
+        'first-clip': {
+          description: '保存你的第一个片段。',
+        },
+        library: {
+          description: '让音频库中保有 {count} 个音频。',
+        },
+        listening: {
+          description: '累计聆听 {count} 分钟。',
+        },
+        'saved-shapes': {
+          description: '保存 {count} 个你自己的音色。',
+        },
+        platinum: {
+          description: '获得其他所有奖杯。',
+        },
+      },
+    },
     settings: {
       account: {
         title: '账户',
         noName: '你的账户',
       },
+      trophies: '奖杯',
       manageAccount: {
         title: '管理账户',
         infoTitle: '账户信息',

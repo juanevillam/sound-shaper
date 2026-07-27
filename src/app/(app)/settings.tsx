@@ -68,6 +68,12 @@ export default function Settings() {
           // Deletion lives behind manage-account (the WhatsApp/Google idiom).
           navRows: [
             {
+              id: 'trophies',
+              label: t('settings.trophies'),
+              icon: 'trophy',
+              onPress: () => router.push('/trophies'),
+            },
+            {
               id: 'manage-account',
               label: t('settings.manageAccount.title'),
               icon: 'manage-accounts',
