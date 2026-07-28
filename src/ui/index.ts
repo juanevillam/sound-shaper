@@ -31,6 +31,7 @@ export {
   type WelcomeFeatureItem,
 } from './WelcomeScreen';
 export { Screen } from './Screen';
+export { SheetBar } from './SheetBar';
 export {
   SnackbarContext,
   useSnackbar,
@@ -40,7 +41,19 @@ export {
 export { SnackbarProvider } from './SnackbarProvider';
 export { SwiftUIHost } from './SwiftUIHost';
 export { useNavigationTheme } from './useNavigationTheme';
-export { createText, type TextProps, type TextVariant } from './createText';
+export {
+  createText,
+  TEXT_VARIANTS,
+  type TextProps,
+  type TextVariant,
+} from './createText';
+export {
+  SheetDestructiveButtonIos,
+  SheetFieldIos,
+  SheetHeaderIos,
+  SheetMediaBlockIos,
+  SheetSectionHeaderIos,
+} from './SheetFormIos';
 export {
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
@@ -55,6 +68,13 @@ export {
   type SettingsNavRow,
   type SettingsUsernameEditor,
 } from './SettingsAccountSection';
+export {
+  ManageAccountScreen,
+  type ManageAccountColors,
+  type ManageAccountInfoRow,
+  type ManageAccountNavRow,
+  type ManageAccountScreenProps,
+} from './ManageAccountScreen';
 export {
   SettingsScreen,
   type SettingsAboutConfig,

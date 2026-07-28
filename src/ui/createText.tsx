@@ -18,7 +18,12 @@ export type TextVariant =
   | 'labelLarge'
   | 'labelMedium';
 
-const VARIANT_STYLES: Record<TextVariant, TextStyle> = {
+/**
+ * The type scale itself. Exported so package-level components (which can't
+ * call an app's `useI18n`, so can't use the app `Text`) still render on the
+ * exact same steps as every app screen.
+ */
+export const TEXT_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: {
     fontSize: 36,
     lineHeight: 44,
@@ -90,7 +95,7 @@ export function createText<K extends string>(
         ellipsizeMode={ellipsizeMode}
         numberOfLines={numberOfLines}
         style={StyleSheet.flatten([
-          VARIANT_STYLES[variant],
+          TEXT_VARIANTS[variant],
           { color: muted ? colors.onSurfaceMuted : colors.onSurface },
           style,
         ])}
