@@ -1,14 +1,18 @@
 import { useRef, useState } from 'react';
 
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
+import {
+  SheetDestructiveButtonIos,
+  SheetFieldIos,
+  SheetHeaderIos,
+  SheetMediaBlockIos,
+} from '@portfolio/mobile-ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type PickedSongFile } from '@/components/songs/EditSongSheet';
-import { SheetFieldIos, SheetHeaderIos } from '@/components/ui/SheetFormIos';
-import { SongArt } from '@/components/ui/SongArt';
-import { Text } from '@/components/ui/Text';
+import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -20,8 +24,11 @@ import { takePendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
 
-const ART_SIZE = 96;
-const PRESSED_OPACITY = 0.55;
+// Fallback glyph when a file carries no embedded art — same one the Android
+// sheet uses, so the two platforms show the same placeholder.
+const SONG_EMOJI = '🎵';
+
+const noop = () => {};
 
 // Strip the extension for the name prefill when the file had no ID3 title.
 const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
@@ -207,26 +214,27 @@ function EditSoundSheetScreen() {
       />
 
       {/* Cover art is a read-only preview: it comes from the file's ID3 tag,
-          never hand-picked, so there is nothing to tap. */}
-      <View style={styles.artBlock}>
-        <SongArt
-          artUrl={artPreviewUri}
-          displayWidth={ART_SIZE}
-          emojiSize={40}
-          style={styles.art}
+          never hand-picked, so the disc is disabled rather than a picker.
+          Same disc, same block, same caption slot as Topper's editor and as
+          this app's own Android sheet — only the tappability differs. */}
+      <SheetMediaBlockIos
+        caption={t(
+          isSaving
+            ? 'songEdit.uploading'
+            : artPreviewUri
+              ? 'songEdit.art.embedded'
+              : 'songEdit.art.none',
+        )}
+      >
+        <MediaPickerAvatar
+          onPress={noop}
+          disabled
+          surfaceColor={colors.surfaceVariant}
+          contentColor={colors.onSurfaceMuted}
+          emoji={SONG_EMOJI}
+          imageUrl={artPreviewUri}
         />
-        <Text
-          muted
-          text={
-            isSaving
-              ? 'songEdit.uploading'
-              : artPreviewUri
-                ? 'songEdit.art.embedded'
-                : 'songEdit.art.none'
-          }
-          variant="labelMedium"
-        />
-      </View>
+      </SheetMediaBlockIos>
 
       <SheetFieldIos
         value={name}
@@ -264,24 +272,12 @@ function EditSoundSheetScreen() {
       />
 
       {songId ? (
-        <Pressable
-          accessibilityRole="button"
+        <SheetDestructiveButtonIos
+          label={t('songEdit.delete')}
           disabled={isSaving}
           onPress={confirmDelete}
-          style={({ pressed }) => [
-            styles.deleteRow,
-            {
-              backgroundColor: colors.sheetField,
-              opacity: pressed || isSaving ? PRESSED_OPACITY : 1,
-            },
-          ]}
-        >
-          <Text
-            text="songEdit.delete"
-            variant="bodyLarge"
-            style={{ color: colors.danger }}
-          />
-        </Pressable>
+          style={styles.destructive}
+        />
       ) : null}
     </ScrollView>
   );
@@ -290,8 +286,7 @@ function EditSoundSheetScreen() {
 export default iosOnlyRoute(EditSoundSheetScreen);
 
 const styles = StyleSheet.create({
-  art: { borderRadius: 12, height: ART_SIZE, width: ART_SIZE },
-  artBlock: { alignItems: 'center', gap: 8 },
-  deleteRow: { alignItems: 'center', borderRadius: 12, paddingVertical: 14 },
+  // Destructive actions stand apart from the fields above them.
+  destructive: { marginTop: 8 },
   sheet: { gap: 16, paddingHorizontal: 24, paddingTop: 20 },
 });

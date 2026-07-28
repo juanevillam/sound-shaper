@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { SheetHeaderIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
-import { SheetHeaderIos } from '@/components/ui/SheetFormIos';
 import { Text } from '@/components/ui/Text';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -15,6 +15,9 @@ import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
+import { ROW_INSET } from '@/styles/metrics';
+import { CONTROL_RADIUS } from '@/styles/shape';
+import { separator } from '@/styles/surfaces';
 
 const NO_CLIPS: never[] = [];
 const PRESSED_OPACITY = 0.55;
@@ -80,10 +83,10 @@ function ClipsSheetScreen() {
 
             return (
               <View key={clip.id}>
+                {/* iOS insets a row separator to the content edge, so the
+                    labels line up straight across it (styles/surfaces). */}
                 {index > 0 ? (
-                  <View
-                    style={[styles.divider, { backgroundColor: colors.border }]}
-                  />
+                  <View style={separator(colors, ROW_INSET)} />
                 ) : null}
                 <Pressable
                   accessibilityRole="button"
@@ -126,14 +129,13 @@ function ClipsSheetScreen() {
 export default iosOnlyRoute(ClipsSheetScreen);
 
 const styles = StyleSheet.create({
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
-  group: { borderRadius: 12, overflow: 'hidden' },
+  group: { borderRadius: CONTROL_RADIUS, overflow: 'hidden' },
   range: { flex: 1 },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
-    paddingLeft: 16,
+    paddingLeft: ROW_INSET,
     paddingRight: 8,
     paddingVertical: 4,
   },
