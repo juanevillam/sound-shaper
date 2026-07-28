@@ -7,8 +7,16 @@ import {
   StyleSheet,
   View,
   useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
+import { withAlpha } from '@portfolio/core';
+import {
+  ICON_PRESS_OPACITY,
+  ICON_PRESS_SCALE,
+  usePressSquash,
+} from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -44,7 +52,7 @@ import { PlayerScrubber } from '@/components/player/PlayerScrubber';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
-import { RippleIconButton } from '@/components/ui/RippleIconButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { TROPHY_IDS } from '@/constants/trophies';
@@ -63,11 +71,20 @@ import { useSongsStore } from '@/store/songs';
 import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
-// The YT-Music player interaction: the bottom banner and the full player are
-// ONE bottom-anchored, full-height surface. `progress` (0 collapsed, 1
-// expanded) drives transform-only animation — the container translates up,
-// the single shared artwork element scales/travels from the 44dp thumb to the
-// expanded square, the mini row cross-fades into the expanded controls.
+// The player interaction: the collapsed banner and the full player are ONE
+// bottom-anchored, full-height container. `progress` (0 collapsed, 1 expanded)
+// drives everything — the container translates up, the single shared artwork
+// element scales/travels from the 44dp thumb to the expanded square, the mini
+// row cross-fades into the expanded controls.
+//
+// Collapsed, the banner is a DETACHED PILL: a floating island inset from both
+// screen edges and lifted clear of the bottom one, not a bar welded to the
+// window. That shape is what the expansion has to resolve, so the painted
+// surface is its OWN layer inside the container rather than the container's
+// background: it grows from the pill's box to the full window while its
+// corners unwind and its lateral insets close. The container itself only
+// translates, so the gestures, the pager and the shared artwork are unchanged
+// by any of it.
 //
 // The expanded surface is a FIXED console: art, title (with an overflow menu
 // for song info / editing), the native scrubber, transport, and two cards —
@@ -78,18 +95,58 @@ import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 /** CONTENT height of the collapsed banner (consumers add the bottom inset). */
 export const MINI_PLAYER_HEIGHT = 64;
 
+/** Gap from the pill to each screen edge. */
+export const BANNER_SIDE_INSET = 16;
+
+/** Clearance UNDER the pill, above the home indicator / nav-bar inset. */
+export const BANNER_BOTTOM_GAP = 8;
+
+// A capsule rather than a rounded rect: an island reads as one object, and at
+// this height the two are not the same gesture of the hand.
+const PILL_RADIUS = MINI_PLAYER_HEIGHT / 2;
+
+// A detached surface needs a lift or it reads as a sticker painted on the
+// screen. iOS casts a soft shadow, Android raises it through the elevation
+// system; both let go as the pill becomes the full-screen player, which is a
+// surface with nothing behind it to cast onto.
+const PILL_SHADOW_OPACITY = 0.3;
+const PILL_ELEVATION = 8;
+// The static half of the lift — only the opacity animates. Black rather than a
+// palette token on purpose: a shadow is absence of light, not a colour of the
+// theme (same call the clip handles already make).
+const PILL_LIFT = {
+  shadowColor: '#000',
+  shadowOffset: { height: 6, width: 0 },
+  shadowOpacity: PILL_SHADOW_OPACITY,
+  shadowRadius: 14,
+};
+// How much of the expansion the pill's own chrome — border, lift — takes to
+// disappear. Matches the surface's colour cross-fade, so the whole "this is a
+// floating object" story ends at once.
+const PILL_CHROME_FADE = 0.35;
+
 const PROGRESS_HEIGHT = 2;
-const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT - PROGRESS_HEIGHT;
+// The progress line lives INSIDE the pill. Pinned to the top edge it would be
+// clipped to a sliver by the capsule's own curve, so it rides just above the
+// bottom rim, inset far enough at both ends to clear the corner arc.
+const PROGRESS_INSET_X = 26;
+// The unplayed remainder, as a tint of the content colour.
+const PROGRESS_TRACK_ALPHA = 0.2;
+const PROGRESS_BOTTOM = 4;
+
+const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
 const MINI_ART_SIZE = 44;
 // The artwork is ONE element scaled between the two states, so a fixed
 // borderRadius renders ~5x smaller when collapsed. These are the radii we want
 // to SEE at each end; the style divides by the live scale to hit them.
 const MINI_ART_RADIUS = 8;
-const MINI_ART_X = 16;
-const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
-
-// Clearance under the collapsed banner's content, above the nav-bar inset.
-const BANNER_BOTTOM_GAP = 8;
+// Inset INSIDE the pill — enough that the thumb's top corners clear the
+// capsule's own curve, which at the artwork's height has already eaten 9pt.
+const MINI_ART_PILL_X = 12;
+// ...and the same thing in container (screen) space, where the shared artwork
+// element is positioned.
+const MINI_ART_X = BANNER_SIDE_INSET + MINI_ART_PILL_X;
+const MINI_ART_Y = (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
 // Extra room under the scrubber WHILE FRAMING A CLIP only. Framing adds a
 // third line (the range) under the elapsed/total pair, which without this
@@ -98,7 +155,9 @@ const BANNER_BOTTOM_GAP = 8;
 // shorter labels leave less optical air of their own.
 const CLIP_FRAMING_GAP = Platform.select({ ios: 16, default: 8 }) as number;
 
-// The banner's top rule — iOS only; Android's frozen banner has no border.
+// The pill's outline — iOS only. `styles/surfaces`: iOS separates surfaces by
+// EDGE, Android by TONE, and Android's raised pill already reads as its own
+// object through elevation and the tonal step.
 const IOS_ONLY_HAIRLINE = Platform.OS === 'ios' ? HAIRLINE : 0;
 
 // The wash starts appearing only this far into the expansion.
@@ -160,9 +219,53 @@ const PreviousGlyph = ({ color }: { color: string }) => (
   </View>
 );
 
+type GlyphButtonProps = {
+  children: React.ReactNode;
+  onPress: () => void;
+  accessibilityLabel: string;
+  hitSlop?: number;
+  style?: StyleProp<ViewStyle>;
+};
+
+/**
+ * The transport buttons. Their glyphs are hand-drawn Views rather than icons
+ * (a Compose Icon here would blink on navigation returns — the drag-dots
+ * lesson), so they can't go through `components/ui/IconButton` — but they use
+ * the same press feedback it does, which is the point: one squash, both
+ * platforms, no `android_ripple` that iOS silently ignores.
+ */
+function GlyphButton({
+  children,
+  onPress,
+  accessibilityLabel,
+  hitSlop = 8,
+  style,
+}: GlyphButtonProps) {
+  const squash = usePressSquash({
+    scale: ICON_PRESS_SCALE,
+    opacity: ICON_PRESS_OPACITY,
+  });
+
+  return (
+    <Animated.View style={squash.style}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={squash.onPressIn}
+        onPressOut={squash.onPressOut}
+        hitSlop={hitSlop}
+        style={style}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function PlayerSheet() {
   const { t } = useI18n();
-  const { colors, scheme } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   // Android hands back a bottom inset of 0 on some cold starts, resumes and
   // config changes — which would drop the collapsed banner UNDER the
@@ -483,12 +586,33 @@ export function PlayerSheet() {
   // --- Animated styles -----------------------------------------------------
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: (1 - progress.value) * travel }],
-    backgroundColor: interpolateColor(
-      progress.value,
-      [0, 0.35],
-      [colors.surfaceContainer, colors.background],
-    ),
   }));
+
+  // THE detach: the painted surface is a layer inside the container, not the
+  // container's own background, so it can be a pill at one end and the whole
+  // window at the other. Everything here resolves to the pill's box at p = 0
+  // and to a full-bleed, square-cornered, unlifted surface at p = 1.
+  const surfaceStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    // The floating-object chrome (outline, lift) goes early — by the time the
+    // sheet reads as a screen there is nothing left for it to float above.
+    const chrome = 1 - Math.min(p / PILL_CHROME_FADE, 1);
+
+    return {
+      backgroundColor: interpolateColor(
+        p,
+        [0, PILL_CHROME_FADE],
+        [colors.surfaceContainer, colors.background],
+      ),
+      borderRadius: PILL_RADIUS * (1 - p),
+      borderWidth: IOS_ONLY_HAIRLINE * chrome,
+      elevation: PILL_ELEVATION * chrome,
+      height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
+      left: BANNER_SIDE_INSET * (1 - p),
+      right: BANNER_SIDE_INSET * (1 - p),
+      shadowOpacity: PILL_SHADOW_OPACITY * chrome,
+    };
+  });
 
   const artStyle = useAnimatedStyle(() => {
     const p = progress.value;
@@ -537,7 +661,7 @@ export function PlayerSheet() {
     ),
   }));
 
-  const hairlineStyle = useAnimatedStyle(() => ({
+  const progressLineStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, 1 - progress.value * 3),
   }));
   // -------------------------------------------------------------------------
@@ -678,23 +802,26 @@ export function PlayerSheet() {
     },
   ];
 
-  // Perceptible ripple on the hand-drawn banner buttons (theme-safe: the
-  // dynamic palette tokens reject alpha suffixes).
-  const ripple = {
-    borderless: true,
-    color: scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-    radius: 26,
-  };
-
   return (
     <>
       <Animated.View
         entering={reduceMotion ? undefined : SlideInDown.duration(220)}
         style={[styles.container, { height: winH }, containerStyle]}
       >
-        {/* The artwork wash sits behind EVERY layer of the sheet and tracks
-            the drag directly, so it grows in with the surface instead of
-            popping once the expanded chrome crosses its fade threshold. */}
+        {/* THE surface: a pill at rest, the whole window when open. It is
+            PAINT ONLY — nothing renders inside it. Its height is animated, and
+            an animated layout prop moves the native view without re-laying out
+            its children, so a child anchored to its bottom edge lands at the
+            top instead. Every layer below is therefore a sibling, positioned
+            against the container, whose height never changes. */}
+        <Animated.View
+          style={[styles.surface, { borderColor: colors.border }, surfaceStyle]}
+          pointerEvents="none"
+        />
+
+        {/* The artwork wash tracks the drag directly, so it grows in with the
+            surface instead of popping once the expanded chrome crosses its
+            fade threshold. */}
         <Animated.View
           style={[styles.backdropLayer, backdropStyle]}
           pointerEvents="none"
@@ -702,17 +829,27 @@ export function PlayerSheet() {
           <PlayerBackdrop artUrl={current.artUrl || undefined} />
         </Animated.View>
 
-        {/* Collapsed chrome: hairline progress + the banner row. */}
+        {/* Collapsed progress, riding just above the pill's bottom rim. */}
         <Animated.View
           style={[
-            styles.hairlineTrack,
-            { backgroundColor: colors.surfaceVariant },
-            hairlineStyle,
+            styles.progressTrack,
+            // NOT surfaceVariant: on the Material You dark palette it resolves
+            // to the pill's own fill, so the unplayed part of the line simply
+            // vanished and progress read as a stray blue dash. A tint of the
+            // content colour is visible on any palette, on both platforms.
+            {
+              backgroundColor: withAlpha(
+                colors.onSurface,
+                PROGRESS_TRACK_ALPHA,
+              ),
+            },
+            progressLineStyle,
           ]}
+          pointerEvents="none"
         >
           <View
             style={[
-              styles.hairlineFill,
+              styles.progressFill,
               {
                 backgroundColor: colors.primary,
                 width: `${progressRatio * 100}%`,
@@ -723,7 +860,7 @@ export function PlayerSheet() {
 
         <GestureDetector gesture={dragUp}>
           <Animated.View
-            style={[styles.miniRow, miniRowStyle]}
+            style={[styles.miniRow, styles.miniRowInset, miniRowStyle]}
             pointerEvents={expanded ? 'none' : 'auto'}
           >
             <Pressable
@@ -750,22 +887,16 @@ export function PlayerSheet() {
             </Pressable>
             {/* Skipping wraps, so previous always leads somewhere — the
                 banner never drops a control depending on queue position. */}
-            <Pressable
+            <GlyphButton
               onPress={onPrevious}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t('player.previous')}
             >
               <PreviousGlyph color={colors.onSurface} />
-            </Pressable>
-            <Pressable
+            </GlyphButton>
+            <GlyphButton
               onPress={onToggle}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
             >
               {playing ? (
@@ -773,17 +904,14 @@ export function PlayerSheet() {
               ) : (
                 <PlayGlyph color={colors.onSurface} />
               )}
-            </Pressable>
-            <Pressable
+            </GlyphButton>
+            <GlyphButton
               onPress={onNext}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t('player.next')}
             >
               <NextGlyph color={colors.onSurface} />
-            </Pressable>
+            </GlyphButton>
           </Animated.View>
         </GestureDetector>
 
@@ -800,31 +928,31 @@ export function PlayerSheet() {
           </GestureDetector>
 
           <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-            <RippleIconButton
+            <IconButton
               name="chevron-down"
               onPress={collapse}
               accessibilityLabel={t('common.back')}
             />
             {/* Song overflow: metadata + the same edit/delete sheet the
                 library's long-press opens. Compose anchors a dropdown to the
-                trigger; iOS opens the system action sheet instead. */}
-            <View style={styles.menuAnchor}>
-              <PlayerMenuButton
-                onInfo={() =>
-                  Platform.OS === 'ios'
-                    ? router.push('/sound-info')
-                    : setInfoVisible(true)
-                }
-                onEdit={() =>
-                  Platform.OS === 'ios'
-                    ? router.push({
-                        pathname: '/edit-sound',
-                        params: { songId: current.id },
-                      })
-                    : setEditVisible(true)
-                }
-              />
-            </View>
+                trigger; iOS opens the system action sheet instead. Both twins
+                size their own touch target, so there is no wrapper here — one
+                would only decentre the smaller of the two. */}
+            <PlayerMenuButton
+              onInfo={() =>
+                Platform.OS === 'ios'
+                  ? router.push('/sound-info')
+                  : setInfoVisible(true)
+              }
+              onEdit={() =>
+                Platform.OS === 'ios'
+                  ? router.push({
+                      pathname: '/edit-sound',
+                      params: { songId: current.id },
+                    })
+                  : setEditVisible(true)
+              }
+            />
           </View>
 
           {/* The console below the art — a fixed column, nothing scrolls. */}
@@ -931,34 +1059,25 @@ export function PlayerSheet() {
             </View>
 
             {/* Transport in RN, not Compose: a Compose IconButton's state
-                layer is invisible on this dark surface, so these carry their
-                own ripple — the YT Music idiom for a transport row. */}
+                layer is invisible on this dark surface. Feedback is the app's
+                squash, which — unlike the ripple these used to carry — also
+                exists on iOS. */}
             <View style={styles.transportRow}>
-              <Pressable
+              <GlyphButton
                 onPress={onPrevious}
                 hitSlop={12}
                 style={styles.transportSide}
-                android_ripple={ripple}
-                accessibilityRole="button"
                 accessibilityLabel={t('player.previous')}
               >
                 <PreviousGlyph color={colors.onSurface} />
-              </Pressable>
-              <Pressable
+              </GlyphButton>
+              <GlyphButton
                 onPress={onToggle}
                 hitSlop={12}
                 style={[
                   styles.transportPlay,
                   { backgroundColor: colors.primary },
                 ]}
-                // Circular and sized to the pill, so the ripple fills the
-                // button instead of bleeding past it.
-                android_ripple={{
-                  borderless: true,
-                  color: 'rgba(255,255,255,0.28)',
-                  radius: PLAY_BUTTON_SIZE / 2,
-                }}
-                accessibilityRole="button"
                 accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
               >
                 {playing ? (
@@ -966,17 +1085,15 @@ export function PlayerSheet() {
                 ) : (
                   <PlayGlyph color={colors.onPrimary} />
                 )}
-              </Pressable>
-              <Pressable
+              </GlyphButton>
+              <GlyphButton
                 onPress={onNext}
                 hitSlop={12}
                 style={styles.transportSide}
-                android_ripple={ripple}
-                accessibilityRole="button"
                 accessibilityLabel={t('player.next')}
               >
                 <NextGlyph color={colors.onSurface} />
-              </Pressable>
+              </GlyphButton>
             </View>
 
             {/* While framing a clip, the action row takes the cards' place. */}
@@ -1101,7 +1218,7 @@ type IdleBannerProps = {
  */
 function IdleBanner({ bottomInset }: IdleBannerProps) {
   const { t } = useI18n();
-  const { colors, scheme } = useAppTheme();
+  const { colors } = useAppTheme();
   const songs = useSongsStore(s => s.songs);
   const playSong = usePlayerStore(s => s.playSong);
   const requestExpand = usePlayerStore(s => s.requestExpand);
@@ -1122,24 +1239,17 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   };
   const start = () => startAt(first);
 
-  const ripple = {
-    borderless: true,
-    color: scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-    radius: 26,
-  };
-
   return (
     <View
       style={[
-        styles.idleContainer,
+        styles.idlePill,
         {
           backgroundColor: colors.surfaceContainer,
-          // iOS separates surfaces by EDGE, Android by TONE (styles/surfaces).
-          // The tonal step alone is nearly invisible where the banner meets a
-          // dark screen, so on iOS a hairline draws the boundary.
-          borderTopColor: colors.border,
-          borderTopWidth: IOS_ONLY_HAIRLINE,
-          paddingBottom: bottomInset + BANNER_BOTTOM_GAP,
+          // The same floating island the loaded banner resolves to — parked,
+          // so it needs none of the animation, only the shape.
+          borderColor: colors.border,
+          borderWidth: IOS_ONLY_HAIRLINE,
+          bottom: bottomInset + BANNER_BOTTOM_GAP,
         },
       ]}
     >
@@ -1187,36 +1297,27 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         </View>
         {first ? (
           <>
-            <Pressable
+            <GlyphButton
               onPress={() => startAt(ordered[ordered.length - 1])}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t('player.previous')}
             >
               <PreviousGlyph color={colors.onSurface} />
-            </Pressable>
-            <Pressable
+            </GlyphButton>
+            <GlyphButton
               onPress={start}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t('player.play')}
             >
               <PlayGlyph color={colors.onSurface} />
-            </Pressable>
-            <Pressable
+            </GlyphButton>
+            <GlyphButton
               onPress={() => startAt(ordered[1] ?? first)}
-              hitSlop={8}
               style={styles.miniButton}
-              android_ripple={ripple}
-              accessibilityRole="button"
               accessibilityLabel={t('player.next')}
             >
               <NextGlyph color={colors.onSurface} />
-            </Pressable>
+            </GlyphButton>
           </>
         ) : null}
       </Pressable>
@@ -1225,15 +1326,20 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
 }
 
 const styles = StyleSheet.create({
-  idleContainer: {
-    bottom: 0,
-    left: 0,
+  // The parked banner IS the pill the loaded one animates from, so it is built
+  // once here and never moves. `bottom` comes from the safe-area inset.
+  idlePill: {
+    borderRadius: PILL_RADIUS,
+    elevation: PILL_ELEVATION,
+    left: BANNER_SIDE_INSET,
     position: 'absolute',
-    right: 0,
+    right: BANNER_SIDE_INSET,
+    ...PILL_LIFT,
+    ...CONTINUOUS_CURVE,
   },
   idleArt: {
     height: MINI_ART_SIZE,
-    marginLeft: MINI_ART_X,
+    marginLeft: MINI_ART_PILL_X,
     width: MINI_ART_SIZE,
   },
   idleInfo: { flex: 1, gap: 1, paddingLeft: 12 },
@@ -1243,6 +1349,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
   },
+  // Anchored to the container's top — the pill's own top edge — and grown
+  // downward by the animated height.
+  surface: {
+    position: 'absolute',
+    top: 0,
+    ...PILL_LIFT,
+    ...CONTINUOUS_CURVE,
+  },
   backdropLayer: {
     bottom: 0,
     left: 0,
@@ -1250,20 +1364,33 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  hairlineTrack: { height: PROGRESS_HEIGHT, width: '100%' },
-  hairlineFill: { height: PROGRESS_HEIGHT },
+  // Positioned from the container's TOP — which is the pill's top — because
+  // the surface's animated height is not a layout its children can key off.
+  progressTrack: {
+    borderRadius: PROGRESS_HEIGHT / 2,
+    height: PROGRESS_HEIGHT,
+    left: BANNER_SIDE_INSET + PROGRESS_INSET_X,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: BANNER_SIDE_INSET + PROGRESS_INSET_X,
+    top: MINI_PLAYER_HEIGHT - PROGRESS_BOTTOM - PROGRESS_HEIGHT,
+  },
+  progressFill: { height: '100%' },
   miniRow: {
     alignItems: 'center',
     flexDirection: 'row',
     height: MINI_ROW_HEIGHT,
     paddingRight: 4,
   },
+  // Only the LOADED banner needs this: the idle pill is already inset, being
+  // the pill itself rather than a row inside a full-width container.
+  miniRowInset: { marginHorizontal: BANNER_SIDE_INSET },
   miniBody: {
     alignSelf: 'stretch',
     flex: 1,
     justifyContent: 'center',
     // Clears the shared artwork sitting in the banner slot.
-    paddingLeft: MINI_ART_X + MINI_ART_SIZE + 12,
+    paddingLeft: MINI_ART_PILL_X + MINI_ART_SIZE + 12,
   },
   miniInfo: { gap: 1 },
   miniButton: {
@@ -1319,12 +1446,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0,
-  },
-  menuAnchor: {
-    alignItems: 'center',
-    height: 48,
-    justifyContent: 'center',
-    width: 48,
   },
   expandedBody: {
     bottom: 0,
