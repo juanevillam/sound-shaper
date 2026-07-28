@@ -11,6 +11,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
+  BANNER_BOTTOM_GAP,
   MINI_PLAYER_HEIGHT,
   PlayerSheet,
 } from '@/components/player/PlayerSheet';
@@ -20,7 +21,7 @@ import {
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { RippleIconButton } from '@/components/ui/RippleIconButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
@@ -161,8 +162,11 @@ export default function HomeScreen() {
     [renderCell],
   );
 
-  // The banner is always parked at the bottom now, so always clear it.
-  const listBottomPadding = insets.bottom + 24 + MINI_PLAYER_HEIGHT;
+  // The banner is always parked at the bottom, so the grid always clears it —
+  // and it is a DETACHED pill, so "clearing it" means its own bottom gap plus
+  // its height plus one grid gutter, not a guessed number.
+  const listBottomPadding =
+    insets.bottom + BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + GRID_GAP;
 
   return (
     <Screen>
@@ -173,7 +177,7 @@ export default function HomeScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text text="app.title" variant="titleLarge" style={styles.wordmark} />
           <View style={styles.headerActions}>
-            <RippleIconButton
+            <IconButton
               name="settings"
               onPress={() => router.push('/settings')}
               accessibilityLabel={t('app.settings')}
