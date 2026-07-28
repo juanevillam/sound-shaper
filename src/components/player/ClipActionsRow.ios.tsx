@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { RippleIconButton } from '@/components/ui/RippleIconButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -23,7 +23,7 @@ export function ClipActionsRow({
 
   return (
     <View style={styles.row}>
-      <RippleIconButton
+      <IconButton
         name="close"
         onPress={onCancel}
         size={20}
