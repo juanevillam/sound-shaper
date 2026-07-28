@@ -27,6 +27,24 @@ export const CONTROL_RADIUS = Platform.select({
   default: 8,
 }) as number;
 
+/**
+ * A container that FLOATS over content rather than sitting in the layout —
+ * the detached now-playing banner. Deliberately TIGHTER than the grouped-list
+ * radius: at the banner's height, 26 on iOS reads as a capsule, and a capsule
+ * reads as a widget from somewhere else. Apple's floating accessory views take
+ * a continuous corner in the low twenties (22 is the iPhone widget corner);
+ * Material's floating surfaces take the large shape step.
+ *
+ * The two do NOT scale together if the container's size changes: iOS corners
+ * are a continuous quantity and can follow it, while Material's shape scale is
+ * DISCRETE (4/8/12/16/28) — stepping Android off 16 would leave the system for
+ * the sake of a proportion.
+ */
+export const FLOATING_RADIUS = Platform.select({
+  ios: 22,
+  default: 16,
+}) as number;
+
 /** Fully-rounded capsule (pill buttons, chips-as-buttons). */
 export const PILL_RADIUS = 999;
 
