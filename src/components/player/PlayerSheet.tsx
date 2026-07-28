@@ -2,33 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   BackHandler,
+  Platform,
   Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
 
-import {
-  Button,
-  Column,
-  DropdownMenu,
-  DropdownMenuItem,
-  IconButton,
-  OutlinedButton,
-  Row,
-  Shape,
-  Slider,
-  Surface,
-  Text,
-} from '@expo/ui/jetpack-compose';
-import {
-  fillMaxWidth,
-  padding,
-  weight,
-} from '@expo/ui/jetpack-compose/modifiers';
-import { AppIcon } from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
-import { usePathname } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -48,23 +30,27 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import { type PlayerCard } from '@/components/player/chrome';
+import { ClipActionsRow } from '@/components/player/ClipActionsRow';
 import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
-import { rateLabel, ShaperSheet } from '@/components/player/ShaperSheet';
+import { PlayerCards } from '@/components/player/PlayerCards';
+import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
+import { PlayerScrubber } from '@/components/player/PlayerScrubber';
+import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
 import { RippleIconButton } from '@/components/ui/RippleIconButton';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { ThemedHost } from '@/components/ui/ThemedHost';
 import { TROPHY_IDS } from '@/constants/trophies';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { formatTime } from '@/lib/player';
+import { formatTime, rateLabel } from '@/lib/player';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
@@ -129,16 +115,6 @@ const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 
 const PLAY_BUTTON_SIZE = 64;
 const SIDE_PADDING = 24;
-const MENU_ICON_SIZE = 24;
-
-const CARD_SHAPE = Shape.RoundedCorner({
-  cornerRadii: {
-    topStart: 12,
-    topEnd: 12,
-    bottomStart: 12,
-    bottomEnd: 12,
-  },
-});
 
 // Stable fallback for the clips selector (an inline `?? []` loops
 // useSyncExternalStore into "maximum update depth exceeded").
@@ -207,6 +183,7 @@ export function PlayerSheet() {
   const storePosition = usePlayerStore(s => s.position);
   const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
+  const clipFramingNonce = usePlayerStore(s => s.clipFramingNonce);
 
   const activePreset = useShaperStore(s => s.activePreset);
   const activeShapeId = useShaperStore(s => s.activeShapeId);
@@ -568,8 +545,22 @@ export function PlayerSheet() {
   useEffect(() => {
     setClipMode(false);
   }, [current?.id]);
+
+  // iOS: the Clips ROUTE's "New clip" bumps this nonce as it dismisses — drop
+  // the trim brackets exactly as Android's in-place sheet callback does.
+  const lastFramingNonce = useRef(clipFramingNonce);
+  useEffect(() => {
+    if (clipFramingNonce === lastFramingNonce.current) return;
+    lastFramingNonce.current = clipFramingNonce;
+
+    const { position, duration } = usePlayerStore.getState();
+    const total = Math.floor(duration);
+    const start = Math.max(0, Math.round(position - 7));
+    const end = Math.min(total || 15, start + 15);
+    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    setClipMode(true);
+  }, [clipFramingNonce]);
   const [clipsVisible, setClipsVisible] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
@@ -663,6 +654,25 @@ export function PlayerSheet() {
     clips.length === 0
       ? t('player.clips.none')
       : t('player.clips.count').replace('{n}', String(clips.length));
+
+  const cards: readonly PlayerCard[] = [
+    {
+      icon: 'tune',
+      key: 'shape',
+      label: t('player.shape.title'),
+      onPress: () =>
+        Platform.OS === 'ios' ? router.push('/shaper') : setShaperVisible(true),
+      summary: shapeSummary,
+    },
+    {
+      icon: 'content-cut',
+      key: 'clips',
+      label: t('player.clips.title'),
+      onPress: () =>
+        Platform.OS === 'ios' ? router.push('/clips') : setClipsVisible(true),
+      summary: clipsSummary,
+    },
+  ];
 
   // Perceptible ripple on the hand-drawn banner buttons (theme-safe: the
   // dynamic palette tokens reject alpha suffixes).
@@ -792,73 +802,23 @@ export function PlayerSheet() {
               accessibilityLabel={t('common.back')}
             />
             {/* Song overflow: metadata + the same edit/delete sheet the
-                library's long-press opens. The ripple Pressable sits ON TOP
-                of the Compose trigger (whose own state layer is invisible);
-                the DropdownMenu still anchors to the icon under it. */}
+                library's long-press opens. Compose anchors a dropdown to the
+                trigger; iOS opens the system action sheet instead. */}
             <View style={styles.menuAnchor}>
-              <ThemedHost matchContents>
-                <DropdownMenu
-                  expanded={menuOpen}
-                  onDismissRequest={() => setMenuOpen(false)}
-                >
-                  <DropdownMenu.Trigger>
-                    <IconButton onClick={() => setMenuOpen(true)}>
-                      <AppIcon
-                        name="more-vert"
-                        tint={colors.onSurface}
-                        contentDescription={t('player.menu.label')}
-                      />
-                    </IconButton>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Items>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setInfoVisible(true);
-                      }}
-                    >
-                      <DropdownMenuItem.Text>
-                        <Text color={colors.onSurface}>
-                          {t('player.menu.info')}
-                        </Text>
-                      </DropdownMenuItem.Text>
-                      <DropdownMenuItem.LeadingIcon>
-                        <AppIcon
-                          name="info"
-                          size={MENU_ICON_SIZE}
-                          tint={colors.onSurface}
-                        />
-                      </DropdownMenuItem.LeadingIcon>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setEditVisible(true);
-                      }}
-                    >
-                      <DropdownMenuItem.Text>
-                        <Text color={colors.onSurface}>
-                          {t('player.menu.edit')}
-                        </Text>
-                      </DropdownMenuItem.Text>
-                      <DropdownMenuItem.LeadingIcon>
-                        <AppIcon
-                          name="edit"
-                          size={MENU_ICON_SIZE}
-                          tint={colors.onSurface}
-                        />
-                      </DropdownMenuItem.LeadingIcon>
-                    </DropdownMenuItem>
-                  </DropdownMenu.Items>
-                </DropdownMenu>
-              </ThemedHost>
-              <Pressable
-                onPress={() => setMenuOpen(true)}
-                hitSlop={8}
-                style={StyleSheet.absoluteFill}
-                android_ripple={ripple}
-                accessibilityRole="button"
-                accessibilityLabel={t('player.menu.label')}
+              <PlayerMenuButton
+                onInfo={() =>
+                  Platform.OS === 'ios'
+                    ? router.push('/sound-info')
+                    : setInfoVisible(true)
+                }
+                onEdit={() =>
+                  Platform.OS === 'ios'
+                    ? router.push({
+                        pathname: '/edit-sound',
+                        params: { songId: current.id },
+                      })
+                    : setEditVisible(true)
+                }
               />
             </View>
           </View>
@@ -930,59 +890,25 @@ export function PlayerSheet() {
                 tertiary trim brackets ride on top (Google Photos): edges
                 resize, the tinted middle slides the whole clip. */}
             <View style={styles.sliderBlock}>
-              <ThemedHost
-                matchContents={{ vertical: true }}
-                style={styles.host}
-              >
-                <Column
-                  horizontalAlignment="center"
-                  verticalArrangement={{ spacedBy: 0 }}
-                  modifiers={[fillMaxWidth()]}
-                >
-                  <Slider
-                    value={Math.min(position, duration)}
-                    min={0}
-                    max={duration}
-                    onValueChange={value => {
-                      lastDragRef.current = value;
-                      setDragValue(value);
-                    }}
-                    onValueChangeFinished={() => {
-                      // seek() also ends any clip replay.
-                      seek(lastDragRef.current);
-                      setDragValue(null);
-                    }}
-                    modifiers={[fillMaxWidth()]}
-                  />
-                  <Row
-                    horizontalArrangement="spaceBetween"
-                    modifiers={[fillMaxWidth()]}
-                  >
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{ typography: 'labelMedium' }}
-                    >
-                      {formatTime(position)}
-                    </Text>
-                    {clipMode ? (
-                      <Text
-                        color={colors.onSurface}
-                        style={{ typography: 'labelMedium' }}
-                        // Air above (slider) and below (transport).
-                        modifiers={[padding(0, 8, 0, 10)]}
-                      >
-                        {`${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`}
-                      </Text>
-                    ) : null}
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{ typography: 'labelMedium' }}
-                    >
-                      {formatTime(storeDuration)}
-                    </Text>
-                  </Row>
-                </Column>
-              </ThemedHost>
+              <PlayerScrubber
+                position={position}
+                duration={duration}
+                totalDuration={storeDuration}
+                clipLabel={
+                  clipMode
+                    ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
+                    : null
+                }
+                onDrag={value => {
+                  lastDragRef.current = value;
+                  setDragValue(value);
+                }}
+                onDragEnd={() => {
+                  // seek() also ends any clip replay.
+                  seek(lastDragRef.current);
+                  setDragValue(null);
+                }}
+              />
               {clipMode ? (
                 <View style={styles.handlesRegion} pointerEvents="box-none">
                   <ClipHandles
@@ -1046,117 +972,23 @@ export function PlayerSheet() {
 
             {/* While framing a clip, the action row takes the cards' place. */}
             {clipMode ? (
-              <ThemedHost
-                style={[styles.clipActionsHost, styles.firstCardHost]}
-              >
-                <Row
-                  verticalAlignment="center"
-                  horizontalArrangement={{ spacedBy: 8 }}
-                  modifiers={[fillMaxWidth()]}
-                >
-                  <IconButton onClick={() => setClipMode(false)}>
-                    <AppIcon
-                      name="close"
-                      size={22}
-                      tint={colors.onSurfaceMuted}
-                      contentDescription={t('common.cancel')}
-                    />
-                  </IconButton>
-                  <Column modifiers={[weight(1)]}>
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{ typography: 'labelLarge' }}
-                    >
-                      {t('player.clips.new')}
-                    </Text>
-                  </Column>
-                  <OutlinedButton onClick={onPreviewClip}>
-                    <Text color={colors.onSurface} maxLines={1}>
-                      {t('player.clips.preview')}
-                    </Text>
-                  </OutlinedButton>
-                  <Button onClick={onSaveClip}>
-                    <Text maxLines={1}>{t('player.clips.saveClip')}</Text>
-                  </Button>
-                </Row>
-              </ThemedHost>
+              <View style={styles.firstCardHost}>
+                <ClipActionsRow
+                  onCancel={() => setClipMode(false)}
+                  onPreview={onPreviewClip}
+                  onSave={onSaveClip}
+                />
+              </View>
             ) : (
-              /* Shape + Clips — the two studios, side by side as the console's
-                 footer. OUTLINED (Material 3's own variant for exactly this):
-                 a filled surface sat as two grey slabs on top of the artwork
-                 wash and cut the gradient in half. Transparent + a hairline
-                 outline keeps the wash running edge to edge, and one row of two
-                 instead of two stacked rows gives ~90dp of it back. */
-              <ThemedHost style={[styles.cardHost, styles.firstCardHost]}>
-                <Row
-                  verticalAlignment="center"
-                  horizontalArrangement={{ spacedBy: 12 }}
-                  modifiers={[fillMaxWidth()]}
-                >
-                  {(
-                    [
-                      {
-                        icon: 'tune',
-                        key: 'shape',
-                        label: t('player.shape.title'),
-                        onPress: () => setShaperVisible(true),
-                        summary: shapeSummary,
-                      },
-                      {
-                        icon: 'content-cut',
-                        key: 'clips',
-                        label: t('player.clips.title'),
-                        onPress: () => setClipsVisible(true),
-                        summary: clipsSummary,
-                      },
-                    ] as const
-                  ).map(card => (
-                    <Surface
-                      key={card.key}
-                      onClick={() => {
-                        haptics.selection();
-                        card.onPress();
-                      }}
-                      color="transparent"
-                      border={{ width: 1, color: colors.border }}
-                      shape={CARD_SHAPE}
-                      modifiers={[weight(1)]}
-                    >
-                      <Row
-                        verticalAlignment="center"
-                        horizontalArrangement={{ spacedBy: 10 }}
-                        modifiers={[fillMaxWidth(), padding(14, 18, 14, 18)]}
-                      >
-                        <AppIcon
-                          name={card.icon}
-                          size={26}
-                          tint={colors.primary}
-                          contentDescription={card.label}
-                        />
-                        <Column
-                          verticalArrangement={{ spacedBy: 1 }}
-                          modifiers={[weight(1)]}
-                        >
-                          <Text
-                            color={colors.onSurface}
-                            style={{ typography: 'bodyLarge' }}
-                            maxLines={1}
-                          >
-                            {card.label}
-                          </Text>
-                          <Text
-                            color={colors.onSurfaceMuted}
-                            style={{ typography: 'bodySmall' }}
-                            maxLines={1}
-                          >
-                            {card.summary}
-                          </Text>
-                        </Column>
-                      </Row>
-                    </Surface>
-                  ))}
-                </Row>
-              </ThemedHost>
+              /* Shape + Clips — the two studios, side by side as the
+                 console's footer. Outlined, not filled: a filled surface sat
+                 as two slabs on top of the artwork wash and cut the gradient
+                 in half. A hairline outline keeps the wash running edge to
+                 edge, and one row of two instead of two stacked rows gives
+                 ~90dp of it back. */
+              <View style={[styles.cardHost, styles.firstCardHost]}>
+                <PlayerCards cards={cards} />
+              </View>
             )}
           </View>
         </Animated.View>

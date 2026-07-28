@@ -26,6 +26,10 @@ type PlayerState = {
   // Bumped when a surface wants the full player OPENED (tapping a song tile
   // plays it and expands the sheet, YT-Music style). The PlayerSheet watches it.
   expandNonce: number;
+  // Bumped by the iOS Clips form-sheet's "New clip": the sheet is a separate
+  // ROUTE there, so it can't call into PlayerSheet's local framing state — the
+  // player watches this nonce instead (same idiom as expandNonce).
+  clipFramingNonce: number;
   rate: number;
   // Keep the original pitch while the rate changes (time-stretch). Off =
   // vinyl-style: slower also means deeper.
@@ -45,6 +49,7 @@ type PlayerState = {
 
   playSong: (song: Song, queue: Song[]) => void;
   requestExpand: () => void;
+  requestClipFraming: () => void;
   /** Jump-play a saved range of the CURRENT song. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
@@ -86,6 +91,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   loadNonce: 0,
   pendingStart: false,
   expandNonce: 0,
+  clipFramingNonce: 0,
   rate: 1,
   keepPitch: true,
   position: 0,
@@ -106,6 +112,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     })),
 
   requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
+
+  requestClipFraming: () =>
+    set(state => ({ clipFramingNonce: state.clipFramingNonce + 1 })),
 
   playClip: (clipId, startMs, endMs) => {
     if (!get().current) return;
