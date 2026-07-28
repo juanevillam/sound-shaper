@@ -26,6 +26,11 @@ export {
   type TrophiesScreenProps,
   type TrophiesScreenStrings,
 } from './TrophiesScreen';
+export {
+  TrophyDetailContent,
+  type TrophyDetailContentColors,
+  type TrophyDetailContentProps,
+} from './TrophyDetailContent';
 export { TrophyIcon } from './TrophyIcon';
 export { TIER_COLORS, tierColor } from './tierColors';
 
