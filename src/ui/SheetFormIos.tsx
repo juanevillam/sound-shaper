@@ -37,7 +37,30 @@ import { radius, spacing } from './tokens';
  * | supporting/value  | `bodySmall` / `labelMedium`| muted    |
  *
  * Muted means "supporting", never "a heading in grey".
+ *
+ * ## The vertical rhythm these establish
+ *
+ * A sheet reads as sections only if the gap BETWEEN them clearly beats the gap
+ * WITHIN them. Three numbers, and no sheet should invent a fourth:
+ *
+ * | gap                          | token                   | value |
+ * | ---------------------------- | ----------------------- | ----- |
+ * | section → section            | `SHEET_SECTION_GAP`     | 24    |
+ * | header → the section's rows  | `SHEET_CONTENT_GAP`     | 8     |
+ * | any title → its support line | `SHEET_SUPPORTING_GAP`  | 4     |
+ *
+ * The last one is why `SheetSectionHeaderIos` takes the supporting line as a
+ * `subtitle` prop rather than leaving call sites to render it as one more
+ * child: as a child it inherited the section's own gap and sat three times
+ * further from its heading than the identical pair one row below.
  */
+
+/** Between two sections of a sheet. */
+export const SHEET_SECTION_GAP = spacing.xl;
+/** Between a section's header and its controls. */
+export const SHEET_CONTENT_GAP = spacing.sm;
+/** Between any title — section header or row title — and its support line. */
+export const SHEET_SUPPORTING_GAP = spacing.xs;
 
 const PRESSED_OPACITY = 0.5;
 const DISABLED_OPACITY = 0.35;
@@ -109,6 +132,12 @@ type SheetSectionHeaderProps = {
   title: string;
   /** Optional right-aligned current value ("0,9×") — supporting, so muted. */
   value?: string;
+  /**
+   * The line UNDER the heading that says what the section is for. Passed here
+   * rather than rendered by the call site so it always sits at
+   * `SHEET_SUPPORTING_GAP` from its title, like every other pair in the sheet.
+   */
+  subtitle?: string;
 };
 
 /**
@@ -119,24 +148,37 @@ type SheetSectionHeaderProps = {
 export function SheetSectionHeaderIos({
   title,
   value,
+  subtitle,
 }: SheetSectionHeaderProps) {
   const { colors } = useAppTheme();
 
   return (
-    <View style={styles.sectionHeader}>
-      <Text
-        style={[
-          TEXT_VARIANTS.labelLarge,
-          { color: colors.onSurface, fontWeight: HEADER_WEIGHT },
-        ]}
-      >
-        {title}
-      </Text>
-      {value ? (
+    <View style={styles.sectionHeaderBlock}>
+      <View style={styles.sectionHeader}>
         <Text
-          style={[TEXT_VARIANTS.labelMedium, { color: colors.onSurfaceMuted }]}
+          style={[
+            TEXT_VARIANTS.labelLarge,
+            { color: colors.onSurface, fontWeight: HEADER_WEIGHT },
+          ]}
         >
-          {value}
+          {title}
+        </Text>
+        {value ? (
+          <Text
+            style={[
+              TEXT_VARIANTS.labelMedium,
+              { color: colors.onSurfaceMuted },
+            ]}
+          >
+            {value}
+          </Text>
+        ) : null}
+      </View>
+      {subtitle ? (
+        <Text
+          style={[TEXT_VARIANTS.bodySmall, { color: colors.onSurfaceMuted }]}
+        >
+          {subtitle}
         </Text>
       ) : null}
     </View>
@@ -276,6 +318,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  sectionHeaderBlock: { gap: SHEET_SUPPORTING_GAP },
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',

@@ -39,6 +39,14 @@ export {
   type SnackbarContextValue,
 } from './snackbar';
 export { SnackbarProvider } from './SnackbarProvider';
+export {
+  ICON_PRESS_OPACITY,
+  ICON_PRESS_SCALE,
+  PRESS_SCALE,
+  PRESS_SPRING,
+  SquashPressable,
+  usePressSquash,
+} from './SquashPressable';
 export { SwiftUIHost } from './SwiftUIHost';
 export { useNavigationTheme } from './useNavigationTheme';
 export {
@@ -48,6 +56,9 @@ export {
   type TextVariant,
 } from './createText';
 export {
+  SHEET_CONTENT_GAP,
+  SHEET_SECTION_GAP,
+  SHEET_SUPPORTING_GAP,
   SheetDestructiveButtonIos,
   SheetFieldIos,
   SheetHeaderIos,
