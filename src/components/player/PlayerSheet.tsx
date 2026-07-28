@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { awardTrophy } from '@portfolio/trophies';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -30,7 +30,10 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { type PlayerCard } from '@/components/player/chrome';
+import {
+  HANDLES_REGION_HEIGHT,
+  type PlayerCard,
+} from '@/components/player/chrome';
 import { ClipActionsRow } from '@/components/player/ClipActionsRow';
 import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
@@ -57,7 +60,7 @@ import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
 import { useSongsStore } from '@/store/songs';
-import { TILE_RADIUS } from '@/styles/shape';
+import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
 // The YT-Music player interaction: the bottom banner and the full player are
@@ -87,6 +90,16 @@ const MINI_ART_Y = PROGRESS_HEIGHT + (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
 
 // Clearance under the collapsed banner's content, above the nav-bar inset.
 const BANNER_BOTTOM_GAP = 8;
+
+// Extra room under the scrubber WHILE FRAMING A CLIP only. Framing adds a
+// third line (the range) under the elapsed/total pair, which without this
+// crowds straight into the play button. The default player keeps its original
+// tight column — there is no third line to make room for. iOS gets more: SF's
+// shorter labels leave less optical air of their own.
+const CLIP_FRAMING_GAP = Platform.select({ ios: 16, default: 8 }) as number;
+
+// The banner's top rule — iOS only; Android's frozen banner has no border.
+const IOS_ONLY_HAIRLINE = Platform.OS === 'ios' ? HAIRLINE : 0;
 
 // The wash starts appearing only this far into the expansion.
 const BACKDROP_FADE_START = 0.8;
@@ -167,7 +180,6 @@ export function PlayerSheet() {
   }, [insets.bottom, launchBottomInset]);
   const { width: winW, height: winH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
-  const pathname = usePathname();
   const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
@@ -569,14 +581,6 @@ export function PlayerSheet() {
     current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
-  // Settings-ish screens: the floating banner reads as clutter there.
-  if (
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/manage-account') ||
-    pathname.startsWith('/trophies')
-  )
-    return null;
-
   // Nothing loaded yet: the banner still holds its place (YT Music keeps it
   // parked), primed with the first sound — or saying the library is empty.
   if (!current) return <IdleBanner bottomInset={bottomInset} />;
@@ -889,7 +893,12 @@ export function PlayerSheet() {
             {/* THE scrubber — always the native slider. While framing, the
                 tertiary trim brackets ride on top (Google Photos): edges
                 resize, the tinted middle slides the whole clip. */}
-            <View style={styles.sliderBlock}>
+            <View
+              style={[
+                styles.sliderBlock,
+                clipMode && styles.sliderBlockFraming,
+              ]}
+            >
               <PlayerScrubber
                 position={position}
                 duration={duration}
@@ -1012,6 +1021,7 @@ export function PlayerSheet() {
                   pointerEvents="none"
                   style={[
                     styles.art,
+                    CONTINUOUS_CURVE,
                     {
                       borderRadius: TILE_RADIUS,
                       height: artFull,
@@ -1124,6 +1134,11 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         styles.idleContainer,
         {
           backgroundColor: colors.surfaceContainer,
+          // iOS separates surfaces by EDGE, Android by TONE (styles/surfaces).
+          // The tonal step alone is nearly invisible where the banner meets a
+          // dark screen, so on iOS a hairline draws the boundary.
+          borderTopColor: colors.border,
+          borderTopWidth: IOS_ONLY_HAIRLINE,
           paddingBottom: bottomInset + BANNER_BOTTOM_GAP,
         },
       ]}
@@ -1350,9 +1365,10 @@ const styles = StyleSheet.create({
     width: PLAY_BUTTON_SIZE,
   },
   sliderBlock: { position: 'relative', width: '100%' },
-  // The brackets ride the slider row (the host's first ~44dp).
+  sliderBlockFraming: { marginBottom: CLIP_FRAMING_GAP },
+  // The brackets ride the slider row — never down into the time labels.
   handlesRegion: {
-    height: 44,
+    height: HANDLES_REGION_HEIGHT,
     left: 0,
     position: 'absolute',
     right: 0,
@@ -1369,6 +1385,6 @@ const styles = StyleSheet.create({
   },
   // Extra air between the transport and the first card.
   firstCardHost: { marginTop: 28 },
-  art: { overflow: 'hidden', position: 'absolute' },
+  art: { overflow: 'hidden', position: 'absolute', ...CONTINUOUS_CURVE },
   artMedia: { height: '100%', width: '100%' },
 });
