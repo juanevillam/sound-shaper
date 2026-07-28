@@ -7,6 +7,9 @@ import { formatTime } from '@/lib/player';
 
 import { type PlayerScrubberProps } from './chrome';
 
+// Drop below the elapsed/total row, so the range reads as its own line.
+const CLIP_LABEL_GAP = 6;
+
 // THE scrubber — Material's native Slider plus the elapsed/total labels.
 // Extracted from PlayerSheet so the iOS twin can swap in a SwiftUI Slider
 // without the rest of the player (pure RN + Reanimated) being duplicated.
@@ -42,16 +45,6 @@ export function PlayerScrubber({
           >
             {formatTime(position)}
           </Text>
-          {clipLabel ? (
-            <Text
-              color={colors.onSurface}
-              style={{ typography: 'labelMedium' }}
-              // Air above (slider) and below (transport).
-              modifiers={[padding(0, 8, 0, 10)]}
-            >
-              {clipLabel}
-            </Text>
-          ) : null}
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelMedium' }}
@@ -59,6 +52,19 @@ export function PlayerScrubber({
             {formatTime(totalDuration)}
           </Text>
         </Row>
+        {/* The clip range gets its OWN line under the playhead/total pair,
+            never their baseline: it belongs to the brackets above, not to the
+            track's own readout, and sharing a row made the three read as one
+            crowded strip. */}
+        {clipLabel ? (
+          <Text
+            color={colors.onSurface}
+            style={{ typography: 'labelMedium' }}
+            modifiers={[padding(0, CLIP_LABEL_GAP, 0, 0)]}
+          >
+            {clipLabel}
+          </Text>
+        ) : null}
       </Column>
     </ThemedHost>
   );

@@ -11,6 +11,8 @@ import Animated, {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 
+import { type ClipHandlesProps } from './chrome';
+
 // Trim brackets laid OVER the native scrubber (Google Photos): the player's
 // M3 slider keeps seeking, the brackets frame the clip on top of it. NEUTRAL
 // onSurface palette (white in dark, near-black in light), so the frame never
@@ -22,13 +24,6 @@ const HANDLE_WIDTH = 16;
 const HANDLE_HEIGHT = 40;
 const MIN_GAP_S = 1;
 const EDGE_SLOP = { top: 12, bottom: 12, left: 10, right: 10 };
-
-type ClipHandlesProps = {
-  durationS: number;
-  startS: number;
-  endS: number;
-  onChange: (startS: number, endS: number) => void;
-};
 
 export function ClipHandles({
   durationS,
