@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { NowPlayingBars } from '@/components/songs/NowPlayingBars';
 import { SongArt } from '@/components/ui/SongArt';
@@ -77,6 +77,7 @@ export function SongTile({
         text={song.artist || ' '}
         variant="bodySmall"
         numberOfLines={1}
+        style={styles.artist}
       />
     </SquashPressable>
   );
@@ -113,6 +114,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
   },
-  plus: { fontSize: 40, fontWeight: '300' },
-  name: { marginBottom: 1 },
+  plus: {
+    fontSize: 40,
+    fontWeight: '300',
+    // iOS clips a glyph this large to the font's line box, which lops the top
+    // off the plus and leaves it reading as a "T". Android measures it fine,
+    // and its layout is frozen, so only iOS gets the explicit line height.
+    ...Platform.select({ ios: { lineHeight: 48 } }),
+  },
+  // The shared type scale is one set of point sizes for both platforms, but SF
+  // Pro's smaller x-height makes 14/12 read dwarfed next to a full-width cover
+  // on iOS. Apple Music's own album grid captions sit at 15/13 — match those,
+  // iOS only, so Android's Material scale is untouched.
+  name: {
+    marginBottom: 1,
+    ...Platform.select({ ios: { fontSize: 15, lineHeight: 20 } }),
+  },
+  artist: Platform.select({ ios: { fontSize: 13, lineHeight: 18 } }) ?? {},
 });
