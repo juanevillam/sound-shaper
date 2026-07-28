@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
@@ -25,6 +25,7 @@ import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import { readId3Tags } from '@/lib/id3';
 import { type Song } from '@/services/firebase/songs';
+import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
 
@@ -89,8 +90,18 @@ export default function HomeScreen() {
 
     const asset = result.assets[0];
     const tags = await readId3Tags(asset.uri);
+    const picked = { uri: asset.uri, fileName: asset.name, tags };
 
-    setPickedFile({ uri: asset.uri, fileName: asset.name, tags });
+    // iOS presents the editor as a native form-sheet ROUTE; the picked file
+    // rides the pendingUpload handoff (too large for a route param). Android
+    // mounts the Compose sheet in place.
+    if (Platform.OS === 'ios') {
+      stashPendingUpload(picked);
+      router.push('/edit-sound');
+      return;
+    }
+
+    setPickedFile(picked);
   }, []);
 
   const onPressSong = useCallback(
@@ -124,7 +135,14 @@ export default function HomeScreen() {
             isPlaying={cell.id === currentSongId && isPlaying}
             rate={rate}
             onPress={() => onPressSong(cell)}
-            onLongPress={() => setEditingSongId(cell.id)}
+            onLongPress={() =>
+              Platform.OS === 'ios'
+                ? router.push({
+                    pathname: '/edit-sound',
+                    params: { songId: cell.id },
+                  })
+                : setEditingSongId(cell.id)
+            }
           />
         </View>
       );
@@ -226,7 +244,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 4,
     paddingLeft: LIST_PADDING,
-    paddingRight: 4,
+    // The gear should read as inset the same as the wordmark. Android's
+    // Material icon is 24dp centred in a 48dp box, so 4 lands its glyph at
+    // LIST_PADDING; iOS packs a tighter-bearing SF Symbol into a 44pt target
+    // and the same 4 leaves it visibly closer to the edge, so it needs more.
+    paddingRight: Platform.select({ ios: 7, default: 4 }),
   },
   wordmark: { fontWeight: '700' },
   headerActions: { alignItems: 'center', flexDirection: 'row' },

@@ -21,7 +21,7 @@ import { type Song } from '@/services/firebase/songs';
 // Read-only metadata card for the playing song — artist / album / release
 // year, reachable from the player's overflow menu.
 
-type SongInfoSheetProps = {
+export type SongInfoSheetProps = {
   song: Song;
   onClose: () => void;
 };

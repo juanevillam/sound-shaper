@@ -14,6 +14,7 @@ export const translations = {
     common: {
       back: 'Back',
       cancel: 'Cancel',
+      done: 'Done',
       retry: 'Try again',
       pickMedia: 'Choose an emoji',
     },
@@ -277,6 +278,7 @@ export const translations = {
     common: {
       back: 'Atrás',
       cancel: 'Cancelar',
+      done: 'Listo',
       retry: 'Reintentar',
       pickMedia: 'Elegir un emoji',
     },
@@ -547,6 +549,7 @@ export const translations = {
     common: {
       back: '返回',
       cancel: '取消',
+      done: '完成',
       retry: '重试',
       pickMedia: '选择表情符号',
     },

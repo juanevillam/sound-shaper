@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
 import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
 import { useSongsSubscription } from '@/hooks/useSongsSubscription';
@@ -16,6 +17,7 @@ import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useTrophyTriggers } from '@/hooks/useTrophyTriggers';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { IOS_FORM_SHEETS } from '@/lib/sheetRoutes';
 import { useAuthStore } from '@/store/auth';
 import { TILE_RADIUS } from '@/styles/shape';
 
@@ -38,6 +40,18 @@ export default function AppLayout() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { copy, overlayStrings } = useTrophyContent();
+  const iosSheetPresented = useIosSheetPresented();
+
+  // Shared chrome for the iOS-only native form sheets below (only the detents
+  // vary per sheet). Sheets sit on the ELEVATED sheet color — the stack-wide
+  // background contentStyle would show as a dead footer under fitToContents.
+  const sheetOptions = (sheetAllowedDetents: 'fitToContents' | number[]) => ({
+    headerShown: false,
+    presentation: 'formSheet' as const,
+    contentStyle: { backgroundColor: colors.sheet },
+    sheetAllowedDetents,
+    sheetGrabberVisible: true,
+  });
 
   if (!isAuthenticated) return <Redirect href="/welcome" />;
 
@@ -75,6 +89,17 @@ export default function AppLayout() {
           name="trophies"
           options={{ title: t('trophies.title') }}
         />
+        {/* iOS-only native form sheets (Android presents these surfaces as
+            Compose ModalBottomSheets mounted in-place; nothing navigates to
+            these routes there). The route list + detents live in
+            IOS_FORM_SHEETS, shared with useIosSheetPresented. */}
+        {IOS_FORM_SHEETS.map(({ name, detents }) => (
+          <Stack.Screen
+            key={name}
+            name={name}
+            options={sheetOptions(detents)}
+          />
+        ))}
       </Stack>
       {/* The streaming <Audio> element + shaping graph (headless). */}
       <AudioEngine />
@@ -86,6 +111,8 @@ export default function AppLayout() {
           one place a trophy must not intrude — the haptic carries it. */}
       <TrophyOverlay
         copy={copy}
+        // A native form sheet covers the RN root — hold banners until it goes.
+        suspended={iosSheetPresented}
         colors={{
           surface: colors.surfaceContainer,
           onSurface: colors.onSurface,

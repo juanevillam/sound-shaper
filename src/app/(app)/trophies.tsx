@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 import { TrophiesScreen, useTrophies } from '@portfolio/trophies';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TrophyDetailSheet } from '@/components/trophies/TrophyDetailSheet';
@@ -59,7 +60,16 @@ export default function TrophiesRoute() {
           }}
           strings={{ progress, percent, ...screenStrings }}
           formatDate={formatDate}
-          onTrophyPress={setSelectedId}
+          onTrophyPress={trophyId =>
+            // iOS presents the detail as a native form-sheet ROUTE; Android
+            // mounts the Compose sheet in place.
+            Platform.OS === 'ios'
+              ? router.push({
+                  pathname: '/trophy-detail',
+                  params: { trophyId },
+                })
+              : setSelectedId(trophyId)
+          }
         />
       </SafeAreaView>
 

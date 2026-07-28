@@ -35,6 +35,7 @@ import { useShapesSubscription } from '@/hooks/useShapesSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
+import { rateLabel } from '@/lib/player';
 import { createShape, deleteShape } from '@/services/firebase/shapes';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
@@ -59,10 +60,9 @@ const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
 const DIALOG_WIDTH = 312;
 const SHAPE_NAME_MAX = 24;
 
-export const rateLabel = (rate: number) => `${rate}×`.replace('.', ',');
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
-type ShaperSheetProps = {
+export type ShaperSheetProps = {
   onClose: () => void;
 };
 

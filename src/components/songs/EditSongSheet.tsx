@@ -35,7 +35,7 @@ export type PickedSongFile = {
   tags: Id3Tags;
 };
 
-type EditSongSheetProps = {
+export type EditSongSheetProps = {
   /** Create mode: the picked file (id3-prefilled). */
   pickedFile?: PickedSongFile;
   /** Edit mode: the song to edit (metadata only — the file never changes). */
