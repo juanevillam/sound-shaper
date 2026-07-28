@@ -21,7 +21,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 
 const ICON_SIZE = 64;
 
-type TrophyDetailSheetProps = {
+export type TrophyDetailSheetProps = {
   trophy: ResolvedTrophy;
   tierName: string;
   /** "Earned" prefix for the date line on an earned trophy. */

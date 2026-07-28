@@ -43,7 +43,7 @@ const CLIP_ROW_SHAPE = Shape.RoundedCorner({
 
 const NO_CLIPS: never[] = [];
 
-type ClipsSheetProps = {
+export type ClipsSheetProps = {
   /** Close the sheet and drop the trim brackets on the player's scrubber. */
   onNewClip: () => void;
   onClose: () => void;
