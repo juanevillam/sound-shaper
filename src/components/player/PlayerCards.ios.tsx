@@ -6,18 +6,24 @@ import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { haptics } from '@/lib/haptics';
+import { GRID_GAP } from '@/styles/metrics';
+import { CARD_RADIUS, CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { CARDS_HEIGHT, type PlayerCardsProps } from './chrome';
 
-const CARD_RADIUS = 12;
 const ICON_SIZE = 26;
 const PRESSED_OPACITY = 0.55;
 
-// iOS counterpart of `PlayerCards` — same two outlined tiles, built from RN
-// so they sit over the artwork wash without a Compose Surface. Each card's
-// glyph still needs a Host (SF Symbols are SwiftUI views), but a
-// `pointerEvents="none"` one lets the press read straight through to the
-// Pressable, so the whole tile stays tappable.
+// iOS counterpart of `PlayerCards` — same two tiles, built from RN so they sit
+// over the artwork wash without a Compose Surface. Each card's glyph still
+// needs a Host (SF Symbols are SwiftUI views), but a `pointerEvents="none"`
+// one lets the press read straight through to the Pressable, so the whole tile
+// stays tappable.
+//
+// The tiles take the app's iOS container shape from `styles/shape` — the
+// grouped radius on a continuous curve, read from a hairline rather than a
+// tonal fill (`styles/surfaces` explains why iOS separates by edge and Android
+// by tone). Android's twin keeps its M3 outlined card.
 export function PlayerCards({ cards }: PlayerCardsProps) {
   const { colors } = useAppTheme();
 
@@ -68,13 +74,14 @@ const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
     borderRadius: CARD_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: HAIRLINE,
     flex: 1,
     flexDirection: 'row',
     gap: 10,
     height: CARDS_HEIGHT,
     paddingHorizontal: 14,
+    ...CONTINUOUS_CURVE,
   },
   copy: { flex: 1, gap: 1 },
-  row: { flexDirection: 'row', gap: 12, width: '100%' },
+  row: { flexDirection: 'row', gap: GRID_GAP, width: '100%' },
 });

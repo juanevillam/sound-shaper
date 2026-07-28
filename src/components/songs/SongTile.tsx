@@ -9,7 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Song } from '@/services/firebase/songs';
-import { TILE_RADIUS } from '@/styles/shape';
+import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the song's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
@@ -107,12 +107,15 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   nowPlaying: { bottom: 8, left: 8, position: 'absolute' },
   art: { aspectRatio: 1, marginBottom: 10, width: '100%' },
-  artMedia: { height: '100%', width: '100%' },
+  artMedia: { height: '100%', width: '100%', ...CONTINUOUS_CURVE },
   addBox: {
     alignItems: 'center',
     borderStyle: 'dashed',
-    borderWidth: 1,
+    // A dashed hairline is invisible on iOS at @3×, so the placeholder keeps
+    // a full point there; on Android HAIRLINE is already 1.
+    borderWidth: Math.max(HAIRLINE, 1),
     justifyContent: 'center',
+    ...CONTINUOUS_CURVE,
   },
   plus: {
     fontSize: 40,
