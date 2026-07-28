@@ -64,6 +64,13 @@ export const SettingsAccountSection = ({
     });
   };
 
+  // Apps with no username concept (nor an editor to claim one) have no second
+  // line — render the name alone so the HStack centres it, instead of pairing
+  // it with an empty Text that pushes it optically high.
+  const usernameLine = profile?.username
+    ? `@${profile.username}`
+    : (usernameEditor?.addPrompt ?? '');
+
   const profileContent = profile ? (
     <HStack spacing={12}>
       {/* SwiftUI `Image` can't load remote URLs, so the Google photo bridges
@@ -88,16 +95,16 @@ export const SettingsAccountSection = ({
         <Text modifiers={[foregroundStyle(colors.onSurface)]}>
           {profile.displayName}
         </Text>
-        <Text
-          modifiers={[
-            font({ textStyle: 'footnote' }),
-            foregroundStyle(colors.onSurfaceMuted),
-          ]}
-        >
-          {profile.username
-            ? `@${profile.username}`
-            : (usernameEditor?.addPrompt ?? '')}
-        </Text>
+        {usernameLine ? (
+          <Text
+            modifiers={[
+              font({ textStyle: 'footnote' }),
+              foregroundStyle(colors.onSurfaceMuted),
+            ]}
+          >
+            {usernameLine}
+          </Text>
+        ) : null}
       </VStack>
     </HStack>
   ) : null;
