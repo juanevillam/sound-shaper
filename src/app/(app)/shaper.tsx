@@ -2,6 +2,9 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { Slider } from '@expo/ui/swift-ui';
 import {
+  SHEET_CONTENT_GAP,
+  SHEET_SECTION_GAP,
+  SHEET_SUPPORTING_GAP,
   SheetDestructiveButtonIos,
   SheetHeaderIos,
   SheetSectionHeaderIos,
@@ -193,10 +196,14 @@ function ShaperSheetScreen() {
       ) : null}
 
       <View style={[styles.section, styles.padded]}>
-        <SheetSectionHeaderIos title={t('player.eq.title')} />
         {/* The band numbers are hertz, which means nothing to most people —
-            say what the ends of the range actually sound like. */}
-        <Text muted text="player.eq.hint" variant="bodySmall" />
+            say what the ends of the range actually sound like. The hint is the
+            header's OWN supporting line, so it sits at the same distance from
+            its title as every other pair on the sheet. */}
+        <SheetSectionHeaderIos
+          title={t('player.eq.title')}
+          subtitle={t('player.eq.hint')}
+        />
 
         {EQ_BANDS.map((band, index) => (
           <View key={band.hz} style={styles.bandRow}>
@@ -295,8 +302,11 @@ const styles = StyleSheet.create({
   headerBlock: { paddingHorizontal: 24 },
   padded: { paddingHorizontal: 24 },
   rateSlider: { height: SLIDER_HEIGHT, width: '100%' },
-  section: { gap: 8 },
-  sheet: { gap: 14, paddingTop: 20 },
-  switchCopy: { flex: 1, gap: 2, paddingRight: 16 },
+  // The three sheet-rhythm gaps come from the shared iOS sheet chrome — the
+  // section boundaries only read if the gap between them clearly beats the
+  // gap inside them, and that ratio is not this file's to invent.
+  section: { gap: SHEET_CONTENT_GAP },
+  sheet: { gap: SHEET_SECTION_GAP, paddingTop: 20 },
+  switchCopy: { flex: 1, gap: SHEET_SUPPORTING_GAP, paddingRight: 16 },
   switchRow: { alignItems: 'center', flexDirection: 'row' },
 });
