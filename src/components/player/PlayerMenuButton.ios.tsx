@@ -1,6 +1,6 @@
 import { ActionSheetIOS } from 'react-native';
 
-import { RippleIconButton } from '@/components/ui/RippleIconButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { useI18n } from '@/i18n';
 
 import { type PlayerMenuButtonProps } from './chrome';
@@ -29,7 +29,7 @@ export function PlayerMenuButton({ onInfo, onEdit }: PlayerMenuButtonProps) {
     );
 
   return (
-    <RippleIconButton
+    <IconButton
       name="more-vert"
       onPress={openMenu}
       accessibilityLabel={t('player.menu.label')}

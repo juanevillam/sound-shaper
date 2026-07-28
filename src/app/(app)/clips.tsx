@@ -4,7 +4,7 @@ import { SheetHeaderIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RippleIconButton } from '@/components/ui/RippleIconButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -109,7 +109,7 @@ function ClipsSheetScreen() {
                       isActive ? { color: colors.primary } : null,
                     ]}
                   />
-                  <RippleIconButton
+                  <IconButton
                     name="delete"
                     onPress={() => onDelete(clip.id)}
                     size={19}
