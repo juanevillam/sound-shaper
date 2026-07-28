@@ -68,7 +68,15 @@ import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
 import { useSongsStore } from '@/store/songs';
-import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
+import { SCREEN_PADDING } from '@/styles/metrics';
+import {
+  CONTINUOUS_CURVE,
+  FLOATING_RADIUS,
+  HAIRLINE,
+  SHAPE_SM,
+  TILE_RADIUS,
+  innerRadius,
+} from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
 // The player interaction: the collapsed banner and the full player are ONE
@@ -77,11 +85,11 @@ import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 // element scales/travels from the 44dp thumb to the expanded square, the mini
 // row cross-fades into the expanded controls.
 //
-// Collapsed, the banner is a DETACHED PILL: a floating island inset from both
-// screen edges and lifted clear of the bottom one, not a bar welded to the
-// window. That shape is what the expansion has to resolve, so the painted
+// Collapsed, the banner is DETACHED: a floating rounded rectangle inset from
+// both screen edges and lifted clear of the bottom one, not a bar welded to
+// the window. That shape is what the expansion has to resolve, so the painted
 // surface is its OWN layer inside the container rather than the container's
-// background: it grows from the pill's box to the full window while its
+// background: it grows from the banner's box to the full window while its
 // corners unwind and its lateral insets close. The container itself only
 // translates, so the gestures, the pager and the shared artwork are unchanged
 // by any of it.
@@ -92,61 +100,111 @@ import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 // nothing can fight the drag-to-close gesture.
 // ---------------------------------------------------------------------------
 
-/** CONTENT height of the collapsed banner (consumers add the bottom inset). */
-export const MINI_PLAYER_HEIGHT = 64;
+/**
+ * CONTENT height of the collapsed banner (consumers add the bottom inset).
+ * Everything else about the banner is derived from this and the artwork, so
+ * resizing it is a matter of these two numbers — they were scaled together
+ * (64/44) to give the whole thing more presence.
+ */
+export const MINI_PLAYER_HEIGHT = 68;
 
-/** Gap from the pill to each screen edge. */
-export const BANNER_SIDE_INSET = 16;
+/**
+ * Gap from the banner to each screen edge. It is the SCREEN GUTTER, not a
+ * number of its own: the banner floats over the library grid, and an edge that
+ * nearly lines up with the tiles above it is worse than either lining up or
+ * clearly not.
+ */
+export const BANNER_SIDE_INSET = SCREEN_PADDING;
 
-/** Clearance UNDER the pill, above the home indicator / nav-bar inset. */
-export const BANNER_BOTTOM_GAP = 8;
+/**
+ * Clearance UNDER the banner, above the home indicator / nav-bar inset. Apple
+ * floats an accessory bar just clear of the indicator; Material holds a
+ * floating surface a full grid step off the navigation bar.
+ */
+export const BANNER_BOTTOM_GAP = Platform.select({
+  ios: 12,
+  default: 16,
+}) as number;
 
-// A capsule rather than a rounded rect: an island reads as one object, and at
-// this height the two are not the same gesture of the hand.
-const PILL_RADIUS = MINI_PLAYER_HEIGHT / 2;
+// A rounded RECTANGLE. Half the height would be a capsule, and a capsule at
+// this size stops reading as a piece of the app.
+const BANNER_RADIUS = FLOATING_RADIUS;
+
+const MINI_ART_SIZE = 46;
+
+// Everything inside the banner sits at ONE inset from its edges — which is
+// also what centres the 44pt artwork vertically in a 64pt box, so the corners
+// are truly concentric rather than approximately so.
+const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 
 // A detached surface needs a lift or it reads as a sticker painted on the
 // screen. iOS casts a soft shadow, Android raises it through the elevation
-// system; both let go as the pill becomes the full-screen player, which is a
+// system; both let go as the banner becomes the full-screen player, which is a
 // surface with nothing behind it to cast onto.
-const PILL_SHADOW_OPACITY = 0.3;
-const PILL_ELEVATION = 8;
+const BANNER_SHADOW_OPACITY = 0.3;
+const BANNER_ELEVATION = 8;
 // The static half of the lift — only the opacity animates. Black rather than a
 // palette token on purpose: a shadow is absence of light, not a colour of the
 // theme (same call the clip handles already make).
-const PILL_LIFT = {
+const BANNER_LIFT = {
   shadowColor: '#000',
   shadowOffset: { height: 6, width: 0 },
-  shadowOpacity: PILL_SHADOW_OPACITY,
+  shadowOpacity: BANNER_SHADOW_OPACITY,
   shadowRadius: 14,
 };
-// How much of the expansion the pill's own chrome — border, lift — takes to
+// How much of the expansion the banner's own chrome — border, lift — takes to
 // disappear. Matches the surface's colour cross-fade, so the whole "this is a
 // floating object" story ends at once.
-const PILL_CHROME_FADE = 0.35;
+const BANNER_CHROME_FADE = 0.35;
 
-const PROGRESS_HEIGHT = 2;
-// The progress line lives INSIDE the pill. Pinned to the top edge it would be
-// clipped to a sliver by the capsule's own curve, so it rides just above the
-// bottom rim, inset far enough at both ends to clear the corner arc.
-const PROGRESS_INSET_X = 26;
+// Material's linear progress indicator is 4dp and Apple's accent bars land in
+// the same place. A 2pt hairline was legible as a LINE but not as a QUANTITY —
+// you could see it was there without being able to read how far in you were.
+const PROGRESS_HEIGHT = 4;
 // The unplayed remainder, as a tint of the content colour.
 const PROGRESS_TRACK_ALPHA = 0.2;
-const PROGRESS_BOTTOM = 4;
 
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
-const MINI_ART_SIZE = 44;
 // The artwork is ONE element scaled between the two states, so a fixed
 // borderRadius renders ~5x smaller when collapsed. These are the radii we want
 // to SEE at each end; the style divides by the live scale to hit them.
-const MINI_ART_RADIUS = 8;
-// Inset INSIDE the pill — enough that the thumb's top corners clear the
-// capsule's own curve, which at the artwork's height has already eaten 9pt.
-const MINI_ART_PILL_X = 12;
-// ...and the same thing in container (screen) space, where the shared artwork
-// element is positioned.
-const MINI_ART_X = BANNER_SIDE_INSET + MINI_ART_PILL_X;
-const MINI_ART_Y = (MINI_ROW_HEIGHT - MINI_ART_SIZE) / 2;
+// Collapsed it is a rounded child of a rounded container, so its corner is the
+// concentric one: iOS subtracts the inset, Android steps down the M3 scale.
+const MINI_ART_RADIUS = innerRadius(BANNER_RADIUS, BANNER_INSET, SHAPE_SM);
+// The artwork's position in container (screen) space, where the shared element
+// that travels to the expanded square is positioned.
+const MINI_ART_X = BANNER_SIDE_INSET + BANNER_INSET;
+const MINI_ART_Y = BANNER_INSET;
+
+// Transport glyphs are hand-drawn and ~14pt wide, so a 48pt box would push the
+// last one nearly 3x further from the edge than the artwork is from the other
+// — the single thing that made the banner read as badly spaced. These are
+// sized to the GLYPH plus the banner's inset; hitSlop restores the touch
+// target (38 + 16 = 54 wide, 68 tall, both past either platform's minimum).
+const MINI_GLYPH_WIDTH = 14;
+const MINI_BUTTON_WIDTH = 38;
+const MINI_BUTTON_HIT_SLOP = 8;
+
+/**
+ * Where the LAST glyph's edge sits, and the one measurement on the banner set
+ * by eye rather than by rule. An outlined glyph reads far lighter than the
+ * solid artwork block opposite it, so giving the two the same inset — which is
+ * what the maths says — leaves the trailing side looking pinched. Roughly 1.6x
+ * the leading inset is where they balance.
+ */
+const MINI_TRAILING_GLYPH_INSET = 18;
+
+/**
+ * Gap between the title and the artist under it. 1pt was a hairline crack
+ * rather than a relationship; 2 is the same title→supporting step the iOS
+ * sheets use, and it puts the two-line block at 40pt inside the 46pt artwork
+ * beside it — the copy now fills its own band instead of floating in it.
+ */
+const MINI_COPY_GAP = 2;
+// The row's own padding is then whatever gets the glyph there, so changing the
+// button box can't quietly move it.
+const MINI_ROW_PADDING_RIGHT =
+  MINI_TRAILING_GLYPH_INSET - (MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2;
 
 // Extra room under the scrubber WHILE FRAMING A CLIP only. Framing adds a
 // third line (the range) under the elapsed/total pair, which without this
@@ -238,7 +296,7 @@ function GlyphButton({
   children,
   onPress,
   accessibilityLabel,
-  hitSlop = 8,
+  hitSlop = MINI_BUTTON_HIT_SLOP,
   style,
 }: GlyphButtonProps) {
   const squash = usePressSquash({
@@ -596,21 +654,21 @@ export function PlayerSheet() {
     const p = progress.value;
     // The floating-object chrome (outline, lift) goes early — by the time the
     // sheet reads as a screen there is nothing left for it to float above.
-    const chrome = 1 - Math.min(p / PILL_CHROME_FADE, 1);
+    const chrome = 1 - Math.min(p / BANNER_CHROME_FADE, 1);
 
     return {
       backgroundColor: interpolateColor(
         p,
-        [0, PILL_CHROME_FADE],
+        [0, BANNER_CHROME_FADE],
         [colors.surfaceContainer, colors.background],
       ),
-      borderRadius: PILL_RADIUS * (1 - p),
+      borderRadius: BANNER_RADIUS * (1 - p),
       borderWidth: IOS_ONLY_HAIRLINE * chrome,
-      elevation: PILL_ELEVATION * chrome,
+      elevation: BANNER_ELEVATION * chrome,
       height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
       left: BANNER_SIDE_INSET * (1 - p),
       right: BANNER_SIDE_INSET * (1 - p),
-      shadowOpacity: PILL_SHADOW_OPACITY * chrome,
+      shadowOpacity: BANNER_SHADOW_OPACITY * chrome,
     };
   });
 
@@ -661,7 +719,14 @@ export function PlayerSheet() {
     ),
   }));
 
+  // The progress bar is flush with the banner's bottom edge, so it has to be
+  // masked by the banner's own corner — otherwise its square ends poke out past
+  // the curve. This clip is a SIBLING of the surface with a static box, which
+  // is what lets its child anchor to the bottom at all; only the corner (not a
+  // layout prop) animates, and the whole thing is gone well before the surface
+  // has finished squaring off.
   const progressLineStyle = useAnimatedStyle(() => ({
+    borderRadius: BANNER_RADIUS * (1 - progress.value),
     opacity: Math.max(0, 1 - progress.value * 3),
   }));
   // -------------------------------------------------------------------------
@@ -829,33 +894,35 @@ export function PlayerSheet() {
           <PlayerBackdrop artUrl={current.artUrl || undefined} />
         </Animated.View>
 
-        {/* Collapsed progress, riding just above the pill's bottom rim. */}
-        <Animated.View
-          style={[
-            styles.progressTrack,
-            // NOT surfaceVariant: on the Material You dark palette it resolves
-            // to the pill's own fill, so the unplayed part of the line simply
-            // vanished and progress read as a stray blue dash. A tint of the
-            // content colour is visible on any palette, on both platforms.
-            {
-              backgroundColor: withAlpha(
-                colors.onSurface,
-                PROGRESS_TRACK_ALPHA,
-              ),
-            },
-            progressLineStyle,
-          ]}
-          pointerEvents="none"
-        >
+        {/* Collapsed progress, attached to the banner's bottom edge and cut by
+            its corner — the card's own bottom rule, not a line floating inside
+            it. */}
+        <Animated.View style={[styles.progressClip, progressLineStyle]}>
           <View
             style={[
-              styles.progressFill,
+              styles.progressTrack,
+              // NOT surfaceVariant: on the Material You dark palette it
+              // resolves to the banner's own fill, so the unplayed part simply
+              // vanished and progress read as a stray blue dash. A tint of the
+              // content colour is visible on any palette, on both platforms.
               {
-                backgroundColor: colors.primary,
-                width: `${progressRatio * 100}%`,
+                backgroundColor: withAlpha(
+                  colors.onSurface,
+                  PROGRESS_TRACK_ALPHA,
+                ),
               },
             ]}
-          />
+          >
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: colors.primary,
+                  width: `${progressRatio * 100}%`,
+                },
+              ]}
+            />
+          </View>
         </Animated.View>
 
         <GestureDetector gesture={dragUp}>
@@ -873,8 +940,9 @@ export function PlayerSheet() {
                 <AppText
                   doNotTranslate
                   text={current.name}
-                  variant="bodyMedium"
+                  variant="bodyLarge"
                   numberOfLines={1}
+                  style={styles.miniTitle}
                 />
                 <AppText
                   doNotTranslate
@@ -1242,7 +1310,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   return (
     <View
       style={[
-        styles.idlePill,
+        styles.idleBanner,
         {
           backgroundColor: colors.surfaceContainer,
           // The same floating island the loaded banner resolves to — parked,
@@ -1274,8 +1342,9 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               <AppText
                 doNotTranslate
                 text={first.name}
-                variant="bodyMedium"
+                variant="bodyLarge"
                 numberOfLines={1}
+                style={styles.miniTitle}
               />
               <AppText
                 doNotTranslate
@@ -1290,7 +1359,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               doNotTranslate
               muted
               text={t('player.empty')}
-              variant="bodyMedium"
+              variant="bodyLarge"
               numberOfLines={1}
             />
           )}
@@ -1328,21 +1397,21 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
 const styles = StyleSheet.create({
   // The parked banner IS the pill the loaded one animates from, so it is built
   // once here and never moves. `bottom` comes from the safe-area inset.
-  idlePill: {
-    borderRadius: PILL_RADIUS,
-    elevation: PILL_ELEVATION,
+  idleBanner: {
+    borderRadius: BANNER_RADIUS,
+    elevation: BANNER_ELEVATION,
     left: BANNER_SIDE_INSET,
     position: 'absolute',
     right: BANNER_SIDE_INSET,
-    ...PILL_LIFT,
+    ...BANNER_LIFT,
     ...CONTINUOUS_CURVE,
   },
   idleArt: {
     height: MINI_ART_SIZE,
-    marginLeft: MINI_ART_PILL_X,
+    marginLeft: BANNER_INSET,
     width: MINI_ART_SIZE,
   },
-  idleInfo: { flex: 1, gap: 1, paddingLeft: 12 },
+  idleInfo: { flex: 1, gap: MINI_COPY_GAP, paddingLeft: BANNER_INSET },
   container: {
     bottom: 0,
     left: 0,
@@ -1354,7 +1423,7 @@ const styles = StyleSheet.create({
   surface: {
     position: 'absolute',
     top: 0,
-    ...PILL_LIFT,
+    ...BANNER_LIFT,
     ...CONTINUOUS_CURVE,
   },
   backdropLayer: {
@@ -1366,38 +1435,53 @@ const styles = StyleSheet.create({
   },
   // Positioned from the container's TOP — which is the pill's top — because
   // the surface's animated height is not a layout its children can key off.
-  progressTrack: {
-    borderRadius: PROGRESS_HEIGHT / 2,
-    height: PROGRESS_HEIGHT,
-    left: BANNER_SIDE_INSET + PROGRESS_INSET_X,
+  // The banner's box, as a mask. Static — an animated layout prop moves the
+  // native view without re-laying out its children, and the track inside is
+  // anchored to the bottom of exactly this box.
+  progressClip: {
+    height: MINI_PLAYER_HEIGHT,
+    left: BANNER_SIDE_INSET,
     overflow: 'hidden',
     position: 'absolute',
-    right: BANNER_SIDE_INSET + PROGRESS_INSET_X,
-    top: MINI_PLAYER_HEIGHT - PROGRESS_BOTTOM - PROGRESS_HEIGHT,
+    right: BANNER_SIDE_INSET,
+    top: 0,
+    ...CONTINUOUS_CURVE,
+  },
+  progressTrack: {
+    bottom: 0,
+    height: PROGRESS_HEIGHT,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
   progressFill: { height: '100%' },
   miniRow: {
     alignItems: 'center',
     flexDirection: 'row',
     height: MINI_ROW_HEIGHT,
-    paddingRight: 4,
+    paddingRight: MINI_ROW_PADDING_RIGHT,
   },
-  // Only the LOADED banner needs this: the idle pill is already inset, being
-  // the pill itself rather than a row inside a full-width container.
+  // Only the LOADED banner needs this: the idle banner is already inset, being
+  // the surface itself rather than a row inside a full-width container.
   miniRowInset: { marginHorizontal: BANNER_SIDE_INSET },
   miniBody: {
     alignSelf: 'stretch',
     flex: 1,
     justifyContent: 'center',
-    // Clears the shared artwork sitting in the banner slot.
-    paddingLeft: MINI_ART_PILL_X + MINI_ART_SIZE + 12,
+    // Clears the shared artwork sitting in the banner slot, then the gap
+    // between artwork and title — the same inset again.
+    paddingLeft: BANNER_INSET + MINI_ART_SIZE + BANNER_INSET,
   },
-  miniInfo: { gap: 1 },
+  miniInfo: { gap: MINI_COPY_GAP },
+  // The banner exists to say WHAT IS PLAYING, so the title is its anchor —
+  // weighted like the expanded player's, one step down the scale.
+  miniTitle: { fontWeight: '600' },
   miniButton: {
     alignItems: 'center',
-    height: 48,
+    // Full-height, so the touch target spans the whole banner.
+    height: MINI_ROW_HEIGHT,
     justifyContent: 'center',
-    width: 48,
+    width: MINI_BUTTON_WIDTH,
   },
   playTriangle: {
     borderBottomColor: 'transparent',
