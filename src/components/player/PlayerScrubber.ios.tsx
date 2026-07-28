@@ -13,6 +13,9 @@ import { type PlayerScrubberProps } from './chrome';
 // layout, and a scrubber that jumps is worse than one told its own height.
 const SLIDER_HEIGHT = 32;
 
+// Drop below the elapsed/total row, so the range reads as its own line.
+const CLIP_LABEL_GAP = 8;
+
 // iOS counterpart of `PlayerScrubber` — SwiftUI's own Slider (so it drags,
 // tracks and feels exactly like the system one) with the elapsed/total labels
 // in plain RN below it. SwiftUI reports the drag end through
@@ -45,9 +48,6 @@ export function PlayerScrubber({
           text={formatTime(position)}
           variant="labelMedium"
         />
-        {clipLabel ? (
-          <Text doNotTranslate text={clipLabel} variant="labelMedium" />
-        ) : null}
         <Text
           doNotTranslate
           muted
@@ -55,6 +55,15 @@ export function PlayerScrubber({
           variant="labelMedium"
         />
       </View>
+      {/* The clip range gets its OWN line under the playhead/total pair, never
+          their baseline: it belongs to the brackets above, not to the track's
+          own readout, and sharing a row made the three read as one crowded
+          strip. */}
+      {clipLabel ? (
+        <View style={styles.clipLabelRow}>
+          <Text doNotTranslate text={clipLabel} variant="labelMedium" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -65,6 +74,11 @@ const styles = StyleSheet.create({
   labels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
+  },
+  clipLabelRow: {
+    alignItems: 'center',
+    paddingTop: CLIP_LABEL_GAP,
     width: '100%',
   },
 });
