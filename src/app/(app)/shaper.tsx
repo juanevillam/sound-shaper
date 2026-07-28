@@ -1,9 +1,13 @@
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { Slider } from '@expo/ui/swift-ui';
+import {
+  SheetDestructiveButtonIos,
+  SheetHeaderIos,
+  SheetSectionHeaderIos,
+} from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SheetHeaderIos } from '@/components/ui/SheetFormIos';
 import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
@@ -17,6 +21,8 @@ import { createShape, deleteShape } from '@/services/firebase/shapes';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
+import { PILL_RADIUS } from '@/styles/shape';
+import { selectedControl } from '@/styles/surfaces';
 
 // iOS-only route: every sound-shaping control as a native form sheet (Android
 // presents the Compose `ShaperSheet` in place). iOS vocabulary throughout:
@@ -115,6 +121,11 @@ function ShaperSheetScreen() {
     }
   };
 
+  // Selected state comes from `styles/surfaces` rather than being spelled out
+  // here: iOS has no tonal-container semantics, so a selected control is a
+  // SOLID accent fill, and the matching content colour ships with it.
+  const active = selectedControl(colors);
+
   const chip = (
     key: string,
     label: string,
@@ -127,10 +138,8 @@ function ShaperSheetScreen() {
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        {
-          backgroundColor: selected ? colors.primary : colors.sheetField,
-          opacity: pressed ? PRESSED_OPACITY : 1,
-        },
+        selected ? active.container : { backgroundColor: colors.sheetField },
+        { opacity: pressed ? PRESSED_OPACITY : 1 },
       ]}
     >
       <Text
@@ -138,7 +147,7 @@ function ShaperSheetScreen() {
         text={label}
         variant="labelLarge"
         numberOfLines={1}
-        style={{ color: selected ? colors.onPrimary : colors.onSurface }}
+        style={{ color: selected ? active.content : colors.onSurface }}
       />
     </Pressable>
   );
@@ -154,7 +163,7 @@ function ShaperSheetScreen() {
       </View>
 
       <View style={[styles.section, styles.padded]}>
-        <Text muted text="player.shapes.presets" variant="labelLarge" />
+        <SheetSectionHeaderIos title={t('player.shapes.presets')} />
         {/* WRAPPING rows, not a horizontal ScrollView: a nested scrollable
             mis-measures inside the fitToContents form sheet (its content
             painted over the sheet header), and six chips wrap fine anyway. */}
@@ -172,7 +181,7 @@ function ShaperSheetScreen() {
 
       {shapes.length > 0 ? (
         <View style={[styles.section, styles.padded]}>
-          <Text muted text="player.shapes.mine" variant="labelLarge" />
+          <SheetSectionHeaderIos title={t('player.shapes.mine')} />
           <View style={styles.chipWrap}>
             {shapes.map(shape =>
               chip(shape.id, shape.name, activeShapeId === shape.id, () =>
@@ -184,7 +193,7 @@ function ShaperSheetScreen() {
       ) : null}
 
       <View style={[styles.section, styles.padded]}>
-        <Text muted text="player.eq.title" variant="labelLarge" />
+        <SheetSectionHeaderIos title={t('player.eq.title')} />
         {/* The band numbers are hertz, which means nothing to most people —
             say what the ends of the range actually sound like. */}
         <Text muted text="player.eq.hint" variant="bodySmall" />
@@ -209,6 +218,7 @@ function ShaperSheetScreen() {
             </ThemedHost>
             <Text
               doNotTranslate
+              muted
               text={dbLabel(gains[index])}
               variant="labelMedium"
               style={styles.bandValue}
@@ -218,10 +228,10 @@ function ShaperSheetScreen() {
       </View>
 
       <View style={[styles.section, styles.padded]}>
-        <View style={styles.headerRow}>
-          <Text muted text="player.speed" variant="labelLarge" />
-          <Text doNotTranslate text={rateLabel(rate)} variant="labelLarge" />
-        </View>
+        <SheetSectionHeaderIos
+          title={t('player.speed')}
+          value={rateLabel(rate)}
+        />
         <ThemedHost style={styles.rateSlider}>
           <Slider
             value={rate}
@@ -248,26 +258,16 @@ function ShaperSheetScreen() {
       </View>
 
       {/* Destructive action lives at the BOTTOM, never in the header — and
-          only while one of your own shapes is applied. */}
+          only while one of your own shapes is applied. Same outlined pill as
+          every other sheet's delete, set well clear of the keep-pitch row so
+          it can't be mistaken for part of it. */}
       {activeShape ? (
         <View style={styles.padded}>
-          <Pressable
-            accessibilityRole="button"
+          <SheetDestructiveButtonIos
+            label={t('player.shapes.delete')}
             onPress={onDeleteShape}
-            style={({ pressed }) => [
-              styles.deleteRow,
-              {
-                backgroundColor: colors.sheetField,
-                opacity: pressed ? PRESSED_OPACITY : 1,
-              },
-            ]}
-          >
-            <Text
-              text="player.shapes.delete"
-              variant="bodyLarge"
-              style={{ color: colors.danger }}
-            />
-          </Pressable>
+            style={styles.destructive}
+          />
         </View>
       ) : null}
 
@@ -284,18 +284,15 @@ const styles = StyleSheet.create({
   bandSlider: { flex: 1, height: SLIDER_HEIGHT },
   bandValue: { textAlign: 'right', width: EQ_LABEL_WIDTH },
   chip: {
-    borderRadius: 999,
+    borderRadius: PILL_RADIUS,
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  deleteRow: { alignItems: 'center', borderRadius: 12, paddingVertical: 14 },
+  // Clear of the keep-pitch row above — the sheet's own gap is not enough
+  // separation for the one irreversible control on it.
+  destructive: { marginTop: 12 },
   headerBlock: { paddingHorizontal: 24 },
-  headerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
   padded: { paddingHorizontal: 24 },
   rateSlider: { height: SLIDER_HEIGHT, width: '100%' },
   section: { gap: 8 },
