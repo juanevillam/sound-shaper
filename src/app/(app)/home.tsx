@@ -10,7 +10,10 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { MINI_PLAYER_HEIGHT } from '@/components/player/PlayerSheet';
+import {
+  MINI_PLAYER_HEIGHT,
+  PlayerSheet,
+} from '@/components/player/PlayerSheet';
 import {
   EditSongSheet,
   type PickedSongFile,
@@ -28,9 +31,7 @@ import { type Song } from '@/services/firebase/songs';
 import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
-
-const LIST_PADDING = 16;
-const GRID_GAP = 16;
+import { GRID_GAP, SCREEN_PADDING } from '@/styles/metrics';
 
 // The grid rows FlashList renders: the add tile plus the songs, pre-paired
 // into 2-column rows (FlashList's numColumns + varying tile heights fight each
@@ -212,7 +213,7 @@ export default function HomeScreen() {
             keyExtractor={row => row.id}
             renderItem={renderRow}
             contentContainerStyle={{
-              paddingHorizontal: LIST_PADDING,
+              paddingHorizontal: SCREEN_PADDING,
               paddingTop: 8,
               paddingBottom: listBottomPadding,
             }}
@@ -232,6 +233,19 @@ export default function HomeScreen() {
           />
         )}
       </SafeAreaView>
+
+      {/* The player is not a route: banner and full player are ONE surface
+          that expands in place over this screen. It is mounted HERE rather
+          than above the Stack because Home is the only screen it belongs on —
+          which means it needs no per-route blocklist, and, on iOS, no wait for
+          a pathname update. Mounted above the Stack it re-appeared ~430ms
+          AFTER a pop back from Settings had finished: react-native-screens
+          pops natively and only then tells JS, so the pathname-driven unhide
+          landed a beat late. Home's subtree is already rendered underneath the
+          pushed screen, so from here it is simply there. Playback is
+          unaffected either way — that lives in <AudioEngine>, still mounted in
+          the layout. */}
+      <PlayerSheet />
     </Screen>
   );
 }
@@ -243,12 +257,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 4,
-    paddingLeft: LIST_PADDING,
+    paddingLeft: SCREEN_PADDING,
     // The gear should read as inset the same as the wordmark. Android's
     // Material icon is 24dp centred in a 48dp box, so 4 lands its glyph at
-    // LIST_PADDING; iOS packs a tighter-bearing SF Symbol into a 44pt target
+    // SCREEN_PADDING; iOS packs a tighter-bearing SF Symbol into a 44pt target
     // and the same 4 leaves it visibly closer to the edge, so it needs more.
-    paddingRight: Platform.select({ ios: 7, default: 4 }),
+    paddingRight: Platform.select({ ios: 11, default: 4 }),
   },
   wordmark: { fontWeight: '700' },
   headerActions: { alignItems: 'center', flexDirection: 'row' },
@@ -256,8 +270,8 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     gap: GRID_GAP,
-    marginBottom: 20,
+    marginBottom: GRID_GAP + 4,
   },
   cell: { flex: 1 },
-  skeletonGrid: { paddingHorizontal: LIST_PADDING, paddingTop: 8 },
+  skeletonGrid: { paddingHorizontal: SCREEN_PADDING, paddingTop: 8 },
 });

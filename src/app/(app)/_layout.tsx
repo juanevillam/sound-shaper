@@ -6,7 +6,6 @@ import { Redirect, Stack } from 'expo-router';
 import { router } from 'expo-router';
 
 import { AudioEngine } from '@/components/player/AudioEngine';
-import { PlayerSheet } from '@/components/player/PlayerSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
@@ -101,11 +100,10 @@ export default function AppLayout() {
           />
         ))}
       </Stack>
-      {/* The streaming <Audio> element + shaping graph (headless). */}
+      {/* The streaming <Audio> element + shaping graph (headless). Playback
+          is deliberately NOT tied to the player UI: the UI is mounted by the
+          Home screen (see its comment), this keeps playing regardless. */}
       <AudioEngine />
-      {/* The player is not a route: banner and full player are ONE surface
-          that expands in place over every screen (the YT Music interaction). */}
-      <PlayerSheet />
       {/* Top-anchored unlock banner, above every screen. No sound with it: this
           app IS a player, and a jingle over what you are listening to is the
           one place a trophy must not intrude — the haptic carries it. */}
