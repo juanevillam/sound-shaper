@@ -25,9 +25,9 @@ import {
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
+import { BarIconButton } from '@/components/ui/BarIconButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
-import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
@@ -229,8 +229,9 @@ export default function HomeScreen() {
             title={t('app.title')}
             scrollY={header.scrollY}
             right={
-              <IconButton
+              <BarIconButton
                 name="settings"
+                systemName="gearshape"
                 onPress={() => router.push('/settings')}
                 tint={colors.primary}
                 accessibilityLabel={t('app.settings')}
