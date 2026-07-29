@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@portfolio/core';
 import Animated, {
@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * same collapse both design systems specify, so nothing has to be invented for
  * either side:
  *
- * - **iOS** — the system large title. 34pt bold heading, a 44pt inline bar
+ * - **iOS** — the system large title. 34pt bold heading, a 54pt inline bar
  *   with a 17pt semibold CENTRED title, and the small settle-upward the
  *   system hand-off has. The bar is opaque `background` throughout.
  * - **Android** — Material 3's LARGE TOP APP BAR. 28sp headline, a 64dp small
@@ -34,9 +34,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * Labels arrive already translated; the package has no app translator.
  */
 
-// Bar geometry: Apple's inline nav bar is 44pt, Material's small top app bar
-// is 64dp.
-const BAR_HEIGHT = Platform.select({ ios: 44, default: 64 }) as number;
+/**
+ * Bar geometry. Material's small top app bar is 64dp with its content centred.
+ *
+ * iOS is NOT the classic 44: iOS 26's navigation bar is 54pt, and the extra
+ * 10 is padding BENEATH content that still occupies the top 44. Measured
+ * against Topper's profile, whose header is a real `UINavigationBar` — bar
+ * bottom 116.0, action 62.0→105.7, title centre 85.2. Sizing this bar at 44
+ * put the action flush on its bottom edge, with no air under it.
+ */
+const BAR_HEIGHT = Platform.select({ ios: 54, default: 64 }) as number;
+
+/** The part of the bar that carries nothing — iOS only (see above). */
+const BAR_BOTTOM_PAD = Platform.select({ ios: 10, default: 0 }) as number;
 
 // The bar title crosses over while the heading is sliding under it, so the
 // hand-off reads sticky rather than as two separate events. A wide window
@@ -45,11 +55,12 @@ const FADE_START = 8;
 const FADE_END = 56;
 const TITLE_RISE = 10;
 
-// Where the trailing action sits. Material's icon is a 24dp glyph centred in a
-// 48dp box, so 4 lands it on the 16dp grid margin; iOS packs a tighter-bearing
-// SF Symbol into a 44pt target, and the same 4 leaves it visibly closer to the
-// edge than the heading below is.
-const ACTION_INSET = Platform.select({ ios: 11, default: 4 }) as number;
+// Where the trailing action sits: on the grid margin either way, measured to
+// the edge of its TOUCH TARGET. Material's icon is a 24dp glyph centred in a
+// 48dp box, so 4 lands the box on the 16dp margin; iOS bar buttons are 44pt
+// and sit at 16, which is where UIKit puts a real one — checked against Expo
+// Starter's gear, whose header IS a navigation bar.
+const ACTION_INSET = Platform.select({ ios: 16, default: 4 }) as number;
 
 // Material aligns bar content to the grid margin; iOS centres its inline
 // title, so the value is unused there.
@@ -75,24 +86,6 @@ const BAR_TITLE = Platform.select({
  * container, where Apple's large title is followed almost immediately.
  */
 const HEADING_GAP = Platform.select({ ios: 16, default: 20 }) as number;
-
-/**
- * How far the trailing action starts BELOW the bar's centre line — exactly the
- * distance to the heading's centre line, so at rest the action sits on the
- * heading's row and the open header reads as one object. Parked in the bar
- * from the start it looks orphaned: a lone glyph floating in a band that is
- * otherwise empty until you scroll.
- *
- * It then rides the scroll 1:1 and lands in the bar precisely as the heading
- * leaves, so the action arrives where the small title does, together.
- *
- * The gap term is not padding — it aims at the heading's OPTICAL centre (the
- * middle of its capitals) rather than the middle of its line box, which sits
- * lower because the line box carries the descender space too. Measured on
- * device: capitals centre 126.5pt, action centre 128.2pt.
- */
-const ACTION_TRAVEL =
-  BAR_HEIGHT / 2 + (HEADING?.lineHeight ?? 0) / 2 + HEADING_GAP / 2;
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -164,25 +157,15 @@ export function CollapsingHeaderBar({
     ],
   }));
 
-  // Starts on the heading's row and rides the scroll into the bar with it.
-  const actionStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: interpolate(
-          scrollY.value,
-          [0, ACTION_TRAVEL],
-          [ACTION_TRAVEL, 0],
-          'clamp',
-        ),
-      },
-    ],
-  }));
-
   return (
     <Animated.View
       style={[
         styles.bar,
-        { height: topInset + BAR_HEIGHT, paddingTop: topInset },
+        {
+          height: topInset + BAR_HEIGHT,
+          paddingBottom: BAR_BOTTOM_PAD,
+          paddingTop: topInset,
+        },
         surfaceStyle,
       ]}
     >
@@ -198,12 +181,16 @@ export function CollapsingHeaderBar({
         {title}
       </Animated.Text>
       {right ? (
-        // Offset by the status-bar inset like the title is — without it the
+        // PINNED, and it never moves: the action sits where it will be once
+        // the header has collapsed, and only the title animates under it —
+        // WhatsApp's compose button, and every system bar. A bar button
+        // belongs to the BAR, not to the heading, so travelling with the
+        // scroll makes it read as content that happens to end up in a bar.
+        //
+        // Offset by the status-bar inset like the title is: without it the
         // action centres over the WHOLE bar including the inset, which lifts
         // it into the status bar and jams it against the corner.
-        <Animated.View style={[styles.action, { top: topInset }, actionStyle]}>
-          {right}
-        </Animated.View>
+        <View style={[styles.action, { top: topInset }]}>{right}</View>
       ) : null}
     </Animated.View>
   );
@@ -247,7 +234,9 @@ const styles = StyleSheet.create({
   // in the space left over beside the action.
   action: {
     alignItems: 'flex-end',
-    bottom: 0,
+    // Stops at the bar's content box, not its bottom edge — the action lives
+    // in the top 44pt, exactly as a real bar button item does.
+    bottom: BAR_BOTTOM_PAD,
     justifyContent: 'center',
     paddingRight: ACTION_INSET,
     position: 'absolute',
