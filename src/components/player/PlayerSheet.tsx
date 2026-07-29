@@ -38,6 +38,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import { BannerGlass } from '@/components/player/BannerGlass';
 import {
   HANDLES_REGION_HEIGHT,
   type PlayerCard,
@@ -163,6 +164,10 @@ const BANNER_CHROME_FADE = 0.35;
 const PROGRESS_HEIGHT = 4;
 // The unplayed remainder, as a tint of the content colour.
 const PROGRESS_TRACK_ALPHA = 0.2;
+// How far into the expansion the progress bar is gone. Deliberately tiny: its
+// mask is the collapsed banner's shape, so it may only be seen while the
+// banner still HAS that shape.
+const PROGRESS_FADE_END = 0.04;
 
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
 // The artwork is ONE element scaled between the two states, so a fixed
@@ -212,6 +217,21 @@ const MINI_ROW_PADDING_RIGHT =
 // tight column — there is no third line to make room for. iOS gets more: SF's
 // shorter labels leave less optical air of their own.
 const CLIP_FRAMING_GAP = Platform.select({ ios: 16, default: 8 }) as number;
+
+// iOS trades the banner's solid fill for real Liquid Glass, so the library's
+// cover art reads through it. The player it becomes is opaque, so the fill
+// ramps in — and the glass out — over this window, fast enough that the
+// expanding surface is never see-through for long.
+const BANNER_GLASS = Platform.OS === 'ios';
+const BANNER_GLASS_FADE = 0.12;
+/**
+ * A tonal floor UNDER the glass. Pure glass over a bright cover leaves the
+ * title fighting the artwork for contrast — worst in light mode, where both
+ * the material and the text it carries are light. This is the app's own
+ * surface colour at partial strength, so it darkens the banner in dark mode
+ * and lightens it in light mode without either being special-cased.
+ */
+const BANNER_GLASS_FLOOR = 0.45;
 
 // The pill's outline — iOS only. `styles/surfaces`: iOS separates surfaces by
 // EDGE, Android by TONE, and Android's raised pill already reads as its own
@@ -646,6 +666,10 @@ export function PlayerSheet() {
     transform: [{ translateY: (1 - progress.value) * travel }],
   }));
 
+  // Computed here, not in the worklet: `withAlpha` is plain JS and cannot be
+  // called on the UI runtime.
+  const glassFillStart = withAlpha(colors.surfaceContainer, BANNER_GLASS_FLOOR);
+
   // THE detach: the painted surface is a layer inside the container, not the
   // container's own background, so it can be a pill at one end and the whole
   // window at the other. Everything here resolves to the pill's box at p = 0
@@ -657,11 +681,19 @@ export function PlayerSheet() {
     const chrome = 1 - Math.min(p / BANNER_CHROME_FADE, 1);
 
     return {
-      backgroundColor: interpolateColor(
-        p,
-        [0, BANNER_CHROME_FADE],
-        [colors.surfaceContainer, colors.background],
-      ),
+      backgroundColor: BANNER_GLASS
+        ? // Same hue throughout, only the alpha moves: the glass carries the
+          // banner's surface at rest, and the opaque player takes over.
+          interpolateColor(
+            p,
+            [0, BANNER_GLASS_FADE],
+            [glassFillStart, colors.background],
+          )
+        : interpolateColor(
+            p,
+            [0, BANNER_CHROME_FADE],
+            [colors.surfaceContainer, colors.background],
+          ),
       borderRadius: BANNER_RADIUS * (1 - p),
       borderWidth: IOS_ONLY_HAIRLINE * chrome,
       elevation: BANNER_ELEVATION * chrome,
@@ -725,9 +757,40 @@ export function PlayerSheet() {
   // is what lets its child anchor to the bottom at all; only the corner (not a
   // layout prop) animates, and the whole thing is gone well before the surface
   // has finished squaring off.
+  // The progress bar belongs to the SETTLED banner and to nothing else. Its
+  // mask is the banner's collapsed box — fixed corners, fixed insets — while
+  // the surface behind it is growing, so any frame where both are visible
+  // shows a line still cut to a shape the surface has already left. It is
+  // gone within the first breath of the movement instead of fading across a
+  // third of it, which is also how it reads: the bar is part of the banner,
+  // so it leaves WITH the banner rather than dissolving inside the player.
+  // Rides the surface's bottom edge exactly as the progress bar does, so the
+  // material never floats inside a surface that has grown past it.
+  const bannerGlassStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      progress.value,
+      [0, BANNER_GLASS_FADE],
+      [1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [{ translateY: (winH - MINI_PLAYER_HEIGHT) * progress.value }],
+  }));
+
   const progressLineStyle = useAnimatedStyle(() => ({
-    borderRadius: BANNER_RADIUS * (1 - progress.value),
-    opacity: Math.max(0, 1 - progress.value * 3),
+    opacity: interpolate(
+      progress.value,
+      [0, PROGRESS_FADE_END],
+      [1, 0],
+      Extrapolation.CLAMP,
+    ),
+    // Rides the surface's BOTTOM EDGE down. The mask is the banner's box, but
+    // the surface grows 800pt over the expansion — so even a few percent in it
+    // is already tens of points taller, and a bar pinned to the banner's box
+    // hangs in the middle of it as a rounded line attached to nothing. This is
+    // the whole artifact: not the corner, but the edge the corner belongs to
+    // having moved. A transform, not `top`, so the mask's children keep their
+    // layout.
+    transform: [{ translateY: (winH - MINI_PLAYER_HEIGHT) * progress.value }],
   }));
   // -------------------------------------------------------------------------
 
@@ -879,6 +942,19 @@ export function PlayerSheet() {
             its children, so a child anchored to its bottom edge lands at the
             top instead. Every layer below is therefore a sibling, positioned
             against the container, whose height never changes. */}
+        {BANNER_GLASS ? (
+          <Animated.View
+            style={[styles.bannerGlass, bannerGlassStyle]}
+            pointerEvents="none"
+          >
+            <BannerGlass
+              width={winW - BANNER_SIDE_INSET * 2}
+              height={MINI_PLAYER_HEIGHT}
+              radius={BANNER_RADIUS}
+            />
+          </Animated.View>
+        ) : null}
+
         <Animated.View
           style={[styles.surface, { borderColor: colors.border }, surfaceStyle]}
           pointerEvents="none"
@@ -1287,6 +1363,7 @@ type IdleBannerProps = {
 function IdleBanner({ bottomInset }: IdleBannerProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const { width: winW } = useWindowDimensions();
   const songs = useSongsStore(s => s.songs);
   const playSong = usePlayerStore(s => s.playSong);
   const requestExpand = usePlayerStore(s => s.requestExpand);
@@ -1312,7 +1389,12 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
       style={[
         styles.idleBanner,
         {
-          backgroundColor: colors.surfaceContainer,
+          // Transparent under the glass, which paints this banner's surface
+          // for it — the parked banner is the same object as the loaded one
+          // and must not be the one solid slab on the screen.
+          backgroundColor: BANNER_GLASS
+            ? withAlpha(colors.surfaceContainer, BANNER_GLASS_FLOOR)
+            : colors.surfaceContainer,
           // The same floating island the loaded banner resolves to — parked,
           // so it needs none of the animation, only the shape.
           borderColor: colors.border,
@@ -1321,6 +1403,13 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         },
       ]}
     >
+      {BANNER_GLASS ? (
+        <BannerGlass
+          width={winW - BANNER_SIDE_INSET * 2}
+          height={MINI_PLAYER_HEIGHT}
+          radius={BANNER_RADIUS}
+        />
+      ) : null}
       <Pressable
         style={styles.miniRow}
         onPress={start}
@@ -1438,7 +1527,19 @@ const styles = StyleSheet.create({
   // The banner's box, as a mask. Static — an animated layout prop moves the
   // native view without re-laying out its children, and the track inside is
   // anchored to the bottom of exactly this box.
+  // The banner's box, holding the glass. Static like the progress mask, and
+  // moved by transform for the same reason.
+  bannerGlass: {
+    height: MINI_PLAYER_HEIGHT,
+    left: BANNER_SIDE_INSET,
+    position: 'absolute',
+    right: BANNER_SIDE_INSET,
+    top: 0,
+  },
   progressClip: {
+    // Constant corner: this mask is only ever visible on the settled banner,
+    // so it has no reason to animate towards the expanded player's square one.
+    borderRadius: BANNER_RADIUS,
     height: MINI_PLAYER_HEIGHT,
     left: BANNER_SIDE_INSET,
     overflow: 'hidden',
