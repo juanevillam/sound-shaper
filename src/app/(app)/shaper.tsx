@@ -1,18 +1,25 @@
-import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Alert } from 'react-native';
 
-import { Slider } from '@expo/ui/swift-ui';
 import {
-  SHEET_CONTENT_GAP,
-  SHEET_SECTION_GAP,
-  SHEET_SUPPORTING_GAP,
-  SheetDestructiveButtonIos,
-  SheetHeaderIos,
-  SheetSectionHeaderIos,
-} from '@portfolio/mobile-ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+  Button,
+  HStack,
+  Image,
+  Picker,
+  Section,
+  Slider,
+  Spacer,
+  Text as SwiftUIText,
+  Toggle,
+} from '@expo/ui/swift-ui';
+import {
+  font,
+  foregroundStyle,
+  frame,
+  pickerStyle,
+  tag,
+} from '@expo/ui/swift-ui/modifiers';
+import { SheetFormDestructiveIos, SheetFormIos } from '@portfolio/mobile-ui';
 
-import { Text } from '@/components/ui/Text';
-import { ThemedHost } from '@/components/ui/ThemedHost';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useShapesSubscription } from '@/hooks/useShapesSubscription';
@@ -24,22 +31,24 @@ import { createShape, deleteShape } from '@/services/firebase/shapes';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
-import { PILL_RADIUS } from '@/styles/shape';
-import { selectedControl } from '@/styles/surfaces';
 
-// iOS-only route: every sound-shaping control as a native form sheet (Android
-// presents the Compose `ShaperSheet` in place). iOS vocabulary throughout:
-// capsule chips for presets, SwiftUI sliders, a system `Switch`, and
-// `Alert.prompt` — an iOS-only API, and exactly the right one — for naming a
-// saved shape.
+// iOS-only route: every sound-shaping control as a grouped native `Form`
+// (Android presents the Compose `ShaperSheet` in place). iOS vocabulary
+// throughout — a `Picker` row for the preset, `Section` rows for saved shapes,
+// SwiftUI `Slider`s, a `Toggle`, and `Alert.prompt` (an iOS-only API, and
+// exactly the right one) for naming a saved shape.
+//
+// It used to draw this out of RN: the presets and saved shapes were `Pressable`
+// capsules — i.e. Material chips wearing an iOS palette, the same mistake the
+// editor sheets made with their delete pill — and each section header was
+// hand-typeset. A `Form` supplies all of that, plus the grouped backgrounds,
+// separators, Dynamic Type and keyboard handling, for free.
 
 const EQ_LABEL_WIDTH = 38;
-const SLIDER_HEIGHT = 32;
 const RATE_MIN = 0.5;
 const RATE_MAX = 1.5;
 const RATE_STEP = 0.1;
 const SHAPE_NAME_MAX = 24;
-const PRESSED_OPACITY = 0.55;
 
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
@@ -47,7 +56,6 @@ function ShaperSheetScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
-  const { bottom } = useSafeAreaInsets();
 
   const rate = usePlayerStore(s => s.rate);
   const setRate = usePlayerStore(s => s.setRate);
@@ -124,189 +132,137 @@ function ShaperSheetScreen() {
     }
   };
 
-  // Selected state comes from `styles/surfaces` rather than being spelled out
-  // here: iOS has no tonal-container semantics, so a selected control is a
-  // SOLID accent fill, and the matching content colour ships with it.
-  const active = selectedControl(colors);
-
-  const chip = (
-    key: string,
-    label: string,
-    selected: boolean,
-    onPress: () => void,
-  ) => (
-    <Pressable
-      key={key}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        selected ? active.container : { backgroundColor: colors.sheetField },
-        { opacity: pressed ? PRESSED_OPACITY : 1 },
-      ]}
-    >
-      <Text
-        doNotTranslate
-        text={label}
-        variant="labelLarge"
-        numberOfLines={1}
-        style={{ color: selected ? active.content : colors.onSurface }}
-      />
-    </Pressable>
-  );
+  const mutedText = [
+    font({ textStyle: 'footnote' }),
+    foregroundStyle(colors.onSurfaceMuted),
+  ];
 
   return (
-    <View style={[styles.sheet, { backgroundColor: colors.sheet }]}>
-      <View style={styles.headerBlock}>
-        <SheetHeaderIos
-          title={t('player.shape.title')}
-          actionLabel={t('player.shapes.save')}
-          onAction={promptSaveShape}
-        />
-      </View>
-
-      <View style={[styles.section, styles.padded]}>
-        <SheetSectionHeaderIos title={t('player.shapes.presets')} />
-        {/* WRAPPING rows, not a horizontal ScrollView: a nested scrollable
-            mis-measures inside the fitToContents form sheet (its content
-            painted over the sheet header), and six chips wrap fine anyway. */}
-        <View style={styles.chipWrap}>
-          {EQ_PRESETS.map(preset =>
-            chip(
-              preset.i18nKey,
-              presetLabel(preset.i18nKey),
-              activeShapeId === null && activePreset === preset.i18nKey,
-              () => applyPreset(preset.i18nKey),
-            ),
-          )}
-        </View>
-      </View>
+    <SheetFormIos
+      title={t('player.shape.title')}
+      actionLabel={t('player.shapes.save')}
+      onAction={promptSaveShape}
+    >
+      {/* One row that says which preset is on and opens the list to change it,
+          rather than six capsules competing for the eye — the Settings idiom.
+          A saved shape overrides the preset, so nothing is selected then. */}
+      <Section>
+        <Picker
+          label={t('player.shapes.presets')}
+          selection={activeShapeId === null ? activePreset : null}
+          onSelectionChange={key => applyPreset(String(key))}
+          modifiers={[pickerStyle('menu')]}
+        >
+          {EQ_PRESETS.map(preset => (
+            <SwiftUIText key={preset.i18nKey} modifiers={[tag(preset.i18nKey)]}>
+              {presetLabel(preset.i18nKey)}
+            </SwiftUIText>
+          ))}
+        </Picker>
+      </Section>
 
       {shapes.length > 0 ? (
-        <View style={[styles.section, styles.padded]}>
-          <SheetSectionHeaderIos title={t('player.shapes.mine')} />
-          <View style={styles.chipWrap}>
-            {shapes.map(shape =>
-              chip(shape.id, shape.name, activeShapeId === shape.id, () =>
-                onApplyShape(shape.id),
-              ),
-            )}
-          </View>
-        </View>
+        <Section title={t('player.shapes.mine')}>
+          {shapes.map(shape => (
+            // Trailing checkmark on the applied one — how iOS marks the chosen
+            // row in a list you can pick from.
+            <Button key={shape.id} onPress={() => onApplyShape(shape.id)}>
+              <HStack>
+                <SwiftUIText modifiers={[foregroundStyle(colors.onSurface)]}>
+                  {shape.name}
+                </SwiftUIText>
+                <Spacer />
+                {activeShapeId === shape.id ? (
+                  <Image systemName="checkmark" color={colors.primary} />
+                ) : null}
+              </HStack>
+            </Button>
+          ))}
+        </Section>
       ) : null}
 
-      <View style={[styles.section, styles.padded]}>
-        {/* The band numbers are hertz, which means nothing to most people —
-            say what the ends of the range actually sound like. The hint is the
-            header's OWN supporting line, so it sits at the same distance from
-            its title as every other pair on the sheet. */}
-        <SheetSectionHeaderIos
-          title={t('player.eq.title')}
-          subtitle={t('player.eq.hint')}
-        />
-
+      {/* The band numbers are hertz, which means nothing to most people — say
+          what the ends of the range actually sound like. In a Form that line is
+          the section's FOOTER, which is where iOS puts explanatory text. */}
+      <Section
+        title={t('player.eq.title')}
+        footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
+      >
         {EQ_BANDS.map((band, index) => (
-          <View key={band.hz} style={styles.bandRow}>
-            <Text
-              doNotTranslate
-              muted
-              text={band.label}
-              variant="labelMedium"
-              style={styles.bandLabel}
+          <HStack key={band.hz} spacing={8}>
+            <SwiftUIText
+              modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
+            >
+              {band.label}
+            </SwiftUIText>
+            <Slider
+              value={gains[index]}
+              min={EQ_MIN_DB}
+              max={EQ_MAX_DB}
+              step={1}
+              onValueChange={value => setBandGain(index, Math.round(value))}
             />
-            <ThemedHost style={styles.bandSlider}>
-              <Slider
-                value={gains[index]}
-                min={EQ_MIN_DB}
-                max={EQ_MAX_DB}
-                step={1}
-                onValueChange={value => setBandGain(index, Math.round(value))}
-              />
-            </ThemedHost>
-            <Text
-              doNotTranslate
-              muted
-              text={dbLabel(gains[index])}
-              variant="labelMedium"
-              style={styles.bandValue}
-            />
-          </View>
+            <SwiftUIText
+              modifiers={[
+                ...mutedText,
+                frame({ width: EQ_LABEL_WIDTH, alignment: 'trailing' }),
+              ]}
+            >
+              {dbLabel(gains[index])}
+            </SwiftUIText>
+          </HStack>
         ))}
-      </View>
+      </Section>
 
-      <View style={[styles.section, styles.padded]}>
-        <SheetSectionHeaderIos
-          title={t('player.speed')}
-          value={rateLabel(rate)}
+      <Section
+        header={
+          <HStack>
+            <SwiftUIText>{t('player.speed')}</SwiftUIText>
+            <Spacer />
+            <SwiftUIText>{rateLabel(rate)}</SwiftUIText>
+          </HStack>
+        }
+      >
+        <Slider
+          value={rate}
+          min={RATE_MIN}
+          max={RATE_MAX}
+          step={RATE_STEP}
+          onValueChange={value =>
+            // Float math on 0.1 steps drifts (0.7000000000000001), so snap to
+            // one decimal.
+            setRate(Math.round(value / RATE_STEP) / 10)
+          }
         />
-        <ThemedHost style={styles.rateSlider}>
-          <Slider
-            value={rate}
-            min={RATE_MIN}
-            max={RATE_MAX}
-            step={RATE_STEP}
-            onValueChange={value =>
-              // Float math on 0.1 steps drifts (0.7000000000000001), so snap
-              // to one decimal.
-              setRate(Math.round(value / RATE_STEP) / 10)
-            }
-          />
-        </ThemedHost>
-      </View>
+      </Section>
 
       {/* Keep pitch belongs WITH speed — it only decides whether changing the
-          speed also changes how high the sound is. */}
-      <View style={[styles.switchRow, styles.padded]}>
-        <View style={styles.switchCopy}>
-          <Text text="player.keepPitch" variant="bodyLarge" />
-          <Text muted text="player.keepPitchDescription" variant="bodySmall" />
-        </View>
-        <Switch value={keepPitch} onValueChange={setKeepPitch} />
-      </View>
+          speed also changes how high the sound is. Its explanation is the
+          section footer, so nothing here has to hand-place a support line. */}
+      <Section
+        footer={<SwiftUIText>{t('player.keepPitchDescription')}</SwiftUIText>}
+      >
+        <Toggle
+          isOn={keepPitch}
+          label={t('player.keepPitch')}
+          onIsOnChange={setKeepPitch}
+        />
+      </Section>
 
-      {/* Destructive action lives at the BOTTOM, never in the header — and
-          only while one of your own shapes is applied. Same outlined pill as
-          every other sheet's delete, set well clear of the keep-pitch row so
-          it can't be mistaken for part of it. */}
+      {/* Destructive action last and in its OWN section — the Contacts "Delete
+          Contact" pattern, which is also why it spans the full width without
+          anyone forcing a frame onto it. Only while one of your own shapes is
+          applied. */}
       {activeShape ? (
-        <View style={styles.padded}>
-          <SheetDestructiveButtonIos
+        <Section>
+          <SheetFormDestructiveIos
             label={t('player.shapes.delete')}
             onPress={onDeleteShape}
-            style={styles.destructive}
           />
-        </View>
+        </Section>
       ) : null}
-
-      <View style={{ height: Math.max(bottom, 24) }} />
-    </View>
+    </SheetFormIos>
   );
 }
 
 export default iosOnlyRoute(ShaperSheetScreen);
-
-const styles = StyleSheet.create({
-  bandLabel: { width: EQ_LABEL_WIDTH },
-  bandRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  bandSlider: { flex: 1, height: SLIDER_HEIGHT },
-  bandValue: { textAlign: 'right', width: EQ_LABEL_WIDTH },
-  chip: {
-    borderRadius: PILL_RADIUS,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // Clear of the keep-pitch row above — the sheet's own gap is not enough
-  // separation for the one irreversible control on it.
-  destructive: { marginTop: 12 },
-  headerBlock: { paddingHorizontal: 24 },
-  padded: { paddingHorizontal: 24 },
-  rateSlider: { height: SLIDER_HEIGHT, width: '100%' },
-  // The three sheet-rhythm gaps come from the shared iOS sheet chrome — the
-  // section boundaries only read if the gap between them clearly beats the
-  // gap inside them, and that ratio is not this file's to invent.
-  section: { gap: SHEET_CONTENT_GAP },
-  sheet: { gap: SHEET_SECTION_GAP, paddingTop: 20 },
-  switchCopy: { flex: 1, gap: SHEET_SUPPORTING_GAP, paddingRight: 16 },
-  switchRow: { alignItems: 'center', flexDirection: 'row' },
-});

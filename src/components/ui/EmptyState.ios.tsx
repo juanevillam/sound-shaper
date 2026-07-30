@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react';
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { ActionButtonIos } from '@portfolio/mobile-ui';
 
 import { Text } from '@/components/ui/Text';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { PILL_RADIUS } from '@/styles/shape';
 
 const EMOJI_SIZE = 48;
-const PRESSED_OPACITY = 0.7;
 
 type EmptyStateProps = {
   emoji?: string;
@@ -31,8 +30,6 @@ export function EmptyState({
   action,
   children,
 }: EmptyStateProps) {
-  const { colors } = useAppTheme();
-
   return (
     <View style={styles.centered}>
       {emoji ? <Text doNotTranslate text={emoji} style={styles.emoji} /> : null}
@@ -52,24 +49,12 @@ export function EmptyState({
         />
       ) : null}
       {action ? (
-        <Pressable
-          accessibilityRole="button"
+        <ActionButtonIos
+          label={action.label}
           onPress={action.onPress}
-          style={({ pressed }) => [
-            styles.cta,
-            {
-              backgroundColor: colors.primary,
-              opacity: pressed ? PRESSED_OPACITY : 1,
-            },
-          ]}
-        >
-          <Text
-            doNotTranslate
-            text={action.label}
-            variant="labelLarge"
-            style={{ color: colors.onPrimary }}
-          />
-        </Pressable>
+          variant="prominent"
+          style={styles.cta}
+        />
       ) : null}
       {children}
     </View>
@@ -84,12 +69,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  cta: {
-    borderRadius: PILL_RADIUS,
-    marginTop: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-  },
+  // Spacing only — the capsule itself is the system's.
+  cta: { marginTop: 8 },
   emoji: { fontSize: EMOJI_SIZE, lineHeight: EMOJI_SIZE + 8 },
   subtitle: { textAlign: 'center' },
   title: { textAlign: 'center' },
