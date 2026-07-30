@@ -115,3 +115,101 @@ ls node_modules/@expo/ui/build/swift-ui
 
 Then update the rows and the summary counts. Pair this with the upgrade checklist
 in [`expo-ui-customizations.md`](expo-ui-customizations.md).
+
+## Native-first inventory (iOS) — 2026-07-29
+
+Standing rule in `AGENTS.md` → "Native primitive first". This is the running
+ledger of iOS surfaces that were authored in RN, what happened to each, and —
+where they stayed RN — the reason, so nobody re-litigates it from scratch.
+
+### Converted to the system control
+
+| surface                                              | was                                                             | now                                                                                                                                        |
+| ---------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SheetFormIos` chrome (all editor sheets, both apps) | RN header `Pressable`, styled `TextInput`s, `ActivityIndicator` | SwiftUI `Form` + `Section` + `TextField` + `Button` + `ProgressView`                                                                       |
+| Topper edit-item / edit-top, Sound Shaper edit-sound | RN `ScrollView` of hand-drawn rows                              | grouped native `Form`                                                                                                                      |
+| Delete item / top / sound                            | RN outlined pill (Material's `OutlinedButton` in disguise)      | `Button(role: .destructive)` as a `Section` row — full width by construction                                                               |
+| Topper item-detail "Edit item"                       | RN bordered pill                                                | `ActionButtonIos` (`.bordered`)                                                                                                            |
+| `EmptyState.ios` CTA (both apps)                     | filled RN pill                                                  | `ActionButtonIos` (`.borderedProminent`)                                                                                                   |
+| `InlineFollowButton.ios`                             | RN capsule, two hand-picked fills                               | `ActionButtonIos`, prominent = Follow / bordered = Following                                                                               |
+| Topper blocked-users "Unblock"                       | RN tonal pill                                                   | `ActionButtonIos`                                                                                                                          |
+| Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                           | `Form` rows + native `SwipeActions` delete                                                                                                 |
+| `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                     | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                      |
+| Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                         | one `Host`: SwiftUI `TextField` (`roundedBorder`) + `Button`                                                                               |
+| Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`  | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row |
+
+### Staying RN, with the reason
+
+**`@expo/ui`'s SwiftUI `Image` renders SF Symbols and asset-catalog names
+only — there is no remote-URL image.** Any list row showing an avatar or cover
+art therefore cannot become a native `List` row without bridging one
+`RNHostView` per row, which is the sizing blowup documented in
+`expo-ui-customizations.md`. That rules out, for now:
+
+- `follow-list` rows, `CommentRow.ios`, `ProfileHeader.ios` (avatars)
+
+Revisit if `@expo/ui` gains an async/remote image.
+
+Other standing exceptions:
+
+- **`emoji-picker` cells** — a `Host` per emoji in a large grid is a perf
+  non-starter; the whole picker would have to become a SwiftUI `LazyVGrid`.
+- **`PlayerCards.ios`** — custom composed cards (icon + title + subtitle), not
+  an imitation of any system control, so there is nothing to inherit.
+- **`GoogleSignInButton.ios`** — Google's brand guidelines dictate the button.
+- **`SnackbarProvider`** — no SwiftUI equivalent; it's an app-level overlay.
+- **RN `Switch`** — already renders a real `UISwitch` on iOS.
+
+### Still to do
+
+- **`CommentRow.ios` → a native `List` row with `swipeActions`.** BLOCKED, not
+  skipped: `swipeActions` is a List-row modifier, so the row has to live inside
+  a native `List` — and the row carries an avatar, which is the remote-`Image`
+  exception above. It keeps its long-press + `•••` `ActionSheetIOS` menu until
+  `@expo/ui` gains a remote image. (The composer beside it IS converted.)
+- Revisit the avatar-bearing rows (`follow-list`, `ProfileHeader.ios`) at the
+  same time, for the same reason.
+
+### Gotchas found doing this
+
+- A native `Form` is a scroll container with **no intrinsic height**: under a
+  `fitToContents` detent the sheet hugs its header and the form renders 0pt
+  tall. Editors use a fractional detent (`[0.9]`, clips `[0.6]`, shaper `[0.9]`).
+- `frame({ maxWidth: Infinity })` — shown in the `@expo/ui` docs — **does not
+  stretch a `.bordered` button**; the value doesn't survive to the Swift
+  `FrameModifier`. Get full width from the container (a `Section` row), not a
+  frame. A fixed `frame({ width })` DOES work (the EQ band labels use it).
+- **A `Host` whose `matchContents` hugs only the vertical axis renders BLANK
+  when the parent gives it no width.** It fills whatever width it is handed, so
+  in a centred column or a row's trailing slot (both auto-width) the control
+  measures ~0 wide and you get a tall empty bar with no label — not a narrow
+  button. `ActionButtonIos` therefore hugs BOTH axes; only
+  `SheetDestructiveButtonIos`, which a `Section` row hands a width, may hug one.
+  This shipped broken in the `EmptyState.ios` CTA and was invisible to
+  typechecking — it is the reason every one of these needs a screenshot.
+- **A swipe action translates the row's own content left by the action's full
+  width.** A worded action ("🗑 Delete clip", ~110pt) pushes a short row label
+  clean off the leading edge, leaving what looks like an empty row. Swipe
+  actions are therefore GLYPH-ONLY here (Mail does the same), with the wording
+  moved to `accessibilityLabel`.
+- SwiftUI `Form` handles keyboard avoidance itself; no `KeyboardAvoidingView`.
+  Anything PINNED to a sheet's bottom instead uses
+  `useSheetKeyboardInset()` from `@portfolio/mobile-ui` — keyboard avoidance is
+  a property of the container, not of the control.
+- A native multiline `TextField` has no return-key dismiss (Return inserts a
+  newline), so a thread above a composer needs
+  `keyboardDismissMode="interactive"` or the keyboard cannot be put away.
+- A SwiftUI `TextField` is **uncontrolled** on the Swift side. React listens via
+  `onTextChange`; JS-driven changes (seed an edit, clear after posting) go
+  through the `TextFieldRef` (`setText` / `clear` / `focus`).
+- `RNHostView` takes no `style` and `matchContents` is boolean-only, so the RN
+  child must carry its own size and centre itself.
+
+### Simulator gotcha while verifying these
+
+`simctl`-injected typing re-enables the **hardware** keyboard, after which
+tapping a field focuses it, draws no software keyboard, and still reports a
+keyboard frame — so a keyboard-driven inset looks permanently stuck. It is not
+an app bug. Restart Simulator.app (with
+`defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false`)
+and drive the field by taps only.
