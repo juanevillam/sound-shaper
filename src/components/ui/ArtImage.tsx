@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { Image } from 'expo-image';
 
@@ -32,6 +38,17 @@ type ArtImageProps = {
 // drawn from the image itself, no dominant-color extraction needed. Same idiom
 // as Topper's ItemImage.
 const BACKDROP_BLUR = 18;
+// Each platform blurs at a different point in the pipeline, so the SAME radius
+// lands differently. Android (Glide `BlurTransformation(r, sampling=4)`) blurs
+// at VIEW size — always heavy. iOS (SDWebImage `SDImageBlurTransformer`, and it
+// halves the radius) blurs the DECODED source bitmap before the view shrinks
+// it, so 18 on a 2048px cover squeezed into the player's hero slot comes out
+// sub-pixel — a SHARP zoomed copy behind the art instead of a wash. Only shows
+// on non-square art (square covers leave no letterbox), which is why it hid
+// here. Pinning iOS's backdrop to one tiny source makes the blur
+// size-independent and matches Android at every slot. Topper's ItemImage does
+// the same.
+const BACKDROP_SOURCE_WIDTH = 64;
 // Short cross-dissolve so artwork fades in instead of popping. Cached images
 // load synchronously and skip it, so lists of already-seen art never flash.
 const FADE_MS = 200;
@@ -44,6 +61,9 @@ export function ArtImage({
   uri,
 }: ArtImageProps) {
   const source = { uri: displayWidth ? thumbUrl(uri, displayWidth) : uri };
+  const backdropUri =
+    Platform.OS === 'ios' ? thumbUrl(uri, BACKDROP_SOURCE_WIDTH) : source.uri;
+  const backdropSource = { uri: backdropUri };
   // Until the art decodes the slot PULSES: a still grey square is
   // indistinguishable from a broken image, which is exactly how a slow load
   // used to read.
@@ -60,7 +80,7 @@ export function ArtImage({
         <Skeleton radius={0} style={styles.placeholder} />
       )}
       <Image
-        source={source}
+        source={backdropSource}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         blurRadius={BACKDROP_BLUR}
