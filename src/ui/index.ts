@@ -61,14 +61,11 @@ export {
   type TextVariant,
 } from './createText';
 export {
-  SHEET_CONTENT_GAP,
-  SHEET_SECTION_GAP,
-  SHEET_SUPPORTING_GAP,
-  SheetDestructiveButtonIos,
-  SheetFieldIos,
-  SheetHeaderIos,
-  SheetMediaBlockIos,
-  SheetSectionHeaderIos,
+  ActionButtonIos,
+  SheetFormDestructiveIos,
+  SheetFormFieldIos,
+  SheetFormIos,
+  SheetFormMediaIos,
 } from './SheetFormIos';
 export {
   GROUP_ROW_GAP,
@@ -106,5 +103,6 @@ export {
   buildGeneralSettingsSections,
   type GeneralSettingsState,
 } from './settingsContent';
+export { useSheetKeyboardInset } from './useSheetKeyboardInset';
 export { setSplashHidden, useSplashHidden } from './useSplashHidden';
 export * from './tokens';

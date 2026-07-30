@@ -1,348 +1,293 @@
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
+import {
+  Button,
+  Form,
+  HStack,
+  Host,
+  ProgressView,
+  RNHostView,
+  Spacer,
+  Text as SwiftUIText,
+  TextField,
+  VStack,
+  useNativeState,
+} from '@expo/ui/swift-ui';
+import {
+  buttonStyle,
+  controlSize,
+  disabled as disabledModifier,
+  font,
+  foregroundStyle,
+  keyboardType as keyboardTypeModifier,
+  lineLimit,
+  padding,
+  scrollContentBackground,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 import { useAppTheme } from '@portfolio/core';
 
-import { TEXT_VARIANTS } from './createText';
-import { radius, spacing } from './tokens';
+import { spacing } from './tokens';
 
 /**
  * Chrome for the iOS form-sheet routes, shared by every portfolio app: the
- * title + tinted-action header, the centred media block, the filled text
- * field, the section header, and the outlined destructive button.
+ * grouped `Form` with its title + tinted-action header, the `TextField` row,
+ * the centred media row, the affirmative button and the destructive row.
  *
  * It lives in the package rather than per app because these are the SAME
  * surface — an app that re-authored one drifted from the others within a week
  * (mismatched delete buttons, two different media treatments). Labels arrive
- * already translated (the package has no app translator), and colors come
- * from the shared `useAppTheme`, so a call site passes only content.
+ * already translated (the package has no app translator), and colors come from
+ * the shared `useAppTheme`, so a call site passes only content.
  *
- * ## The type roles these establish
- *
- * Every iOS sheet uses exactly four, and nothing else:
- *
- * | role              | component / style          | colour   |
- * | ----------------- | -------------------------- | -------- |
- * | sheet title       | `SheetHeaderIos`           | onSurface|
- * | section header    | `SheetSectionHeaderIos`    | onSurface|
- * | row title         | `bodyLarge`                | onSurface|
- * | supporting/value  | `bodySmall` / `labelMedium`| muted    |
- *
- * Muted means "supporting", never "a heading in grey".
- *
- * ## The vertical rhythm these establish
- *
- * A sheet reads as sections only if the gap BETWEEN them clearly beats the gap
- * WITHIN them. Three numbers, and no sheet should invent a fourth:
- *
- * | gap                          | token                   | value |
- * | ---------------------------- | ----------------------- | ----- |
- * | section → section            | `SHEET_SECTION_GAP`     | 24    |
- * | header → the section's rows  | `SHEET_CONTENT_GAP`     | 8     |
- * | any title → its support line | `SHEET_SUPPORTING_GAP`  | 4     |
- *
- * The last one is why `SheetSectionHeaderIos` takes the supporting line as a
- * `subtitle` prop rather than leaving call sites to render it as one more
- * child: as a child it inherited the section's own gap and sat three times
- * further from its heading than the identical pair one row below.
+ * Everything here is the platform's own control. An earlier version of this
+ * file drew the same sheet out of RN views — a `Pressable` for the action, a
+ * styled `TextInput` per field, an `ActivityIndicator` while saving, and an
+ * outlined pill for delete that was, unwittingly, Material's `OutlinedButton`
+ * redrawn by hand and shipped on iOS. Beside the real controls in
+ * `apps/expo-starter`'s showcase the imitation was obvious; worse, the ANDROID
+ * twins of these sheets were already 100% Compose, so iOS was the only platform
+ * wearing hand-made paint. Those RN components were deleted once the last
+ * sheet (`shaper.tsx`) moved over — going through SwiftUI also hands us press
+ * and disabled states, Dynamic Type and the right accessibility traits for
+ * free, instead of the opacity ramps we were maintaining.
  */
 
-/** Between two sections of a sheet. */
-export const SHEET_SECTION_GAP = spacing.xl;
-/** Between a section's header and its controls. */
-export const SHEET_CONTENT_GAP = spacing.sm;
-/** Between any title — section header or row title — and its support line. */
-export const SHEET_SUPPORTING_GAP = spacing.xs;
+const styles = StyleSheet.create({
+  // The native form owns the whole sheet, so its host fills it.
+  formHost: { flex: 1 },
+});
 
-const PRESSED_OPACITY = 0.5;
-const DISABLED_OPACITY = 0.35;
-const SPINNER_SIZE = 20;
-const HEADER_WEIGHT = '600';
-const FIELD_FONT_SIZE = 16;
-const FIELD_RADIUS = 10;
-const FIELD_PADDING_X = 14;
-const FIELD_PADDING_Y = 12;
-const FIELD_MULTILINE_HEIGHT = 88;
-const DESTRUCTIVE_PADDING_Y = 11;
-
-type SheetHeaderProps = {
+type SheetFormProps = {
   title: string;
   actionLabel: string;
-  /** Defaults to enabled — pass `false` while the form is invalid. */
   actionEnabled?: boolean;
-  /** Swaps the action for a spinner while a real network wait is in flight. */
   busy?: boolean;
   onAction: () => void;
+  /** `Section`s — the form's rows. */
+  children: React.ReactNode;
 };
 
-/** Title left, tinted action right — the sheet's action bar (grabber above). */
-export function SheetHeaderIos({
+/**
+ * The whole iOS editor sheet: title + action over a grouped `Form`.
+ *
+ * The header is a SwiftUI `HStack` in the SAME host as the form rather than an
+ * RN bar above it, so the two can't drift apart in font, tint or pressed
+ * state. `scrollContentBackground('hidden')` drops the Form's own grouped
+ * backdrop — the sheet already paints one, and stacking them read as a lighter
+ * panel floating on the sheet.
+ */
+export function SheetFormIos({
   title,
   actionLabel,
   actionEnabled = true,
   busy = false,
   onAction,
-}: SheetHeaderProps) {
-  const { colors } = useAppTheme();
-  const disabled = !actionEnabled || busy;
-
-  return (
-    <View style={styles.header}>
-      <Text style={[TEXT_VARIANTS.titleLarge, { color: colors.onSurface }]}>
-        {title}
-      </Text>
-      {busy ? (
-        <ActivityIndicator size={SPINNER_SIZE} color={colors.onSurfaceMuted} />
-      ) : (
-        <Pressable
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={onAction}
-          style={({ pressed }) => ({
-            opacity: disabled
-              ? DISABLED_OPACITY
-              : pressed
-                ? PRESSED_OPACITY
-                : 1,
-          })}
-        >
-          <Text
-            style={[
-              TEXT_VARIANTS.labelLarge,
-              { color: colors.primary, fontWeight: HEADER_WEIGHT },
-            ]}
-          >
-            {actionLabel}
-          </Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
-type SheetSectionHeaderProps = {
-  title: string;
-  /** Optional right-aligned current value ("0,9×") — supporting, so muted. */
-  value?: string;
-  /**
-   * The line UNDER the heading that says what the section is for. Passed here
-   * rather than rendered by the call site so it always sits at
-   * `SHEET_SUPPORTING_GAP` from its title, like every other pair in the sheet.
-   */
-  subtitle?: string;
-};
-
-/**
- * A section's name inside a sheet. Deliberately NOT muted: muted is the
- * supporting-text role, and a heading painted in the supporting colour is the
- * single most common way these sheets start to read as accidental.
- */
-export function SheetSectionHeaderIos({
-  title,
-  value,
-  subtitle,
-}: SheetSectionHeaderProps) {
-  const { colors } = useAppTheme();
-
-  return (
-    <View style={styles.sectionHeaderBlock}>
-      <View style={styles.sectionHeader}>
-        <Text
-          style={[
-            TEXT_VARIANTS.labelLarge,
-            { color: colors.onSurface, fontWeight: HEADER_WEIGHT },
-          ]}
-        >
-          {title}
-        </Text>
-        {value ? (
-          <Text
-            style={[
-              TEXT_VARIANTS.labelMedium,
-              { color: colors.onSurfaceMuted },
-            ]}
-          >
-            {value}
-          </Text>
-        ) : null}
-      </View>
-      {subtitle ? (
-        <Text
-          style={[TEXT_VARIANTS.bodySmall, { color: colors.onSurfaceMuted }]}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-type SheetMediaBlockProps = {
-  /** The media itself — a picker avatar, a cover-art disc, an emoji slot. */
-  children: React.ReactNode;
-  /** Muted line under it: what the media is, or what tapping it does. */
-  caption: string;
-};
-
-/** Centred media over its muted caption — the top block of every editor. */
-export function SheetMediaBlockIos({
   children,
-  caption,
-}: SheetMediaBlockProps) {
+}: SheetFormProps) {
   const { colors } = useAppTheme();
 
   return (
-    <View style={styles.mediaBlock}>
-      {children}
-      <Text
-        style={[TEXT_VARIANTS.labelMedium, { color: colors.onSurfaceMuted }]}
-      >
-        {caption}
-      </Text>
-    </View>
+    <Host style={styles.formHost}>
+      <VStack spacing={0}>
+        <HStack modifiers={[padding({ horizontal: 20, top: 18, bottom: 4 })]}>
+          <SwiftUIText
+            modifiers={[
+              font({ textStyle: 'title2', weight: 'bold' }),
+              foregroundStyle(colors.onSurface),
+            ]}
+          >
+            {title}
+          </SwiftUIText>
+          <Spacer />
+          {busy ? (
+            <ProgressView />
+          ) : (
+            <Button
+              label={actionLabel}
+              onPress={onAction}
+              modifiers={[
+                tint(colors.primary),
+                ...(actionEnabled ? [] : [disabledModifier(true)]),
+              ]}
+            />
+          )}
+        </HStack>
+        <Form modifiers={[scrollContentBackground('hidden')]}>{children}</Form>
+      </VStack>
+    </Host>
   );
 }
 
-type SheetFieldProps = {
+type SheetFormFieldProps = {
   value: string;
   onChangeText: (next: string) => void;
   placeholder: string;
   error?: string | null;
   multiline?: boolean;
-  keyboardType?: 'default' | 'number-pad';
-  autoCapitalize?: 'none' | 'sentences' | 'words';
-  returnKeyType?: 'done' | 'next';
-  editable?: boolean;
-  onSubmitEditing?: () => void;
+  keyboardType?: 'default' | 'numberPad';
 };
 
-/** iOS filled input (grouped-background rounded rect), error line below. */
-export function SheetFieldIos({
+/**
+ * One `TextField` row. The field is UNCONTROLLED on the native side — its text
+ * lives in an `ObservableState` seeded once from `value`, and React only
+ * listens via `onTextChange`. Pushing every keystroke back down as a prop
+ * fights the UIKit text engine (dropped characters, jumping carets); the
+ * native field owns its buffer and JS owns validation.
+ */
+export function SheetFormFieldIos({
   value,
   onChangeText,
   placeholder,
   error,
   multiline = false,
   keyboardType = 'default',
-  autoCapitalize = 'sentences',
-  returnKeyType,
-  editable = true,
-  onSubmitEditing,
-}: SheetFieldProps) {
+}: SheetFormFieldProps) {
   const { colors } = useAppTheme();
+  const text = useNativeState(value);
 
   return (
-    <View style={styles.fieldWrap}>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
+    <VStack alignment="leading" spacing={2}>
+      <TextField
+        text={text}
         placeholder={placeholder}
-        placeholderTextColor={colors.onSurfaceMuted}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        returnKeyType={returnKeyType}
-        editable={editable}
-        onSubmitEditing={onSubmitEditing}
-        style={[
-          styles.field,
-          multiline && styles.fieldMultiline,
-          {
-            backgroundColor: colors.sheetField,
-            color: colors.onSurface,
-            borderColor: error ? colors.danger : 'transparent',
-          },
+        onTextChange={onChangeText}
+        axis={multiline ? 'vertical' : 'horizontal'}
+        modifiers={[
+          keyboardTypeModifier(
+            keyboardType === 'numberPad' ? 'numeric' : 'default',
+          ),
+          ...(multiline ? [lineLimit(6, { reservesSpace: true })] : []),
         ]}
       />
       {error ? (
-        <Text style={[TEXT_VARIANTS.bodySmall, { color: colors.danger }]}>
+        <SwiftUIText
+          modifiers={[
+            font({ textStyle: 'footnote' }),
+            foregroundStyle(colors.danger),
+          ]}
+        >
           {error}
-        </Text>
+        </SwiftUIText>
       ) : null}
-    </View>
+    </VStack>
   );
 }
 
-type SheetDestructiveButtonProps = {
+type SheetFormMediaProps = {
+  /** RNHostView bridges ONE RN element into SwiftUI — not a ReactNode list. */
+  children: React.ReactElement;
+  caption: string;
+};
+
+/** Centred media over its caption, as a borderless form row. */
+export function SheetFormMediaIos({ children, caption }: SheetFormMediaProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <VStack spacing={spacing.sm}>
+      {/* RNHostView takes no style and `matchContents` is boolean-only, so
+          the RN child must carry its own size AND centre itself in a
+          full-width wrapper — the slot is as big as what you hand it. */}
+      <RNHostView matchContents>{children}</RNHostView>
+      <SwiftUIText
+        modifiers={[
+          font({ textStyle: 'footnote' }),
+          foregroundStyle(colors.onSurfaceMuted),
+        ]}
+      >
+        {caption}
+      </SwiftUIText>
+    </VStack>
+  );
+}
+
+type ActionButtonProps = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
-  /** Extra separation from the row above — destructive actions stand apart. */
+  /**
+   * `prominent` is the filled capsule (a screen's primary call to action);
+   * `bordered` is the tinted tonal one (a secondary or in-sheet action).
+   */
+  variant?: 'bordered' | 'prominent';
+  /** Positioning only — the button's own look belongs to the system. */
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * The one destructive control for iOS sheets: a full-width outlined pill in
- * the danger colour, at the very bottom. Outlined rather than filled because
- * on iOS a filled row reads as a *field*, and the app's fields are exactly
- * that fill — a delete button must not look like somewhere to type.
+ * The affirmative counterpart of `SheetFormDestructiveIos`: a system `Button`,
+ * for every forward action across the portfolio's iOS surfaces — "Edit item" in
+ * a sheet, an empty state's CTA, an Unblock pill.
+ *
+ * Every one of those used to be a `Pressable` with a hand-drawn pill, a
+ * hardcoded fill and its own opacity ramp — i.e. Material's button wearing an
+ * iOS palette, and a different imitation per screen. One export, so a portfolio
+ * button is the platform's button.
  */
-export function SheetDestructiveButtonIos({
+export function ActionButtonIos({
   label,
   onPress,
   disabled = false,
+  variant = 'bordered',
   style,
-}: SheetDestructiveButtonProps) {
+}: ActionButtonProps) {
   const { colors } = useAppTheme();
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.destructive,
-        { borderColor: colors.border },
-        { opacity: pressed || disabled ? PRESSED_OPACITY : 1 },
-        style,
-      ]}
-    >
-      <Text style={[TEXT_VARIANTS.labelLarge, { color: colors.danger }]}>
-        {label}
-      </Text>
-    </Pressable>
+    // `matchContents` hugs BOTH axes, and there is no option not to. Hugging
+    // only the vertical axis (what `SheetDestructiveButtonIos` does, because a
+    // Section row hands it a width) leaves the Host filling whatever width it
+    // is given — and a capsule CTA is usually given none: a centred column or a
+    // row's trailing slot has auto width, the button measures at ~0 wide, and
+    // it renders as a tall BLANK bar with no label at all. Stretching is not
+    // the alternative either: a `.bordered` button hugs its label whatever
+    // width the Host has (`frame({ maxWidth: Infinity })` is a no-op), so full
+    // width only ever comes from a `Section` row.
+    <Host matchContents style={style}>
+      <Button
+        label={label}
+        onPress={onPress}
+        modifiers={[
+          buttonStyle(
+            variant === 'prominent' ? 'borderedProminent' : 'bordered',
+          ),
+          controlSize('large'),
+          tint(colors.primary),
+          ...(disabled ? [disabledModifier(true)] : []),
+        ]}
+      />
+    </Host>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  sectionHeaderBlock: { gap: SHEET_SUPPORTING_GAP },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  mediaBlock: { alignItems: 'center', gap: spacing.sm },
-  fieldWrap: { gap: spacing.xs },
-  field: {
-    borderCurve: 'continuous',
-    borderRadius: FIELD_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    fontSize: FIELD_FONT_SIZE,
-    paddingHorizontal: FIELD_PADDING_X,
-    paddingVertical: FIELD_PADDING_Y,
-  },
-  fieldMultiline: {
-    minHeight: FIELD_MULTILINE_HEIGHT,
-    textAlignVertical: 'top',
-  },
-  destructive: {
-    alignItems: 'center',
-    borderCurve: 'continuous',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    paddingVertical: DESTRUCTIVE_PADDING_Y,
-  },
-});
+type SheetFormDestructiveProps = {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+};
+
+/**
+ * The destructive row: a centred red label filling the section. No `style` and
+ * no frame — it is full width because the `Section` row makes it so, which is
+ * the Contacts / Calendar "Delete Contact" pattern.
+ */
+export function SheetFormDestructiveIos({
+  label,
+  onPress,
+  disabled = false,
+}: SheetFormDestructiveProps) {
+  return (
+    <Button
+      role="destructive"
+      onPress={onPress}
+      modifiers={disabled ? [disabledModifier(true)] : []}
+    >
+      <HStack>
+        <Spacer />
+        <SwiftUIText>{label}</SwiftUIText>
+        <Spacer />
+      </HStack>
+    </Button>
+  );
+}
