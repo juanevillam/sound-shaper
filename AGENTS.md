@@ -64,6 +64,21 @@ writing native code. `@expo/ui` (Jetpack Compose + SwiftUI) markdown snapshots
 live in `../expo-starter/docs/`. The installed TypeScript types under
 `node_modules/@expo/ui` are the source of truth when the docs disagree.
 
+## Sign in with Apple is temporarily OFF (free-team dev)
+
+`APPLE_SIGN_IN_ENABLED = false` in `src/app/(welcome)/welcome.tsx` hides the
+button on iOS, so the welcome screen offers Google alone. The
+`com.apple.developer.applesignin` entitlement needs a PAID Apple Developer
+membership, which the free personal team can't sign — a button that can only
+fail is worse than no button. The entitlement itself is stripped by
+`ios.usesAppleSignIn: false` plus `plugins/with-strip-apple-signin.js`, which
+must stay the **FIRST** entry in `app.json`'s `plugins` array (the entitlements
+mod registered earliest runs last, so listing it later loses to
+`expo-apple-authentication`). Revert all three together once the paid account
+lands — App Store policy requires Apple sign-in wherever Google is offered.
+Nothing was deleted: `useAppleSignIn.ios.ts`, `services/firebase/appleAuth.ts`
+and `AppleSignInButton` stay wired and correct.
+
 ## Native projects (CNG)
 
 `android/` and `ios/` are **gitignored prebuild output** — never hand-edit them.

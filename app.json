@@ -14,7 +14,7 @@
         "tinted": "./assets/images/ios-tinted.png"
       },
       "appleTeamId": "C65D64JUZK",
-      "usesAppleSignIn": true,
+      "usesAppleSignIn": false,
       "infoPlist": {
         "CFBundleLocalizations": ["en", "es", "zh"],
         "ITSAppUsesNonExemptEncryption": false
@@ -36,6 +36,7 @@
       "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
     },
     "plugins": [
+      "../../plugins/with-strip-apple-signin",
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",

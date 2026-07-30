@@ -17,6 +17,19 @@ import { useAuthStore } from '@/store/auth';
 
 const APP_NAME = Constants.expoConfig?.name ?? '';
 
+// TEMPORARY — flip back to `true` before the App Store build.
+//
+// Sign in with Apple needs the `com.apple.developer.applesignin` entitlement,
+// which only a PAID Apple Developer Program membership can sign. Free-team
+// device installs therefore strip it (plugins/with-strip-apple-signin.js), and
+// a button that can only fail is worse than no button — so iOS shows Google
+// alone for now. App Store policy REQUIRES offering Apple sign-in alongside
+// Google, so this flag and that plugin must both be reverted together.
+//
+// Nothing else is removed: `useAppleSignIn.ios.ts`, `services/firebase/
+// appleAuth.ts` and the `AppleSignInButton` all stay wired and correct.
+const APPLE_SIGN_IN_ENABLED = false;
+
 export default function Welcome() {
   const { t } = useI18n();
   const { colors, scheme, seedColor } = useAppTheme();
@@ -44,7 +57,7 @@ export default function Welcome() {
   // App Store policy: offering Google sign-in requires offering Sign in with
   // Apple too, at equal or greater prominence — so Apple leads on iOS.
   const authActions: [AuthAction] | [AuthAction, AuthAction] =
-    Platform.OS === 'ios'
+    Platform.OS === 'ios' && APPLE_SIGN_IN_ENABLED
       ? [
           {
             provider: 'apple',
