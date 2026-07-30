@@ -6,7 +6,6 @@ import { legalUrl, WelcomeScreen, type AuthAction } from '@portfolio/mobile-ui';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
-import { DevSignIn } from '@/components/dev/DevSignIn';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { useAppleSignIn } from '@/hooks/useAppleSignIn';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -71,58 +70,55 @@ export default function Welcome() {
       : [googleAction];
 
   return (
-    <>
-      <WelcomeScreen
-        appName={APP_NAME}
-        logo={({ size, color }) => <BrandMark size={size} color={color} />}
-        features={[
-          {
-            emoji: '🎵',
-            systemImage: 'music.note.list',
-            title: t('welcome.features.library.title'),
-            subtitle: t('welcome.features.library.subtitle'),
-          },
-          {
-            emoji: '🎛️',
-            systemImage: 'slider.horizontal.3',
-            title: t('welcome.features.shape.title'),
-            subtitle: t('welcome.features.shape.subtitle'),
-          },
-          {
-            emoji: '✂️',
-            systemImage: 'scissors',
-            title: t('welcome.features.clip.title'),
-            subtitle: t('welcome.features.clip.subtitle'),
-          },
-        ]}
-        authActions={authActions}
-        colorScheme={scheme}
-        seedColor={seedColor}
-        // Sign-in doubles as sign-up (no separate register), so consent to the
-        // legal pages rides on the auth buttons. In-app browser sheet
-        // (SFSafariViewController / Custom Tabs) so reading a policy never leaves
-        // the sign-in flow.
-        legal={{
-          text: t('welcome.legal.text'),
-          privacyLabel: t('welcome.legal.privacy'),
-          termsLabel: t('welcome.legal.terms'),
-          onPressPrivacy: () =>
-            WebBrowser.openBrowserAsync(legalUrl(APP_NAME, 'privacy-policy')),
-          onPressTerms: () =>
-            WebBrowser.openBrowserAsync(
-              legalUrl(APP_NAME, 'terms-and-conditions'),
-            ),
-        }}
-        colors={{
-          background: colors.background,
-          onSurface: colors.onSurface,
-          onSurfaceMuted: colors.onSurfaceMuted,
-          primary: colors.primary,
-          primaryContainer: colors.primaryContainer,
-          onPrimaryContainer: colors.onPrimaryContainer,
-        }}
-      />
-      <DevSignIn />
-    </>
+    <WelcomeScreen
+      appName={APP_NAME}
+      logo={({ size, color }) => <BrandMark size={size} color={color} />}
+      features={[
+        {
+          emoji: '🎵',
+          systemImage: 'music.note.list',
+          title: t('welcome.features.library.title'),
+          subtitle: t('welcome.features.library.subtitle'),
+        },
+        {
+          emoji: '🎛️',
+          systemImage: 'slider.horizontal.3',
+          title: t('welcome.features.shape.title'),
+          subtitle: t('welcome.features.shape.subtitle'),
+        },
+        {
+          emoji: '✂️',
+          systemImage: 'scissors',
+          title: t('welcome.features.clip.title'),
+          subtitle: t('welcome.features.clip.subtitle'),
+        },
+      ]}
+      authActions={authActions}
+      colorScheme={scheme}
+      seedColor={seedColor}
+      // Sign-in doubles as sign-up (no separate register), so consent to the
+      // legal pages rides on the auth buttons. In-app browser sheet
+      // (SFSafariViewController / Custom Tabs) so reading a policy never leaves
+      // the sign-in flow.
+      legal={{
+        text: t('welcome.legal.text'),
+        privacyLabel: t('welcome.legal.privacy'),
+        termsLabel: t('welcome.legal.terms'),
+        onPressPrivacy: () =>
+          WebBrowser.openBrowserAsync(legalUrl(APP_NAME, 'privacy-policy')),
+        onPressTerms: () =>
+          WebBrowser.openBrowserAsync(
+            legalUrl(APP_NAME, 'terms-and-conditions'),
+          ),
+      }}
+      colors={{
+        background: colors.background,
+        onSurface: colors.onSurface,
+        onSurfaceMuted: colors.onSurfaceMuted,
+        primary: colors.primary,
+        primaryContainer: colors.primaryContainer,
+        onPrimaryContainer: colors.onPrimaryContainer,
+      }}
+    />
   );
 }
