@@ -1,11 +1,19 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { SheetHeaderIos } from '@portfolio/mobile-ui';
+import {
+  Button,
+  Image,
+  Section,
+  SwipeActions,
+  Text as SwiftUIText,
+} from '@expo/ui/swift-ui';
+import {
+  accessibilityLabel,
+  foregroundStyle,
+} from '@expo/ui/swift-ui/modifiers';
+import { SheetFormIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IconButton } from '@/components/ui/IconButton';
-import { Text } from '@/components/ui/Text';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -15,12 +23,8 @@ import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
-import { ROW_INSET } from '@/styles/metrics';
-import { CONTROL_RADIUS } from '@/styles/shape';
-import { separator } from '@/styles/surfaces';
 
 const NO_CLIPS: never[] = [];
-const PRESSED_OPACITY = 0.55;
 
 // iOS-only route: the saved-clips manager as a content-hugging native form
 // sheet (Android presents the Compose `ClipsSheet` in place). "New clip"
@@ -31,7 +35,6 @@ function ClipsSheetScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
-  const { bottom } = useSafeAreaInsets();
 
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
@@ -58,86 +61,66 @@ function ClipsSheetScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.sheet,
-        {
-          backgroundColor: colors.sheet,
-          paddingBottom: Math.max(bottom, 28),
-        },
-      ]}
+    <SheetFormIos
+      title={t('player.clips.title')}
+      actionLabel={t('player.clips.new')}
+      onAction={onNewClip}
     >
-      <SheetHeaderIos
-        title={t('player.clips.title')}
-        actionLabel={t('player.clips.new')}
-        onAction={onNewClip}
-      />
-
       {clips.length === 0 ? (
-        <Text muted text="player.clips.empty" variant="bodyMedium" />
+        <Section>
+          <SwiftUIText modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
+            {t('player.clips.empty')}
+          </SwiftUIText>
+        </Section>
       ) : (
-        <View style={[styles.group, { backgroundColor: colors.sheetField }]}>
-          {clips.map((clip, index) => {
+        <Section>
+          {clips.map(clip => {
             const isActive = activeClip?.clipId === clip.id;
             const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
             return (
-              <View key={clip.id}>
-                {/* iOS insets a row separator to the content edge, so the
-                    labels line up straight across it (styles/surfaces). */}
-                {index > 0 ? (
-                  <View style={separator(colors, ROW_INSET)} />
-                ) : null}
-                <Pressable
-                  accessibilityRole="button"
+              // Delete is a SWIPE action now, not a trailing trash icon: two
+              // tap targets in one row is an Android table idiom, and iOS
+              // hides row destruction behind the swipe (Mail, Reminders).
+              <SwipeActions key={clip.id}>
+                <Button
                   onPress={() => {
                     haptics.selection();
                     playClip(clip.id, clip.startMs, clip.endMs);
                   }}
-                  style={({ pressed }) => [
-                    styles.row,
-                    { opacity: pressed ? PRESSED_OPACITY : 1 },
-                  ]}
                 >
-                  <Text
-                    doNotTranslate
-                    text={range}
-                    variant="bodyLarge"
-                    numberOfLines={1}
-                    style={[
-                      styles.range,
-                      isActive ? { color: colors.primary } : null,
+                  <SwiftUIText
+                    modifiers={[
+                      foregroundStyle(
+                        isActive ? colors.primary : colors.onSurface,
+                      ),
                     ]}
-                  />
-                  <IconButton
-                    name="delete"
+                  >
+                    {range}
+                  </SwiftUIText>
+                </Button>
+                <SwipeActions.Actions edge="trailing">
+                  {/* ICON ONLY, no label. Revealing an action translates the
+                      row's content left by the action's own width, so a
+                      "🗑 Delete clip" action (~110pt) pushed this row's short
+                      time range clean off the leading edge and left an empty
+                      pill behind. Mail's swipe actions are glyphs for the same
+                      reason. */}
+                  <Button
+                    role="destructive"
                     onPress={() => onDelete(clip.id)}
-                    size={19}
-                    tint={colors.onSurfaceMuted}
-                    accessibilityLabel={t('player.clips.delete')}
-                  />
-                </Pressable>
-              </View>
+                    modifiers={[accessibilityLabel(t('player.clips.delete'))]}
+                  >
+                    <Image systemName="trash" />
+                  </Button>
+                </SwipeActions.Actions>
+              </SwipeActions>
             );
           })}
-        </View>
+        </Section>
       )}
-    </View>
+    </SheetFormIos>
   );
 }
 
 export default iosOnlyRoute(ClipsSheetScreen);
-
-const styles = StyleSheet.create({
-  group: { borderRadius: CONTROL_RADIUS, overflow: 'hidden' },
-  range: { flex: 1 },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    paddingLeft: ROW_INSET,
-    paddingRight: 8,
-    paddingVertical: 4,
-  },
-  sheet: { gap: 16, paddingHorizontal: 24, paddingTop: 20 },
-});

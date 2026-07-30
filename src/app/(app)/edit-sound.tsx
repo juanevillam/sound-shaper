@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
+import { Section } from '@expo/ui/swift-ui';
 import {
-  SheetDestructiveButtonIos,
-  SheetFieldIos,
-  SheetHeaderIos,
-  SheetMediaBlockIos,
+  SheetFormDestructiveIos,
+  SheetFormFieldIos,
+  SheetFormIos,
+  SheetFormMediaIos,
 } from '@portfolio/mobile-ui';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type PickedSongFile } from '@/components/songs/EditSongSheet';
 import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
@@ -43,7 +43,6 @@ function EditSoundSheetScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
-  const { bottom } = useSafeAreaInsets();
 
   const songs = useSongsStore(s => s.songs);
   const editingSong = songId
@@ -197,96 +196,83 @@ function EditSoundSheetScreen() {
     return <View style={{ backgroundColor: colors.sheet }} />;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.sheet }}
-      contentContainerStyle={[
-        styles.sheet,
-        { paddingBottom: Math.max(bottom, 28) },
-      ]}
-      keyboardShouldPersistTaps="handled"
+    <SheetFormIos
+      title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
+      actionLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
+      actionEnabled={!nameInvalid}
+      busy={isSaving}
+      onAction={save}
     >
-      <SheetHeaderIos
-        title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
-        actionLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
-        actionEnabled={!nameInvalid}
-        busy={isSaving}
-        onAction={save}
-      />
-
       {/* Cover art is a read-only preview: it comes from the file's ID3 tag,
           never hand-picked, so the disc is disabled rather than a picker.
           Same disc, same block, same caption slot as Topper's editor and as
           this app's own Android sheet — only the tappability differs. */}
-      <SheetMediaBlockIos
-        caption={t(
-          isSaving
-            ? 'songEdit.uploading'
-            : artPreviewUri
-              ? 'songEdit.art.embedded'
-              : 'songEdit.art.none',
-        )}
-      >
-        <MediaPickerAvatar
-          onPress={noop}
-          disabled
-          surfaceColor={colors.surfaceVariant}
-          contentColor={colors.onSurfaceMuted}
-          emoji={SONG_EMOJI}
-          imageUrl={artPreviewUri}
-        />
-      </SheetMediaBlockIos>
+      <Section>
+        <SheetFormMediaIos
+          caption={t(
+            isSaving
+              ? 'songEdit.uploading'
+              : artPreviewUri
+                ? 'songEdit.art.embedded'
+                : 'songEdit.art.none',
+          )}
+        >
+          <View style={styles.mediaSlot}>
+            <MediaPickerAvatar
+              onPress={noop}
+              disabled
+              surfaceColor={colors.surfaceVariant}
+              contentColor={colors.onSurfaceMuted}
+              emoji={SONG_EMOJI}
+              imageUrl={artPreviewUri}
+            />
+          </View>
+        </SheetFormMediaIos>
+      </Section>
 
-      <SheetFieldIos
-        value={name}
-        onChangeText={setName}
-        placeholder={t('songEdit.name.label')}
-        error={nameError ? t('songEdit.name.error') : null}
-        returnKeyType="next"
-        editable={!isSaving}
-      />
-      <SheetFieldIos
-        value={artist}
-        onChangeText={setArtist}
-        placeholder={t('songEdit.artist.label')}
-        autoCapitalize="words"
-        returnKeyType="next"
-        editable={!isSaving}
-      />
-      <SheetFieldIos
-        value={album}
-        onChangeText={setAlbum}
-        placeholder={t('songEdit.album.label')}
-        autoCapitalize="words"
-        returnKeyType="next"
-        editable={!isSaving}
-      />
-      <SheetFieldIos
-        value={year}
-        onChangeText={setYear}
-        placeholder={t('songEdit.year.label')}
-        error={yearInvalid ? t('songEdit.year.error') : null}
-        keyboardType="number-pad"
-        returnKeyType="done"
-        editable={!isSaving}
-        onSubmitEditing={save}
-      />
+      <Section>
+        <SheetFormFieldIos
+          value={name}
+          onChangeText={setName}
+          placeholder={t('songEdit.name.label')}
+          error={nameError ? t('songEdit.name.error') : null}
+        />
+        <SheetFormFieldIos
+          value={artist}
+          onChangeText={setArtist}
+          placeholder={t('songEdit.artist.label')}
+        />
+        <SheetFormFieldIos
+          value={album}
+          onChangeText={setAlbum}
+          placeholder={t('songEdit.album.label')}
+        />
+        <SheetFormFieldIos
+          value={year}
+          onChangeText={setYear}
+          placeholder={t('songEdit.year.label')}
+          error={yearInvalid ? t('songEdit.year.error') : null}
+          keyboardType="numberPad"
+        />
+      </Section>
 
       {songId ? (
-        <SheetDestructiveButtonIos
-          label={t('songEdit.delete')}
-          disabled={isSaving}
-          onPress={confirmDelete}
-          style={styles.destructive}
-        />
+        <Section>
+          <SheetFormDestructiveIos
+            label={t('songEdit.delete')}
+            disabled={isSaving}
+            onPress={confirmDelete}
+          />
+        </Section>
       ) : null}
-    </ScrollView>
+    </SheetFormIos>
   );
 }
 
 export default iosOnlyRoute(EditSoundSheetScreen);
 
 const styles = StyleSheet.create({
-  // Destructive actions stand apart from the fields above them.
-  destructive: { marginTop: 8 },
-  sheet: { gap: 16, paddingHorizontal: 24, paddingTop: 20 },
+  // Full width so the disc centres in the form row; RNHostView measures the
+  // RN child and gives it no size of its own.
+  mediaSlot: { alignItems: 'center', width: '100%' },
 });

@@ -15,9 +15,17 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   detents: 'fitToContents' | number[];
 }> = [
   { name: 'sound-info', detents: 'fitToContents' },
-  { name: 'edit-sound', detents: 'fitToContents' },
-  { name: 'shaper', detents: 'fitToContents' },
-  { name: 'clips', detents: 'fitToContents' },
+  // A native SwiftUI `Form` is a scroll container with no intrinsic height —
+  // under `fitToContents` the sheet hugged the header and the form rendered
+  // 0pt tall. A fractional detent gives it a definite box, and a large sheet
+  // is the iOS idiom for an editor anyway.
+  { name: 'edit-sound', detents: [0.9] },
+  // Native `Form` — see the edit-sound note; a scroll container has no
+  // intrinsic height, so no fitToContents.
+  { name: 'shaper', detents: [0.9] },
+  // Native `Form` — see the edit-sound note; a scroll container needs a
+  // definite height, so no fitToContents.
+  { name: 'clips', detents: [0.6] },
   { name: 'trophy-detail', detents: 'fitToContents' },
 ];
 
