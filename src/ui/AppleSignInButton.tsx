@@ -2,7 +2,9 @@ import React from 'react';
 
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 
-const BUTTON_HEIGHT = 40;
+import { layout } from './tokens';
+
+const BUTTON_HEIGHT = layout.authButtonHeight;
 const PRESSED_OPACITY = 0.7;
 const DISABLED_OPACITY = 0.38;
 // U+F8FF — the Apple logo glyph, shipped by every iOS system font. The

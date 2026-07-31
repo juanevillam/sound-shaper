@@ -20,6 +20,7 @@ const googleG = require('./assets/icons/google-g.xml');
 
 const LOGO_SIZE = 20;
 const LOGO_GAP = 10;
+const GOOGLE_CONTENT_PADDING = 12;
 
 export type GoogleSignInButtonProps = {
   /** Per the spec: "Sign in with Google" / "Continue with Google", localized. */
@@ -61,6 +62,15 @@ export const GoogleSignInButton = ({
           contentColor: spec.label,
           disabledContainerColor: spec.fill,
           disabledContentColor: GOOGLE_DISABLED_LABEL,
+        }}
+        // Google's branding guidelines give Android "12px left padding before
+        // the Google logo, 10px right padding after the Google logo and 12px
+        // right padding after the Sign in with Google text" (iOS has its own
+        // 16 / 12 / 16). Material's own default is 24dp, so the spec padding is
+        // set explicitly; the 10dp gap is the `LOGO_GAP` spacer below.
+        contentPadding={{
+          start: GOOGLE_CONTENT_PADDING,
+          end: GOOGLE_CONTENT_PADDING,
         }}
         modifiers={[fillMaxWidth()]}
       >

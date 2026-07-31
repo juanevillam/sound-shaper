@@ -8,8 +8,9 @@ import {
   GoogleGLogo,
 } from './GoogleLogo';
 import { type GoogleSignInButtonProps } from './GoogleSignInButton';
+import { layout } from './tokens';
 
-const BUTTON_HEIGHT = 40;
+const BUTTON_HEIGHT = layout.authButtonHeight;
 const LOGO_SIZE = 20;
 const PRESSED_OPACITY = 0.7;
 
@@ -18,10 +19,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: BUTTON_HEIGHT / 2,
     flexDirection: 'row',
-    gap: 10,
+    // Google's branding guidelines give iOS its own padding figures (Android
+    // and web use 12 / 10 / 12): "16px left padding before the Google logo,
+    // 12px right padding after the Google logo and 16px right padding after
+    // the Sign in with Google text".
+    gap: 12,
     height: BUTTON_HEIGHT,
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   label: {
     fontSize: 14,
