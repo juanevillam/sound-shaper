@@ -45,7 +45,7 @@ import { spacing } from './tokens';
  * styled `TextInput` per field, an `ActivityIndicator` while saving, and an
  * outlined pill for delete that was, unwittingly, Material's `OutlinedButton`
  * redrawn by hand and shipped on iOS. Beside the real controls in
- * `apps/expo-starter`'s showcase the imitation was obvious; worse, the ANDROID
+ * `apps/expo-ui-starter`'s showcase the imitation was obvious; worse, the ANDROID
  * twins of these sheets were already 100% Compose, so iOS was the only platform
  * wearing hand-made paint. Those RN components were deleted once the last
  * sheet (`shaper.tsx`) moved over — going through SwiftUI also hands us press

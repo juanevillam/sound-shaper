@@ -18,7 +18,7 @@ export const AUTHOR_NAME = 'juanevillam';
 // every link left to tackle before release.
 export const AUTHOR_URL = 'https://www.google.com';
 
-/** URL-safe app slug ("Expo Starter" → "expo-starter") for paths + UTM. */
+/** URL-safe app slug ("Expo UI Starter" → "expo-ui-starter") for paths + UTM. */
 const appSlug = (appName: string): string =>
   encodeURIComponent(appName.trim().toLowerCase().replace(/\s+/g, '-'));
 

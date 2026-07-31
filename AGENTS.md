@@ -52,7 +52,7 @@ lock-screen now-playing metadata, **iOS route twins** (`*.ios.tsx` —
 Android-first like Topper was; the Compose screens don't render on iOS yet).
 
 Brand is deliberately **deferred to the end** — the launcher icon / splash /
-welcome hero currently use **placeholder art borrowed from expo-starter**; the
+welcome hero currently use **placeholder art borrowed from expo-ui-starter**; the
 Welcome hero falls back to the app initial (no `logo` prop yet). Replace with a
 real stroke glyph (48-grid, stroke 3.25, sibling to the Topper crown) at the
 brand phase.
@@ -61,7 +61,7 @@ brand phase.
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before
 writing native code. `@expo/ui` (Jetpack Compose + SwiftUI) markdown snapshots
-live in `../expo-starter/docs/`. The installed TypeScript types under
+live in `../expo-ui-starter/docs/`. The installed TypeScript types under
 `node_modules/@expo/ui` are the source of truth when the docs disagree.
 
 ## Sign in with Apple is temporarily OFF (free-team dev)

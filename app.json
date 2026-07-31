@@ -105,10 +105,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "039234b8-3124-416b-8e06-0ce736cd8bd2"
-      }
+      "router": {}
     },
     "owner": "juanevillam"
   }

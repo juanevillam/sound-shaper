@@ -7,8 +7,8 @@ platforms or needs a custom iOS build.
 
 **Source of truth:** the installed `@expo/ui` **57.0.3** type exports —
 `node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
-published docs (per [`apps/expo-starter/AGENTS.md`](../apps/expo-starter/AGENTS.md),
-docs can lead the package). The Android column lists what the expo-starter
+published docs (per [`apps/expo-ui-starter/AGENTS.md`](../apps/expo-ui-starter/AGENTS.md),
+docs can lead the package). The Android column lists what the expo-ui-starter
 showcase actually demos today; the iOS SwiftUI showcase code exists but is
 device-unverified, so the iOS column is still the **target** mapping. The 57
 bump added `LoadingIndicator` (showcased) and changed no other

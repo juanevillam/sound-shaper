@@ -85,7 +85,7 @@ MARKS = {
         .buffer(HALF, resolution=RES, join_style=1),
         stroke_line([(10, 34.5), (38, 34.5)]),
     ],
-    "expo-starter": lambda: [
+    "expo-ui-starter": lambda: [
         stroke_ring(rounded_rect(10.5, 11, 11, 11, 3)),
         stroke_ring(Point(32, 16.5).buffer(5.5, resolution=RES)),
         stroke_ring(rounded_rect(10, 27, 28, 10, 5)),
