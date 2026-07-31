@@ -12,7 +12,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // A header action carrying REAL Liquid Glass — SwiftUI's own
 // `.glassEffect(_:in:)`, not a fill that resembles it.
 //
-// Topper's profile and Expo Starter's home get this free: their headers are
+// Topper's profile and Expo UI Starter's home get this free: their headers are
 // genuine navigation bars, so UIKit applies the material to the bar button
 // itself. This app's home draws its own bar (the expanded player has to be
 // able to cover it, and a native bar cannot carry both a large title and a
