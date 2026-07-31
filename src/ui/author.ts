@@ -2,8 +2,17 @@
  * The portfolio author byline shown on every app's welcome screen. Hardcoded
  * here (not a prop) so the credit stays identical across all apps — the byline
  * is fixed even though each app owns its own name, features, and palette.
+ *
+ * Plain name, no `@`: the byline credits an author and links to a portfolio
+ * site, not a social profile — "by <name>" is what both platforms use for a
+ * developer credit (App Store, Play Store), while `@handle` reads as a
+ * social-network idiom.
  */
-export const AUTHOR_CREDIT = 'by @juanevillam';
+export const AUTHOR_CREDIT = 'by juanevillam';
+/** The byline split in two, for platforms that link only the name (iOS renders
+ *  the name as a native SwiftUI `Link`, so the "by" stays plain). */
+export const AUTHOR_CREDIT_PREFIX = 'by';
+export const AUTHOR_NAME = 'juanevillam';
 // SENTINEL: google.com marks every external link that still needs its real
 // destination (juanevillam.com is not live yet). Grep for google.com to find
 // every link left to tackle before release.

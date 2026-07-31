@@ -1,7 +1,6 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 
 import {
-  Linking,
   ScrollView,
   StyleSheet,
   Text as RNText,
@@ -14,6 +13,7 @@ import {
   HStack,
   Host,
   Image,
+  Link,
   Spacer,
   Text,
   VStack,
@@ -27,7 +27,6 @@ import {
   foregroundStyle,
   frame,
   multilineTextAlignment,
-  onTapGesture,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,7 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
 import { AppleSignInButton } from './AppleSignInButton';
-import { AUTHOR_CREDIT, authorUrl } from './author';
+import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
 import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { LegalFooter } from './LegalFooter';
@@ -101,10 +100,6 @@ export const WelcomeScreen = ({
   const deviceScheme = useColorScheme();
   const scheme = (colorScheme ?? deviceScheme) === 'dark' ? 'dark' : 'light';
 
-  const openCredit = useCallback(() => {
-    Linking.openURL(authorUrl(appName));
-  }, [appName]);
-
   const someLoading = anyLoading(authActions);
 
   return (
@@ -166,18 +161,33 @@ export const WelcomeScreen = ({
               >
                 {appName}
               </Text>
-              <Text
-                modifiers={[
-                  font({ textStyle: 'subheadline' }),
-                  multilineTextAlignment('center'),
-                  ...(colors?.onSurfaceMuted
-                    ? [foregroundStyle(colors.onSurfaceMuted)]
-                    : []),
-                  onTapGesture(openCredit),
-                ]}
-              >
-                {AUTHOR_CREDIT}
-              </Text>
+              {/* Only the name is the link — a native SwiftUI `Link`, so it
+                  gets the system's link affordances (tint, press feedback,
+                  long-press preview/share menu) for free. */}
+              <HStack spacing={spacing.xs}>
+                <Text
+                  modifiers={[
+                    font({ textStyle: 'subheadline' }),
+                    ...(colors?.onSurfaceMuted
+                      ? [foregroundStyle(colors.onSurfaceMuted)]
+                      : []),
+                  ]}
+                >
+                  {AUTHOR_CREDIT_PREFIX}
+                </Text>
+                <Link destination={authorUrl(appName)}>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'subheadline' }),
+                      ...(colors?.primary
+                        ? [foregroundStyle(colors.primary)]
+                        : []),
+                    ]}
+                  >
+                    {AUTHOR_NAME}
+                  </Text>
+                </Link>
+              </HStack>
 
               <Spacer minLength={spacing.xxl} />
 

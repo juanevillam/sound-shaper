@@ -7,6 +7,8 @@ export {
 export { AppIcon, type AppIconProps } from './AppIcon';
 export {
   AUTHOR_CREDIT,
+  AUTHOR_CREDIT_PREFIX,
+  AUTHOR_NAME,
   AUTHOR_URL,
   authorUrl,
   legalUrl,
