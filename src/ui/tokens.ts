@@ -49,6 +49,11 @@ const springs = {
 
 // Layout constants reused across screens.
 const layout = {
+  // Welcome-screen call-to-action height — one number for the branded sign-in
+  // buttons and the system one, so the CTA stack reads as a family. 44 is
+  // Apple's minimum tap target; neither brand spec pins a height (Google's says
+  // to scale the button as needed, preserving the logo's aspect ratio).
+  authButtonHeight: 44,
   screenPadding: spacing.lg,
   fabOffset: spacing.lg,
   fabListBottomPadding: 160,

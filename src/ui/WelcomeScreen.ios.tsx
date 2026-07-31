@@ -20,6 +20,7 @@ import {
   type ImageProps,
 } from '@expo/ui/swift-ui';
 import {
+  buttonBorderShape,
   buttonStyle,
   controlSize,
   disabled,
@@ -39,7 +40,7 @@ import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { LegalFooter } from './LegalFooter';
 import { Screen } from './Screen';
-import { duration, spacing } from './tokens';
+import { duration, layout, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 import { type AuthAction, type WelcomeScreenProps } from './WelcomeScreen';
 
@@ -56,6 +57,11 @@ const FOOTER_ENTRY_DELAY = 120;
 // SwiftUI `.infinity` stand-in — `frame` only takes numbers, so an
 // over-large max width lets the CTA label stretch to the button's edges.
 const FILL_WIDTH = 10_000;
+// A `bordered`/`borderedProminent` button paints its capsule around the label,
+// so `.frame` on the button only pads the slot — the label is what grows the
+// pill. At `controlSize('regular')` SwiftUI adds ~7pt above and below.
+const CTA_LABEL_INSET = 7;
+const CTA_LABEL_HEIGHT = layout.authButtonHeight - CTA_LABEL_INSET * 2;
 
 const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
@@ -304,14 +310,26 @@ export const WelcomeScreen = ({
                       buttonStyle(
                         isOutlined ? 'bordered' : 'borderedProminent',
                       ),
-                      controlSize('large'),
+                      // Sized and shaped to the branded sign-in buttons it
+                      // stacks with (`layout.authButtonHeight`) — a 40pt pill —
+                      // so the welcome CTAs read as one family. Google's and
+                      // Apple's heights are pinned by their brand specs, so the
+                      // system button is the one that gives.
+                      controlSize('regular'),
+                      buttonBorderShape('capsule'),
                       ...(colors?.primary ? [tint(colors.primary)] : []),
                       disabled(isDisabled || Boolean(action.isLoading)),
                     ]}
                   >
                     <HStack
                       spacing={spacing.sm}
-                      modifiers={[frame({ maxWidth: FILL_WIDTH })]}
+                      // Two frames on purpose: `frame` takes the exact-size
+                      // branch as soon as `height` is set (dropping `maxWidth`),
+                      // so the fill-width frame has to be its own modifier.
+                      modifiers={[
+                        frame({ height: CTA_LABEL_HEIGHT }),
+                        frame({ maxWidth: FILL_WIDTH }),
+                      ]}
                     >
                       {action.icon ? (
                         <AppIcon
