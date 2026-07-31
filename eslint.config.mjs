@@ -19,6 +19,9 @@ export default [
       '**/build/**',
       '**/functions/lib/**',
       '**/.expo/**',
+      // Astro's generated content/route types — written by `astro check` (which
+      // `npm run typecheck` runs), gitignored, and not ours to lint.
+      '**/.astro/**',
       '**/dist/**',
       '**/expo-env.d.ts',
       // Backend services (e.g. the Cloudflare Worker) have their own toolchain
