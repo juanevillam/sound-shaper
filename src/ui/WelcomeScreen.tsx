@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text as RNText,
+  useColorScheme,
   View,
 } from 'react-native';
 
@@ -30,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
 import { AUTHOR_CREDIT, authorUrl } from './author';
+import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
 import { LegalFooter, type WelcomeLegal } from './LegalFooter';
@@ -43,11 +45,6 @@ const LOGO_LETTER_SIZE = 56;
 /** Glyph box for the brand mark inside the hero tile — sized so the mark reads
  *  like the app icon (mirrors its foreground proportions). */
 const LOGO_GLYPH_SIZE = 90;
-/** The brand mark sits on its own fixed graphite tile (matching the app icon /
- *  splash) with the light-on-dark mark — the one in-app exception to Material
- *  You, by design, so the hero reads as the real app icon. */
-const BRAND_TILE_BG = '#0D0D0D';
-const BRAND_MARK_COLOR = '#F5F5F5';
 const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
@@ -117,6 +114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  logoSlot: { marginBottom: spacing.lg, alignSelf: 'center' },
   logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
@@ -136,6 +134,10 @@ export const WelcomeScreen = ({
 }: WelcomeScreenProps) => {
   const { top, bottom, left, right } = useSafeAreaInsets();
   const isSplashHidden = useSplashHidden();
+  // Falls back to the device scheme so the tile never inverts against the
+  // screen when an app forgets to pass `colorScheme`.
+  const deviceScheme = useColorScheme();
+  const scheme = (colorScheme ?? deviceScheme) === 'dark' ? 'dark' : 'light';
 
   const openCredit = useCallback(() => {
     Linking.openURL(authorUrl(appName));
@@ -163,22 +165,22 @@ export const WelcomeScreen = ({
         >
           {/* Brand mark on a themed tile. Apps pass their vector glyph via
               `logo`; the letter is the fallback when they don't. */}
-          <View
-            style={[
-              styles.logo,
-              {
-                backgroundColor: logo
-                  ? BRAND_TILE_BG
-                  : colors?.primaryContainer,
-              },
-            ]}
-          >
-            {logo ? (
-              logo({
-                size: LOGO_GLYPH_SIZE,
-                color: BRAND_MARK_COLOR,
-              })
-            ) : (
+          {logo ? (
+            <View style={styles.logoSlot}>
+              <BrandTile
+                size={LOGO_SIZE}
+                glyphSize={LOGO_GLYPH_SIZE}
+                scheme={scheme}
+                logo={logo}
+              />
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.logo,
+                { backgroundColor: colors?.primaryContainer },
+              ]}
+            >
               <RNText
                 style={[
                   styles.logoLetter,
@@ -187,8 +189,8 @@ export const WelcomeScreen = ({
               >
                 {appName.charAt(0).toUpperCase()}
               </RNText>
-            )}
-          </View>
+            </View>
+          )}
           <Host
             matchContents={{ vertical: true }}
             colorScheme={colorScheme}
