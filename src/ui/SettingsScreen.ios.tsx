@@ -14,9 +14,7 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   foregroundStyle,
-  padding,
   pickerStyle,
-  scrollContentBackground,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -24,7 +22,6 @@ import {
 import { Screen } from './Screen';
 import { SettingsAccountSection } from './SettingsAccountSection';
 import { type SettingsScreenProps } from './SettingsScreen';
-import { spacing } from './tokens';
 
 const styles = StyleSheet.create({
   host: { flex: 1 },
@@ -53,18 +50,14 @@ export const SettingsScreen = ({
   colors,
   colorScheme,
 }: SettingsScreenProps) => (
-  <Screen backgroundColor={colors.background}>
+  <Screen>
     <Host style={styles.host} colorScheme={colorScheme}>
-      <Form
-        modifiers={[
-          scrollContentBackground('hidden'),
-          tint(colors.primary),
-          // The RN navigation header replaces SwiftUI's own bar, so the Form
-          // doesn't get the usual nav-bar inset — give the first section
-          // header room to breathe.
-          padding({ top: spacing.lg }),
-        ]}
-      >
+      {/* No top `padding` on the Form: `padding` sits OUTSIDE its background,
+          so any top inset leaves a strip of whatever is behind the Form above
+          its grouped background — a visible seam, most obvious in a sheet
+          where the strip reads as the flat sheet colour above the elevated
+          one. The Form's own section spacing is the breathing room. */}
+      <Form modifiers={[tint(colors.primary)]}>
         <Section title={sectionsTitle}>
           {sections.map(section => (
             <Picker
