@@ -8,11 +8,7 @@
     "scheme": "soundshaper",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": {
-        "light": "./assets/images/ios-light.png",
-        "dark": "./assets/images/ios-dark.png",
-        "tinted": "./assets/images/ios-tinted.png"
-      },
+      "icon": "./assets/AppIcon.icon",
       "appleTeamId": "C65D64JUZK",
       "usesAppleSignIn": false,
       "infoPlist": {
@@ -24,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0D0D0D",
+        "backgroundColor": "#222222",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -64,12 +60,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0D0D0D",
+          "backgroundColor": "#F5F5F5",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "dark": {
-            "backgroundColor": "#0D0D0D",
-            "image": "./assets/images/splash-icon.png"
+            "backgroundColor": "#222222",
+            "image": "./assets/images/splash-icon-dark.png"
           }
         }
       ],
