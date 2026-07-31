@@ -17,9 +17,9 @@ import {
   Row,
   Spacer,
   Text,
+  TextButton,
 } from '@expo/ui/jetpack-compose';
 import {
-  clickable,
   fillMaxWidth,
   height,
   padding,
@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
-import { AUTHOR_CREDIT, authorUrl } from './author';
+import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
 import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
@@ -206,13 +206,30 @@ export const WelcomeScreen = ({
               >
                 {appName}
               </Text>
-              <Text
-                color={colors?.onSurfaceMuted}
-                style={{ typography: 'bodyMedium' }}
-                modifiers={[clickable(openCredit)]}
-              >
-                {AUTHOR_CREDIT}
-              </Text>
+              {/* Only the name is the link, and it is a Material `TextButton`
+                  rather than a `clickable` Text — that is the M3 primitive for
+                  a text-only action, so the ripple, the tinted label and the
+                  48dp touch target all come from the framework. Its horizontal
+                  content padding is trimmed to `xs` so the pair still reads as
+                  one line of prose. iOS does the same split with a SwiftUI
+                  `Link`; each platform in its own kit. */}
+              <Row verticalAlignment="center">
+                <Text
+                  color={colors?.onSurfaceMuted}
+                  style={{ typography: 'bodyMedium' }}
+                >
+                  {AUTHOR_CREDIT_PREFIX}
+                </Text>
+                <TextButton
+                  onClick={openCredit}
+                  colors={{ contentColor: colors?.primary }}
+                  contentPadding={{ start: spacing.xs, end: spacing.xs }}
+                >
+                  <Text style={{ typography: 'bodyMedium' }}>
+                    {AUTHOR_NAME}
+                  </Text>
+                </TextButton>
+              </Row>
 
               <Spacer modifiers={[height(spacing.xxl)]} />
 
