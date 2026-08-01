@@ -11,7 +11,7 @@ import {
 import { alpha, fillMaxWidth, width } from '@expo/ui/jetpack-compose/modifiers';
 
 import {
-  GOOGLE_BUTTON_COLORS,
+  GOOGLE_BUTTON_VARIANTS,
   GOOGLE_DISABLED_LABEL,
   GOOGLE_DISABLED_OPACITY,
 } from './GoogleLogo';
@@ -35,7 +35,7 @@ export type GoogleSignInButtonProps = {
  * "Continue with Google" per Google's branding guidelines, rendered as a real
  * Compose button so the ripple, pill shape, and Roboto Medium 14 label all
  * come from Material natively. Colors are pinned to the spec variants in
- * `GOOGLE_BUTTON_COLORS` instead of the app palette. In light mode the spec's
+ * `GOOGLE_BUTTON_VARIANTS` instead of the app palette. In light mode the spec's
  * white variant needs its gray stroke; expo-ui's `border()` modifier draws
  * rectangles, so the stroke comes from `OutlinedButton`'s native pill border
  * (themed outline — visually equivalent to the spec gray). The multicolor "G"
@@ -49,7 +49,10 @@ export const GoogleSignInButton = ({
   scheme = 'light',
   disabled = false,
 }: GoogleSignInButtonProps) => {
-  const spec = GOOGLE_BUTTON_COLORS[scheme];
+  // FROZEN mapping — dark resolves to Google's `neutral` variant (light-gray
+  // fill, no stroke), which is what shipped and was approved. Identical values
+  // to before the spec table gained its third row; iOS maps dark → `dark`.
+  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'neutral' : 'light'];
   const ButtonComponent = scheme === 'dark' ? Button : OutlinedButton;
 
   return (

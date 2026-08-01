@@ -3,7 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import {
-  GOOGLE_BUTTON_COLORS,
+  GOOGLE_BUTTON_VARIANTS,
   GOOGLE_DISABLED_OPACITY,
   GoogleGLogo,
 } from './GoogleLogo';
@@ -49,7 +49,11 @@ export const GoogleSignInButton = ({
   scheme = 'light',
   disabled = false,
 }: GoogleSignInButtonProps) => {
-  const spec = GOOGLE_BUTTON_COLORS[scheme];
+  // iOS takes the matching row of Google's table in each mode — the dark
+  // variant is a dark button (#131314 + #8E918F stroke), not the light-gray
+  // neutral slab, so it reads as a control on a dark screen instead of the
+  // brightest thing on it. Android deliberately still shows `neutral`.
+  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
     <Pressable

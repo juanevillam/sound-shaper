@@ -3,19 +3,27 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
 /**
- * Google's "Sign in with Google" branding constants — the one sanctioned
- * exception to the no-color-literals rule, because Google mandates these exact
- * values (they must NOT follow the app theme):
- * https://developers.google.com/identity/branding-guidelines
- * Scheme-adaptive pick from the spec's variants: in light mode the "light"
- * variant (white fill + gray stroke — the stroke is what separates it from
- * near-white app backgrounds); in dark mode the "neutral" variant (light-gray
- * fill, no stroke — high contrast on dark, reads like Apple's white sign-in
- * button). Labels are near-black in both.
+ * Google's THREE published "Sign in with Google" button variants, transcribed
+ * verbatim from https://developers.google.com/identity/branding-guidelines —
+ * the one sanctioned exception to the no-color-literals rule, because Google
+ * mandates these exact values and they must NOT follow the app theme. Strokes
+ * are 1px, drawn inside (verified on-device: the light button's edge measures
+ * #747775 at exactly 1pt).
+ *
+ * This table is only the SPEC. Which variant a scheme shows is each platform's
+ * own decision, made in its button:
+ *
+ *   iOS      light → `light`   dark → `dark`
+ *            Each mode takes the matching row, so the button sits IN the UI
+ *            rather than glowing on top of it.
+ *   Android  light → `light`   dark → `neutral`
+ *            FROZEN — the light-gray slab is what shipped and was approved.
+ *            Do not "align" it with iOS without an explicit ask.
  */
-export const GOOGLE_BUTTON_COLORS = {
+export const GOOGLE_BUTTON_VARIANTS = {
   light: { fill: '#FFFFFF', stroke: '#747775', label: '#1F1F1F' },
-  dark: { fill: '#F2F2F2', stroke: undefined, label: '#1F1F1F' },
+  dark: { fill: '#131314', stroke: '#8E918F', label: '#E3E3E3' },
+  neutral: { fill: '#F2F2F2', stroke: undefined, label: '#1F1F1F' },
 } as const;
 
 /** Label at 38% opacity — the disabled treatment. */
