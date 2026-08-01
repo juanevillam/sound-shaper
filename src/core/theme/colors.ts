@@ -28,6 +28,12 @@ export type AppColors = {
   onSurface: string;
   onSurfaceMuted: string;
   border: string;
+  // Row separator inside an iOS grouped list/card. NOT the same ink as
+  // `border`: SwiftUI's List draws its separators lighter than UIKit's
+  // classic separator color — measured from a real `List` on iOS 26.5
+  // (#E8E8E8 on white cells, #38383B on #1C1C1E). Android has no such
+  // distinction, so there it simply mirrors `border`.
+  listSeparator: string;
   primary: string;
   onPrimary: string;
   primaryMuted: string;
@@ -76,6 +82,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     onSurface: m.onSurface,
     onSurfaceMuted: m.onSurfaceVariant,
     border: m.outlineVariant,
+    listSeparator: m.outlineVariant,
     primary: m.primary,
     onPrimary: m.onPrimary,
     primaryMuted: m.primaryContainer,
@@ -141,6 +148,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     onSurface: '#000000',
     onSurfaceMuted: '#3C3C4399',
     border: '#C6C6C8',
+    listSeparator: '#E8E8E8',
     primary: '#007AFF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#CCE4FF',
@@ -172,6 +180,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     onSurface: '#FFFFFF',
     onSurfaceMuted: '#EBEBF599',
     border: '#38383A',
+    listSeparator: '#38383B',
     primary: '#0A84FF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#0D3A66',
@@ -206,6 +215,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     onSurface: '#1D1B20',
     onSurfaceMuted: '#49454F',
     border: '#CAC4D0',
+    listSeparator: '#CAC4D0',
     primary: '#6750A4',
     onPrimary: '#FFFFFF',
     primaryMuted: '#EADDFF',
@@ -237,6 +247,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     onSurface: '#E6E0E9',
     onSurfaceMuted: '#CAC4D0',
     border: '#49454F',
+    listSeparator: '#49454F',
     primary: '#D0BCFF',
     onPrimary: '#381E72',
     primaryMuted: '#4F378B',
