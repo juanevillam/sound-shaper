@@ -49,10 +49,26 @@ const springs = {
 
 // Layout constants reused across screens.
 const layout = {
-  // Welcome-screen call-to-action height — one number for the branded sign-in
-  // buttons and the system one, so the CTA stack reads as a family. 44 is
-  // Apple's minimum tap target; neither brand spec pins a height (Google's says
-  // to scale the button as needed, preserving the logo's aspect ratio).
+  // Welcome-screen call-to-action height — ONE number for the branded sign-in
+  // buttons and the system one, so the CTA stack reads as a family.
+  //
+  // 44 is set by the BRANDED buttons, not by the system one. Google's
+  // guidelines pin that button's CONTENT and forbid resizing the "G" (logo
+  // 20pt, Google Sans Medium 14/20, iOS padding 16/12/16) while pinning no
+  // height, so the height is ours to choose — and the content stack is only
+  // 20pt tall, which is why a taller pill reads as a small logo marooned in
+  // empty space. 44 leaves a balanced 12pt above and below it AND is exactly
+  // Apple's minimum tap target, so the system CTA beside it stays within
+  // Apple's guidance too.
+  //
+  // Deliberately NOT Apple's own onboarding CTA (measured 50.3pt in the
+  // Passwords app): that button carries no brand logo, so it can afford the
+  // extra height. Standardising the family on the constrained button is the
+  // trade — don't "restore" 50 without re-checking the Google button.
+  //
+  // Every consumer is iOS-only (`GoogleSignInButton.ios`, `AppleSignInButton`,
+  // `WelcomeScreen.ios`) — the Android welcome sizes its Material buttons
+  // itself.
   authButtonHeight: 44,
   screenPadding: spacing.lg,
   fabOffset: spacing.lg,
