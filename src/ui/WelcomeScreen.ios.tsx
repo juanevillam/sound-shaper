@@ -120,7 +120,6 @@ export const WelcomeScreen = ({
             paddingRight: right + spacing.xl,
           },
         ]}
-        showsVerticalScrollIndicator={false}
       >
         <AnimatedEntrance
           duration={HERO_ENTRY_DURATION}
