@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
 
-import { I18n } from 'i18n-js';
+import { I18n, type TranslateOptions } from 'i18n-js';
 
-export type Translator<K extends string = string> = (key: K) => string;
+export type Translator<K extends string = string> = (
+  key: K,
+  options?: TranslateOptions,
+) => string;
 
 /**
  * Dot-separated key paths of a translation tree — derive an app's key union
@@ -52,7 +55,7 @@ export function createI18n<L extends string, K extends string = string>(
       i18n.enableFallback = true;
       i18n.defaultLocale = defaultLocale;
       i18n.locale = locale;
-      return (key: K) => i18n.t(key);
+      return (key: K, options?: TranslateOptions) => i18n.t(key, options);
     }, [locale]);
 
     return { locale, setLocale, t };
