@@ -18,6 +18,13 @@ export type AppColors = {
   sheetField: string;
   surfaceContainer: string;
   surfaceVariant: string;
+  // Elevation ink — the color shadows are cast in. Black in BOTH modes on
+  // every platform (M3's shadow/scrim token, and Apple's shadows are black
+  // too); a light-mode/dark-mode split here would be wrong. Callers apply
+  // opacity with `withAlpha()` (SwiftUI's own default shadow is 33% black).
+  // NOTE: @expo/ui's SwiftUI `shadow` modifier defaults its color to WHITE
+  // when none is passed — always pass this role explicitly.
+  shadow: string;
   onSurface: string;
   onSurfaceMuted: string;
   border: string;
@@ -63,6 +70,9 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     sheetField: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
     surfaceVariant: m.surfaceVariant,
+    // MaterialColors exposes no `shadow` field; M3's scrim shares the same
+    // ink (black) so it stands in for the shadow token.
+    shadow: m.scrim,
     onSurface: m.onSurface,
     onSurfaceMuted: m.onSurfaceVariant,
     border: m.outlineVariant,
@@ -127,6 +137,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
+    shadow: '#000000',
     onSurface: '#000000',
     onSurfaceMuted: '#3C3C4399',
     border: '#C6C6C8',
@@ -157,6 +168,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
+    shadow: '#000000',
     onSurface: '#FFFFFF',
     onSurfaceMuted: '#EBEBF599',
     border: '#38383A',
@@ -190,6 +202,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
+    shadow: '#000000',
     onSurface: '#1D1B20',
     onSurfaceMuted: '#49454F',
     border: '#CAC4D0',
@@ -220,6 +233,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
     surfaceVariant: '#49454F',
+    shadow: '#000000',
     onSurface: '#E6E0E9',
     onSurfaceMuted: '#CAC4D0',
     border: '#49454F',
