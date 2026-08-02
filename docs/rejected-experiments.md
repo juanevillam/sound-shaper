@@ -21,6 +21,11 @@ bottom-anchored glass bar. Two durable lessons:
 2. **Glass needs content behind it to refract** — over Sound Shaper's pure
    black home it renders as nothing/black.
 
+Note the boundary: this killed **uniform `glassEffect` as chrome**. Apple's
+**progressive scroll-edge fade** on the welcome footer is a different effect and
+is NOT rejected — it is wanted and blocked on a missing API, tracked in
+[`pending-upstream.md`](pending-upstream.md).
+
 ## Shared-element image morph in Topper (home thumbnail → detail) — INFEASIBLE, 2026-06
 
 Two independent blockers: reanimated 4.3.1 ships shared transitions
