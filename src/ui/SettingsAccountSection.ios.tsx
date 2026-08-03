@@ -23,10 +23,10 @@ import { type SettingsAccountSectionProps } from './SettingsAccountSection';
 
 /**
  * iOS counterpart of `SettingsAccountSection`. Same prop API as the Android
- * (Jetpack Compose) variant, rendered as a native `Form`/`List` section: an
- * optional profile row, optional navigation rows, then a red destructive
- * sign-out row confirmed through an action sheet, then optional destructive
- * rows — the standard Apple pattern for account blocks in Settings. Must be
+ * (Jetpack Compose) variant, but split into Apple's two cards: an identity card
+ * (the profile row) and a separate destinations card (nav rows, then any
+ * destructive rows). Sign-out is NOT here — it renders alone at the bottom of
+ * the sheet via `SettingsSignOutSection`, which is where Apple puts it. Must be
  * composed inside the parent screen's `Form` or `List`.
  *
  * When `usernameEditor` is provided the profile row becomes tappable and opens
@@ -41,12 +41,12 @@ export const SettingsAccountSection = ({
   usernameEditor,
   navRows,
   dangerRows,
-  signOutLabel,
-  signOutDialog,
-  onSignOut,
   colors,
+  // `signOutLabel` / `signOutDialog` / `onSignOut` are deliberately NOT read
+  // here: sign-out is its own trailing card (`SettingsSignOutSection`). They
+  // stay on the shared prop type because Android still renders them inside
+  // this section.
 }: SettingsAccountSectionProps) => {
-  const [confirmVisible, setConfirmVisible] = useState(false);
   const [usernameAlertVisible, setUsernameAlertVisible] = useState(false);
 
   const initialUsername = usernameEditor?.currentValue?.replace(/^@/, '') ?? '';
@@ -109,68 +109,113 @@ export const SettingsAccountSection = ({
     </HStack>
   ) : null;
 
+  // An app with no real session (the starter) passes only the sign-out config,
+  // so there is no identity to show — render no card at all rather than an
+  // empty one under an "Account" header.
+  if (!profileContent && !navRows?.length) return null;
+
   return (
-    <Section title={title}>
+    <>
       {profileContent ? (
-        usernameEditor ? (
-          <Alert
-            title={usernameEditor.dialog.title}
-            isPresented={usernameAlertVisible}
-            onIsPresentedChange={setUsernameAlertVisible}
-          >
-            <Alert.Trigger>
-              <Button onPress={() => setUsernameAlertVisible(true)}>
-                {profileContent}
-              </Button>
-            </Alert.Trigger>
-            <Alert.Actions>
-              <TextField
-                text={usernameState}
-                placeholder={usernameEditor.dialog.fieldLabel}
-                onTextChange={setUsernameDraft}
-              />
-              <Button
-                label={usernameEditor.dialog.cancel}
-                role="cancel"
-                onPress={() => setUsernameAlertVisible(false)}
-              />
-              <Button
-                label={usernameEditor.dialog.confirm}
-                onPress={submitUsername}
-              />
-            </Alert.Actions>
-          </Alert>
-        ) : (
-          profileContent
-        )
+        <Section title={title}>
+          {usernameEditor ? (
+            <Alert
+              title={usernameEditor.dialog.title}
+              isPresented={usernameAlertVisible}
+              onIsPresentedChange={setUsernameAlertVisible}
+            >
+              <Alert.Trigger>
+                <Button onPress={() => setUsernameAlertVisible(true)}>
+                  {profileContent}
+                </Button>
+              </Alert.Trigger>
+              <Alert.Actions>
+                <TextField
+                  text={usernameState}
+                  placeholder={usernameEditor.dialog.fieldLabel}
+                  onTextChange={setUsernameDraft}
+                />
+                <Button
+                  label={usernameEditor.dialog.cancel}
+                  role="cancel"
+                  onPress={() => setUsernameAlertVisible(false)}
+                />
+                <Button
+                  label={usernameEditor.dialog.confirm}
+                  onPress={submitUsername}
+                />
+              </Alert.Actions>
+            </Alert>
+          ) : (
+            profileContent
+          )}
+        </Section>
       ) : null}
 
-      {/* Navigation rows (e.g. Trash) between the identity row and sign-out.
-          Styled as native disclosure rows — primary-labeled text with a
-          trailing chevron — not tinted action buttons (in Apple's Settings,
-          blue text means "do something"; navigation is neutral + chevron). */}
-      {navRows?.map(row => (
-        <Button key={row.id} onPress={row.onPress}>
-          <HStack spacing={8}>
-            <Text
-              modifiers={[
-                ...(colors?.onSurface
-                  ? [foregroundStyle(colors.onSurface)]
-                  : []),
-              ]}
-            >
-              {row.label}
-            </Text>
-            <Spacer />
-            <Image
-              systemName="chevron.right"
-              size={13}
-              color={colors?.onSurfaceMuted}
-            />
-          </HStack>
-        </Button>
-      ))}
+      {/* Destinations get their OWN card, not a continuation of the identity
+          one — Apple splits the two (the Apple Account sheet shows the person
+          in one card, then App Updates / Purchase History / … in the next).
+          Styled as native disclosure rows — neutral label with a trailing
+          chevron — not tinted action buttons (in Apple's Settings, blue text
+          means "do something"; navigation is neutral + chevron). */}
+      {navRows?.length ? (
+        <Section>
+          {navRows.map(row => (
+            <Button key={row.id} onPress={row.onPress}>
+              <HStack spacing={8}>
+                <Text
+                  modifiers={[
+                    ...(colors?.onSurface
+                      ? [foregroundStyle(colors.onSurface)]
+                      : []),
+                  ]}
+                >
+                  {row.label}
+                </Text>
+                <Spacer />
+                <Image
+                  systemName="chevron.right"
+                  size={13}
+                  color={colors?.onSurfaceMuted}
+                />
+              </HStack>
+            </Button>
+          ))}
 
+          {/* Destructive rows (e.g. Delete account) close the destinations card. */}
+          {dangerRows?.map(row => (
+            <Button
+              key={row.id}
+              label={row.label}
+              role="destructive"
+              onPress={row.onPress}
+            />
+          ))}
+        </Section>
+      ) : null}
+    </>
+  );
+};
+
+/**
+ * Sign out, alone in its own card at the very bottom of the sheet — Apple's
+ * placement (App Store → Apple Account → Account Settings puts "Sign Out" in a
+ * card of its own, below the legal links, with nothing else in it). It used to
+ * sit inside the account group directly under the profile row, which read as
+ * "part of your identity" rather than "leave".
+ */
+export const SettingsSignOutSection = ({
+  signOutLabel,
+  signOutDialog,
+  onSignOut,
+}: Pick<
+  SettingsAccountSectionProps,
+  'signOutLabel' | 'signOutDialog' | 'onSignOut'
+>) => {
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
+  return (
+    <Section>
       {/* The sign-out button doubles as the sheet's native trigger — a
           ConfirmationDialog mounted on demand (the Android dialog pattern)
           loses the presentation race and never shows, so the dialog stays
@@ -207,17 +252,6 @@ export const SettingsAccountSection = ({
           <Text>{signOutDialog.message}</Text>
         </ConfirmationDialog.Message>
       </ConfirmationDialog>
-
-      {/* Destructive rows (e.g. Delete account) close the group, below the
-          milder sign-out — escalating severity reads top-to-bottom. */}
-      {dangerRows?.map(row => (
-        <Button
-          key={row.id}
-          label={row.label}
-          role="destructive"
-          onPress={row.onPress}
-        />
-      ))}
     </Section>
   );
 };

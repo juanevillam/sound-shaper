@@ -76,6 +76,7 @@ export {
 } from './settingsGroup';
 export {
   SettingsAccountSection,
+  SettingsSignOutSection,
   UsernameDialog,
   type SettingsAccountColors,
   type SettingsAccountProfile,
@@ -93,6 +94,7 @@ export {
 export {
   SettingsScreen,
   type SettingsAboutConfig,
+  type SettingsLegalConfig,
   type SettingsAccountConfig,
   type SettingsInfoRow,
   type SettingsOption,

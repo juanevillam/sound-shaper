@@ -80,6 +80,18 @@ export type SettingsAboutConfig = {
   rows: SettingsInfoRow[];
 };
 
+/**
+ * Policy links (privacy policy, terms) that stores require reachable from
+ * inside the app. Passed separately from `about` because the two platforms
+ * group them differently — Apple gives legal its own card between About and
+ * Sign Out, while ANDROID (frozen) keeps them appended to the About list,
+ * which is where they shipped. Each variant does that merge itself, so an app
+ * passes the rows once and neither platform's output changes shape.
+ */
+export type SettingsLegalConfig = {
+  rows: SettingsInfoRow[];
+};
+
 /** App-resolved colors the settings screen paints with. */
 export type SettingsScreenColors = SettingsAccountColors & {
   background?: string;
@@ -97,6 +109,9 @@ export type SettingsScreenProps = {
   cancelLabel?: string;
   /** Optional read-only info rows rendered last, e.g. bundled versions. */
   about?: SettingsAboutConfig;
+  /** Optional policy links. See `SettingsLegalConfig` for why they are not
+   *  just more `about.rows`. */
+  legal?: SettingsLegalConfig;
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
   /**
@@ -317,6 +332,7 @@ export const SettingsScreen = ({
   sectionsTitle,
   cancelLabel = 'Cancel',
   about,
+  legal,
   colors,
   colorScheme,
   seedColor,
@@ -325,6 +341,8 @@ export const SettingsScreen = ({
   const [accountDialog, setAccountDialog] = useState<
     'username' | 'signOut' | null
   >(null);
+
+  const aboutRows = about ? [...about.rows, ...(legal?.rows ?? [])] : [];
 
   const openPreference = useCallback(
     (title: string) => setOpenSectionTitle(title),
@@ -421,11 +439,15 @@ export const SettingsScreen = ({
                     ]}
                     verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
                   >
-                    {about.rows.map((row, index) => (
+                    {/* Legal rows are appended to About here, which is exactly
+                        where they rendered before they became their own prop —
+                        Android is frozen, so its output must not move. iOS
+                        gives them their own card instead. */}
+                    {aboutRows.map((row, index) => (
                       <InfoRow
                         key={row.label}
                         row={row}
-                        shape={groupRowShape(index, about.rows.length)}
+                        shape={groupRowShape(index, aboutRows.length)}
                         colors={colors}
                       />
                     ))}

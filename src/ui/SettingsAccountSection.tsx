@@ -570,3 +570,17 @@ export const SettingsAccountSection = ({
     </Column>
   );
 };
+
+/**
+ * iOS-only — the real implementation is in `SettingsAccountSection.ios.tsx`,
+ * where Apple's placement puts sign-out alone in a trailing card. Declared here
+ * because tsc resolves this base file for both platforms. On ANDROID (frozen)
+ * the sign-out row stays inside the account section above, so this renders
+ * nothing and the Android screen is unchanged.
+ */
+export const SettingsSignOutSection = (
+  _props: Pick<
+    SettingsAccountSectionProps,
+    'signOutLabel' | 'signOutDialog' | 'onSignOut'
+  >,
+) => null;

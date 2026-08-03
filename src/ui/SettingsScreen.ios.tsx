@@ -20,7 +20,10 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 
 import { Screen } from './Screen';
-import { SettingsAccountSection } from './SettingsAccountSection';
+import {
+  SettingsAccountSection,
+  SettingsSignOutSection,
+} from './SettingsAccountSection';
 import { type SettingsScreenProps } from './SettingsScreen';
 
 const styles = StyleSheet.create({
@@ -47,6 +50,7 @@ export const SettingsScreen = ({
   sections,
   sectionsTitle,
   about,
+  legal,
   colors,
   colorScheme,
 }: SettingsScreenProps) => (
@@ -125,6 +129,44 @@ export const SettingsScreen = ({
               );
             })}
           </Section>
+        ) : null}
+
+        {/* Policy links in a card of their own, between About and Sign Out —
+            Apple's grouping. They are policy, not build info, so they don't
+            belong beside version numbers (which is where Android, frozen,
+            still shows them). Untitled: the labels say what they are. */}
+        {legal?.rows.length ? (
+          <Section>
+            {legal.rows.map(row =>
+              row.onPress ? (
+                <Button
+                  key={row.label}
+                  onPress={row.onPress}
+                  modifiers={[foregroundStyle(colors.onSurface)]}
+                >
+                  <Text>{row.label}</Text>
+                </Button>
+              ) : row.url ? (
+                <Link
+                  key={row.label}
+                  destination={row.url}
+                  modifiers={[foregroundStyle(colors.onSurface)]}
+                >
+                  <Text>{row.label}</Text>
+                </Link>
+              ) : (
+                <Text key={row.label}>{row.label}</Text>
+              ),
+            )}
+          </Section>
+        ) : null}
+
+        {account ? (
+          <SettingsSignOutSection
+            signOutLabel={account.signOutLabel}
+            signOutDialog={account.signOutDialog}
+            onSignOut={account.onSignOut}
+          />
         ) : null}
       </Form>
     </Host>
