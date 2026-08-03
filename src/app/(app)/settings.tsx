@@ -105,9 +105,13 @@ export default function Settings() {
           // "which build is on this device" (falls back for web/tests).
           nativeApplicationVersion ?? '0.0.0',
           expoUiVersion,
-          // Stores require the privacy policy reachable INSIDE the app
-          // (Apple 5.1.1(i) / Play User Data policy), not just pre-login.
-          [
+        )}
+        // Stores require the privacy policy reachable INSIDE the app
+        // (Apple 5.1.1(i) / Play User Data policy), not just pre-login.
+        // Own card on iOS (Apple's grouping), still appended to About on
+        // Android, which is frozen — see `SettingsLegalConfig`.
+        legal={{
+          rows: [
             {
               label: t('welcome.legal.privacy'),
               onPress: () => openLegalPage('privacy-policy'),
@@ -117,7 +121,7 @@ export default function Settings() {
               onPress: () => openLegalPage('terms-and-conditions'),
             },
           ],
-        )}
+        }}
         colorScheme={scheme}
         seedColor={seedColor}
         colors={colors}
