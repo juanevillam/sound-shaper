@@ -47,9 +47,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static",
-            "usePrecompiledModules": false,
-            "buildReactNativeFromSource": true
+            "useFrameworks": "static"
           },
           "android": {
             "enableMinifyInReleaseBuilds": true,

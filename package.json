@@ -56,5 +56,14 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2"
+  },
+  "expo": {
+    "autolinking": {
+      "apple": {
+        "buildFromSource": [
+          "ExpoImage"
+        ]
+      }
+    }
   }
 }

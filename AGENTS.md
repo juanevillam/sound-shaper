@@ -79,6 +79,24 @@ lands — App Store policy requires Apple sign-in wherever Google is offered.
 Nothing was deleted: `useAppleSignIn.ios.ts`, `services/firebase/appleAuth.ts`
 and `AppleSignInButton` stay wired and correct.
 
+## iOS build recipe — same as Topper's, deliberately
+
+`expo-build-properties` carries **only** `ios: { useFrameworks: "static" }`, and
+`package.json` carries `expo.autolinking.apple.buildFromSource: ["ExpoImage"]`.
+That pair dodges the precompiled-`ExpoModulesCore` ABI drift (source-build just
+the one drifted pod) while keeping precompiled modules **on**, which is what
+keeps `RNFBFirestore` compiling under `use_frameworks!`.
+
+This app used to also set `usePrecompiledModules: false` +
+`buildReactNativeFromSource: true`, which forced React Native itself to compile
+from source — roughly 45 min per clean build instead of 15. That was written
+before Topper's narrower fix had ever been proven, and was dropped 2026-07-30.
+**Don't reintroduce it.** If a launch-time `dyld` abort ever comes back
+(`Symbol not found: …_decorateModule…`), the fix is to add the offending module
+to `buildFromSource`, not to turn precompiled modules off globally — verify
+statically with `nm -u` per module against `nm -gU` on `ExpoModulesCore`, on
+both the `ios-arm64` and `ios-arm64_x86_64-simulator` slices.
+
 ## Native projects (CNG)
 
 `android/` and `ios/` are **gitignored prebuild output** — never hand-edit them.
