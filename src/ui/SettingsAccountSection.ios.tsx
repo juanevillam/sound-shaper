@@ -16,7 +16,7 @@ import {
   useNativeState,
   VStack,
 } from '@expo/ui/swift-ui';
-import { font, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
+import { font, foregroundStyle, lineLimit } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
@@ -71,6 +71,12 @@ export const SettingsAccountSection = ({
     ? `@${profile.username}`
     : (usernameEditor?.addPrompt ?? '');
 
+  // `subtitle` marks the Apple-Account-style row: a bigger avatar, the name in
+  // `headline`, and a second line that says what the row OPENS rather than who
+  // the user is. Without it the row keeps its original compact form (the
+  // username line), which is what an app that still edits the handle here uses.
+  const secondLine = profile?.subtitle ?? usernameLine;
+
   const profileContent = profile ? (
     <HStack spacing={12}>
       {/* SwiftUI `Image` can't load remote URLs, so the Google photo bridges
@@ -80,32 +86,56 @@ export const SettingsAccountSection = ({
         <RNHostView matchContents>
           <RemoteImage
             source={{ uri: profile.photoUrl }}
-            style={styles.avatar}
+            style={profile.subtitle ? styles.avatarLarge : styles.avatar}
             contentFit="cover"
           />
         </RNHostView>
       ) : (
         <Image
           systemName="person.crop.circle.fill"
-          size={40}
+          size={profile.subtitle ? AVATAR_SIZE_LARGE : AVATAR_SIZE}
           color={colors.onSurfaceMuted}
         />
       )}
       <VStack alignment="leading" spacing={2}>
-        <Text modifiers={[foregroundStyle(colors.onSurface)]}>
+        <Text
+          modifiers={[
+            // `headline` (17pt semibold) rather than body: in Apple's version
+            // the name carries the row, and the line under it is supporting
+            // text. Semantic style, so Dynamic Type still scales it.
+            ...(profile.subtitle ? [font({ textStyle: 'headline' })] : []),
+            foregroundStyle(colors.onSurface),
+          ]}
+        >
           {profile.displayName}
         </Text>
-        {usernameLine ? (
+        {secondLine ? (
           <Text
             modifiers={[
-              font({ textStyle: 'footnote' }),
+              font({
+                textStyle: profile.subtitle ? 'subheadline' : 'footnote',
+              }),
               foregroundStyle(colors.onSurfaceMuted),
+              // ONE line, truncating: Apple's identity subtitle never wraps,
+              // and a locale with a longer phrase must not grow the row.
+              ...(profile.subtitle ? [lineLimit(1)] : []),
             ]}
           >
-            {usernameLine}
+            {secondLine}
           </Text>
         ) : null}
       </VStack>
+      {/* Disclosure chevron, only when the row goes somewhere. */}
+      {profile.onPress ? (
+        <>
+          <Spacer />
+          <Image
+            systemName="chevron.right"
+            size={13}
+            color={colors.onSurfaceMuted}
+          />
+        </>
+      ) : null}
     </HStack>
   ) : null;
 
@@ -118,7 +148,12 @@ export const SettingsAccountSection = ({
     <>
       {profileContent ? (
         <Section title={title}>
-          {usernameEditor ? (
+          {/* A row that navigates wins over the username alert: Apple's
+              identity row is a destination, and an app that sets `onPress`
+              has moved handle editing to the profile header. */}
+          {profile?.onPress ? (
+            <Button onPress={profile.onPress}>{profileContent}</Button>
+          ) : usernameEditor ? (
             <Alert
               title={usernameEditor.dialog.title}
               isPresented={usernameAlertVisible}
@@ -257,11 +292,22 @@ export const SettingsSignOutSection = ({
 };
 
 const AVATAR_SIZE = 40;
+/**
+ * The Apple-Account-style row's avatar. Bigger than the compact row's 40 —
+ * Apple gives the identity row real presence, since it is the entry point to
+ * everything account-shaped rather than one row among many.
+ */
+const AVATAR_SIZE_LARGE = 52;
 
 const styles = StyleSheet.create({
   avatar: {
     borderRadius: AVATAR_SIZE / 2,
     height: AVATAR_SIZE,
     width: AVATAR_SIZE,
+  },
+  avatarLarge: {
+    borderRadius: AVATAR_SIZE_LARGE / 2,
+    height: AVATAR_SIZE_LARGE,
+    width: AVATAR_SIZE_LARGE,
   },
 });
