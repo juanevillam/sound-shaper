@@ -60,3 +60,29 @@ needs re-tuning every time iOS changes the effect. Explicitly ruled out by Juan
 **Where the code goes.** `packages/mobile-ui/src/WelcomeScreen.ios.tsx`; the
 footer is already an overlay-ready structure and its measured geometry matches
 Apple's template, so only the fade is missing.
+
+---
+
+## `ContentUnavailableView`'s actions slot — blocked on `@expo/ui`
+
+**What we want.** Topper's iOS empty states (`EmptyState.ios.tsx`) rendered as
+the real SwiftUI `ContentUnavailableView` instead of an RN column. It is
+literally this surface, and expo-ui-starter already showcases it.
+
+**Why it isn't built.** The wrapper's props are `title`, `systemImage` and
+`description` — full stop (checked on **57.0.7**:
+`node_modules/@expo/ui/build/swift-ui/ContentUnavailableView/index.d.ts`, and
+none of the three starter showcases pass children). SwiftUI's own
+`ContentUnavailableView` takes an `actions` ViewBuilder; the wrapper does not
+surface it. Topper's empty states need that slot: "Try again" on the home and
+trash error states, "Add an item" on an owner's empty top.
+
+Second, smaller blocker: `systemImage` is typed `SFSymbol`, so the emoji each
+of these states is identified by (🗑️ / 🎉 / 🚫) has nowhere to go. That one is
+a product decision as much as an API one — swapping emoji for SF Symbols is a
+look change, not just a port.
+
+**What unlocks it.** `ContentUnavailableViewProps` gaining `children` or an
+`actions` prop. On the day it lands, move the CTA-LESS states over first (trash
+empty, explore "all caught up", a non-owner's empty top) — those need nothing
+the wrapper is missing except the emoji decision.
