@@ -38,6 +38,7 @@ import { Screen } from './Screen';
 export const ManageAccountScreen = ({
   colors,
   info,
+  sections,
   privacy,
   danger,
   children,
@@ -58,6 +59,29 @@ export const ManageAccountScreen = ({
             </LabeledContent>
           ))}
         </Section>
+
+        {sections?.map((section, index) => (
+          <Section
+            key={section.title ?? `section-${index}`}
+            title={section.title}
+          >
+            {section.rows.map(row => (
+              <Button key={row.id} onPress={row.onPress}>
+                <HStack spacing={8}>
+                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
+                    {row.label}
+                  </Text>
+                  <Spacer />
+                  <Image
+                    systemName="chevron.right"
+                    size={13}
+                    color={colors.onSurfaceMuted}
+                  />
+                </HStack>
+              </Button>
+            ))}
+          </Section>
+        ))}
 
         {privacy ? (
           <Section title={privacy.title}>

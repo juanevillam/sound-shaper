@@ -45,6 +45,17 @@ export type ManageAccountScreenProps = {
   /** The read-only facts block. */
   info: { title: string; rows: ManageAccountInfoRow[] };
   /**
+   * Optional destination sections between `info` and `privacy`. Untitled ones
+   * render as a bare card, which is what Apple does for a group whose rows say
+   * what they are.
+   *
+   * Topper's Trophies and Trash live here on iOS: the Settings sheet's identity
+   * row is a single destination (Apple's Apple Account pattern), so everything
+   * account-shaped sits behind it rather than as loose rows in Settings.
+   * Android, frozen, keeps them in Settings and passes nothing here.
+   */
+  sections?: Array<{ title?: string; rows: ManageAccountNavRow[] }>;
+  /**
    * Optional middle section (Topper: Privacy → Blocked users). OMIT IT
    * ENTIRELY in an app with no social module — the section header must not
    * render with nothing under it.
