@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
+import { type SettingsUsernameEditor } from './SettingsAccountSection';
 import {
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
@@ -30,7 +31,21 @@ export type ManageAccountColors = {
 };
 
 /** A read-only fact about the account (name, email, member-since). */
-export type ManageAccountInfoRow = { label: string; value: string };
+export type ManageAccountInfoRow = {
+  label: string;
+  value: string;
+  /**
+   * iOS only. Makes this read-only fact EDITABLE: tapping the row opens the
+   * native username alert (`UsernameEditRowIos`).
+   *
+   * Topper's Username row uses it. Apple does the same — Settings → Apple
+   * Account keeps Name / Phone / Email editable one level down rather than on
+   * the identity row itself, which is why dropping the editor from the Settings
+   * row did not mean dropping it altogether. Android edits the handle from its
+   * own profile header and passes nothing here.
+   */
+  editor?: SettingsUsernameEditor;
+};
 
 /** A push row, e.g. Topper's blocked-users list. */
 export type ManageAccountNavRow = {

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import {
-  Alert,
   Button,
   ConfirmationDialog,
   HStack,
@@ -12,14 +11,13 @@ import {
   Section,
   Spacer,
   Text,
-  TextField,
-  useNativeState,
   VStack,
 } from '@expo/ui/swift-ui';
 import { font, foregroundStyle, lineLimit } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
+import { UsernameEditRowIos } from './UsernameEditRow';
 
 /**
  * iOS counterpart of `SettingsAccountSection`. Same prop API as the Android
@@ -47,23 +45,6 @@ export const SettingsAccountSection = ({
   // stay on the shared prop type because Android still renders them inside
   // this section.
 }: SettingsAccountSectionProps) => {
-  const [usernameAlertVisible, setUsernameAlertVisible] = useState(false);
-
-  const initialUsername = usernameEditor?.currentValue?.replace(/^@/, '') ?? '';
-  const usernameState = useNativeState(initialUsername);
-  const [usernameDraft, setUsernameDraft] = useState(initialUsername);
-
-  const submitUsername = () => {
-    // The alert has already dismissed itself (UIAlertController always does);
-    // the app surfaces the error copy (snackbar). Mirror Android's
-    // keep-the-dialog-open by RE-presenting the alert on a rejected submit —
-    // the attempted text is still in the field (native TextField state), so
-    // the user can correct instead of retyping.
-    void usernameEditor?.onSubmit(usernameDraft.trim()).catch(() => {
-      setUsernameAlertVisible(true);
-    });
-  };
-
   // Apps with no username concept (nor an editor to claim one) have no second
   // line — render the name alone so the HStack centres it, instead of pairing
   // it with an empty Text that pushes it optically high.
@@ -154,33 +135,9 @@ export const SettingsAccountSection = ({
           {profile?.onPress ? (
             <Button onPress={profile.onPress}>{profileContent}</Button>
           ) : usernameEditor ? (
-            <Alert
-              title={usernameEditor.dialog.title}
-              isPresented={usernameAlertVisible}
-              onIsPresentedChange={setUsernameAlertVisible}
-            >
-              <Alert.Trigger>
-                <Button onPress={() => setUsernameAlertVisible(true)}>
-                  {profileContent}
-                </Button>
-              </Alert.Trigger>
-              <Alert.Actions>
-                <TextField
-                  text={usernameState}
-                  placeholder={usernameEditor.dialog.fieldLabel}
-                  onTextChange={setUsernameDraft}
-                />
-                <Button
-                  label={usernameEditor.dialog.cancel}
-                  role="cancel"
-                  onPress={() => setUsernameAlertVisible(false)}
-                />
-                <Button
-                  label={usernameEditor.dialog.confirm}
-                  onPress={submitUsername}
-                />
-              </Alert.Actions>
-            </Alert>
+            <UsernameEditRowIos editor={usernameEditor}>
+              {profileContent}
+            </UsernameEditRowIos>
           ) : (
             profileContent
           )}
