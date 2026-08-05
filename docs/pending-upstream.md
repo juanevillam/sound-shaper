@@ -65,24 +65,24 @@ Apple's template, so only the fade is missing.
 
 ## `ContentUnavailableView`'s actions slot — blocked on `@expo/ui`
 
-**What we want.** Topper's iOS empty states (`EmptyState.ios.tsx`) rendered as
-the real SwiftUI `ContentUnavailableView` instead of an RN column. It is
-literally this surface, and expo-ui-starter already showcases it.
+**Mostly SHIPPED — one slot still missing.** Topper's iOS empty states
+(`EmptyState.ios.tsx`) now render as the real SwiftUI `ContentUnavailableView`.
+The emoji question that used to block this was decided: each state names an SF
+Symbol instead (🗑️ → `trash`, 🎉 → `checkmark.circle`, …), and Android keeps
+its emoji.
 
-**Why it isn't built.** The wrapper's props are `title`, `systemImage` and
+**What is still missing.** The wrapper's props are `title`, `systemImage` and
 `description` — full stop (checked on **57.0.7**:
 `node_modules/@expo/ui/build/swift-ui/ContentUnavailableView/index.d.ts`, and
 none of the three starter showcases pass children). SwiftUI's own
 `ContentUnavailableView` takes an `actions` ViewBuilder; the wrapper does not
-surface it. Topper's empty states need that slot: "Try again" on the home and
-trash error states, "Add an item" on an owner's empty top.
-
-Second, smaller blocker: `systemImage` is typed `SFSymbol`, so the emoji each
-of these states is identified by (🗑️ / 🎉 / 🚫) has nowhere to go. That one is
-a product decision as much as an API one — swapping emoji for SF Symbols is a
-look change, not just a port.
+surface it. So the states that carry a CTA — "Try again" on the error states,
+"Add an item" on an owner's empty top — put their `Button` in a `VStack`
+BESIDE the view rather than inside its actions slot. It looks right and the
+button is a real SwiftUI control; it is simply not slotted in, so the view
+cannot own its spacing or its layout at other Dynamic Type sizes.
 
 **What unlocks it.** `ContentUnavailableViewProps` gaining `children` or an
-`actions` prop. On the day it lands, move the CTA-LESS states over first (trash
-empty, explore "all caught up", a non-owner's empty top) — those need nothing
-the wrapper is missing except the emoji decision.
+`actions` prop. On the day it lands: move the button inside and delete the
+wrapping `VStack` (and `CTA_SPACING`) from `EmptyState.ios.tsx`. Small change,
+one file.
