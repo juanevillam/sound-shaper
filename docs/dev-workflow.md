@@ -66,6 +66,27 @@ Corrupt DerivedData (`disk I/O error` on build.db) and a stale
 `React-Core-prebuilt` extraction are separate cache layers that can mask it;
 clear one at a time.
 
+## iOS `formSheet` — a screen pushed on one gets NO back button
+
+Verified on Topper 2026-08-05 (RNScreens / iOS 26.5). Present a screen with
+`presentation: 'formSheet'` and then `router.push` another screen from inside
+it: the child renders with **no back chevron and no interactive edge-swipe**.
+The user is trapped one level inside the sheet with only the grabber, which
+dismisses the whole thing.
+
+- Not fixable from JS options: `headerBackVisible: true` **plus**
+  `headerBackTitle` were forced on the child and changed nothing. Removing the
+  parent's `headerLeft: () => null` / `headerBackVisible: false` also changed
+  nothing — those only ever affected the sheet's own root.
+- **Reload fully before believing either result.** A layout-file change here
+  does NOT hot-reload; the first two runs of this test were measuring a stale
+  bundle (see the Metro section above).
+- Consequence: a sheet is only safe as a LEAF. If the surface pushes children,
+  either give it a nested `Stack` under its own route group, or present the
+  children as stacked sheets of their own. expo-ui-starter's Settings sheet
+  never hit this because it pushes nothing; Topper's Settings does, which is
+  why it stays a pushed screen — the reasoning is in `(app)/_layout.tsx`.
+
 ## Fast verification recipes
 
 - **Deep-link straight to a screen** instead of tapping through:
