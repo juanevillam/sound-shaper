@@ -64,6 +64,14 @@ type SheetFormProps = {
   actionEnabled?: boolean;
   busy?: boolean;
   onAction: () => void;
+  /**
+   * Already-translated "Cancel". Renders the leading half of Apple's
+   * commit-modal pair — see the header note below. Omit only for a sheet that
+   * commits nothing.
+   */
+  cancelLabel?: string;
+  /** Dismiss without committing. Required whenever `cancelLabel` is given. */
+  onCancel?: () => void;
   /** `Section`s — the form's rows. */
   children: React.ReactNode;
 };
@@ -76,6 +84,14 @@ type SheetFormProps = {
  * state. `scrollContentBackground('hidden')` drops the Form's own grouped
  * backdrop — the sheet already paints one, and stacking them read as a lighter
  * panel floating on the sheet.
+ *
+ * These sheets COMMIT — they collect an edit and apply it on Save — so they get
+ * Apple's commit-modal pair: Cancel leading, the affirmative action trailing
+ * (New Contact, New Event, Compose). That is the opposite of the Settings
+ * sheet, whose rows apply as you tap them and which therefore takes a single
+ * `xmark`. Before this, the only way out of an editor was the grabber or a
+ * swipe-down: discoverable if you already know iOS, invisible if you don't, and
+ * the Android twin has always had an explicit dismiss.
  */
 export function SheetFormIos({
   title,
@@ -83,6 +99,8 @@ export function SheetFormIos({
   actionEnabled = true,
   busy = false,
   onAction,
+  cancelLabel,
+  onCancel,
   children,
 }: SheetFormProps) {
   const { colors } = useAppTheme();
@@ -91,6 +109,19 @@ export function SheetFormIos({
     <Host style={styles.formHost}>
       <VStack spacing={0}>
         <HStack modifiers={[padding({ horizontal: 20, top: 18, bottom: 4 })]}>
+          {cancelLabel && onCancel ? (
+            <>
+              {/* Plain (borderless) button, tinted like the trailing action —
+                  Apple gives Cancel the accent too and distinguishes the two by
+                  WEIGHT, not colour. */}
+              <Button
+                label={cancelLabel}
+                onPress={onCancel}
+                modifiers={[tint(colors.primary)]}
+              />
+              <Spacer />
+            </>
+          ) : null}
           <SwiftUIText
             modifiers={[
               font({ textStyle: 'title2', weight: 'bold' }),
