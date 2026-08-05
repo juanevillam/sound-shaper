@@ -11,6 +11,12 @@ export function HeaderGlyphButtonIos(_props: HeaderGlyphButtonProps) {
   return null;
 }
 
+export function HeaderGlyphGroupIos(_props: {
+  glyphs: HeaderGlyphButtonProps[];
+}) {
+  return null;
+}
+
 export const HEADER_GLYPH_SIZE = 24;
 export const HEADER_CLOSE_GLYPH_SIZE = 20;
 

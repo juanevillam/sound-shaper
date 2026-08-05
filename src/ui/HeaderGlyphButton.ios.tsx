@@ -1,4 +1,4 @@
-import { Image, type ImageProps } from '@expo/ui/swift-ui';
+import { HStack, Image, type ImageProps } from '@expo/ui/swift-ui';
 import { accessibilityLabel } from '@expo/ui/swift-ui/modifiers';
 import { useAppTheme } from '@portfolio/core';
 
@@ -57,17 +57,47 @@ export function HeaderGlyphButtonIos({
   onPress,
   size = HEADER_GLYPH_SIZE,
 }: HeaderGlyphButtonProps) {
+  return (
+    <HeaderGlyphGroupIos glyphs={[{ systemName, label, onPress, size }]} />
+  );
+}
+
+/** Spacing between adjacent bar glyphs, matching Apple's grouped bar items. */
+const GLYPH_SPACING = 12;
+
+/**
+ * Two or more bar glyphs in ONE host, so UIKit groups them into a single
+ * Liquid Glass capsule the way Apple's own bars do — two separate hosts render
+ * two capsules, which reads as two unrelated controls.
+ *
+ * Needed wherever a screen's own action has to coexist with chrome the
+ * navigator supplies. Trash is the case that forced it: it sets its own
+ * `headerRight` for the "Empty trash" overflow, and a screen-level `headerRight`
+ * REPLACES the one its `Stack.Screen` options provide — so as a sheet it lost
+ * the close glyph entirely, and lost it silently again when the overflow was
+ * hidden on an empty trash (`undefined` still overrides).
+ */
+export function HeaderGlyphGroupIos({
+  glyphs,
+}: {
+  glyphs: HeaderGlyphButtonProps[];
+}) {
   const { colors } = useAppTheme();
 
   return (
     <SwiftUIHost matchContents>
-      <Image
-        systemName={systemName}
-        size={size}
-        color={colors.onSurface}
-        onPress={onPress}
-        modifiers={[accessibilityLabel(label)]}
-      />
+      <HStack spacing={GLYPH_SPACING}>
+        {glyphs.map(({ systemName, label, onPress, size }) => (
+          <Image
+            key={systemName}
+            systemName={systemName}
+            size={size ?? HEADER_GLYPH_SIZE}
+            color={colors.onSurface}
+            onPress={onPress}
+            modifiers={[accessibilityLabel(label)]}
+          />
+        ))}
+      </HStack>
     </SwiftUIHost>
   );
 }
