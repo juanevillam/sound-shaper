@@ -84,8 +84,8 @@ dismisses the whole thing.
 - Consequence: a sheet is only safe as a LEAF. If the surface pushes children,
   either give it a nested `Stack` under its own route group, or present the
   children as stacked sheets of their own. expo-ui-starter's Settings sheet
-  never hit this because it pushes nothing; Topper's Settings does, which is
-  why it stays a pushed screen — the reasoning is in `(app)/_layout.tsx`.
+  never hit this because it pushes nothing; Topper's Settings does, and took
+  the stacked-sheets route — see `IOS_SHEET_SCREENS` in `lib/sheetRoutes.ts`.
 
 ## `headerLargeTitle` needs a TRANSLUCENT bar to collapse
 
