@@ -87,6 +87,23 @@ dismisses the whole thing.
   never hit this because it pushes nothing; Topper's Settings does, which is
   why it stays a pushed screen — the reasoning is in `(app)/_layout.tsx`.
 
+## `headerLargeTitle` needs a TRANSLUCENT bar to collapse
+
+`headerTransparent: true` is not only about the Liquid Glass look — it is what
+lets the large title collapse at all. With `headerTransparent: false` RNScreens
+insets the content into its own container below the bar, UIKit loses track of
+the scroll view, and the large title neither collapses into an inline one nor
+stays put: it scrolls away and leaves an EMPTY bar. Silent, and only visible
+once the content is long enough to scroll.
+
+Corollary that cost a detour here: a SwiftUI `Form` inside a `Host` collapses
+the title perfectly well under a translucent bar, sheet or not. "RNScreens
+cannot drive the collapse from a SwiftUI scroller" was written into this repo as
+fact and is WRONG for the sheet case — check it before repeating it. What does
+hold: a screen that pins its own RN chrome ABOVE its scroller has nothing
+adjacent to the bar, so it needs an opaque one (Topper's top detail, and the
+Trophies sheet with its progress summary).
+
 ## Fast verification recipes
 
 - **Deep-link straight to a screen** instead of tapping through:
