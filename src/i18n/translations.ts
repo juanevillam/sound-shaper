@@ -226,12 +226,12 @@ export const translations = {
         system: 'System',
       },
       cancel: 'Cancel',
-      signOut: 'Log out',
+      signOut: 'Sign Out',
       signOutDialog: {
-        title: 'Log out?',
+        title: 'Sign Out?',
         message: "You'll need to sign in again to access your library.",
         cancel: 'Cancel',
-        confirm: 'Log out',
+        confirm: 'Sign Out',
       },
       about: {
         title: 'About',
