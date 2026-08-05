@@ -29,6 +29,12 @@ export {
   GoogleSignInButton,
   type GoogleSignInButtonProps,
 } from './GoogleSignInButton';
+export {
+  HEADER_CLOSE_GLYPH_SIZE,
+  HEADER_GLYPH_SIZE,
+  HeaderGlyphButtonIos,
+  type HeaderGlyphButtonProps,
+} from './HeaderGlyphButton';
 export { iconSource, preloadIcons, type IconName } from './icons';
 export {
   WelcomeScreen,
