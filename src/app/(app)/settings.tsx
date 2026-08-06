@@ -62,13 +62,28 @@ export default function Settings() {
   return (
     <View style={styles.root}>
       <SettingsScreen
-        // NO account block on iOS. Settings is app CONFIGURATION only there —
-        // General, About, Legal — which is what makes it the same screen in
-        // every app in the portfolio. Identity and session live in the Account
-        // screen, reached from the Home header (this app has no profile tab to
-        // anchor it to). Android is frozen and keeps the block.
+        // Sign Out is the ONE session action every app has, so it lives here
+        // rather than in the Account screen — that is what keeps this screen
+        // identical across the portfolio: General, About, Legal, Sign Out.
+        // Everything else account-shaped sits behind the Account entry.
+        //
+        // Only the sign-out fields on iOS: with no `profile` and no `navRows`,
+        // the account SECTION renders nothing and only its trailing sign-out
+        // card appears.
         {...(Platform.OS === 'ios'
-          ? {}
+          ? {
+              account: {
+                title: t('settings.account.title'),
+                signOutLabel: t('settings.signOut'),
+                signOutDialog: {
+                  title: t('settings.signOutDialog.title'),
+                  message: t('settings.signOutDialog.message'),
+                  confirm: t('settings.signOutDialog.confirm'),
+                  cancel: t('settings.signOutDialog.cancel'),
+                },
+                onSignOut: signOut,
+              },
+            }
           : {
               account: {
                 title: t('settings.account.title'),

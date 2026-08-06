@@ -95,20 +95,6 @@ export type ManageAccountScreenProps = {
     disabled?: boolean;
   };
   /**
-   * Trailing sign-out card, iOS ONLY.
-   *
-   * On iOS this screen IS the Account sheet — the one place session and
-   * identity live — so signing out belongs at its bottom, which is also where
-   * Apple puts it (the App Store's Apple Account sheet, not App Store
-   * Settings). Android is frozen and still signs out from its Settings screen,
-   * so its variant ignores this even if passed.
-   */
-  signOut?: {
-    label: string;
-    dialog: { title: string; message: string; confirm: string; cancel: string };
-    onSignOut: () => void;
-  };
-  /**
    * Mounted beside the screen — the host's confirm dialog. On Android it MUST
    * live outside the rows' Host: a dialog mounted next to them corrupts their
    * clip shapes (the same rule SettingsScreen documents).
