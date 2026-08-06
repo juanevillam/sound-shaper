@@ -23,7 +23,6 @@ import {
 
 import { type ManageAccountScreenProps } from './ManageAccountScreen';
 import { Screen } from './Screen';
-import { SettingsSignOutSection } from './SettingsAccountSection';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
 /**
@@ -43,7 +42,6 @@ export const ManageAccountScreen = ({
   sections,
   privacy,
   danger,
-  signOut,
   children,
 }: ManageAccountScreenProps) => (
   <Screen backgroundColor={colors.background} edges={['left', 'right']}>
@@ -151,17 +149,6 @@ export const ManageAccountScreen = ({
               </Text>
             </Button>
           </Section>
-        ) : null}
-
-        {/* Sign out last, in a card of its own — Apple's placement, and the
-            same `SettingsSignOutSection` the Settings screen used to render
-            before session moved out of Settings entirely. */}
-        {signOut ? (
-          <SettingsSignOutSection
-            signOutLabel={signOut.label}
-            signOutDialog={signOut.dialog}
-            onSignOut={signOut.onSignOut}
-          />
         ) : null}
       </Form>
     </Host>
