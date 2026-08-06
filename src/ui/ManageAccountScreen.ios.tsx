@@ -23,6 +23,7 @@ import {
 
 import { type ManageAccountScreenProps } from './ManageAccountScreen';
 import { Screen } from './Screen';
+import { SettingsSignOutSection } from './SettingsAccountSection';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
 /**
@@ -42,6 +43,7 @@ export const ManageAccountScreen = ({
   sections,
   privacy,
   danger,
+  signOut,
   children,
 }: ManageAccountScreenProps) => (
   <Screen backgroundColor={colors.background} edges={['left', 'right']}>
@@ -53,41 +55,43 @@ export const ManageAccountScreen = ({
           padding({ top: 16 }),
         ]}
       >
-        <Section title={info.title}>
-          {info.rows.map(row =>
-            // An editable fact (Topper's Username) opens the shared native
-            // alert; everything else stays a read-only `LabeledContent`.
-            //
-            // Editable rows are built by hand rather than from LabeledContent:
-            // they need the disclosure chevron that marks them tappable (the
-            // Name / Phone / Email rows in Apple's own Apple Account screen),
-            // and their label must stay `onSurface` — inside a `Button` it
-            // would otherwise inherit the control tint and read blue while
-            // every neighbouring label is not.
-            row.editor ? (
-              <UsernameEditRowIos key={row.label} editor={row.editor}>
-                <HStack spacing={8}>
-                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
-                    {row.label}
-                  </Text>
-                  <Spacer />
-                  <Text modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
-                    {row.value}
-                  </Text>
-                  <Image
-                    systemName="chevron.right"
-                    size={13}
-                    color={colors.onSurfaceMuted}
-                  />
-                </HStack>
-              </UsernameEditRowIos>
-            ) : (
-              <LabeledContent key={row.label} label={row.label}>
-                <Text>{row.value}</Text>
-              </LabeledContent>
-            ),
-          )}
-        </Section>
+        {info ? (
+          <Section title={info.title}>
+            {info.rows.map(row =>
+              // An editable fact (Topper's Username) opens the shared native
+              // alert; everything else stays a read-only `LabeledContent`.
+              //
+              // Editable rows are built by hand rather than from LabeledContent:
+              // they need the disclosure chevron that marks them tappable (the
+              // Name / Phone / Email rows in Apple's own Apple Account screen),
+              // and their label must stay `onSurface` — inside a `Button` it
+              // would otherwise inherit the control tint and read blue while
+              // every neighbouring label is not.
+              row.editor ? (
+                <UsernameEditRowIos key={row.label} editor={row.editor}>
+                  <HStack spacing={8}>
+                    <Text modifiers={[foregroundStyle(colors.onSurface)]}>
+                      {row.label}
+                    </Text>
+                    <Spacer />
+                    <Text modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
+                      {row.value}
+                    </Text>
+                    <Image
+                      systemName="chevron.right"
+                      size={13}
+                      color={colors.onSurfaceMuted}
+                    />
+                  </HStack>
+                </UsernameEditRowIos>
+              ) : (
+                <LabeledContent key={row.label} label={row.label}>
+                  <Text>{row.value}</Text>
+                </LabeledContent>
+              ),
+            )}
+          </Section>
+        ) : null}
 
         {sections?.map((section, index) => (
           <Section
@@ -135,17 +139,30 @@ export const ManageAccountScreen = ({
           </Section>
         ) : null}
 
-        <Section title={danger.title}>
-          <Button
-            role="destructive"
-            modifiers={danger.disabled ? [disabledModifier(true)] : []}
-            onPress={danger.onPress}
-          >
-            <Text modifiers={[foregroundStyle(colors.danger)]}>
-              {danger.rowLabel}
-            </Text>
-          </Button>
-        </Section>
+        {danger ? (
+          <Section title={danger.title}>
+            <Button
+              role="destructive"
+              modifiers={danger.disabled ? [disabledModifier(true)] : []}
+              onPress={danger.onPress}
+            >
+              <Text modifiers={[foregroundStyle(colors.danger)]}>
+                {danger.rowLabel}
+              </Text>
+            </Button>
+          </Section>
+        ) : null}
+
+        {/* Sign out last, in a card of its own — Apple's placement, and the
+            same `SettingsSignOutSection` the Settings screen used to render
+            before session moved out of Settings entirely. */}
+        {signOut ? (
+          <SettingsSignOutSection
+            signOutLabel={signOut.label}
+            signOutDialog={signOut.dialog}
+            onSignOut={signOut.onSignOut}
+          />
+        ) : null}
       </Form>
     </Host>
 

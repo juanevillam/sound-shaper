@@ -57,8 +57,11 @@ export type ManageAccountNavRow = {
 
 export type ManageAccountScreenProps = {
   colors: ManageAccountColors;
-  /** The read-only facts block. */
-  info: { title: string; rows: ManageAccountInfoRow[] };
+  /**
+   * The read-only facts block. Optional: an app with no real session (the
+   * starter) has no facts to state and shows only the actions below.
+   */
+  info?: { title: string; rows: ManageAccountInfoRow[] };
   /**
    * Optional destination sections between `info` and `privacy`. Untitled ones
    * render as a bare card, which is what Apple does for a group whose rows say
@@ -82,7 +85,7 @@ export type ManageAccountScreenProps = {
    * enough per app that the screen must not own that decision, it only owns
    * where the row sits and how it reads.
    */
-  danger: {
+  danger?: {
     title: string;
     rowLabel: string;
     /** Supporting line under the row (Android only; iOS rows stay single-line). */
@@ -90,6 +93,20 @@ export type ManageAccountScreenProps = {
     icon: IconName;
     onPress: () => void;
     disabled?: boolean;
+  };
+  /**
+   * Trailing sign-out card, iOS ONLY.
+   *
+   * On iOS this screen IS the Account sheet — the one place session and
+   * identity live — so signing out belongs at its bottom, which is also where
+   * Apple puts it (the App Store's Apple Account sheet, not App Store
+   * Settings). Android is frozen and still signs out from its Settings screen,
+   * so its variant ignores this even if passed.
+   */
+  signOut?: {
+    label: string;
+    dialog: { title: string; message: string; confirm: string; cancel: string };
+    onSignOut: () => void;
   };
   /**
    * Mounted beside the screen — the host's confirm dialog. On Android it MUST
@@ -142,32 +159,40 @@ export const ManageAccountScreen = ({
             modifiers={[fillMaxWidth(), padding(0, 16, 0, 0)]}
             verticalArrangement={{ spacedBy: 8 }}
           >
-            {sectionHeader(info.title, true)}
-            <Column
-              modifiers={[
-                fillMaxWidth(),
-                padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-              ]}
-              verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-            >
-              {info.rows.map((row, index) => (
-                <ListItem
-                  key={row.label}
-                  colors={rowColors}
+            {/* `info` / `danger` are optional on the shared type only so the
+                iOS Account sheet can omit them in a session-less app. Every
+                ANDROID caller passes both, so these guards never change what
+                this frozen screen renders. */}
+            {info ? (
+              <>
+                {sectionHeader(info.title, true)}
+                <Column
                   modifiers={[
                     fillMaxWidth(),
-                    clip(groupRowShape(index, info.rows.length)),
+                    padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
                   ]}
+                  verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
                 >
-                  <ListItem.HeadlineContent>
-                    <Text color={colors.onSurface}>{row.label}</Text>
-                  </ListItem.HeadlineContent>
-                  <ListItem.SupportingContent>
-                    <Text color={colors.onSurfaceMuted}>{row.value}</Text>
-                  </ListItem.SupportingContent>
-                </ListItem>
-              ))}
-            </Column>
+                  {info.rows.map((row, index) => (
+                    <ListItem
+                      key={row.label}
+                      colors={rowColors}
+                      modifiers={[
+                        fillMaxWidth(),
+                        clip(groupRowShape(index, info.rows.length)),
+                      ]}
+                    >
+                      <ListItem.HeadlineContent>
+                        <Text color={colors.onSurface}>{row.label}</Text>
+                      </ListItem.HeadlineContent>
+                      <ListItem.SupportingContent>
+                        <Text color={colors.onSurfaceMuted}>{row.value}</Text>
+                      </ListItem.SupportingContent>
+                    </ListItem>
+                  ))}
+                </Column>
+              </>
+            ) : null}
 
             {privacy ? (
               <>
@@ -212,40 +237,44 @@ export const ManageAccountScreen = ({
               </>
             ) : null}
 
-            {sectionHeader(danger.title)}
-            <Column
-              modifiers={[
-                fillMaxWidth(),
-                padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-              ]}
-            >
-              <ListItem
-                colors={{ ...rowColors, contentColor: colors.danger }}
-                modifiers={[
-                  fillMaxWidth(),
-                  clip(groupRowShape(0, 1)),
-                  ...(danger.disabled ? [] : [clickable(danger.onPress)]),
-                ]}
-              >
-                <ListItem.LeadingContent>
-                  <Icon
-                    source={iconSource(danger.icon)}
-                    size={24}
-                    tint={colors.danger}
-                  />
-                </ListItem.LeadingContent>
-                <ListItem.HeadlineContent>
-                  <Text color={colors.danger}>{danger.rowLabel}</Text>
-                </ListItem.HeadlineContent>
-                {danger.rowDescription ? (
-                  <ListItem.SupportingContent>
-                    <Text color={colors.onSurfaceMuted}>
-                      {danger.rowDescription}
-                    </Text>
-                  </ListItem.SupportingContent>
-                ) : null}
-              </ListItem>
-            </Column>
+            {danger ? (
+              <>
+                {sectionHeader(danger.title)}
+                <Column
+                  modifiers={[
+                    fillMaxWidth(),
+                    padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+                  ]}
+                >
+                  <ListItem
+                    colors={{ ...rowColors, contentColor: colors.danger }}
+                    modifiers={[
+                      fillMaxWidth(),
+                      clip(groupRowShape(0, 1)),
+                      ...(danger.disabled ? [] : [clickable(danger.onPress)]),
+                    ]}
+                  >
+                    <ListItem.LeadingContent>
+                      <Icon
+                        source={iconSource(danger.icon)}
+                        size={24}
+                        tint={colors.danger}
+                      />
+                    </ListItem.LeadingContent>
+                    <ListItem.HeadlineContent>
+                      <Text color={colors.danger}>{danger.rowLabel}</Text>
+                    </ListItem.HeadlineContent>
+                    {danger.rowDescription ? (
+                      <ListItem.SupportingContent>
+                        <Text color={colors.onSurfaceMuted}>
+                          {danger.rowDescription}
+                        </Text>
+                      </ListItem.SupportingContent>
+                    ) : null}
+                  </ListItem>
+                </Column>
+              </>
+            ) : null}
           </Column>
         </Host>
       </SafeAreaView>
