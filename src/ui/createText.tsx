@@ -55,9 +55,14 @@ const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: { fontSize: 34, lineHeight: 41 }, // Large Title
   headlineLarge: { fontSize: 28, lineHeight: 34 }, // Title 1
   titleLarge: { fontSize: 22, lineHeight: 28 }, // Title 2
-  // Section headings above content. Semibold is what carries an iOS section
-  // title; at 20pt regular it reads as body text that happens to be big.
-  titleMedium: { fontSize: 20, lineHeight: 25, fontWeight: '600' }, // Title 3
+  // Section headings above content, and card titles — one step serves both.
+  // HEADLINE, not Title 3. Title 3 (20) is what Music and the App Store put
+  // above a full-bleed editorial rail; at the size these sections actually
+  // are, under a 34pt large title and over a card, it read as a second large
+  // title rather than a heading. Headline is Apple's step for "the prominent
+  // label of a thing" and it is the same 17 as body, carried by the weight
+  // instead of the size — which is the part that was doing the work anyway.
+  titleMedium: { fontSize: 17, lineHeight: 22, fontWeight: '600' }, // Headline
   bodyLarge: { fontSize: 17, lineHeight: 22 }, // Body
   bodyMedium: { fontSize: 15, lineHeight: 20 }, // Subheadline
   bodySmall: { fontSize: 13, lineHeight: 18 }, // Footnote
