@@ -228,14 +228,28 @@ export default function HomeScreen() {
           <CollapsingHeaderBar
             title={t('app.title')}
             scrollY={header.scrollY}
+            // Account, then Settings. Account lives on the HOME header in this
+            // app because the portfolio's rule is that its entry sits where
+            // the user's identity already lives — the Profile tab in Topper,
+            // and here, with no profile tab, the home bar. Settings itself is
+            // app CONFIGURATION only and identical in every app.
             right={
-              <BarIconButton
-                name="settings"
-                systemName="gearshape"
-                onPress={() => router.push('/settings')}
-                tint={colors.primary}
-                accessibilityLabel={t('app.settings')}
-              />
+              <View style={styles.barActions}>
+                <BarIconButton
+                  name="manage-accounts"
+                  systemName="person.crop.circle"
+                  onPress={() => router.push('/manage-account')}
+                  tint={colors.primary}
+                  accessibilityLabel={t('settings.account.title')}
+                />
+                <BarIconButton
+                  name="settings"
+                  systemName="gearshape"
+                  onPress={() => router.push('/settings')}
+                  tint={colors.primary}
+                  accessibilityLabel={t('app.settings')}
+                />
+              </View>
             }
           />
         ) : (
@@ -355,6 +369,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Two bar items sit in a row; the bar's own slot positions the pair.
+  barActions: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   safeArea: { flex: 1 },
   appBar: {
     alignItems: 'center',
