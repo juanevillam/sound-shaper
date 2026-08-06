@@ -89,6 +89,17 @@ export type SettingsAboutConfig = {
  * passes the rows once and neither platform's output changes shape.
  */
 export type SettingsLegalConfig = {
+  /**
+   * Section header, iOS only — Android appends these rows to About and never
+   * renders a header for them (see `aboutRows` below).
+   *
+   * Titled because every CONTENT group on the screen is: General, Account,
+   * About and these. The only headerless card is the trailing Sign Out, which
+   * is an ACTION rather than a group — Apple leaves that one bare too (the
+   * Apple Account sheet's own Sign Out). Without a header here the screen read
+   * unevenly, with one content card silently different from its neighbours.
+   */
+  title?: string;
   rows: SettingsInfoRow[];
 };
 

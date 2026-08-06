@@ -134,9 +134,9 @@ export const SettingsScreen = ({
         {/* Policy links in a card of their own, between About and Sign Out —
             Apple's grouping. They are policy, not build info, so they don't
             belong beside version numbers (which is where Android, frozen,
-            still shows them). Untitled: the labels say what they are. */}
+            still shows them). */}
         {legal?.rows.length ? (
-          <Section>
+          <Section title={legal.title}>
             {legal.rows.map(row =>
               row.onPress ? (
                 <Button

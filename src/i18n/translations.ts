@@ -213,6 +213,9 @@ export const translations = {
       general: {
         title: 'General',
       },
+      legal: {
+        title: 'Legal',
+      },
       language: {
         label: 'Language',
         en: 'English',
@@ -479,6 +482,9 @@ export const translations = {
       general: {
         title: 'General',
       },
+      legal: {
+        title: 'Legal',
+      },
       language: {
         label: 'Idioma',
         en: 'English',
@@ -744,6 +750,9 @@ export const translations = {
       },
       general: {
         title: '通用',
+      },
+      legal: {
+        title: '法律信息',
       },
       language: {
         label: '语言',
