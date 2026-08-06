@@ -73,13 +73,22 @@ const GRID_TOP_GAP = IS_IOS ? 0 : 29.5;
  * EXTRA air under the heading, so the gap you SEE here equals the one in
  * Topper: 34pt from the heading's ink to the next thing drawn.
  *
- * Both screens already share the same header token, and it is not the token
- * that differs — it is what sits under it. Topper's next element is a 52pt
- * section row whose label is centred inside it, so ~18pt of that row is blank
- * before any ink appears. This grid's tiles start drawing at their own box
- * edge, with nothing in front. Adding that difference back here is what makes
- * the two read identically; putting it in the shared token would just move the
- * mismatch to Topper.
+ * Topper's next element is a 52pt section row whose label is centred inside it,
+ * so ~18pt of that row is blank before any ink appears. This grid's tiles start
+ * drawing at their own box edge, with nothing in front. Adding that difference
+ * back here is what made the two read identically.
+ *
+ * ⚠️ STALE ON iOS, 2026-08-06. This was derived when BOTH screens drew the
+ * shared `CollapsingHeaderTitle`, and the original note said as much ("both
+ * screens already share the same header token"). Topper's iOS home has since
+ * moved to the SYSTEM large title, so UIKit — not this token — owns the space
+ * under its heading, and the premise no longer holds. Topper's iOS gap measures
+ * 24.7pt ink-to-ink today, not 34. Android still shares the header and is
+ * unaffected.
+ *
+ * RE-DERIVE against the system large title when Sound Shaper's iOS pass runs;
+ * it could not be measured here because Sound Shaper is not installed. Do not
+ * trust the 34 for iOS until then.
  */
 const HEADING_TO_GRID_GAP = 15;
 
