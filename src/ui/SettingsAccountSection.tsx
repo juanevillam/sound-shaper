@@ -78,20 +78,6 @@ export type SettingsAccountProfile = {
    * — the native `Image` only loads SF Symbols / local files, not remote URLs.
    */
   photoUrl?: string | null;
-  /**
-   * iOS only. Second line of the identity row, describing what pressing it
-   * opens — Apple's own pattern ("Account info, payments and settings" under
-   * the name in the App Store's Apple Account sheet). When set it REPLACES the
-   * username line, because Apple does not put a handle there and the row's job
-   * is to be a destination, not a profile summary.
-   */
-  subtitle?: string;
-  /**
-   * iOS only. Makes the identity row a disclosure row (chevron, pushes). Set
-   * this instead of `usernameEditor` — the username is edited from the profile
-   * header, not from Settings.
-   */
-  onPress?: () => void;
 };
 
 /**
