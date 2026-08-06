@@ -28,9 +28,16 @@ export type AppColors = {
    * pair unevenly because the two ramps start in different places: systemGray5
    * on light sits one step from the systemGray6 page and reads faint (measured
    * separation 13.0), while on dark it sits against pure black and reads strong
-   * (44.1) — a 3.4x imbalance from one token. Apple compensates with a
-   * different alpha per appearance; at 0.20/0.36 the same fill measures 24.4
-   * and 43.4, so light nearly doubles while dark stays put.
+   * (44.1) — a 3.4x imbalance from one token. A translucent fill with a
+   * different alpha per appearance lands evenly on both.
+   *
+   * TERTIARY, not `systemFill` itself. The fills are a ramp, and the level is a
+   * judgement about what the shape has to compete with. Everywhere this is used
+   * so far the shape is a PLACEHOLDER sitting beside real artwork — cover art
+   * runs 200+ separation from the page — so the fill has to stay clearly
+   * secondary or the empty slot starts drawing more attention than the content
+   * it sits next to. `systemFill` (0.20/0.36) measured 24.4/43.4 and read as a
+   * competing block; tertiary (0.12/0.24) measures 14.6/28.9 and recedes.
    */
   fill: string;
   // Elevation ink — the color shadows are cast in. Black in BOTH modes on
@@ -163,7 +170,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
-    fill: 'rgba(120, 120, 128, 0.2)', // systemFill, light
+    fill: 'rgba(120, 120, 128, 0.12)', // tertiarySystemFill, light
     shadow: '#000000',
     onSurface: '#000000',
     onSurfaceMuted: '#3C3C4399',
@@ -196,7 +203,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
-    fill: 'rgba(120, 120, 128, 0.36)', // systemFill, dark
+    fill: 'rgba(120, 120, 128, 0.24)', // tertiarySystemFill, dark
     shadow: '#000000',
     onSurface: '#FFFFFF',
     onSurfaceMuted: '#EBEBF599',
