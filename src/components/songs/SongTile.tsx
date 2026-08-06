@@ -94,7 +94,16 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
         style={[
           styles.art,
           styles.addBox,
-          { borderColor: colors.border, borderRadius: TILE_RADIUS },
+          { borderRadius: TILE_RADIUS },
+          // iOS: a FILLED placeholder. A dashed border reads as a web/Material
+          // dropzone; Apple's nearest equivalent — the iWork document manager's
+          // "Create Document" cell — is a filled tile, and a fill keeps the
+          // grid's rhythm by reading as "another tile, empty" rather than as a
+          // hole in it. Android keeps the dashed outline its frozen build
+          // ships. Matched with Topper's rail, which made the same move.
+          Platform.OS === 'ios'
+            ? { backgroundColor: colors.surfaceContainer }
+            : { borderColor: colors.border },
         ]}
       >
         <Text doNotTranslate text="+" style={styles.plus} />
@@ -110,12 +119,13 @@ const styles = StyleSheet.create({
   artMedia: { height: '100%', width: '100%', ...CONTINUOUS_CURVE },
   addBox: {
     alignItems: 'center',
-    borderStyle: 'dashed',
-    // A dashed hairline is invisible on iOS at @3×, so the placeholder keeps
-    // a full point there; on Android HAIRLINE is already 1.
-    borderWidth: Math.max(HAIRLINE, 1),
     justifyContent: 'center',
     ...CONTINUOUS_CURVE,
+    // The dashed outline is Android's only now — see the fill above.
+    ...Platform.select({
+      android: { borderStyle: 'dashed' as const, borderWidth: HAIRLINE },
+      default: {},
+    }),
   },
   plus: {
     fontSize: 40,
