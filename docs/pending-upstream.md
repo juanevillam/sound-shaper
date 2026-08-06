@@ -20,8 +20,9 @@ it is on the list, not off it.
 
 **Why it isn't built.** No API. Verified on `@expo/ui` **57.0.7** by grepping
 BOTH the JS build and the bundled native Swift sources for `scrollEdgeEffect`
-and `safeAreaInset` — zero hits in either. (Latest published at the time was
-57.0.8, a patch, which will not add a modifier family.) Without
+and `safeAreaInset` — zero hits in either. **Re-checked 2026-08-05 against the
+published 57.0.9 tarball (`npm pack`, no install needed): still zero hits.**
+Without
 `safeAreaInset` the footer cannot live inside the SwiftUI tree, and without
 `scrollEdgeEffectStyle` the system fade cannot be requested.
 
@@ -72,7 +73,8 @@ Symbol instead (🗑️ → `trash`, 🎉 → `checkmark.circle`, …), and Andr
 its emoji.
 
 **What is still missing.** The wrapper's props are `title`, `systemImage` and
-`description` — full stop (checked on **57.0.7**:
+`description` — full stop (checked on **57.0.7**, and re-checked against
+published **57.0.9** on 2026-08-05 — unchanged:
 `node_modules/@expo/ui/build/swift-ui/ContentUnavailableView/index.d.ts`, and
 none of the three starter showcases pass children). SwiftUI's own
 `ContentUnavailableView` takes an `actions` ViewBuilder; the wrapper does not
