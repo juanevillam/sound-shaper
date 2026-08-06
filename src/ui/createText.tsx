@@ -1,4 +1,5 @@
 import {
+  Platform,
   Text as RNText,
   StyleSheet,
   type StyleProp,
@@ -18,37 +19,61 @@ export type TextVariant =
   | 'labelLarge'
   | 'labelMedium';
 
+// The variant NAMES are Material's, and so were the sizes — on both platforms.
+// That meant every iOS screen was typeset in Android's voice: body text at 14pt
+// where iOS's is 17, section headers at 16pt where iOS uses 20. Nothing was
+// individually wrong and the whole thing read as not-quite-native, because a
+// platform's type ramp is most of its handwriting.
+//
+// So the steps are per-platform. ANDROID KEEPS ITS EXACT NUMBERS — this split
+// was introduced with Android frozen for release, and its rendered output must
+// not move by a pixel. iOS maps each step onto the matching Apple text style at
+// the default (Large) Dynamic Type size, from the HIG's specification:
+//
+//   Large Title 34/41   Title 1 28/34   Title 2 22/28   Title 3 20/25
+//   Body 17/22          Callout 16/21   Subheadline 15/20
+//   Footnote 13/18      Caption 1 12/16
+//
+// These are still fixed points, not real Dynamic Type — `fontSize` does not
+// track the user's text-size setting. Honouring that properly means mapping to
+// SwiftUI's text styles, which also means auditing every fixed-height layout
+// (the skeletons are dimension-matched on purpose, and the rail header height
+// is a derived constant). Tracked as the next step, not smuggled in here.
+const ANDROID_VARIANTS: Record<TextVariant, TextStyle> = {
+  displayLarge: { fontSize: 36, lineHeight: 44 },
+  headlineLarge: { fontSize: 28, lineHeight: 36 },
+  titleLarge: { fontSize: 22, lineHeight: 28 },
+  titleMedium: { fontSize: 16, lineHeight: 22 },
+  bodyLarge: { fontSize: 16, lineHeight: 22 },
+  bodyMedium: { fontSize: 14, lineHeight: 20 },
+  bodySmall: { fontSize: 12, lineHeight: 16 },
+  labelLarge: { fontSize: 14, lineHeight: 18 },
+  labelMedium: { fontSize: 12, lineHeight: 16 },
+};
+
+const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
+  displayLarge: { fontSize: 34, lineHeight: 41 }, // Large Title
+  headlineLarge: { fontSize: 28, lineHeight: 34 }, // Title 1
+  titleLarge: { fontSize: 22, lineHeight: 28 }, // Title 2
+  // Section headings above content. Semibold is what carries an iOS section
+  // title; at 20pt regular it reads as body text that happens to be big.
+  titleMedium: { fontSize: 20, lineHeight: 25, fontWeight: '600' }, // Title 3
+  bodyLarge: { fontSize: 17, lineHeight: 22 }, // Body
+  bodyMedium: { fontSize: 15, lineHeight: 20 }, // Subheadline
+  bodySmall: { fontSize: 13, lineHeight: 18 }, // Footnote
+  // Tinted trailing actions ("See All") — a button label on iOS is Body, not a
+  // small caps label.
+  labelLarge: { fontSize: 17, lineHeight: 22 }, // Body
+  labelMedium: { fontSize: 12, lineHeight: 16 }, // Caption 1
+};
+
 /**
  * The type scale itself. Exported so package-level components (which can't
  * call an app's `useI18n`, so can't use the app `Text`) still render on the
  * exact same steps as every app screen.
  */
-export const TEXT_VARIANTS: Record<TextVariant, TextStyle> = {
-  displayLarge: {
-    fontSize: 36,
-    lineHeight: 44,
-  },
-  headlineLarge: {
-    fontSize: 28,
-    lineHeight: 36,
-  },
-  titleLarge: {
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  titleMedium: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  bodyLarge: { fontSize: 16, lineHeight: 22 },
-  bodyMedium: { fontSize: 14, lineHeight: 20 },
-  bodySmall: { fontSize: 12, lineHeight: 16 },
-  labelLarge: { fontSize: 14, lineHeight: 18 },
-  labelMedium: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-};
+export const TEXT_VARIANTS: Record<TextVariant, TextStyle> =
+  Platform.OS === 'ios' ? IOS_VARIANTS : ANDROID_VARIANTS;
 
 type BaseTextProps = {
   ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip';
