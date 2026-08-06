@@ -10,6 +10,13 @@ export {
   getAppThemeConfig,
   type AppThemeConfig,
 } from './theme/appTheme';
+export {
+  ROW_INSET,
+  ROW_MIN_HEIGHT,
+  SCREEN_PADDING,
+  SECTION_GAP,
+  TILE_GAP,
+} from './theme/metrics';
 export { DEFAULT_THEME, SUPPORTED_THEMES, type Theme } from './theme/themes';
 export { useAppTheme, type ResolvedScheme } from './theme/useAppTheme';
 export { useAuthStore } from './stores/auth';

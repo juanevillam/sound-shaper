@@ -39,7 +39,7 @@ import { type Song } from '@/services/firebase/songs';
 import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
-import { GRID_GAP, SCREEN_PADDING } from '@/styles/metrics';
+import { TILE_GAP, SCREEN_PADDING } from '@/styles/metrics';
 
 // The grid rows FlashList renders: the add tile plus the songs, pre-paired
 // into 2-column rows (FlashList's numColumns + varying tile heights fight each
@@ -58,7 +58,7 @@ const APP_BAR_HEIGHT = 64;
  * Clearance above the first grid row.
  *
  * iOS needs none — there the heading is the list's own first row and carries
- * its own gap (see `HEADING_TO_GRID_GAP`).
+ * its own gap (see `HEADING_TO_TILE_GAP`).
  *
  * Android's static app bar sits directly on the content, so this IS the gap,
  * and it is set to match Topper: measured on device, Topper leaves 31.6dp
@@ -90,7 +90,7 @@ const GRID_TOP_GAP = IS_IOS ? 0 : 29.5;
  * it could not be measured here because Sound Shaper is not installed. Do not
  * trust the 34 for iOS until then.
  */
-const HEADING_TO_GRID_GAP = 15;
+const HEADING_TO_TILE_GAP = 15;
 
 const toGridRows = (songs: Song[]): GridRow[] => {
   const cells: (Song | 'add')[] = ['add', ...songs];
@@ -216,7 +216,7 @@ export default function HomeScreen() {
   // and it is a DETACHED pill, so "clearing it" means its own bottom gap plus
   // its height plus one grid gutter, not a guessed number.
   const listBottomPadding =
-    insets.bottom + BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + GRID_GAP;
+    insets.bottom + BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + TILE_GAP;
 
   return (
     <Screen>
@@ -396,12 +396,12 @@ const styles = StyleSheet.create({
   // matching the other two apps beats being closer to the spec on this one
   // screen: measured side by side, 22/400 read 9% larger AND lighter.
   appBarTitle: { flexShrink: 1, fontSize: 20, fontWeight: '500' },
-  headingBlock: { paddingBottom: HEADING_TO_GRID_GAP },
+  headingBlock: { paddingBottom: HEADING_TO_TILE_GAP },
   list: { flex: 1 },
   gridRow: {
     flexDirection: 'row',
-    gap: GRID_GAP,
-    marginBottom: GRID_GAP + 4,
+    gap: TILE_GAP,
+    marginBottom: TILE_GAP + 4,
   },
   cell: { flex: 1 },
   // Matches the list's own content inset, so the skeleton lands exactly where

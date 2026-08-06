@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { haptics } from '@/lib/haptics';
-import { GRID_GAP } from '@/styles/metrics';
+import { TILE_GAP } from '@/styles/metrics';
 import { CARD_RADIUS, CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { CARDS_HEIGHT, type PlayerCardsProps } from './chrome';
@@ -83,5 +83,5 @@ const styles = StyleSheet.create({
     ...CONTINUOUS_CURVE,
   },
   copy: { flex: 1, gap: 1 },
-  row: { flexDirection: 'row', gap: GRID_GAP, width: '100%' },
+  row: { flexDirection: 'row', gap: TILE_GAP, width: '100%' },
 });
