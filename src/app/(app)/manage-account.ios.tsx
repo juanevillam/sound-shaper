@@ -9,6 +9,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { deleteAccount } from '@/services/firebase/account';
+import { signOutFromGoogle } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
@@ -96,6 +97,22 @@ export default function ManageAccount() {
     <ManageAccountScreen
       colors={colors}
       info={{ title: t('settings.manageAccount.infoTitle'), rows: infoRows }}
+      // Sign out lives at the bottom of the ACCOUNT screen, not in Settings:
+      // this is where session and identity live now.
+      signOut={{
+        label: t('settings.signOut'),
+        dialog: {
+          title: t('settings.signOutDialog.title'),
+          message: t('settings.signOutDialog.message'),
+          confirm: t('settings.signOutDialog.confirm'),
+          cancel: t('settings.signOutDialog.cancel'),
+        },
+        onSignOut: () => {
+          void signOutFromGoogle().catch(() =>
+            showSnackbar(t('snackbar.sign-out-failed')),
+          );
+        },
+      }}
       danger={{
         title: t('settings.manageAccount.dangerTitle'),
         rowLabel: t('settings.manageAccount.deleteAccount'),

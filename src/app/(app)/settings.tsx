@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { version as expoUiVersion } from '@expo/ui/package.json';
 import {
@@ -62,33 +62,43 @@ export default function Settings() {
   return (
     <View style={styles.root}>
       <SettingsScreen
-        account={{
-          title: t('settings.account.title'),
-          profile,
-          // Deletion lives behind manage-account (the WhatsApp/Google idiom).
-          navRows: [
-            {
-              id: 'trophies',
-              label: t('settings.trophies'),
-              icon: 'trophy',
-              onPress: () => router.push('/trophies'),
-            },
-            {
-              id: 'manage-account',
-              label: t('settings.manageAccount.title'),
-              icon: 'manage-accounts',
-              onPress: () => router.push('/manage-account'),
-            },
-          ],
-          signOutLabel: t('settings.signOut'),
-          signOutDialog: {
-            title: t('settings.signOutDialog.title'),
-            message: t('settings.signOutDialog.message'),
-            confirm: t('settings.signOutDialog.confirm'),
-            cancel: t('settings.signOutDialog.cancel'),
-          },
-          onSignOut: signOut,
-        }}
+        // NO account block on iOS. Settings is app CONFIGURATION only there —
+        // General, About, Legal — which is what makes it the same screen in
+        // every app in the portfolio. Identity and session live in the Account
+        // screen, reached from the Home header (this app has no profile tab to
+        // anchor it to). Android is frozen and keeps the block.
+        {...(Platform.OS === 'ios'
+          ? {}
+          : {
+              account: {
+                title: t('settings.account.title'),
+                profile,
+                // Deletion lives behind manage-account (the WhatsApp/Google
+                // idiom).
+                navRows: [
+                  {
+                    id: 'trophies',
+                    label: t('settings.trophies'),
+                    icon: 'trophy' as const,
+                    onPress: () => router.push('/trophies'),
+                  },
+                  {
+                    id: 'manage-account',
+                    label: t('settings.manageAccount.title'),
+                    icon: 'manage-accounts' as const,
+                    onPress: () => router.push('/manage-account'),
+                  },
+                ],
+                signOutLabel: t('settings.signOut'),
+                signOutDialog: {
+                  title: t('settings.signOutDialog.title'),
+                  message: t('settings.signOutDialog.message'),
+                  confirm: t('settings.signOutDialog.confirm'),
+                  cancel: t('settings.signOutDialog.cancel'),
+                },
+                onSignOut: signOut,
+              },
+            })}
         sections={buildGeneralSettingsSections(translate, {
           locale,
           setLocale,
