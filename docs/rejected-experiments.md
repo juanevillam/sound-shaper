@@ -69,9 +69,23 @@ working input is needed (Topper Explore). Details + the always-mounted
 
 ## SwiftUI `List` as the expo-ui-starter home catalogue — REJECTED 2026-08-01, design-level
 
-Not a bug: RNScreens cannot drive large-title collapse or the scroll-edge
-effect from a SwiftUI scroller, and 57.0.7 lacks `searchable` — a native
-`List` home would trade away the system large title, the transparent bar AND
-native search. The home stays an authored RN grouped list under real UIKit
-chrome, pixel-measured against the List showcase (see
+⚠️ **The reason recorded here was WRONG and has been disproven — 2026-08-06.**
+This entry used to read "RNScreens cannot drive large-title collapse or the
+scroll-edge effect from a SwiftUI scroller". It can. Probed on Topper's Home
+tab (iPhone 17 / iOS 26.5): a `List` inside a `Host`, standing in for the RN
+`FlashList`, took the large title's content inset, **collapsed "Topper" into
+the inline bar on scroll**, kept the scroll-edge blur — and additionally
+triggered iOS 26's tab-bar minimize, which the RN list never does. That makes
+three places the same false claim was written down (this entry, the Home
+layout, the Explore layout); the other two were already corrected as
+stale-bundle false negatives. **Do not re-cite it. Re-probe instead.**
+
+What still stands: 57.0.7 lacks `searchable`, so a native `List` home in the
+STARTER would trade away native search, and the starter's home is a catalogue
+whose whole point is breadth. Its home stays an authored RN grouped list under
+real UIKit chrome, pixel-measured against the List showcase (see
 `HomeShowcaseList.tsx` header and `docs/dev-workflow.md` → harness).
+
+The real cost of a native list, and the thing to weigh instead of the myth: one
+`Host` has to wrap the WHOLE list (per-row Hosts render blank — see
+`expo-ui-customizations.md`), so it gives up FlashList's virtualization.
