@@ -111,6 +111,7 @@ export default function Settings() {
         // Own card on iOS (Apple's grouping), still appended to About on
         // Android, which is frozen — see `SettingsLegalConfig`.
         legal={{
+          title: t('settings.legal.title'),
           // Terms first, then Privacy — the App Store's Apple Account sheet's
           // order, matched across all three apps.
           rows: [
