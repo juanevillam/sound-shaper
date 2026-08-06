@@ -21,10 +21,20 @@ bottom-anchored glass bar. Two durable lessons:
 2. **Glass needs content behind it to refract** — over Sound Shaper's pure
    black home it renders as nothing/black.
 
-Note the boundary: this killed **uniform `glassEffect` as chrome**. Apple's
-**progressive scroll-edge fade** on the welcome footer is a different effect and
-is NOT rejected — it is wanted and blocked on a missing API, tracked in
-[`pending-upstream.md`](pending-upstream.md).
+Note the boundary: this killed **uniform `glassEffect` as chrome**. Two
+neighbouring things are NOT rejected and have been shipped or are wanted:
+
+- Apple's **progressive scroll-edge fade** on the welcome footer — a different
+  effect, wanted, blocked on a missing API, tracked in
+  [`pending-upstream.md`](pending-upstream.md).
+- The **`.glass` / `.glassProminent` BUTTON STYLES** (`buttonStyle`, iOS 26,
+  present in `@expo/ui` 57.0.7). A stock control style is not a material used as
+  chrome: the system sizes it, tints it and gives it its own press and disabled
+  states. Shipped on Topper's iOS reaction row 2026-08-05 after all three stock
+  styles were screenshotted side by side in both appearances — see
+  `ReactionRow.ios.tsx`. The "nothing to refract over flat black" lesson still
+  applies to judging one: verify it on screen against the actual background
+  rather than assuming either way.
 
 ## Shared-element image morph in Topper (home thumbnail → detail) — INFEASIBLE, 2026-06
 
