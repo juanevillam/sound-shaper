@@ -18,6 +18,21 @@ export type AppColors = {
   sheetField: string;
   surfaceContainer: string;
   surfaceVariant: string;
+  /**
+   * Fill for a SHAPE rather than a content area — a placeholder tile, an empty
+   * media slot. Apple splits these deliberately: background colors (systemGray5
+   * and friends) are for large content areas, FILL colors for elements filled
+   * with color, and this is iOS's `systemFill`.
+   *
+   * It is TRANSLUCENT on purpose, which is the whole point. The opaque greys
+   * pair unevenly because the two ramps start in different places: systemGray5
+   * on light sits one step from the systemGray6 page and reads faint (measured
+   * separation 13.0), while on dark it sits against pure black and reads strong
+   * (44.1) — a 3.4x imbalance from one token. Apple compensates with a
+   * different alpha per appearance; at 0.20/0.36 the same fill measures 24.4
+   * and 43.4, so light nearly doubles while dark stays put.
+   */
+  fill: string;
   // Elevation ink — the color shadows are cast in. Black in BOTH modes on
   // every platform (M3's shadow/scrim token, and Apple's shadows are black
   // too); a light-mode/dark-mode split here would be wrong. Callers apply
@@ -76,6 +91,10 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     sheetField: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
     surfaceVariant: m.surfaceVariant,
+    // M3 has no translucent fill role; the tonal step is the honest analogue.
+    // Only iOS surfaces use `fill` today, so this is a sane value rather than a
+    // considered Material decision.
+    fill: m.surfaceVariant,
     // MaterialColors exposes no `shadow` field; M3's scrim shares the same
     // ink (black) so it stands in for the shadow token.
     shadow: m.scrim,
@@ -144,6 +163,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
+    fill: 'rgba(120, 120, 128, 0.2)', // systemFill, light
     shadow: '#000000',
     onSurface: '#000000',
     onSurfaceMuted: '#3C3C4399',
@@ -176,6 +196,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
+    fill: 'rgba(120, 120, 128, 0.36)', // systemFill, dark
     shadow: '#000000',
     onSurface: '#FFFFFF',
     onSurfaceMuted: '#EBEBF599',
@@ -211,6 +232,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
+    fill: '#E7E0EC',
     shadow: '#000000',
     onSurface: '#1D1B20',
     onSurfaceMuted: '#49454F',
@@ -243,6 +265,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
     surfaceVariant: '#49454F',
+    fill: '#49454F',
     shadow: '#000000',
     onSurface: '#E6E0E9',
     onSurfaceMuted: '#CAC4D0',

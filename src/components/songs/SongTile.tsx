@@ -102,7 +102,7 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
           // hole in it. Android keeps the dashed outline its frozen build
           // ships. Matched with Topper's rail, which made the same move.
           Platform.OS === 'ios'
-            ? { backgroundColor: colors.surfaceContainer }
+            ? { backgroundColor: colors.fill }
             : { borderColor: colors.border },
         ]}
       >
