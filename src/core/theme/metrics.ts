@@ -14,21 +14,34 @@ import { Platform } from 'react-native';
  * Apple convention it corresponds to, cited in its comment.
  *
  * It lives in the package because Sound Shaper and Topper each had their own
- * copy and they had already drifted: Topper was inseting content 16 where the
- * iOS convention (and its sibling) is 20, had no section-gap token at all, and
- * had settled on a 12pt tile gutter against the sibling's 14. Three constants
- * short, in a file whose whole purpose is to stop exactly that. Apps keep a
- * thin re-export at `src/styles/metrics.ts` so their import paths do not move.
+ * copy and they had already drifted: Topper had no section-gap token at all and
+ * had settled on a 12pt tile gutter against the sibling's 14. Apps keep a thin
+ * re-export at `src/styles/metrics.ts` so their import paths do not move.
+ *
+ * A caution the SCREEN_PADDING entry below earns: sharing a wrong number is
+ * worse than not sharing it. That constant carried an unmeasured claim for
+ * however long, and lifting it here spread it to a second app before anyone
+ * checked it against a real Apple surface. Measure, then share.
  */
 
 /**
- * Gutter from the screen edge to content. Material's grid margin is 16dp; iOS
- * insets grouped content further (Settings, Music, Files all sit at 20).
+ * Gutter from the screen edge to content.
+ *
+ * 16 on BOTH platforms, and no longer a platform split. It was iOS 20, on the
+ * unmeasured claim that "iOS insets grouped content further (Settings, Music,
+ * Files all sit at 20)". Measured on iPhone 17 / iOS 26.5 and it is 16, three
+ * ways: a real full-width SwiftUI `Form`'s grouped card sits 16.0 from the
+ * screen edge, the system large title's text box sits at ~16, and
+ * expo-ui-starter's band-scan of a real `List` recorded "card inset from screen
+ * edge 16.00pt (both sides, both modes)". At 20 our content sat 4pt inboard of
+ * UIKit's own margin, so anything we drew was visibly misaligned with the large
+ * title above it.
+ *
+ * Material's grid margin is 16 too, which is why this is now a plain constant:
+ * this module is for values that GENUINELY differ per platform, and a
+ * Platform.select here would imply a difference that is not there.
  */
-export const SCREEN_PADDING = Platform.select({
-  ios: 20,
-  default: 16,
-}) as number;
+export const SCREEN_PADDING = 16;
 
 /**
  * Gap between two adjacent artwork tiles — beside each other in a row, or
