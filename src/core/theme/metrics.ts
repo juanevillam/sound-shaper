@@ -22,13 +22,25 @@ import { Platform } from 'react-native';
  */
 
 /**
- * Gutter from the screen edge to content. Material's grid margin is 16dp; iOS
- * insets grouped content further (Settings, Music, Files all sit at 20).
+ * Gutter from the screen edge to content.
+ *
+ * 16 on BOTH platforms, and not a platform split. It was iOS 20 on the
+ * unmeasured claim that "iOS insets grouped content further (Settings, Music,
+ * Files all sit at 20)". Measured on iPhone 17 / iOS 26.5 and it is 16, three
+ * ways: a real full-width SwiftUI `Form`'s grouped card sits 16.0 from the
+ * screen edge, the system large title's text box sits at ~16, and
+ * expo-ui-starter's band-scan of a real `List` recorded "card inset from screen
+ * edge 16.00pt (both sides, both modes)".
+ *
+ * At 20 everything we drew sat 4pt inboard of UIKit's own margin, so on every
+ * screen with a large title the section header was visibly right of the app
+ * title above it.
+ *
+ * Material's grid margin is 16 as well, which is why this is a plain constant:
+ * this module is for values that GENUINELY differ per platform, and a
+ * Platform.select here would imply a difference that is not there.
  */
-export const SCREEN_PADDING = Platform.select({
-  ios: 20,
-  default: 16,
-}) as number;
+export const SCREEN_PADDING = 16;
 
 /**
  * Gap between two adjacent artwork tiles — beside each other in a row, or
