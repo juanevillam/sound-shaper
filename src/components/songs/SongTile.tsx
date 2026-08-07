@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Song } from '@/services/firebase/songs';
+import { OPTICAL_TEXT_INSET } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the song's embedded cover, or the
@@ -139,9 +140,18 @@ const styles = StyleSheet.create({
   // Pro's smaller x-height makes 14/12 read dwarfed next to a full-width cover
   // on iOS. Apple Music's own album grid captions sit at 15/13 — match those,
   // iOS only, so Android's Material scale is untouched.
+  // The optical nudge is iOS-only: the caption sits under the artwork's rounded
+  // bottom corners, which curve the edge inward right where the text starts, so
+  // flush to the true edge it reads as hanging past the cover. Android's layout
+  // is frozen and keeps the flush edge.
   name: {
     marginBottom: 1,
-    ...Platform.select({ ios: { fontSize: 15, lineHeight: 20 } }),
+    ...Platform.select({
+      ios: { fontSize: 15, lineHeight: 20, paddingLeft: OPTICAL_TEXT_INSET },
+    }),
   },
-  artist: Platform.select({ ios: { fontSize: 13, lineHeight: 18 } }) ?? {},
+  artist:
+    Platform.select({
+      ios: { fontSize: 13, lineHeight: 18, paddingLeft: OPTICAL_TEXT_INSET },
+    }) ?? {},
 });

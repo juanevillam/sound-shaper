@@ -75,3 +75,18 @@ export const ROW_MIN_HEIGHT = Platform.select({
  * only as the named anchor the two share.
  */
 export const ROW_INSET = 16;
+
+/**
+ * Nudge for TEXT that sits directly beside or beneath a heavily rounded shape.
+ *
+ * Artwork and cards in these apps carry large corner radii, and a corner curves
+ * the shape's edge inward exactly where a caption sits — under a tile, or
+ * between two cards. Text set flush to the shape's true edge then reads as
+ * hanging past it, even though the two are mathematically aligned. This is the
+ * optical correction, applied to the TEXT only; the shapes keep the real
+ * margin, so nothing structural moves.
+ *
+ * Small on purpose. It has to settle the illusion without visibly breaking the
+ * column the rest of the screen is aligned on.
+ */
+export const OPTICAL_TEXT_INSET = 3;

@@ -11,6 +11,7 @@ export {
   type AppThemeConfig,
 } from './theme/appTheme';
 export {
+  OPTICAL_TEXT_INSET,
   ROW_INSET,
   ROW_MIN_HEIGHT,
   SCREEN_PADDING,
