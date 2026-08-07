@@ -3,7 +3,7 @@
 // across its call sites — the same shim pattern the other shared primitives
 // use.
 export {
-  OPTICAL_TEXT_INSET,
+  opticalTextInset,
   ROW_INSET,
   ROW_MIN_HEIGHT,
   SCREEN_PADDING,

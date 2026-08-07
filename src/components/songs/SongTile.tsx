@@ -9,7 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Song } from '@/services/firebase/songs';
-import { OPTICAL_TEXT_INSET } from '@/styles/metrics';
+import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the song's embedded cover, or the
@@ -147,11 +147,19 @@ const styles = StyleSheet.create({
   name: {
     marginBottom: 1,
     ...Platform.select({
-      ios: { fontSize: 15, lineHeight: 20, paddingLeft: OPTICAL_TEXT_INSET },
+      ios: {
+        fontSize: 15,
+        lineHeight: 20,
+        paddingLeft: opticalTextInset(TILE_RADIUS),
+      },
     }),
   },
   artist:
     Platform.select({
-      ios: { fontSize: 13, lineHeight: 18, paddingLeft: OPTICAL_TEXT_INSET },
+      ios: {
+        fontSize: 13,
+        lineHeight: 18,
+        paddingLeft: opticalTextInset(TILE_RADIUS),
+      },
     }) ?? {},
 });
