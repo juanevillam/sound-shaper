@@ -16,8 +16,9 @@ import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 // music glyph) with the title + artist under it — YT Music's album-tile
 // language, one song per tile. Tap = play, long-press = edit.
 
-const ART_EMOJI_RATIO = 0.38;
-const EMOJI_FALLBACK_SIZE = 56;
+// The tile measures its own art box, so this only covers the very first frame
+// before `onLayout` reports — roughly a tile's width at the usual grid.
+const ART_FALLBACK_SIZE = 148;
 
 type SongTileProps = {
   song: Song;
@@ -52,11 +53,8 @@ export function SongTile({
         <SongArt
           artUrl={song.artUrl || undefined}
           displayWidth={artSize || undefined}
-          emojiSize={
-            artSize
-              ? Math.round(artSize * ART_EMOJI_RATIO)
-              : EMOJI_FALLBACK_SIZE
-          }
+          size={artSize || ART_FALLBACK_SIZE}
+          title={song.name}
           style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
         />
         {isCurrent ? (
