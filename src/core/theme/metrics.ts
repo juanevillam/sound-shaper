@@ -60,6 +60,18 @@ export const TILE_GAP = Platform.select({ ios: 14, default: 16 }) as number;
 export const SECTION_GAP = Platform.select({ ios: 28, default: 24 }) as number;
 
 /**
+ * Vertical gap between two stacked full-width CARDS — a feed of them, or one
+ * person's group inside a feed.
+ *
+ * NOT `TILE_GAP`: that spaces artwork sitting side by side, where the covers
+ * carry the rhythm and the platforms genuinely differ. Cards are separated by
+ * their own edges, and both platforms use the same 12 — this was declared
+ * identically in each app's home route, so it is one value that had grown two
+ * definitions plus a third hard-coded copy in the skeletons.
+ */
+export const CARD_GAP = 12;
+
+/**
  * Minimum height of a tappable row. The platform touch-target minimums differ
  * by design: Apple specifies 44pt, Material 48dp.
  */
