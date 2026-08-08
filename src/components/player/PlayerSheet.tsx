@@ -1295,7 +1295,8 @@ export function PlayerSheet() {
                 >
                   <SongArt
                     artUrl={song.artUrl || undefined}
-                    emojiSize={88}
+                    size={artFull}
+                    title={song.name}
                     fadeMs={0}
                     style={styles.artMedia}
                   />
@@ -1319,7 +1320,8 @@ export function PlayerSheet() {
           >
             <SongArt
               artUrl={current.artUrl || undefined}
-              emojiSize={88}
+              size={artFull}
+              title={current.name}
               // The skip swipe fades this element itself; an inner dissolve on
               // top of it just delays the new cover by its own duration.
               fadeMs={0}
@@ -1420,7 +1422,8 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         <View style={styles.idleArt}>
           <SongArt
             artUrl={first?.artUrl || undefined}
-            emojiSize={22}
+            size={MINI_ART_SIZE}
+            title={first?.name}
             // Same corner the loaded banner's thumb renders at.
             style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
           />
