@@ -36,6 +36,7 @@ export {
   HeaderGlyphGroupIos,
   type HeaderGlyphButtonProps,
 } from './HeaderGlyphButton';
+export { InitialArt } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
 export {
   WelcomeScreen,
