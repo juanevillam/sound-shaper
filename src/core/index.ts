@@ -11,6 +11,7 @@ export {
   type AppThemeConfig,
 } from './theme/appTheme';
 export {
+  CARD_GAP,
   opticalTextInset,
   ROW_INSET,
   ROW_MIN_HEIGHT,
