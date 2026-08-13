@@ -8,11 +8,11 @@ import {
   GoogleGLogo,
 } from './GoogleLogo';
 import { type GoogleSignInButtonProps } from './GoogleSignInButton';
+import { BRAND_PRESSED_OPACITY } from './SquashPressable';
 import { layout } from './tokens';
 
 const BUTTON_HEIGHT = layout.authButtonHeight;
 const LOGO_SIZE = 20;
-const PRESSED_OPACITY = 0.7;
 
 const styles = StyleSheet.create({
   button: {
@@ -70,7 +70,7 @@ export const GoogleSignInButton = ({
           opacity: disabled
             ? GOOGLE_DISABLED_OPACITY
             : pressed
-              ? PRESSED_OPACITY
+              ? BRAND_PRESSED_OPACITY
               : 1,
         },
       ]}
