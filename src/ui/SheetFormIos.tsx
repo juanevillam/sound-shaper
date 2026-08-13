@@ -242,6 +242,14 @@ type ActionButtonProps = {
    * `bordered` is the tinted tonal one (a secondary or in-sheet action).
    */
   variant?: 'bordered' | 'prominent';
+  /**
+   * SwiftUI `controlSize`. `large` (default) is the standalone-CTA size —
+   * sheets, empty states, full-width actions. `regular` and `small` are for
+   * an action living inside a tile or row, where the content leads and the
+   * button follows: `small` beside list-row-scale art (the App Store's GET),
+   * `regular` beside larger artwork that would dwarf the small pill.
+   */
+  size?: 'small' | 'regular' | 'large';
   /** Positioning only — the button's own look belongs to the system. */
   style?: StyleProp<ViewStyle>;
 };
@@ -261,6 +269,7 @@ export function ActionButtonIos({
   onPress,
   disabled = false,
   variant = 'bordered',
+  size = 'large',
   style,
 }: ActionButtonProps) {
   const { colors } = useAppTheme();
@@ -283,7 +292,7 @@ export function ActionButtonIos({
           buttonStyle(
             variant === 'prominent' ? 'borderedProminent' : 'bordered',
           ),
-          controlSize('large'),
+          controlSize(size),
           tint(colors.primary),
           ...(disabled ? [disabledModifier(true)] : []),
         ]}
