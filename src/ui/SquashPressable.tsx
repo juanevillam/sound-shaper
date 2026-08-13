@@ -37,6 +37,30 @@ export const PRESS_SCALE = 0.97;
 export const PRESS_SPRING = { damping: 22, mass: 0.4, stiffness: 360 };
 
 /**
+ * THE FADE, the other half of the press language: what an inline row or a text
+ * action does when pressed, where a squash would be wrong.
+ *
+ * Tiles and cards SQUASH; rows and inline text actions FADE. Both are this
+ * package's to define — they were not, and it showed: `PRESSED_OPACITY` was
+ * declared in SEVEN files across the app and the package, at 0.5, 0.6 and 0.7,
+ * so the same gesture on two rows of the same screen dimmed by different
+ * amounts. Nobody chose that.
+ *
+ * 0.5 is UIKit's own: a highlighted `UIButton` drops its title to roughly half
+ * alpha, and it is what the two most-shared components already used.
+ */
+export const PRESSED_OPACITY = 0.5;
+
+/**
+ * The gentler dim a LARGE FILLED brand button takes — the sign-in buttons.
+ * Deliberately not the value above: half alpha across a big solid surface
+ * reads far heavier than the same fraction on a line of text, and
+ * `GoogleSignInButton` is hand-built to Google's brand guidelines, which
+ * govern how it may be altered.
+ */
+export const BRAND_PRESSED_OPACITY = 0.7;
+
+/**
  * A lone 24pt glyph barely registers the card squash — 3% of 48pt is under a
  * pixel and a half. Icon buttons press deeper and dim, which is what makes the
  * feedback visible at that size on both platforms.

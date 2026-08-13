@@ -2,10 +2,11 @@ import React from 'react';
 
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 
+import { BRAND_PRESSED_OPACITY } from './SquashPressable';
 import { layout } from './tokens';
 
 const BUTTON_HEIGHT = layout.authButtonHeight;
-const PRESSED_OPACITY = 0.7;
+
 const DISABLED_OPACITY = 0.38;
 // U+F8FF — the Apple logo glyph, shipped by every iOS system font. The
 // button is only ever rendered on iOS (Sign in with Apple is App Store
@@ -75,7 +76,11 @@ export const AppleSignInButton = ({
         styles.button,
         {
           backgroundColor: spec.fill,
-          opacity: disabled ? DISABLED_OPACITY : pressed ? PRESSED_OPACITY : 1,
+          opacity: disabled
+            ? DISABLED_OPACITY
+            : pressed
+              ? BRAND_PRESSED_OPACITY
+              : 1,
         },
       ]}
     >
