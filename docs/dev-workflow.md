@@ -4,6 +4,10 @@ Institutional knowledge that used to live only in one Claude account's memory.
 Any agent (or human) working here hits these; read before the first commit and
 before trusting any on-device verification.
 
+**Running the apps on iOS** — simulator and a real iPhone, several apps at
+once, provisioning, and every failure mode by symptom — has its own runbook:
+[`ios-dev-workflow.md`](ios-dev-workflow.md).
+
 ## Git
 
 - **Commit directly on `main`.** No feature branches — solo-author repo,

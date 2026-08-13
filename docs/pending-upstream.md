@@ -84,7 +84,65 @@ BESIDE the view rather than inside its actions slot. It looks right and the
 button is a real SwiftUI control; it is simply not slotted in, so the view
 cannot own its spacing or its layout at other Dynamic Type sizes.
 
+**What it costs today, measured.** Sitting beside the view instead of inside it
+means the CTA's gap is the view's own trailing inset PLUS whatever the `VStack`
+adds — the two stack rather than one replacing the other. Band-scanned on
+iPhone 17 / iOS 26.5, description-ink to button-edge: **37.0pt with the VStack
+at 0**, which is the floor we cannot reach below, against the view's own
+largest internal gap of **23.7pt** (icon→title; title→description is 7.7). The
+`VStack` spacing is therefore now **0** — anything above it read as detached,
+and at the 20 it shipped with the gap was 57.0pt, 2.4× the widest rhythm Apple
+uses inside the view. Juan spotted that by eye before it was measured.
+
 **What unlocks it.** `ContentUnavailableViewProps` gaining `children` or an
-`actions` prop. On the day it lands: move the button inside and delete the
-wrapping `VStack` (and `CTA_SPACING`) from `EmptyState.ios.tsx`. Small change,
-one file.
+`actions` prop. On the day it lands: move the button inside, delete the
+wrapping `VStack` (and `CTA_SPACING`) from `EmptyState.ios.tsx`, and the gap
+becomes Apple's rather than a floor we are stuck above. Small change, one
+file.
+
+---
+
+## Explore's SEARCH lists scrolling under the glass bar — blocked on `@expo/ui`
+
+**What we want.** In Explore's search states — Recently Searched and the results
+list — content should pass UNDER the search field and dissolve into it, the way
+Contacts, Music and the App Store all behave, and the way Explore's own BROWSE
+grid already behaves one keystroke away. Juan flagged it on 2026-08-12: the
+header reads as a **solid slab** in search mode and as liquid glass in browse
+mode, on the same screen.
+
+**Why it happens.** Browse is a real RN scroll view, so react-native-screens
+gives it `contentInsetAdjustmentBehavior="automatic"` under
+`headerTransparent: true` — the content extends to the top of the screen and is
+only INSET, so it scrolls under the bar and the glass has something to refract.
+The search lists are a SwiftUI `List` inside a `Host`, and **`Host` applies the
+safe area as FRAME padding**, not as a content inset: the list's frame starts
+below the bar, so nothing can ever pass under it. The bar then has nothing but
+flat page background to sample, which is exactly what a solid slab looks like.
+Sim-verified 2026-08-12 on iPhone 17 / iOS 26.5, browse vs search side by side.
+
+**What was tried, and what it measured.** `ignoreSafeArea="all"` on the `Host`
+gives the list the full frame, and the glass immediately becomes real — the
+section header and a Follow pill visibly ghost through the bar. It is also
+unusable on its own: the safe area is now zero, so the list's RESTING position
+puts its first row under the status bar. There is no way to put the inset back:
+the whole point is to inset the CONTENT while the frame stays full-bleed, and
+`padding` on the `List` moves the frame (verified — the resting position moves
+but the clip moves with it). Reverted.
+
+**What unlocks it.** `@expo/ui` exposing **`safeAreaPadding`** or
+**`contentMargins`** as SwiftUI modifiers — grep
+`node_modules/@expo/ui/build/swift-ui/modifiers/index.d.ts`; neither exists on
+**57.0.7** (`scrollEdgeEffectStyle` and `safeAreaInset` are absent too, which is
+the same gap the welcome-footer entry above is blocked on — one API landing
+likely unblocks both). On the day it lands: `ignoreSafeArea="all"` on both
+Hosts, then `safeAreaPadding`/`contentMargins` top = the header height, and
+`listTopInset` in `ListSectionIos.tsx` collapses into it.
+
+**Do NOT work around it** by hardcoding a header height into a spacer row.
+expo-router does not publicly export `useHeaderHeight` (it is vendored at
+`expo-router/build/react-navigation/elements`, a private path), so the number
+would have to be a guessed constant per focus state — and the Explore layout
+already carries a comment saying the screen takes its top inset from
+`contentInsetAdjustmentBehavior`, **never** from a hardcoded header height.
+Until the API exists the flat bar stays; it is correct in every other respect.
