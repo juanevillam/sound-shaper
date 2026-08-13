@@ -89,3 +89,33 @@ real UIKit chrome, pixel-measured against the List showcase (see
 The real cost of a native list, and the thing to weigh instead of the myth: one
 `Host` has to wrap the WHOLE list (per-row Hosts render blank — see
 `expo-ui-customizations.md`), so it gives up FlashList's virtualization.
+
+## Explore search bar hides while scrolling (`hideWhenScrolling: true`) — REJECTED 2026-08-08, taste + mount bug
+
+The ask: while browsing the grid, the resting search field is chrome in front
+of content — tuck it away on scroll (and ideally have it rest at its focused
+~76pt position). Built and sim-verified on iPhone 17 / iOS 26.5; Juan rejected
+the compress/hide motion outright, and it carries a real defect besides.
+
+What the native option space actually is, measured:
+
+- **The field can NEVER ride at its focused position while unfocused.** 76pt
+  is the nav bar's own row; the search field is a `navigationItem` that only
+  takes that row during search presentation (`hideNavigationBar: true`). The
+  whole space is hidden-or-resting — there is no third state. Full width + top
+  row remains a layout UIKit does not offer (leading slot is always reserved).
+- `hideWhenScrolling: true` (UIKit's `hidesSearchBarWhenScrolling`, the
+  Settings/Mail behaviour) DID work as such: scroll down → field tucks, no
+  cancel X (search never activates), iOS 26 floats its own corner search glyph
+  as re-entry; pull down → field returns to the aligned rest geometry.
+- **The bug that would have shipped:** on this RNS/iOS 26 stack the field also
+  MOUNTS tucked, once per cold launch — first visit to the tab has no visible
+  search field until one manual pull-down (state then survives tab
+  round-trips). No programmatic reveal exists: UIKit gates the reveal on a
+  user drag. Tried and failed: `scrollToOffset(0)` (true no-op at rest), an
+  animated over-scroll to −120 (clamped, ignored for reveal), and
+  `hideNavigationBar: false` (not a factor — same mount state either way).
+
+If this is revisited: fix the mount handshake in react-native-screens first
+(or find a shipped RNS release that has), then flip the one flag back. The
+tuck behaviour itself needed no other code.
