@@ -1,4 +1,5 @@
 import {
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -28,8 +29,16 @@ import { useAppTheme } from '@portfolio/core';
 const INITIAL_RATIO = 0.42;
 
 type InitialArtProps = {
-  /** Defaults to `surfaceVariant`; pass a different ramp step where the box
-   *  sits on a surface that role would disappear into. */
+  /** Defaults to the platform's EMPTY-MEDIA material — on iOS
+   *  `surfaceContainer` (the systemGray5 pair), the same material the create
+   *  tiles use, so every art-less box and every create affordance read as one
+   *  thing; on Android the frozen `surfaceVariant`.
+   *
+   *  SOLID on purpose, not the translucent `fill` this briefly was: over a
+   *  dark page background the fill composites to #1D1D1F, one hex step from
+   *  the card surface (#1C1C1E) — a rail of art-less tiles read as a wall of
+   *  CARDS. systemGray5 separates from both the background and the cards in
+   *  both modes (#E5E5EA vs white / #2C2C2E vs #1C1C1E, measured). */
   backgroundColor?: string;
   /** Side of the box in dp. The letter scales from this, so it must be the
    *  real rendered size, not a font size. */
@@ -56,7 +65,14 @@ export function InitialArt({
     <View
       style={[
         styles.box,
-        { backgroundColor: backgroundColor ?? colors.surfaceVariant },
+        {
+          backgroundColor:
+            backgroundColor ??
+            Platform.select({
+              ios: colors.surfaceContainer,
+              default: colors.surfaceVariant,
+            }),
+        },
         style,
       ]}
     >

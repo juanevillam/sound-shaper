@@ -101,7 +101,12 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
           // hole in it. Android keeps the dashed outline its frozen build
           // ships. Matched with Topper's rail, which made the same move.
           Platform.OS === 'ios'
-            ? { backgroundColor: colors.fill }
+            ? // surfaceContainer, not `fill` — matched with Topper's create
+              // tile (2026-08-08): the fill composites within one hex step of
+              // the dark card surface, so filled-but-empty tiles read as
+              // cards. Both apps anchor the empty-media material on solid
+              // systemGray5.
+              { backgroundColor: colors.surfaceContainer }
             : { borderColor: colors.border },
         ]}
       >
