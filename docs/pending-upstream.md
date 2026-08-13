@@ -102,7 +102,56 @@ file.
 
 ---
 
+## A grouped list's empty section-header slot — blocked on `@expo/ui`
+
+**What we want.** The See All people sheet (`(app)/people.tsx`) has no section
+header — the sheet's own bar carries its title — but an inset-grouped `List`
+reserves room above its first section for one anyway. Measured against the
+Settings sheet from identical anchors (iPhone 17 / iOS 26.5): title ink 93.33
+there / 93.67 here, first content **146.0** there (its "General" header) against
+**167.0** here (the card). Settings spends that band on a word; ours is empty.
+
+**Why it isn't closed.** No API reaches it on 57, all measured:
+
+| attempt                                       | result                                    |
+| --------------------------------------------- | ----------------------------------------- |
+| `listSectionMargins({edges:'top', length:0})` | no-op, card unmoved at 167.0              |
+| `listSectionSpacing(0)` and `('compact')`     | no-op, 167.0                              |
+| `Section` with a zero-height header view      | 160.0 — SwiftUI clamps the minimum        |
+| `padding({top: -21})`                         | lands 146.0 — and was REVERTED, see below |
+
+**Why the negative padding was pulled**, since it "worked": `padding` moves the
+FRAME, not the content. The reserved slot stays in the scroll range, so the list
+gains 21pt of empty travel above its first row — the scroll indicator starts
+before the content and you can drag through nothing. Juan spotted it within a
+day. A visible band beats a scroller that lies about what it holds.
+
+**What SHIPPED instead**, since the band was still too much by eye: `marginTop:
+-EMPTY_HEADER_SLOT` on the RN wrapper AROUND the Host. Same 146.0, and no
+phantom range — moving the hosting VIEW makes UIKit recompute its content inset
+with it, where moving the SwiftUI frame inside it did not. Verified stable at
+XXXL Dynamic Type (the empty slot has no text to grow by, so it stays 21 while
+Settings' real header grows). It is still a compensation, not a removal —
+`contentMargins` is what deletes the slot.
+
+**What unlocks it.** `contentMargins` — the same modifier the search-list entry
+below is waiting on, which insets CONTENT while leaving the frame alone. Grep
+`node_modules/@expo/ui/build/swift-ui/modifiers/index.d.ts`; absent on 57.0.7.
+On the day it lands: `contentMargins` top = 0 on that List, and
+`SKELETON_TOP_MATCH` in the same file drops by 21.
+
+---
+
 ## Explore's SEARCH lists scrolling under the glass bar — blocked on `@expo/ui`
+
+**It is the SEARCH chrome, not the `Host`.** Worth knowing before you generalise
+this entry. While the See All people list was built as a pushed screen (it
+shipped as a form sheet instead — `(app)/people.tsx`), it ran the same SwiftUI
+`List` in the same `Host` under a plain nav bar and had **none** of these
+symptoms: rows scrolled under the bar, the glass refracted them, and a **large
+title collapsed** normally. Sim-verified 2026-08-12, iPhone 17 / iOS 26.5. So
+this entry is specifically about a `Host` under `headerSearchBarOptions`; don't
+cite it to justify an inline title or a compensating inset anywhere else.
 
 **What we want.** In Explore's search states — Recently Searched and the results
 list — content should pass UNDER the search field and dissolve into it, the way
