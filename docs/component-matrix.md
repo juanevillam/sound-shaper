@@ -135,20 +135,32 @@ where they stayed RN — the reason, so nobody re-litigates it from scratch.
 | Topper blocked-users "Unblock"                       | RN tonal pill                                                   | `ActionButtonIos`                                                                                                                          |
 | Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                           | `Form` rows + native `SwipeActions` delete                                                                                                 |
 | `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                     | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                      |
+| Explore "See All" people (`(app)/people.tsx`)        | did not exist — the shelf's action was unwired                  | form sheet over an `insetGrouped` `List` of `PersonListRowIos`, the same native row the search results use                                 |
 | Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                         | one `Host`: SwiftUI `TextField` (`roundedBorder`) + `Button`                                                                               |
 | Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`  | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row |
 
 ### Staying RN, with the reason
 
 **`@expo/ui`'s SwiftUI `Image` renders SF Symbols and asset-catalog names
-only — there is no remote-URL image.** Any list row showing an avatar or cover
-art therefore cannot become a native `List` row without bridging one
-`RNHostView` per row, which is the sizing blowup documented in
-`expo-ui-customizations.md`. That rules out, for now:
+only — there is no remote-URL image.** A list row showing an avatar or cover art
+therefore needs one `RNHostView` bridged per row.
 
-- `follow-list` rows, `CommentRow.ios`, `ProfileHeader.ios` (avatars)
+**THAT IS NO LONGER A BLOCKER FOR PERSON ROWS — it is shipped.**
+`PersonListRowIos` is a native `List` row whose only hosted part is the avatar,
+and it runs in Explore's search results and in the See All sheet, the latter at
+`PEOPLE_PAGE_SIZE` (50) rows with no measured cost. The sizing blowup in
+`expo-ui-customizations.md` is about an `RNHostView` with no intrinsic size; give
+the hosted child a concrete one (the avatar is handed a `size`) and it behaves.
 
-Revisit if `@expo/ui` gains an async/remote image.
+So the remaining avatar rows are REFACTOR CANDIDATES, not blocked work — and the
+refactor is "adopt `PersonListRowIos`", not "write another row":
+
+- `follow-list` rows (RN `Pressable`s today — the last hand-built people list)
+- `CommentRow.ios`, `ProfileHeader.ios`
+
+The genuine remaining limit is a row whose artwork CANNOT be given a concrete
+size up front, and a `Host` per cell across a large grid (see `emoji-picker`
+below, and the browse grid's rejection note in Explore's route).
 
 Other standing exceptions:
 
@@ -162,13 +174,18 @@ Other standing exceptions:
 
 ### Still to do
 
-- **`CommentRow.ios` → a native `List` row with `swipeActions`.** BLOCKED, not
-  skipped: `swipeActions` is a List-row modifier, so the row has to live inside
-  a native `List` — and the row carries an avatar, which is the remote-`Image`
-  exception above. It keeps its long-press + `•••` `ActionSheetIOS` menu until
-  `@expo/ui` gains a remote image. (The composer beside it IS converted.)
-- Revisit the avatar-bearing rows (`follow-list`, `ProfileHeader.ios`) at the
-  same time, for the same reason.
+- **`CommentRow.ios` → a native `List` row with `swipeActions`.** No longer
+  blocked by the avatar — `PersonListRowIos` proves a hosted avatar inside a
+  native `List` row (see above). What is left is ordinary work: move the row
+  into a `List`, take `swipeActions`, and drop the long-press + `•••`
+  `ActionSheetIOS` menu for the native gesture. (The composer beside it IS
+  converted.)
+- **`follow-list` → `PersonListRowIos`.** It is the same surface as the See All
+  sheet — a list of people in a form sheet — still drawing RN `Pressable` rows
+  with a hand-typeset heading instead of the sheet's own bar. Standardising it
+  is the single highest-value item left in this section.
+- `ProfileHeader.ios` for the same reason, whenever the profile screen is
+  refactored.
 
 ### Gotchas found doing this
 

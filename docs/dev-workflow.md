@@ -85,6 +85,12 @@ dismisses the whole thing.
 - **Reload fully before believing either result.** A layout-file change here
   does NOT hot-reload; the first two runs of this test were measuring a stale
   bundle (see the Metro section above).
+- **A `Host` mounted while the sheet is still presenting keeps the animating
+  safe area** — for the life of the sheet, and only reproducibly on the SECOND
+  open (the first is slow enough that the data lands after the animation). Gate
+  it on the navigator's `transitionEnd`; `InteractionManager` resolves
+  immediately against a native animation. Full write-up in
+  [`expo-ui-customizations.md`](expo-ui-customizations.md) under `Host`.
 - Consequence: a sheet is only safe as a LEAF. If the surface pushes children,
   either give it a nested `Stack` under its own route group, or present the
   children as stacked sheets of their own. expo-ui-starter's Settings sheet
@@ -115,7 +121,13 @@ Trophies sheet with its progress summary).
   load pinned to Metro → `exp+<slug>://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081`.
 - **Appearance switch on the sim:** `xcrun simctl ui booted appearance
 dark|light` — verify BOTH modes; light-mode-only bugs have shipped-almost
-  twice.
+  twice. Dark-only ones too: a sheet's row fill and the avatar disc collided at
+  the same `#2C2C2E` in dark while light looked perfect.
+- **Dynamic Type on the sim:** `xcrun simctl ui booted content_size
+extra-extra-extra-large` (back with `large`). Use it on any constant that
+  compensates for a system metric — it is how the See All sheet's 21pt
+  header-slot pull-back was shown to be safe: an EMPTY slot has no text to grow
+  by, so it holds while Settings' real header grows 11.67pt.
 - **Android undo-window hazard:** never run slow inspection (uiautomator
   dump) inside a snackbar's undo window — it once committed a real delete.
 
