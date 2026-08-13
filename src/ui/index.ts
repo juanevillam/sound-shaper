@@ -55,13 +55,16 @@ export {
 } from './snackbar';
 export { SnackbarProvider } from './SnackbarProvider';
 export {
+  BRAND_PRESSED_OPACITY,
   ICON_PRESS_OPACITY,
   ICON_PRESS_SCALE,
   PRESS_SCALE,
   PRESS_SPRING,
+  PRESSED_OPACITY,
   SquashPressable,
   usePressSquash,
 } from './SquashPressable';
+export { StateLab, type StateLabEntry, type StateLabGroup } from './StateLab';
 export { SwiftUIHost } from './SwiftUIHost';
 export { useNavigationTheme } from './useNavigationTheme';
 export {
