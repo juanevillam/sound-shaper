@@ -90,6 +90,50 @@ The real cost of a native list, and the thing to weigh instead of the myth: one
 `Host` has to wrap the WHOLE list (per-row Hosts render blank — see
 `expo-ui-customizations.md`), so it gives up FlashList's virtualization.
 
+## Explore's "See All" people as a PUSHED SCREEN — REJECTED 2026-08-12, on feel
+
+Built first, worked, and thrown away — so don't rebuild it from Apple's shelf
+grammar alone, which is what argued for it: a "See All" on a shelf header pushes
+in the App Store, Music, TV and Photos.
+
+Juan's call, and the reasoning is worth keeping: the overflow behind that header
+is a GLANCE at who else is there, not a destination with its own place in the
+tab's history. A sheet comes up over Explore, you follow a few people, you flick
+it away and the shelf is still underneath; a screen makes the same list a place
+you have to leave. It ships as `(app)/people.tsx`, a full-height form sheet.
+
+**What the pushed version proved, and is worth keeping even though it went:**
+a SwiftUI `List` in a `Host` under a PLAIN nav bar scrolls under the bar, the
+glass refracts it, and a `headerLargeTitle` collapses normally — none of the
+symptoms `pending-upstream.md` records for the same Host under Explore's SEARCH
+chrome. That entry is specifically about `headerSearchBarOptions`; do not cite it
+to justify an inline title or a compensating inset anywhere else.
+
+**The cost the sheet accepts:** RNScreens gives no back button on a `formSheet`
+root, so opening a profile from a row dismisses the sheet and pushes from
+underneath (the move `follow-list` already makes). Coming back means reopening
+See All. Accepted because the primary action there is the inline Follow, which
+never leaves the sheet.
+
+## A CARD-LESS list inside the See All sheet — REJECTED 2026-08-13, twice
+
+The instinct is right and worth stating: the sheet IS already a container, so an
+`insetGrouped` card inside it is a box in a box, and Apple's own in-sheet lists
+(Contacts picker, Add to Playlist) are plain. Built as `listStyle('inset')`.
+Rejected in both forms it can take:
+
+- **rows on the sheet's own colour** — in DARK that is the same value as the
+  sheet (`#1C1C1E` both), so the list had no surface at all; it read as text and
+  hairlines floating on nothing. Light hid this completely (white rows on a
+  `#F2F2F7` sheet), which is why it survived a first review.
+- **rows on the elevated cell colour** (`sheetField`, `#2C2C2E`) — now visible,
+  but a full-bleed slab in a second grey with no edges: neither one surface nor
+  two.
+
+There is no coherent middle. Either the rows ARE the sheet, or they are cells —
+and cells on iOS have corners and margins. It ships as `insetGrouped`, matching
+Settings' sections and Explore's own search results.
+
 ## Explore search bar hides while scrolling (`hideWhenScrolling: true`) — REJECTED 2026-08-08, taste + mount bug
 
 The ask: while browsing the grid, the resting search field is chrome in front
