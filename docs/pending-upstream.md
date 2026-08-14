@@ -195,3 +195,49 @@ would have to be a guessed constant per focus state — and the Explore layout
 already carries a comment saying the screen takes its top inset from
 `contentInsetAdjustmentBehavior`, **never** from a hardcoded header height.
 Until the API exists the flat bar stays; it is correct in every other respect.
+
+---
+
+## Two SEPARATE bar-button capsules — blocked on `react-native-screens`
+
+**What we want.** Profile's two trailing bar glyphs (`plus` → New Top,
+`person.crop.circle` → Account) rendered as **two independent Liquid Glass
+capsules**, which is what Apple does with an unrelated pair. Photos is the
+reference and was band-scanned on iPhone 17 / iOS 26.5: its `⋯` and account
+buttons are two **43.0 × 43.0** circles whose ink centres sit **59.67pt** apart,
+i.e. 16.67pt of clear background between the capsule edges. Juan picked this
+arrangement on 2026-08-13 after noticing WhatsApp separates its own bar buttons.
+
+**Why it isn't built.** `headerRight` is ONE bar button item. RNScreens takes
+the view it returns and hands UIKit a single custom-view `UIBarButtonItem`, so
+iOS 26 draws exactly one glass capsule around whatever is inside — the count of
+Hosts in there is irrelevant. Verified on device: two `SwiftUIHost`s side by
+side still render one 110.67 × 44.0 pill.
+
+Note this **contradicts** what `HeaderGlyphButton.ios.tsx` used to claim ("two
+separate hosts render two capsules"). That line was never measured; it is wrong.
+
+**What unlocks it.** RNScreens exposing **multiple right bar button items** —
+UIKit's own `navigationItem.rightBarButtonItems` (plural). Grep
+`node_modules/react-native-screens/ios` for `rightBarButtonItems`; only the
+singular `rightBarButtonItem` is set today, and expo-router surfaces no plural
+prop either. On the day it lands: `HeaderGlyphGroupIos` returns one item per
+glyph and the row's `CAPSULE_GAP` becomes UIKit's own spacing.
+
+**What we did instead, and it is not a fake.** The _reachability_ half of the
+problem was the real defect and it is fixed independently of the container: each
+glyph now carries a 43pt `frame` + `contentShape`.
+
+The SPACING, though, has to come from a merged pill and not from this entry's
+numbers — copying Photos' 59.67 centre-to-centre into a single pill puts 16.67pt
+of pill where Apple has page background, and it reads as a hole (caught on sight
+2026-08-13). Apple's merged-pill invariant is the ink-EDGE gap: Calendar's three
+grouped glyphs sit at a constant 35.66 / 35.33 while their centre distances drift
+(57.83 / 54.33) with each glyph's width. Ours is measured at 36.0. If this entry
+ever unblocks and the pair splits into two capsules, the gap goes back UP to
+16.67 between capsule edges — the two numbers are not interchangeable.
+
+**Do NOT fake the split** by drawing our own `glassEffect` capsules inside the
+system one. `glassEffect` exists on 57.0.7 and would render glass nested in
+glass, and hand-drawing native bar chrome is the specific mistake `AGENTS.md`
+records for the iOS edit sheets. One honest pill beats two imitation capsules.
