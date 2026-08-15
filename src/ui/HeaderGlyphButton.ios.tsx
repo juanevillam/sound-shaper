@@ -177,6 +177,13 @@ export function HeaderGlyphGroupIos({
         <SwiftUIHost
           key={systemName}
           matchContents
+          /**
+           * A bar glyph must NOT observe the safe area: a `Host` applies it as
+           * FRAME padding, and the KEYBOARD grows it — so with a keyboard up,
+           * the glyph slid upward and clipped against the bar capsule (a
+           * half-rendered ✕ read as ⌃; caught on device in the editors).
+           */
+          ignoreSafeArea="all"
           style={expand ? styles.slot : undefined}
         >
           <Image

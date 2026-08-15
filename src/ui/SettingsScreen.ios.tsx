@@ -51,6 +51,7 @@ export const SettingsScreen = ({
   sectionsTitle,
   about,
   legal,
+  devToggles,
   colors,
   colorScheme,
 }: SettingsScreenProps) => (
@@ -82,6 +83,37 @@ export const SettingsScreen = ({
 
         {account ? (
           <SettingsAccountSection {...account} colors={colors} />
+        ) : null}
+
+        {/* DEV-ONLY — the host passes this under `__DEV__` alone, so a release
+            build never renders the section.
+
+            MENU-PICKER ROWS (On / Off), not switches, after both switch forms
+            failed the tap test on 57:
+              @expo/ui `Toggle`      ignores TAPS outright (knob drag works —
+                                     the library bug from the expo-ui-starter
+                                     verification; re-check per bump);
+              RN `Switch` in a       renders (a real UISwitch) but the Form
+              `LabeledContent` row   row never delivers touches to the hosted
+                                     view — verified on the simulator.
+            The menu picker is the one control this Form has already PROVEN
+            tappable (Language / Appearance), and it keeps the section in the
+            sheet's own idiom. */}
+        {devToggles ? (
+          <Section title={devToggles.title}>
+            {devToggles.rows.map(row => (
+              <Picker
+                key={row.label}
+                label={row.label}
+                selection={row.value ? 'on' : 'off'}
+                onSelectionChange={value => row.onValueChange(value === 'on')}
+                modifiers={[pickerStyle('menu')]}
+              >
+                <Text modifiers={[tag('on')]}>On</Text>
+                <Text modifiers={[tag('off')]}>Off</Text>
+              </Picker>
+            ))}
+          </Section>
         ) : null}
 
         {about ? (

@@ -30,6 +30,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SnackbarContext, type SnackbarAction } from './snackbar';
+import { PRESSED_OPACITY } from './SquashPressable';
 import { SwiftUIHost } from './SwiftUIHost';
 
 type SnackbarProviderProps = {
@@ -324,14 +325,28 @@ const SnackbarProvider = ({
                 >
                   {message}
                 </RNText>
-                <Pressable
-                  hitSlop={8}
-                  onPress={action ? onActionPress : onDismissPress}
-                >
-                  <RNText style={[styles.action, { color: colors.primary }]}>
-                    {action ? action.label : 'OK'}
-                  </RNText>
-                </Pressable>
+                {/* iOS: the trailing control exists ONLY when there is a real
+                    action (Undo). A toast never carries a DISMISS button on
+                    iOS — auto-dismiss and swipe-down are the dismissal — so
+                    the old always-there "OK" was Material's always-has-an-
+                    action rule leaking across the split, and a hardcoded
+                    untranslated string besides. Android keeps its constant
+                    action slot (labels arrive translated via `action`). */}
+                {action || Platform.OS !== 'ios' ? (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={action ? onActionPress : onDismissPress}
+                    // Inline text action → the shared press FADE (see the
+                    // press-language rule); it had no pressed state at all.
+                    style={({ pressed }) => ({
+                      opacity: pressed ? PRESSED_OPACITY : 1,
+                    })}
+                  >
+                    <RNText style={[styles.action, { color: colors.primary }]}>
+                      {action ? action.label : 'OK'}
+                    </RNText>
+                  </Pressable>
+                ) : null}
               </View>
             </Animated.View>
           </GestureDetector>
@@ -373,17 +388,24 @@ const styles = StyleSheet.create({
   },
   message: {
     flexShrink: 1,
-    ...Platform.select({ ios: {}, default: { flex: 1 } }),
-    fontSize: 14,
-    lineHeight: 20,
+    // 15/20 is SUBHEADLINE — the iOS step for a secondary line of running
+    // text. The 14 both platforms shared was Material's body-medium leaking
+    // across the split; iOS has no 14pt step at all.
+    ...Platform.select({
+      ios: { fontSize: 15, lineHeight: 20 },
+      default: { flex: 1, fontSize: 14, lineHeight: 20 },
+    }),
   },
   action: {
-    fontSize: 14,
     // Uppercase action labels are a Material convention; iOS keeps sentence
-    // case with a semibold weight.
+    // case at Subheadline with a semibold weight.
     ...Platform.select({
-      ios: { fontWeight: '600' as const },
-      default: { letterSpacing: 0.5, textTransform: 'uppercase' as const },
+      ios: { fontSize: 15, fontWeight: '600' as const, lineHeight: 20 },
+      default: {
+        fontSize: 14,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase' as const,
+      },
     }),
   },
 });
