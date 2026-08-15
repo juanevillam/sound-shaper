@@ -75,6 +75,7 @@ export {
 } from './createText';
 export {
   ActionButtonIos,
+  SheetCommitGlyphIos,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
   SheetFormIos,

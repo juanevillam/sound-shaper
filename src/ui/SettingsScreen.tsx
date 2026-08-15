@@ -123,6 +123,21 @@ export type SettingsScreenProps = {
   /** Optional policy links. See `SettingsLegalConfig` for why they are not
    *  just more `about.rows`. */
   legal?: SettingsLegalConfig;
+  /**
+   * DEV-ONLY toggle rows rendered as their own trailing section (iOS variant
+   * only today; the Android variant ignores it, and release builds must not
+   * pass it at all — the host gates on `__DEV__`). Labels arrive as plain
+   * strings: dev chrome is exempt from the translation pipeline, like the
+   * state lab's own copy.
+   */
+  devToggles?: {
+    title: string;
+    rows: {
+      label: string;
+      value: boolean;
+      onValueChange: (value: boolean) => void;
+    }[];
+  };
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
   /**
