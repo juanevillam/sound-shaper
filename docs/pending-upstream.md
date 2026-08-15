@@ -241,3 +241,31 @@ ever unblocks and the pair splits into two capsules, the gap goes back UP to
 system one. `glassEffect` exists on 57.0.7 and would render glass nested in
 glass, and hand-drawing native bar chrome is the specific mistake `AGENTS.md`
 records for the iOS edit sheets. One honest pill beats two imitation capsules.
+
+---
+
+## The editor sheets' PROMINENT ✓ bar item — blocked on `react-native-screens`
+
+**What we want.** The trailing ✓ of the editors' commit-modal pair rendered the
+way iOS 26 renders it in New Contact / New Event: the bar item's OWN capsule
+filled with the app accent while the form can commit (UIKit's prominent bar
+item), grey while it cannot. Band-scanned on iPhone 17 / iOS 26.5: a 44 × 44
+filled circle, ~18pt white checkmark, in the bar's trailing slot.
+
+**Why it isn't built.** RNScreens hands a `headerRight` custom view exactly one
+system-drawn glass capsule and exposes no prominent/filled styling for it. Both
+reachable approximations were built and rejected:
+
+| attempt                           | result                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 36pt filled disc inside the glass | a blue disc floating in a lighter glass ring — a nesting artifact, plainest in dark (Juan rejected on sight) |
+| fill the full 44 content          | UIKit grows its capsule around content: stretched 51 × 43.7 pill (measured)                                  |
+
+**What SHIPPED instead.** `SheetCommitGlyphIos` tints the GLYPH — `primary`
+enabled, muted disabled — on the system's own glass, the same grammar as the
+leading ✕. State lives in colour; the glass stays real.
+
+**What unlocks it.** RNScreens exposing UIKit's prominent bar-button styling
+(or `rightBarButtonItems` with style control — see the two-capsule entry
+above, same underlying gap). On the day it lands: `SheetCommitGlyphIos`
+becomes a styled bar item and the fill returns as Apple draws it.
