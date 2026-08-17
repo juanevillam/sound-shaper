@@ -21,6 +21,7 @@ import {
   listRowBackground,
   listRowInsets,
   listRowSeparator,
+  listSectionMargins,
   listSectionSpacing,
   scrollContentBackground,
   tint,
@@ -111,7 +112,7 @@ const HEADER_INSET = 32;
  * at 22 the bar landed 182.0 against the native header's 180.33 and the card
  * followed it down by the same 1.67, so the box is that much smaller.
  */
-const HEADER_LINE_BOX = 25;
+const HEADER_LINE_BOX = 22;
 /**
  * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
  * answer to "how much of this is done", and the reason the summary stopped
@@ -122,7 +123,7 @@ const HEADER_LINE_BOX = 25;
  * An accessory gauge draws small by default, so the frame states the size the
  * header wants rather than accepting the widget one.
  */
-const RING_SIZE = 72;
+const RING_SIZE = 64;
 /**
  * THE GAP FROM THE SUMMARY DOWN TO THE LIST, matched to Home's.
  *
@@ -141,24 +142,43 @@ const RING_SIZE = 72;
  * zero-inset row does with a negative inset. Section spacing is the semantic
  * term for the space between two sections, and it simply moves the list.
  *
- * The value is solved, not guessed: at 10 the gap measured 19.00, so ~8.67 of
- * the total is the row's own residual and the spacing has to be 10 − 8.67.
- * Verified at 10.33 exactly.
+ * The value is solved, not guessed — 10 measured 19.00, 1.33 measured 12.00 —
+ * and it lands at ZERO once the summary came back down in size: the row's own
+ * residual is the whole gap. Verified at 10.67 against Home's 10.33, i.e. one
+ * device pixel.
  *
  * Re-measure BOTH if either side's type changes — the point is the match, not
- * the number.
+ * the number. Home's side of it is `OWNER_ROW_CARD_GAP`, whose own note records
+ * the same intent from the other end ("4 puts it 9pt off its first card").
  */
-const SUMMARY_TO_LIST_GAP = 1.33;
+const SUMMARY_TO_LIST_GAP = 0;
+
+/**
+ * THE SUMMARY'S OWN TOP MARGIN — zero, because the section supplies its own.
+ *
+ * Promoting the summary out of the section header cost it the header's tighter
+ * top inset and gave it the grouped list's, which dropped the first ink from
+ * 151.00 to 184.00 — 33pt lower than it sat as a header, and far below where
+ * the sibling sheets open. Band-scanned first content ink, iPhone 17 /
+ * iOS 26.5:
+ *
+ *   Account   145.67    Trash  177.00 (a card, no header above it)
+ *   Trophies  184.00 before this, 145.00 with it
+ *
+ * The account sheet is the right reference: it is the same family, and it opens
+ * with a label above a card exactly as this now opens with a summary above one.
+ */
+const SUMMARY_TOP_MARGIN = 0;
 
 /** The ring → text gap, and the tier row's own rhythm. */
 const HEADER_ROW_GAP = 16;
 const TIER_PIP_GAP = 12;
-const TIER_GLYPH_SIZE = 14;
+const TIER_GLYPH_SIZE = 12;
 /** The count over the pips, inside the header's text column. */
 const HEADER_TEXT_GAP = 6;
 /** The pip row's own line box, and what its bone spans across four tiers. */
-const TIER_PIP_LINE_BOX = 22;
-const TIER_PIP_ROW_WIDTH = 148;
+const TIER_PIP_LINE_BOX = 20;
+const TIER_PIP_ROW_WIDTH = 132;
 
 /**
  * PLATINUM FIRST, then down — PlayStation's order, which is the vernacular this
@@ -352,7 +372,12 @@ export const TrophiesScreen = ({
          * body. It is deliberately NOT given a card: that was tried and read as
          * a stray pill breaking the page flow.
          */}
-        <Section modifiers={[listSectionSpacing(SUMMARY_TO_LIST_GAP)]}>
+        <Section
+          modifiers={[
+            listSectionMargins({ edges: 'top', length: SUMMARY_TOP_MARGIN }),
+            listSectionSpacing(SUMMARY_TO_LIST_GAP),
+          ]}
+        >
           <VStack
             modifiers={[
               listRowBackground(TRANSPARENT),
@@ -376,7 +401,7 @@ export const TrophiesScreen = ({
                     />
                     <View style={styles.headerBoneText}>
                       <View style={styles.headerHeadlineLine}>
-                        <SkeletonBone width={170} height={17} />
+                        <SkeletonBone width={140} height={15} />
                       </View>
                       <View style={styles.headerPipLine}>
                         <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
@@ -408,7 +433,7 @@ export const TrophiesScreen = ({
                   currentValueLabel={
                     <Text
                       modifiers={[
-                        font({ textStyle: 'subheadline', weight: 'semibold' }),
+                        font({ textStyle: 'caption', weight: 'semibold' }),
                         foregroundStyle(colors.onSurface),
                       ]}
                     >
@@ -422,11 +447,14 @@ export const TrophiesScreen = ({
                   ]}
                 />
                 <VStack alignment="leading" spacing={HEADER_TEXT_GAP}>
-                  {/* `title`, bold — the screen's headline, which is the whole
-                      point of the summary no longer being a header. */}
+                  {/* `title3` semibold — one step above the `headline` it wore
+                      as a caption, and no further: the STRUCTURE carries the
+                      importance now (page content, not a section header), so
+                      the type does not have to shout. It was briefly `title`
+                      bold and read as oversized against the list. */}
                   <Text
                     modifiers={[
-                      font({ textStyle: 'title', weight: 'bold' }),
+                      font({ textStyle: 'title3', weight: 'semibold' }),
                       foregroundStyle(colors.onSurface),
                     ]}
                   >
@@ -442,7 +470,7 @@ export const TrophiesScreen = ({
                         />
                         <Text
                           modifiers={[
-                            font({ textStyle: 'body' }),
+                            font({ textStyle: 'subheadline' }),
                             foregroundStyle(tierColor(tier)),
                           ]}
                         >
