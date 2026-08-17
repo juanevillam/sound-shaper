@@ -1,24 +1,7 @@
-import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import {
-  StyleSheet,
-  View,
-  type DimensionValue,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { SkeletonBone as Skeleton } from '@portfolio/mobile-ui';
 
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { TILE_RADIUS } from '@/styles/shape';
 
 // A first-load surface waits this long before showing its skeleton, so a
@@ -26,69 +9,21 @@ import { TILE_RADIUS } from '@/styles/shape';
 // `useDelayedShow`.
 export const SKELETON_DELAY_MS = 400;
 
-// A loading placeholder breathes between these opacities; reduce-motion holds
-// it steady at the midpoint instead (no pulse).
-const PULSE_MIN = 0.35;
-const PULSE_MAX = 0.7;
-const PULSE_STEADY = 0.5;
-const PULSE_MS = 750;
-
-type SkeletonProps = {
-  height?: number;
-  radius?: number;
-  style?: StyleProp<ViewStyle>;
-  width?: DimensionValue;
-};
-
 /**
- * One neutral placeholder block (themed `surfaceVariant`) with a gentle opacity
- * pulse, the building block for every content-shaped skeleton. Reanimated on
- * the native driver, and respects the OS reduce-motion setting.
+ * ONE NEUTRAL PLACEHOLDER BLOCK — now `SkeletonBone` from
+ * `@portfolio/mobile-ui`, re-exported here so this app's import path is
+ * unchanged.
+ *
+ * It moved because Topper had a byte-identical copy of it, and because the
+ * animation stopped being a per-bone concern: the sweep runs off ONE app-wide
+ * clock and is positioned by where each bone sits on screen. See that file for
+ * what Apple actually does here (nothing — `.redacted` is static), why the
+ * sweep is not an Android idiom, and what was wrong with the pulse it
+ * replaces.
+ *
+ * The CONTENT-SHAPED bones below stay here: they are this app's geometry.
  */
-export function Skeleton({
-  height = 14,
-  radius = 8,
-  style,
-  width = '100%',
-}: SkeletonProps) {
-  const { colors } = useAppTheme();
-  const reduceMotion = useReducedMotion();
-  const pulse = useSharedValue(PULSE_MAX);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(PULSE_MIN, {
-          duration: PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(PULSE_MAX, {
-          duration: PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ),
-      -1,
-      false,
-    );
-  }, [pulse, reduceMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: reduceMotion ? PULSE_STEADY : pulse.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        { backgroundColor: colors.surfaceVariant, borderRadius: radius },
-        { height, width },
-        animatedStyle,
-        style,
-      ]}
-    />
-  );
-}
+export { Skeleton };
 
 /** Stand-in for `SongTile` — the home grid: artwork square + two text
  *  lines under it, so the grid doesn't reflow on settle. */
