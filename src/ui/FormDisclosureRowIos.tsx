@@ -1,7 +1,14 @@
 import React from 'react';
 
-import { HStack, Image, RNHostView, Spacer, Text } from '@expo/ui/swift-ui';
-import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
+import {
+  HStack,
+  Image,
+  RNHostView,
+  Spacer,
+  Text,
+  VStack,
+} from '@expo/ui/swift-ui';
+import { foregroundStyle, frame } from '@expo/ui/swift-ui/modifiers';
 
 import { LIST_ROW_ONE_LINE } from './listRowText';
 import { SkeletonBone } from './SkeletonBone';
@@ -100,9 +107,24 @@ const ValueSlot = ({
   colors: FormDisclosureColors;
 }) =>
   loading ? (
-    <RNHostView matchContents>
-      <SkeletonBone width={VALUE_BONE_WIDTH} height={VALUE_BONE_HEIGHT} />
-    </RNHostView>
+    /**
+     * THE BOX IS RESERVED IN SWIFTUI, not measured from the RN side.
+     * `matchContents` makes the host "update its size in the React Native view
+     * tree to match the children's" — an UPDATE, i.e. after the fact — so the
+     * row lays out once without it and again once it lands, which is a shift on
+     * the frame the placeholder mounts. Framing the wrapper and letting the
+     * host fill it (its default) takes the measurement off the layout path
+     * entirely.
+     */
+    <VStack
+      modifiers={[
+        frame({ width: VALUE_BONE_WIDTH, height: VALUE_BONE_HEIGHT }),
+      ]}
+    >
+      <RNHostView>
+        <SkeletonBone width={VALUE_BONE_WIDTH} height={VALUE_BONE_HEIGHT} />
+      </RNHostView>
+    </VStack>
   ) : (
     <Text
       modifiers={[foregroundStyle(colors.onSurfaceMuted), ...LIST_ROW_ONE_LINE]}
