@@ -1,11 +1,13 @@
 import React from 'react';
 
-import { HStack, Image, Spacer, Text } from '@expo/ui/swift-ui';
+import { HStack, Image, RNHostView, Spacer, Text } from '@expo/ui/swift-ui';
 import {
   foregroundStyle,
   lineLimit,
   truncationMode,
 } from '@expo/ui/swift-ui/modifiers';
+
+import { SkeletonBone } from './SkeletonBone';
 
 /**
  * THE TWO GROUPED-FORM ROWS THE PORTFOLIO HAS — a fact (label + value) and a
@@ -75,6 +77,49 @@ export const FORM_DISCLOSURE_GLYPH_SIZE = 13;
  */
 const ONE_LINE_VALUE = [lineLimit(1), truncationMode('middle')];
 
+/**
+ * THE VALUE'S PLACEHOLDER — the portfolio's own `SkeletonBone`, bridged back
+ * into the native row.
+ *
+ * NOT `redacted('placeholder')`, which is the first thing this reached for and
+ * the wrong answer twice over. Every other loading surface in these apps —
+ * roughly twenty content-shaped bones across Home, Explore, Profile and the
+ * people sheets — is built on that atom's app-wide sweep, and Blocked Users,
+ * a sibling INSIDE this same account stack, sweeps. A static grey card here
+ * made the account sheet the odd one out in its own family. (`SkeletonBone`
+ * itself records why the sweep beats Apple's static block for a surface that
+ * waits on a network, and lands back on Apple's answer under reduce-motion.)
+ *
+ * IT REPLACES ONLY THE VALUE, which is what makes the row's height safe: the
+ * LABEL is a static string — "Name", "Email" — and has nothing to wait for, so
+ * it renders immediately and the row is its settled height from the first
+ * frame. Redaction, by contrast, blanked the label too and changed
+ * `LabeledContent`'s stacking with it.
+ */
+const VALUE_BONE_WIDTH = 110;
+const VALUE_BONE_HEIGHT = 14;
+
+const ValueSlot = ({
+  value,
+  loading,
+  colors,
+}: {
+  value: string;
+  loading: boolean;
+  colors: FormDisclosureColors;
+}) =>
+  loading ? (
+    <RNHostView matchContents>
+      <SkeletonBone width={VALUE_BONE_WIDTH} height={VALUE_BONE_HEIGHT} />
+    </RNHostView>
+  ) : (
+    <Text
+      modifiers={[foregroundStyle(colors.onSurfaceMuted), ...ONE_LINE_VALUE]}
+    >
+      {value}
+    </Text>
+  );
+
 export type FormDisclosureColors = {
   onSurface: string;
   onSurfaceMuted: string;
@@ -93,20 +138,19 @@ export const FormDisclosureIndicatorIos = ({ color }: { color: string }) => (
 export const FormValueRowIos = ({
   label,
   value,
+  loading = false,
   colors,
 }: {
   label: string;
   value: string;
+  /** The fact has not arrived — see `ValueSlot`. */
+  loading?: boolean;
   colors: FormDisclosureColors;
 }) => (
   <HStack spacing={8}>
     <Text modifiers={[foregroundStyle(colors.onSurface)]}>{label}</Text>
     <Spacer />
-    <Text
-      modifiers={[foregroundStyle(colors.onSurfaceMuted), ...ONE_LINE_VALUE]}
-    >
-      {value}
-    </Text>
+    <ValueSlot value={value} loading={loading} colors={colors} />
   </HStack>
 );
 
@@ -114,6 +158,7 @@ export const FormValueRowIos = ({
 export const FormDisclosureRowIos = ({
   label,
   value,
+  loading = false,
   colors,
 }: {
   label: string;
@@ -122,18 +167,18 @@ export const FormDisclosureRowIos = ({
    * value-plus-disclosure cell (Settings' Language, Account's Username).
    */
   value?: string;
+  /** The value has not arrived — see `ValueSlot`. */
+  loading?: boolean;
   colors: FormDisclosureColors;
 }) => (
   <HStack spacing={8}>
     <Text modifiers={[foregroundStyle(colors.onSurface)]}>{label}</Text>
     <Spacer />
-    {value ? (
-      <Text
-        modifiers={[foregroundStyle(colors.onSurfaceMuted), ...ONE_LINE_VALUE]}
-      >
-        {value}
-      </Text>
+    {value !== undefined ? (
+      <ValueSlot value={value} loading={loading} colors={colors} />
     ) : null}
+    {/* The chevron stays through the wait: it says the row goes somewhere,
+        which is true before the value lands as much as after. */}
     <FormDisclosureIndicatorIos color={colors.onSurfaceMuted} />
   </HStack>
 );

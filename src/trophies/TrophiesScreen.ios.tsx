@@ -5,7 +5,6 @@ import {
   Form,
   Host,
   HStack,
-  Image,
   ProgressView,
   RNHostView,
   Section,
@@ -16,13 +15,11 @@ import {
 import {
   font,
   foregroundStyle,
-  frame,
   headerProminence,
-  redacted,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import { FormDisclosureIndicatorIos } from '@portfolio/mobile-ui';
+import { FormDisclosureIndicatorIos, SkeletonBone } from '@portfolio/mobile-ui';
 
 import { tierColor } from './tierColors';
 import {
@@ -94,47 +91,55 @@ const TrophyRow = ({
   return (
     <Button onPress={onPress}>
       <HStack spacing={12}>
-        {/* A SwiftUI symbol WHILE LOADING, the RN glyph once the state is real.
-            Redaction cannot reach inside an `RNHostView` — the trophy is a UIKit
-            view by then — so the bridged icon kept its TIER COLOUR under the
-            placeholder and went on saying which trophies were earned, which is
-            the one thing the placeholder is there to not say. (And in the real
-            pre-hydration case it says something worse: every trophy grey,
-            because nothing has loaded yet.) A native `Image` redacts to a shape
-            for free, at the same size in the same slot. */}
-        {loading ? (
-          <Image
-            systemName="trophy.fill"
-            size={ICON_SIZE}
-            color={colors.onSurfaceMuted}
-            // FRAMED TO THE SLOT, not left at the glyph's own 26pt: the RN
-            // trophy is centred in a 34pt box, so an unframed symbol handed the
-            // text column ~5pt back and every title moved sideways on hand-off.
-            // Measured on iPhone 17 / iOS 26.5, first row's title ink:
-            // 78.67pt loaded vs 74.67pt redacted.
-            modifiers={[frame({ width: ICON_SLOT })]}
-          />
-        ) : (
-          <RNHostView matchContents>
-            <View style={styles.iconSlot}>
+        {/* THE ICON IS THE ROW'S CLAIM, so while the award cache is loading it
+            is a bone rather than a glyph: the tier COLOUR is what says a trophy
+            is earned, and pre-hydration every one of them resolves locked — a
+            column of grey trophies is a wrong answer, not a pending one. The
+            bone rides in the same 34pt slot the real glyph is centred in, so
+            the text column does not move on hand-off. */}
+        <RNHostView matchContents>
+          <View style={styles.iconSlot}>
+            {loading ? (
+              <SkeletonBone
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                radius={ICON_SIZE / 2}
+              />
+            ) : (
               <TrophyIcon
                 color={iconColor}
                 size={ICON_SIZE}
                 locked={!trophy.unlocked}
               />
-            </View>
-          </RNHostView>
-        )}
+            )}
+          </View>
+        </RNHostView>
         <VStack alignment="leading" spacing={2}>
+          {/* THE TITLE IS REAL EVEN WHILE LOADING — it comes from the app's
+              config and its own copy, not from the network, so there is nothing
+              to wait for and boning it would only cost the row its true height.
+              Its COLOUR does wait (an earned trophy's title is full-strength),
+              so it holds at `onSurfaceMuted` until the state is known: the
+              muted step is the one that claims nothing. */}
           <Text
             modifiers={[
               foregroundStyle(
-                trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted,
+                !loading && trophy.unlocked
+                  ? colors.onSurface
+                  : colors.onSurfaceMuted,
               ),
             ]}
           >
             {trophy.title}
           </Text>
+          {/* THE SUPPORTING LINE STAYS REAL TEXT, and that is a limit rather
+              than a preference: a SECOND `RNHostView` in this row blew the
+              native layout apart — titles clipped off the leading edge, the
+              icon slot gone, the card displaced (iPhone 17 / iOS 26.5). One
+              bridged host per row is what this List sustains, and the icon has
+              it. So the line shows the locked sentence while loading, which is
+              also what it will say for most rows; the icon beside it is the
+              bone that says the state is still coming. */}
           <Text
             modifiers={[
               font({ textStyle: 'footnote' }),
@@ -169,15 +174,7 @@ export const TrophiesScreen = ({
   return (
     <Host style={styles.host}>
       <Form
-        modifiers={[
-          scrollContentBackground('hidden'),
-          tint(colors.primary),
-          // One redaction for the WHOLE screen, header included: the summary is
-          // derived from the same un-hydrated cache the rows are, so redacting
-          // the list while the count above it reads "0 of 7" would just move
-          // the wrong answer up a line.
-          ...(loading ? [redacted('placeholder')] : []),
-        ]}
+        modifiers={[scrollContentBackground('hidden'), tint(colors.primary)]}
       >
         <Section
           modifiers={[headerProminence('increased')]}
@@ -187,6 +184,12 @@ export const TrophiesScreen = ({
                   line as the progress sentence rather than centring against
                   it — the two are set at different sizes. */}
               <HStack alignment="lastTextBaseline">
+                {/* THE FIGURES STAY REAL TEXT for the same reason the
+                    supporting line does — a bridged host in a `Section` header
+                    collapsed it to a stub. What they must not do is CLAIM: the
+                    strings are built from the cache, so while it is empty they
+                    read "0 of 7" at 0%, and the bar below is held to an empty
+                    track so the two agree. */}
                 <Text
                   modifiers={[
                     font({ textStyle: 'headline' }),
@@ -205,15 +208,12 @@ export const TrophiesScreen = ({
                   {strings.percent}
                 </Text>
               </HStack>
-              {/* EMPTY TRACK WHILE LOADING. `redacted` does not touch a
-                  `ProgressView` — verified on iPhone 17 / iOS 26.5, where the
-                  bar stayed full and blue under a header whose own label was
-                  already a placeholder bar, i.e. the screen claimed 100%
-                  beside text that admitted it knew nothing. An empty track
-                  next to a redacted percent reads as "not known yet" rather
-                  than "zero", and it stays STATIC, which is the placeholder
-                  language the rest of the card is in (an indeterminate
-                  `value={null}` bar would animate alone on a still screen). */}
+              {/* EMPTY TRACK WHILE LOADING — the bar is the same fact the two
+                  figures above it are, so it must not claim a fraction while
+                  they admit they know none. `value={null}` would make it
+                  indeterminate, which animates on its own clock beside bones
+                  that all sweep together; an empty track next to boned figures
+                  reads as "not known yet" rather than as "zero". */}
               <ProgressView value={loading ? 0 : fraction} />
             </VStack>
           }
