@@ -125,33 +125,30 @@ const HEADER_LINE_BOX = 22;
  */
 const RING_SIZE = 64;
 /**
- * THE GAP FROM THE SUMMARY DOWN TO THE LIST, matched to Home's.
+ * THE GAP FROM THE SUMMARY DOWN TO THE LIST — a SECTION gap, not a header gap.
  *
- * Home's Following feed sets the rhythm for "a person's line, then their card",
- * and this sheet is the same shape one level down: a summary, then the thing it
- * summarises. Band-scanned last-ink to card-edge on iPhone 17 / iOS 26.5, on a
- * clean column (reading either card through its rounded corner biases the two
- * differently):
+ * This chased the wrong reference for two rounds. The brief was "match Home's
+ * user-row-to-card gap", and it does measure ~10 there — but that relationship
+ * is the OPPOSITE of this one. Home's owner row is a HEADER BOUND TO ITS CARD,
+ * and its gap is deliberately tight for exactly that reason:
+ * `OWNER_ROW_CARD_GAP` is 4, and its own note says "a header belongs to its
+ * content; 4 puts it 9pt off its first card against the cards' 12".
  *
- *   Home      @handle ink 504.67 → card 515.00  = 10.33   ← the target
- *   Trophies  pip ink 240.00 → card 284.00      = 44.00   at default spacing
+ * The summary is not that. The whole point of promoting it out of the section
+ * header was that it does NOT own the list — it is the screen's headline and
+ * the list is the body, two independent blocks. Binding them at 10pt contradicts
+ * the promotion, which is why it read as stuck to the list.
  *
- * `listSectionSpacing` IS THE KNOB, not padding. Negative padding was tried
- * first and CLIPS this row rather than pulling it — the ring came out flattened
- * top and bottom and the pip digits lost their descenders, which is what a
- * zero-inset row does with a negative inset. Section spacing is the semantic
- * term for the space between two sections, and it simply moves the list.
+ * So the reference is what iOS puts between two SECTIONS. Band-scanned on
+ * iPhone 17 / iOS 26.5:
  *
- * The value is solved, not guessed — 10 measured 19.00, 1.33 measured 12.00 —
- * and it lands at ZERO once the summary came back down in size: the row's own
- * residual is the whole gap. Verified at 10.67 against Home's 10.33, i.e. one
- * device pixel.
+ *   Account sheet, card → card   30.67   ← same family, same native Form
+ *   a real iOS grouped list      31.33   (already recorded in home/index.ios)
  *
- * Re-measure BOTH if either side's type changes — the point is the match, not
- * the number. Home's side of it is `OWNER_ROW_CARD_GAP`, whose own note records
- * the same intent from the other end ("4 puts it 9pt off its first card").
+ * Solved rather than nudged: the mapping is exactly 1:1 (spacing 0 → 10.67,
+ * spacing 24 → 34.67), so 20 lands 30.67. Verified.
  */
-const SUMMARY_TO_LIST_GAP = 0;
+const SUMMARY_TO_LIST_GAP = 20;
 
 /**
  * THE SUMMARY'S OWN TOP MARGIN — zero, because the section supplies its own.
