@@ -152,3 +152,31 @@ to _checking_ them. When authored RN imitates a native surface:
 
 Worked example: `HomeShowcaseList.tsx` (expo-ui-starter) — its constants
 header documents the measured values and what drifted on the first guess.
+
+5. **Check a DERIVED number against the real thing too.** A constant derived
+   from a correct rule can still be wrong, because the rule may not apply.
+   Worked example (2026-08-16, top detail's item-list bone): the row pitch was
+   derived from the people list's measured grouped-row padding and came out
+   EXACT (93 + 1pt rule = the measured 94), while the separator inset derived
+   from the same source was wrong by 112pt — SwiftUI insets a separator to the
+   leading edge of the row's TEXT, and that row leads with a numeral rather than
+   the artwork. Verify the derivation, not just the arithmetic.
+6. **Verify a claim of "pre-existing" before making it.** If something looks
+   wrong and you suspect it predates your change, go exercise the untouched
+   surface and see. Same session: the swipe-action rendering in the rebuilt trash
+   list looked like a defect, and testing the older item list proved it was the
+   framework's iOS 26 style — which turned "a bug I introduced" into "consistent
+   with the app", a different conclusion and a different fix.
+
+### Driving the simulator for these
+
+- **Confirm the coordinate space first.** The sim tooling reports taps in
+  POINTS (e.g. 402 × 874) while a screenshot is in PIXELS (1206 × 2622 at 3x).
+  Feeding pixel coordinates silently clamps every tap and reads as a frozen app;
+  it cost several turns before it was spotted. Divide by the scale.
+- **Never fire a destructive path to verify a string.** Labels and copy come from
+  `translations.ts` — read them. Alerts, permanent deletes and "empty trash" are
+  not inspection tools.
+- The state lab (`STATE_LAB` in each app's `dev/flags.ts`) is how you get a
+  loading or error state to hold still long enough to band-scan. Racing a
+  screenshot against a real 400ms skeleton does not work.
