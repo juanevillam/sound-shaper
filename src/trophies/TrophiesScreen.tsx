@@ -41,14 +41,16 @@ export type TrophiesScreenProps = {
   /** Tapping a row — open the detail sheet. */
   onTrophyPress?: (id: string) => void;
   /**
-   * iOS only. The awarded cache has not hydrated yet (`useTrophies().hydrated`
-   * is false), so the counts and lock states passed above are not yet true —
-   * render Apple's `redacted(.placeholder)` over the whole list instead of
-   * stating "0 of N" and every trophy locked.
+   * iOS only. The awarded cache has not hydrated yet
+   * (`useTrophies().hydrated` is false), so the lock states and the counts
+   * passed above are not yet true: every trophy resolves LOCKED and the
+   * summary reads "0 of N", which is a wrong answer rather than a pending one.
    *
-   * The rows are still passed in full, because redaction replaces the INK and
-   * not the layout: the list is already its settled height and nothing moves
-   * when the real state arrives. Android, frozen, does not read it.
+   * While it is set, the parts that WAIT stand `SkeletonBone`s — each row's
+   * icon (the tier colour is what claims "earned") and the whole progress
+   * summary. The trophy TITLES stay real: they come from config and copy, not
+   * the network, and boning them would only cost each row its true height.
+   * Android, frozen, does not read it.
    */
   loading?: boolean;
 };

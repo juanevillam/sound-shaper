@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import {
   Button,
@@ -62,6 +62,40 @@ import { type ResolvedTrophy } from './types';
  */
 const ICON_SIZE = 26;
 const ICON_SLOT = 34;
+
+/**
+ * THE PROGRESS HEADER'S OWN GEOMETRY, for the ONE bridged host that stands it
+ * while the award cache loads.
+ *
+ * The header is native `Text` + `ProgressView` once the counts are real — the
+ * platform primitives, which is the whole reason the summary moved into the
+ * `Section` in the first place. It cannot ALSO bone its two figures in place:
+ * a bridged host per figure is a second and third `RNHostView` in one row, and
+ * that blew the layout apart (titles clipped off the leading edge, the icon
+ * slot gone, the header collapsed to a stub). One host per row is the ceiling.
+ *
+ * So the loading header is a SINGLE host holding the whole summary in RN — two
+ * bones and a track — and every number here exists to land it exactly where the
+ * native one sits. MEASURED off the live header (iPhone 17 / iOS 26.5, light):
+ *
+ *   header content box   x 32.0 → 370.0     (338 wide; the grouped header's
+ *                                            inset is 32, not the card's 18)
+ *   progress bar         y 180.33 → 184.33  (4pt tall)
+ *   card top             y 194.33           (10 below the bar)
+ *
+ * Re-measure those three if the header's type or `headerProminence` changes.
+ */
+const HEADER_INSET = 32;
+/**
+ * The headline's line box — what the two figures sit in. SOLVED, not guessed:
+ * at 22 the bar landed 182.0 against the native header's 180.33 and the card
+ * followed it down by the same 1.67, so the box is that much smaller.
+ */
+const HEADER_LINE_BOX = 20.33;
+/** The `VStack`'s own spacing between the figures and the bar. */
+const HEADER_GAP = 8;
+/** `ProgressView`'s linear track, measured at 180.33 → 184.33. */
+const HEADER_BAR_HEIGHT = 4;
 
 const TrophyRow = ({
   trophy,
@@ -170,6 +204,8 @@ export const TrophiesScreen = ({
   onTrophyPress,
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
+  const { width: screenWidth } = useWindowDimensions();
+  const headerWidth = screenWidth - HEADER_INSET * 2;
 
   return (
     <Host style={styles.host}>
@@ -179,43 +215,55 @@ export const TrophiesScreen = ({
         <Section
           modifiers={[headerProminence('increased')]}
           header={
-            <VStack alignment="leading" spacing={8}>
-              {/* `lastTextBaseline`, so the tinted percent sits on the same
-                  line as the progress sentence rather than centring against
-                  it — the two are set at different sizes. */}
-              <HStack alignment="lastTextBaseline">
-                {/* THE FIGURES STAY REAL TEXT for the same reason the
-                    supporting line does — a bridged host in a `Section` header
-                    collapsed it to a stub. What they must not do is CLAIM: the
-                    strings are built from the cache, so while it is empty they
-                    read "0 of 7" at 0%, and the bar below is held to an empty
-                    track so the two agree. */}
-                <Text
-                  modifiers={[
-                    font({ textStyle: 'headline' }),
-                    foregroundStyle(colors.onSurface),
-                  ]}
-                >
-                  {strings.progress}
-                </Text>
-                <Spacer />
-                <Text
-                  modifiers={[
-                    font({ textStyle: 'subheadline', weight: 'semibold' }),
-                    foregroundStyle(colors.primary),
-                  ]}
-                >
-                  {strings.percent}
-                </Text>
-              </HStack>
-              {/* EMPTY TRACK WHILE LOADING — the bar is the same fact the two
-                  figures above it are, so it must not claim a fraction while
-                  they admit they know none. `value={null}` would make it
-                  indeterminate, which animates on its own clock beside bones
-                  that all sweep together; an empty track next to boned figures
-                  reads as "not known yet" rather than as "zero". */}
-              <ProgressView value={loading ? 0 : fraction} />
-            </VStack>
+            loading ? (
+              /**
+               * ONE HOST for the whole summary — see the constants above for
+               * why it is not two bones dropped into the native header, and
+               * for the anchors this has to land on.
+               */
+              <RNHostView matchContents>
+                <View style={[styles.headerBone, { width: headerWidth }]}>
+                  <View style={styles.headerFigures}>
+                    <SkeletonBone width={140} height={15} />
+                    <SkeletonBone width={42} height={13} />
+                  </View>
+                  {/* The track, at the bar's own height — an empty
+                      `ProgressView` and a bone of the same size read alike, and
+                      this one sweeps with everything else on screen. */}
+                  <SkeletonBone
+                    width="100%"
+                    height={HEADER_BAR_HEIGHT}
+                    radius={HEADER_BAR_HEIGHT / 2}
+                  />
+                </View>
+              </RNHostView>
+            ) : (
+              <VStack alignment="leading" spacing={HEADER_GAP}>
+                {/* `lastTextBaseline`, so the tinted percent sits on the same
+                    line as the progress sentence rather than centring against
+                    it — the two are set at different sizes. */}
+                <HStack alignment="lastTextBaseline">
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'headline' }),
+                      foregroundStyle(colors.onSurface),
+                    ]}
+                  >
+                    {strings.progress}
+                  </Text>
+                  <Spacer />
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'subheadline', weight: 'semibold' }),
+                      foregroundStyle(colors.primary),
+                    ]}
+                  >
+                    {strings.percent}
+                  </Text>
+                </HStack>
+                <ProgressView value={fraction} />
+              </VStack>
+            )
           }
         >
           {trophies.map(trophy => (
@@ -239,6 +287,13 @@ export const TrophiesScreen = ({
 
 const styles = StyleSheet.create({
   host: { flex: 1 },
+  headerBone: { gap: HEADER_GAP },
+  headerFigures: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    height: HEADER_LINE_BOX,
+    justifyContent: 'space-between',
+  },
   iconSlot: {
     alignItems: 'center',
     justifyContent: 'center',
