@@ -4,10 +4,11 @@ import { Image, type ImageProps } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
+  disabled as disabledModifier,
   frame,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme, withAlpha } from '@portfolio/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 
@@ -69,6 +70,25 @@ export const HEADER_GLYPH_SIZE = 24;
 const HEADER_TAP_TARGET = 43;
 
 /**
+ * A DISABLED GLYPH'S INK — tertiaryLabel, stated here rather than left to
+ * SwiftUI.
+ *
+ * `disabled(true)` alone does nothing to the look of one of these: SwiftUI's
+ * disabled treatment applies to CONTROLS, and a bare `Image` with an `onPress`
+ * is not one — verified on iPhone 17 / iOS 26.5, where the modifier left the
+ * glyph at a full (0,0,0). Dropping `color` so SwiftUI could resolve its own
+ * foreground did not help either, for the same reason. So the modifier stays
+ * (it is what blocks the interaction) and the ink is set here.
+ *
+ * tertiaryLabel is the step below the secondaryLabel these tokens already are,
+ * and `withAlpha` REPLACES alpha rather than multiplying it — so 0.3 on
+ * `onSurfaceMuted` lands on tertiaryLabel exactly, in both appearances. That is
+ * the same derivation `DisclosureChevron` documents for the same reason: a mark
+ * that is present but not actionable recedes one step.
+ */
+const DISABLED_INK = (onSurfaceMuted: string) => withAlpha(onSurfaceMuted, 0.3);
+
+/**
  * A sheet's dismiss glyph is the one bar item NOT sized against a title —
  * Apple draws it noticeably larger than an inline title's cap height so it
  * stays an easy target inside the fixed 43.3pt capsule.
@@ -86,6 +106,22 @@ export type HeaderGlyphButtonProps = {
   label: string;
   onPress: () => void;
   size?: number;
+  /**
+   * PRESENT BUT INERT — the glyph keeps its slot, loses its handler, and
+   * recedes to `DISABLED_INK`.
+   *
+   * This exists so a bar item does not COME AND GO with the screen's data.
+   * Trash hid its ⋯ (Empty Trash) whenever there was nothing to empty, so the
+   * bar carried one glyph while loading and two once rows landed — and a
+   * two-item capsule pushes a long title out of the centre, so the whole bar
+   * re-flowed on hand-off. Apple's own bars keep their furniture and dim it
+   * (Mail's Edit, Photos' Select), which is both the steadier layout and the
+   * clearer statement: the action exists, there is just nothing for it to do.
+   *
+   * The colour is ours to set, not SwiftUI's — see `DISABLED_INK` for why the
+   * `disabled` modifier alone leaves the glyph at full strength.
+   */
+  disabled?: boolean;
 };
 
 export function HeaderGlyphButtonIos({
@@ -173,7 +209,7 @@ export function HeaderGlyphGroupIos({
 
   return (
     <View style={styles.row}>
-      {glyphs.map(({ systemName, label, onPress, size }) => (
+      {glyphs.map(({ systemName, label, onPress, size, disabled }) => (
         <SwiftUIHost
           key={systemName}
           matchContents
@@ -189,8 +225,12 @@ export function HeaderGlyphGroupIos({
           <Image
             systemName={systemName}
             size={size ?? HEADER_GLYPH_SIZE}
-            color={colors.onSurface}
-            onPress={onPress}
+            color={
+              disabled ? DISABLED_INK(colors.onSurfaceMuted) : colors.onSurface
+            }
+            // Not merely dimmed: a disabled glyph carries no handler at all, so
+            // there is nothing to fire even if a tap gets past `disabled`.
+            onPress={disabled ? undefined : onPress}
             modifiers={[
               // The glyph keeps its own size; the BOX around it is the target.
               ...(expand
@@ -205,6 +245,7 @@ export function HeaderGlyphGroupIos({
                     contentShape(shapes.rectangle()),
                   ]
                 : []),
+              ...(disabled ? [disabledModifier(true)] : []),
               accessibilityLabel(label),
             ]}
           />
