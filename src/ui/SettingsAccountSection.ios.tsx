@@ -12,7 +12,7 @@ import {
   Text,
   VStack,
 } from '@expo/ui/swift-ui';
-import { font, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
+import { font, foregroundStyle, frame } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
 import { FormDisclosureRowIos } from './FormDisclosureRowIos';
@@ -58,13 +58,17 @@ export const SettingsAccountSection = ({
           back through RNHostView (same idiom as the Android Compose row);
           the SF person icon stays as the no-photo fallback. */}
       {profile.photoUrl ? (
-        <RNHostView matchContents>
-          <RemoteImage
-            source={{ uri: profile.photoUrl }}
-            style={styles.avatar}
-            contentFit="cover"
-          />
-        </RNHostView>
+        <VStack
+          modifiers={[frame({ width: AVATAR_SIZE, height: AVATAR_SIZE })]}
+        >
+          <RNHostView>
+            <RemoteImage
+              source={{ uri: profile.photoUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+          </RNHostView>
+        </VStack>
       ) : (
         <Image
           systemName="person.crop.circle.fill"
