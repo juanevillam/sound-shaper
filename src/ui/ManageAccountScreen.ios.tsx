@@ -2,25 +2,16 @@ import React from 'react';
 
 import { StyleSheet } from 'react-native';
 
-import {
-  Button,
-  Form,
-  HStack,
-  Host,
-  Image,
-  LabeledContent,
-  Section,
-  Spacer,
-  Text,
-} from '@expo/ui/swift-ui';
+import { Button, Form, Host, Section, Text } from '@expo/ui/swift-ui';
 import {
   disabled as disabledModifier,
   foregroundStyle,
-  padding,
+  redacted,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
+import { FormDisclosureRowIos, FormValueRowIos } from './FormDisclosureRowIos';
 import { type ManageAccountScreenProps } from './ManageAccountScreen';
 import { Screen } from './Screen';
 import { UsernameEditRowIos } from './UsernameEditRow';
@@ -35,8 +26,24 @@ import { UsernameEditRowIos } from './UsernameEditRow';
  * `danger.rowDescription` and the row icons are Android-only: an Apple
  * destructive row is a bare red label, and Settings rows either carry colored
  * tile icons or none at all.
+ *
+ * THE `Screen` TAKES NO COLOUR AND NO EDGES, and both halves of that are the
+ * corrections its twin already carried:
+ *
+ *  - NO `backgroundColor`. This screen presents as a form SHEET in Topper and
+ *    as a pushed screen in Sound Shaper, and in BOTH cases the navigator has
+ *    already painted the right surface (`contentStyle` — `colors.sheet` for a
+ *    sheet, `colors.background` for a push). Painting `background` here was
+ *    invisible in light, where the two are the same `#F2F2F7`, and in dark it
+ *    covered the sheet's `#1C1C1E` with `#000000` — so the account sheet read
+ *    BLACK beside Settings, its own twin, one gesture away in the same stack.
+ *    `SettingsScreen.ios` states the rule; `SheetScreenIos` in Topper states
+ *    it again for the app's own sheets.
+ *  - NO `edges`. The `Form` scrolls and insets itself natively; a `SafeAreaView`
+ *    around it only insets the box the Form is already insetting inside.
  */
 export const ManageAccountScreen = ({
+  colorScheme,
   colors,
   info,
   sections,
@@ -44,48 +51,55 @@ export const ManageAccountScreen = ({
   danger,
   children,
 }: ManageAccountScreenProps) => (
-  <Screen backgroundColor={colors.background} edges={['left', 'right']}>
-    <Host style={styles.host}>
+  <Screen>
+    <Host style={styles.host} colorScheme={colorScheme}>
+      {/* No top `padding` on the Form — the rule `SettingsScreen.ios` records:
+          `padding` sits OUTSIDE a Form's background, so a top inset leaves a
+          strip of whatever is behind it above the grouped card. In a sheet that
+          strip reads as the flat sheet colour above the elevated one, and this
+          file carried a 16pt one. The Form's own section spacing is the air. */}
       <Form
-        modifiers={[
-          scrollContentBackground('hidden'),
-          tint(colors.primary),
-          padding({ top: 16 }),
-        ]}
+        modifiers={[scrollContentBackground('hidden'), tint(colors.primary)]}
       >
         {info ? (
-          <Section title={info.title}>
+          /**
+           * REDACTED, NOT REPLACED, while the facts load. `.placeholder` is
+           * Apple's own skeleton (App Store, Music and News all show it), and
+           * because the caller passes the settled row SET the card is already
+           * its final height — the values simply fill in. What this replaced
+           * was rows appearing one at a time as each fact resolved: Member
+           * Since arriving late grew the card under the reader's finger, and
+           * Username stated "Not Set" before flipping to the real handle,
+           * which is worse than a placeholder because it is a wrong answer
+           * rather than no answer yet.
+           */
+          <Section
+            title={info.title}
+            modifiers={info.loading ? [redacted('placeholder')] : []}
+          >
             {info.rows.map(row =>
               // An editable fact (Topper's Username) opens the shared native
-              // alert; everything else stays a read-only `LabeledContent`.
-              //
-              // Editable rows are built by hand rather than from LabeledContent:
-              // they need the disclosure chevron that marks them tappable (the
-              // Name / Phone / Email rows in Apple's own Apple Account screen),
-              // and their label must stay `onSurface` — inside a `Button` it
-              // would otherwise inherit the control tint and read blue while
-              // every neighbouring label is not.
+              // alert and takes the disclosure chevron that marks it tappable
+              // — the Name / Phone / Email rows in Apple's own Apple Account
+              // screen. Everything else is the SAME ROW without the chevron,
+              // which is the point of the two coming from one file: the label
+              // colour, the value's colour and its one-line truncation cannot
+              // drift between a fact and a destination sitting in one card.
               row.editor ? (
                 <UsernameEditRowIos key={row.label} editor={row.editor}>
-                  <HStack spacing={8}>
-                    <Text modifiers={[foregroundStyle(colors.onSurface)]}>
-                      {row.label}
-                    </Text>
-                    <Spacer />
-                    <Text modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
-                      {row.value}
-                    </Text>
-                    <Image
-                      systemName="chevron.right"
-                      size={13}
-                      color={colors.onSurfaceMuted}
-                    />
-                  </HStack>
+                  <FormDisclosureRowIos
+                    label={row.label}
+                    value={row.value}
+                    colors={colors}
+                  />
                 </UsernameEditRowIos>
               ) : (
-                <LabeledContent key={row.label} label={row.label}>
-                  <Text>{row.value}</Text>
-                </LabeledContent>
+                <FormValueRowIos
+                  key={row.label}
+                  label={row.label}
+                  value={row.value}
+                  colors={colors}
+                />
               ),
             )}
           </Section>
@@ -98,17 +112,7 @@ export const ManageAccountScreen = ({
           >
             {section.rows.map(row => (
               <Button key={row.id} onPress={row.onPress}>
-                <HStack spacing={8}>
-                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
-                    {row.label}
-                  </Text>
-                  <Spacer />
-                  <Image
-                    systemName="chevron.right"
-                    size={13}
-                    color={colors.onSurfaceMuted}
-                  />
-                </HStack>
+                <FormDisclosureRowIos label={row.label} colors={colors} />
               </Button>
             ))}
           </Section>
@@ -121,24 +125,33 @@ export const ManageAccountScreen = ({
                 navigation stays neutral. */}
             {privacy.rows.map(row => (
               <Button key={row.id} onPress={row.onPress}>
-                <HStack spacing={8}>
-                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
-                    {row.label}
-                  </Text>
-                  <Spacer />
-                  <Image
-                    systemName="chevron.right"
-                    size={13}
-                    color={colors.onSurfaceMuted}
-                  />
-                </HStack>
+                <FormDisclosureRowIos label={row.label} colors={colors} />
               </Button>
             ))}
           </Section>
         ) : null}
 
         {danger ? (
-          <Section title={danger.title}>
+          /**
+           * NO HEADER, A FOOTER — Apple's shape for a destructive group, and
+           * the reason `danger.title` goes unread on this platform.
+           *
+           * The header was rendering the SAME WORDS as the only row beneath it
+           * ("Delete Account" over Delete Account), which is a category label
+           * naming a single item. iOS reserves the space under an irreversible
+           * row for what it will DO instead — Settings' own Erase All Content
+           * and Reset sections both read that way — so the supporting line the
+           * Android row carries inline moves here, where it explains the row
+           * rather than repeating it. `title` stays on the shared prop because
+           * Android, frozen, still draws it as a header.
+           */
+          <Section
+            footer={
+              danger.rowDescription ? (
+                <Text>{danger.rowDescription}</Text>
+              ) : undefined
+            }
+          >
             <Button
               role="destructive"
               modifiers={danger.disabled ? [disabledModifier(true)] : []}

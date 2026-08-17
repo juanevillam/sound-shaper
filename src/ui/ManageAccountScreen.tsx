@@ -58,10 +58,36 @@ export type ManageAccountNavRow = {
 export type ManageAccountScreenProps = {
   colors: ManageAccountColors;
   /**
+   * iOS only — the app's RESOLVED appearance, forwarded to the `Host` so the
+   * native `Form` follows an explicit Light/Dark choice instead of the device
+   * trait. `SettingsScreen` has always passed this; this screen did not, so
+   * setting Appearance against the system rendered the account sheet in the
+   * system's scheme while every RN surface around it obeyed the app's.
+   */
+  colorScheme?: 'light' | 'dark';
+  /**
    * The read-only facts block. Optional: an app with no real session (the
    * starter) has no facts to state and shows only the actions below.
    */
-  info?: { title: string; rows: ManageAccountInfoRow[] };
+  info?: {
+    title: string;
+    rows: ManageAccountInfoRow[];
+    /**
+     * iOS only. The facts have not arrived yet, so the rows render as Apple's
+     * own placeholder — `redacted(.placeholder)`.
+     *
+     * THE CALLER STILL PASSES A FULL ROW SET while this is true, values and
+     * all; redaction replaces the INK, not the layout, so the card is already
+     * the height and shape it will settle at and nothing moves on hand-off.
+     * That is the whole reason this is a flag rather than a separate skeleton
+     * component: a bone hand-built beside these rows is the repo's most
+     * recurrent defect, and here the real rows can simply stand themselves.
+     *
+     * Android does not read it — a pushed screen whose facts come from the
+     * auth object it was navigated with has nothing to wait for.
+     */
+    loading?: boolean;
+  };
   /**
    * Optional destination sections between `info` and `privacy`. Untitled ones
    * render as a bare card, which is what Apple does for a group whose rows say
@@ -88,7 +114,12 @@ export type ManageAccountScreenProps = {
   danger?: {
     title: string;
     rowLabel: string;
-    /** Supporting line under the row (Android only; iOS rows stay single-line). */
+    /**
+     * What the row will do, in one line. Android sets it as the list item's
+     * supporting text; iOS keeps the row single-line and renders it as the
+     * SECTION FOOTER, which is where Apple explains a destructive group (and
+     * why the iOS side ignores `title` — see `ManageAccountScreen.ios`).
+     */
     rowDescription?: string;
     icon: IconName;
     onPress: () => void;
