@@ -116,7 +116,7 @@ ls node_modules/@expo/ui/build/swift-ui
 Then update the rows and the summary counts. Pair this with the upgrade checklist
 in [`expo-ui-customizations.md`](expo-ui-customizations.md).
 
-## Native-first inventory (iOS) — 2026-07-29
+## Native-first inventory (iOS) — updated 2026-08-16
 
 Standing rule in `AGENTS.md` → "Native primitive first". This is the running
 ledger of iOS surfaces that were authored in RN, what happened to each, and —
@@ -124,20 +124,27 @@ where they stayed RN — the reason, so nobody re-litigates it from scratch.
 
 ### Converted to the system control
 
-| surface                                              | was                                                             | now                                                                                                                                        |
-| ---------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SheetFormIos` chrome (all editor sheets, both apps) | RN header `Pressable`, styled `TextInput`s, `ActivityIndicator` | SwiftUI `Form` + `Section` + `TextField` + `Button` + `ProgressView`                                                                       |
-| Topper edit-item / edit-top, Sound Shaper edit-sound | RN `ScrollView` of hand-drawn rows                              | grouped native `Form`                                                                                                                      |
-| Delete item / top / sound                            | RN outlined pill (Material's `OutlinedButton` in disguise)      | `Button(role: .destructive)` as a `Section` row — full width by construction                                                               |
-| Topper item-detail "Edit item"                       | RN bordered pill                                                | `ActionButtonIos` (`.bordered`)                                                                                                            |
-| `EmptyState.ios` CTA (both apps)                     | filled RN pill                                                  | `ActionButtonIos` (`.borderedProminent`)                                                                                                   |
-| `InlineFollowButton.ios`                             | RN capsule, two hand-picked fills                               | `ActionButtonIos`, prominent = Follow / bordered = Following                                                                               |
-| Topper blocked-users "Unblock"                       | RN tonal pill                                                   | `ActionButtonIos`                                                                                                                          |
-| Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                           | `Form` rows + native `SwipeActions` delete                                                                                                 |
-| `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                     | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                      |
-| Explore "See All" people (`(app)/people.tsx`)        | did not exist — the shelf's action was unwired                  | form sheet over an `insetGrouped` `List` of `PersonListRowIos`, the same native row the search results use                                 |
-| Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                         | one `Host`: SwiftUI `TextField` (`roundedBorder`) + `Button`                                                                               |
-| Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`  | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row |
+| surface                                              | was                                                                                     | now                                                                                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SheetFormIos` chrome (all editor sheets, both apps) | RN header `Pressable`, styled `TextInput`s, `ActivityIndicator`                         | SwiftUI `Form` + `Section` + `TextField` + `Button` + `ProgressView`                                                                                                  |
+| Topper edit-item / edit-top, Sound Shaper edit-sound | RN `ScrollView` of hand-drawn rows                                                      | grouped native `Form`                                                                                                                                                 |
+| Delete item / top / sound                            | RN outlined pill (Material's `OutlinedButton` in disguise)                              | `Button(role: .destructive)` as a `Section` row — full width by construction                                                                                          |
+| Topper item-detail "Edit item"                       | RN bordered pill                                                                        | `ActionButtonIos` (`.bordered`)                                                                                                                                       |
+| `EmptyState.ios` CTA (both apps)                     | filled RN pill                                                                          | `ActionButtonIos` (`.borderedProminent`)                                                                                                                              |
+| `InlineFollowButton.ios`                             | RN capsule, two hand-picked fills                                                       | `ActionButtonIos`, prominent = Follow / bordered = Following                                                                                                          |
+| Topper blocked-users "Unblock"                       | RN tonal pill                                                                           | `ActionButtonIos`                                                                                                                                                     |
+| Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                                                   | `Form` rows + native `SwipeActions` delete                                                                                                                            |
+| `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                                             | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                                                 |
+| Explore "See All" people (`(app)/people.tsx`)        | did not exist — the shelf's action was unwired                                          | form sheet over an `insetGrouped` `List` of `PersonListRowIos`, the same native row the search results use                                                            |
+| Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                                                 | one `Host`: SwiftUI `TextField` (`plain`) + the ⬆ `arrow.up.circle.fill` glyph — Messages' grammar. `roundedBorder` was tried first and drew a legacy border in dark. |
+| Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`                          | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row                            |
+| Topper top-detail item list                          | RN cards imitating a grouped list + `react-native-sortables` drag                       | a real SwiftUI `List`: `SwipeActions` (leading Edit, trailing Delete), `List.ForEach` `onMove` reorder in the DEFAULT mode, system row highlight                      |
+| Topper trash (`trash.ios`)                           | Material cards, a hand-drawn `PILL_RADIUS` Recover capsule, a squashing red text action | `insetGrouped` `List` with `SwipeActions` — leading Recover, trailing Delete Permanently; Empty Trash stays in the bar's ⋯                                            |
+| Topper follow-list / See All / blocked-users         | three separate implementations (RN `Pressable`s, RN cards)                              | ONE `PeopleSheetListIos` over an `insetGrouped` `List` of `PersonListRowIos`; only the trailing verb differs                                                          |
+| Topper editors' bar (edit-top / edit-item)           | an authored header row whose "glass" circles rendered flat                              | the REAL UIKit bar via `sheetCommitBarOptionsIos` — title inline, ✕/✓ in the header slots, genuine Liquid Glass                                                       |
+| Topper reaction row                                  | three hand-drawn RN capsules                                                            | SwiftUI `Button` `.glass` / `.glassProminent`, floating over the list's bottom edge                                                                                   |
+| Topper browse-tile menu                              | no menu (an `ActionSheetIOS` on long-press was the Android shape)                       | a real `ContextMenu` with a `TopCard` preview (`BrowseCellIos`)                                                                                                       |
+| Skeleton placeholder (both apps)                     | a per-bone opacity pulse, every bone in unison                                          | one shared `SkeletonBone` with an app-wide diagonal sweep; reduce-motion falls back to the static shape                                                               |
 
 ### Staying RN, with the reason
 
@@ -152,15 +159,14 @@ and it runs in Explore's search results and in the See All sheet, the latter at
 `expo-ui-customizations.md` is about an `RNHostView` with no intrinsic size; give
 the hosted child a concrete one (the avatar is handed a `size`) and it behaves.
 
-So the remaining avatar rows are REFACTOR CANDIDATES, not blocked work — and the
-refactor is "adopt `PersonListRowIos`", not "write another row":
+That refactor is now DONE for every people list: `follow-list`, Explore's See All
+and Blocked Users are one shared `PeopleSheetListIos`, and `TrashListIos` applies
+the same shape to a list of tops. The rule they establish — adopt the shared row,
+never write another one — is what is left to apply to `CommentRow.ios`.
 
-- `follow-list` rows (RN `Pressable`s today — the last hand-built people list)
-- `CommentRow.ios`, `ProfileHeader.ios`
-
-The genuine remaining limit is a row whose artwork CANNOT be given a concrete
+The genuine remaining limits are a row whose artwork CANNOT be given a concrete
 size up front, and a `Host` per cell across a large grid (see `emoji-picker`
-below, and the browse grid's rejection note in Explore's route).
+below, and the browse grid's note in `BrowseCellIos`).
 
 Other standing exceptions:
 
@@ -174,18 +180,23 @@ Other standing exceptions:
 
 ### Still to do
 
-- **`CommentRow.ios` → a native `List` row with `swipeActions`.** No longer
-  blocked by the avatar — `PersonListRowIos` proves a hosted avatar inside a
-  native `List` row (see above). What is left is ordinary work: move the row
-  into a `List`, take `swipeActions`, and drop the long-press + `•••`
-  `ActionSheetIOS` menu for the native gesture. (The composer beside it IS
-  converted.)
-- **`follow-list` → `PersonListRowIos`.** It is the same surface as the See All
-  sheet — a list of people in a form sheet — still drawing RN `Pressable` rows
-  with a hand-typeset heading instead of the sheet's own bar. Standardising it
-  is the single highest-value item left in this section.
-- `ProfileHeader.ios` for the same reason, whenever the profile screen is
-  refactored.
+- **`CommentRow.ios` → a native `List` row with `SwipeActions`.** The last
+  hand-built row of consequence. Not blocked: `PersonListRowIos` proves a hosted
+  avatar inside a native `List` row, and `TopItemListIos` proves swipe actions on
+  one. What is left is ordinary work — move the row into a `List`, take the swipe
+  for Delete/Report, and drop the long-press + hand-drawn `•••`
+  `ActionSheetIOS` menu. Note the one real constraint before starting: the
+  comments sheet's thread sits ABOVE a pinned composer, so the `List` has to
+  cohabit with `useSheetKeyboardInset` rather than own the whole sheet.
+- **`ProfileHeader.ios` — SETTLED AS AUTHORED RN, not outstanding work.** iOS has
+  no native container for a centred profile header, and the two things inside it
+  that iOS DOES provide are now the platform's own: the Follow control is
+  `ActionButtonIos` and the verified mark is an SF Symbol. Only the avatar (a
+  remote URL) and the stat presses remain RN, both for documented reasons. It was
+  listed here as a refactor candidate; it is not one.
+- **`emoji-picker` cells** — unchanged: a `Host` per emoji across a large grid is
+  a perf non-starter, and the whole picker would have to become a SwiftUI
+  `LazyVGrid`.
 
 ### Gotchas found doing this
 
@@ -201,7 +212,7 @@ Other standing exceptions:
   in a centred column or a row's trailing slot (both auto-width) the control
   measures ~0 wide and you get a tall empty bar with no label — not a narrow
   button. `ActionButtonIos` therefore hugs BOTH axes; only
-  `SheetDestructiveButtonIos`, which a `Section` row hands a width, may hug one.
+  `SheetFormDestructiveIos`, which a `Section` row hands a width, may hug one.
   This shipped broken in the `EmptyState.ios` CTA and was invisible to
   typechecking — it is the reason every one of these needs a screenshot.
 - **A swipe action translates the row's own content left by the action's full
@@ -221,6 +232,34 @@ Other standing exceptions:
   through the `TextFieldRef` (`setText` / `clear` / `focus`).
 - `RNHostView` takes no `style` and `matchContents` is boolean-only, so the RN
   child must carry its own size and centre itself.
+
+- **A swipe action with `role="destructive"` REMOVES THE ROW THE MOMENT IT IS
+  TAPPED** — before any confirmation alert has run, so a Cancel leaves live data
+  invisible until the next snapshot (sim-caught 2026-08-15). Get the red from
+  `tint(colors.danger)` instead; the row then leaves only when the data does.
+  `allowsFullSwipe={false}` on anything permanent, too — a flick past the
+  threshold should not be able to commit an unrecoverable action.
+- **`RNHostView` inside a `List.ForEach` row renders the WHOLE ROW BLANK**
+  (bisected on the simulator 2026-08-15 — the same row renders once the RN bridge
+  is removed). This is the FlatList/Host-per-row trap family, now confirmed for
+  `ForEach`. Artwork inside a `ForEach` must therefore be pure SwiftUI: resolve
+  the remote URL to expo-image's DISK CACHE path and hand `Image` a `file://` via
+  `uiImage`, prefetching through expo-image so both stacks share one cache. A
+  plain child of the `List` (not inside the `ForEach`) can still bridge normally.
+- **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
+  `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
+  puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail
+  spacer has to subtract it.
+- **A grouped list's separator inset follows the leading edge of the row's TEXT,
+  not its artwork** — which cuts both ways depending on what leads the row. A
+  person row (image first) insets past the avatar and its gap (measured 72); a
+  top-detail item row leads with the rank NUMERAL, and its separator measured
+  26.33 from the card edge, nowhere near the artwork. Measure it per row shape;
+  do not derive it.
+- **`redacted(.placeholder)` IS exposed** by @expo/ui 57 (`modifiers/index.d.ts`)
+  and is the right skeleton for a surface that is already a SwiftUI `List`. It is
+  static by design — Apple ships no shimmer. It cannot reach an RN scroller,
+  which is why `SkeletonBone` exists for everything else.
 
 ### Simulator gotcha while verifying these
 

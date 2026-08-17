@@ -163,3 +163,57 @@ What the native option space actually is, measured:
 If this is revisited: fix the mount handshake in react-native-screens first
 (or find a shipped RNS release that has), then flip the one flag back. The
 tuck behaviour itself needed no other code.
+
+## Topper's downvote NUDGE on iOS — REMOVED 2026-08-15, product call
+
+Built TWICE — first as a floating card under the reaction row, then as the ⬇
+button's native `popover` — and removed both times. The popover presented
+**mis-anchored on first open on device** and went stale across a theme change,
+but the deciding reason was product rather than polish: someone with something
+to say opens comments themselves, and actively soliciting the comment is noise
+(Juan's call). Android keeps its card because Android is frozen for release, so
+`TopReactions` still renders it behind `Platform.OS !== 'ios'`.
+
+## A REORDER MODE on Topper's item list — REMOVED 2026-08-15
+
+The native `List` briefly carried an edit-mode toggle in the nav bar (system
+minus-buttons, drag handles). Removed: `List.ForEach`'s `onMove` works in the
+list's **default** mode, so long-press-and-drag already reorders, and the swipe
+actions already carry Edit/Delete — the mode was a bar glyph and a state switch
+for something the default gesture does. Each own row shows the
+`line.3.horizontal` grabber as a hint, not as a handle-only hit target.
+
+## `role="destructive"` on a swipe action that needs confirming — BROKEN, 2026-08-15
+
+Not a taste call, a correctness one. SwiftUI removes the row the instant a
+destructive swipe action is tapped — **before** the confirmation alert runs — so
+choosing Cancel left a live item invisible until the next snapshot. Ship
+`tint(colors.danger)` instead: identical red, and the row leaves only when the
+data actually deletes. Applies to Topper's item list and to the trash list.
+
+## FULL-HEIGHT detents on the Topper editors, to escape the sheet dimming — REJECTED 2026-08-14
+
+Below the large detent iOS keeps the presenting window primary and renders the
+sheet's hosted SwiftUI in the **inactive-window appearance**: the tint chain
+greys and dynamic grouped fills desaturate. Chased end to end — it is the DETENT
+and nothing else (the identical `Form` at `[1]` matches Settings exactly);
+`sheetLargestUndimmedDetentIndex` only undims the PRESENTER, and the menu
+picker's value colour is UIKit's, out of reach. Both options were shipped side by
+side and the **content-sized sheet WITH the OS dimming** was chosen: the dimming
+is what iOS does to a non-primary sheet. Do not "fix" the colours by pushing the
+detents back to `[1]`.
+
+## An ANIMATED shimmer as the first thing tried for skeletons — inverted, 2026-08-16
+
+Recorded because the instinct is to reach for the wave immediately, and the
+honest finding is that **Apple ships a static skeleton**:
+`.redacted(reason: .placeholder)` is first-party, is exposed by @expo/ui 57, and
+does not animate — App Store, Music and News all show static grey blocks. The
+sweep that shipped is Facebook's, and it is product-category vernacular rather
+than a platform idiom. It earns its place ONLY because these apps wait on a
+network, where a static block reads as frozen; reduce-motion falls back to
+Apple's answer. On a surface that is already a SwiftUI `List`, prefer `redacted`.
+
+The pulse it replaced is the thing not to rebuild: a per-bone opacity fade, every
+bone sharing one phase, so the screen throbbed as a single object and the page
+changed contrast instead of something moving across it.

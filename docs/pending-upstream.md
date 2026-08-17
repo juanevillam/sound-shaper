@@ -94,6 +94,11 @@ largest internal gap of **23.7pt** (icon→title; title→description is 7.7). T
 and at the 20 it shipped with the gap was 57.0pt, 2.4× the widest rhythm Apple
 uses inside the view. Juan spotted that by eye before it was measured.
 
+Since 2026-08-16 the sibling button no longer hand-rolls its modifiers: it takes
+`actionButtonModifiersIos` from `@portfolio/mobile-ui`, the same stack
+`ActionButtonIos` applies, so the CTA cannot drift from the portfolio's button
+while it waits. Only the `Host` differs (one cannot nest inside another).
+
 **What unlocks it.** `ContentUnavailableViewProps` gaining `children` or an
 `actions` prop. On the day it lands: move the button inside, delete the
 wrapping `VStack` (and `CTA_SPACING`) from `EmptyState.ios.tsx`, and the gap

@@ -1,11 +1,20 @@
 # Mobile UI
 
-`@portfolio/mobile-ui` — shared, Android-first React Native UI for the monorepo's
-Expo apps: design tokens, a typed icon set, the shared Welcome and Settings
-screens, dialogs, and splash / animation helpers. Built on
-[`@expo/ui`](https://docs.expo.dev/versions/latest/sdk/ui/jetpack-compose/)
-(Jetpack Compose), with SwiftUI counterparts via Metro's `.ios.tsx` resolution —
-the base `.tsx` file is Android and the type source; same prop API on both.
+`@portfolio/mobile-ui` — the shared React Native UI for the monorepo's Expo
+apps: design tokens, a typed icon set, the shared Welcome / Settings /
+Manage-account screens, the iOS sheet + bar chrome, dialogs, and splash /
+animation helpers. Built on [`@expo/ui`](https://docs.expo.dev/versions/latest/sdk/ui/jetpack-compose/)
+— Jetpack Compose on Android, SwiftUI on iOS — via Metro's `.ios.tsx`
+resolution; the base `.tsx` file is Android and the type source, and both sides
+share one prop API.
+
+**Both platforms are first-class now.** The package began Android-first, but iOS
+is the active workstream and its surfaces are simulator-verified, not
+doc-driven. Two naming conventions follow from that (see the root `AGENTS.md`):
+a component with an Android twin takes the `.ios.tsx` suffix, while one that
+exists ONLY on iOS carries `Ios` in its NAME (`SheetFormIos`,
+`HeaderGlyphButtonIos`) — the type checker never applies the `.ios` suffix, so a
+suffixed file with no twin needs a stub beside it.
 
 Private and workspace-only. Consumed as **TypeScript source** — `main` / `types`
 point at `src/index.ts`, so there is **no build step**; apps transpile it through
@@ -25,6 +34,9 @@ import {
   SettingsScreen,
   buildAboutSettingsSection,
   DestructiveConfirmDialog,
+  SkeletonBone,
+  SheetFormBodyIos,
+  sheetCommitBarOptionsIos,
   spacing,
 } from '@portfolio/mobile-ui';
 ```
@@ -50,6 +62,24 @@ import {
 | `GROUP_ROW_GAP`, `GROUP_SIDE_PADDING`, `groupRowShape`                                             | The M3 grouped-card row metrics/shapes shared by settings-style screens.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `setSplashHidden` / `useSplashHidden`                                                              | Tiny global store for "has the splash screen hidden" — set once, subscribe anywhere.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
+| `ManageAccountScreen` | Drop-in account screen — identity rows, nav rows, and the delete-account entry. Same prop-driven contract as `SettingsScreen`; an app without a feature omits its prop. |
+| `SkeletonBone` | THE loading placeholder for every app. Static `surfaceVariant` fill under a highlight that sweeps diagonally, driven by ONE app-wide clock and positioned from each bone's on-screen location — so bones light at different moments instead of throbbing in unison. Reduce-motion drops the band and leaves the static shape (which is Apple's own answer — see the file for why `.redacted` was rejected). Each app keeps only its content-shaped bones. |
+| `SheetFormIos` / `SheetFormBodyIos` | The iOS form-sheet body. `SheetFormBodyIos` is for a TITLED route (UIKit bar carries the title, ✕/✓ ride the header slots — the only arrangement with genuine Liquid Glass); `SheetFormIos` draws its own authored header for sheets that are not titled routes. Two components rather than one flag, because a flag left five props dead at every titled call site. |
+| `sheetCommitBarOptionsIos` | Apple's commit-modal pair as `Stack.Screen` options — title + ✕ `headerLeft` + ✓ `headerRight`. One statement of an editor sheet's bar for the whole portfolio; a route passes only its own words and its own validity. |
+| `SheetFormFieldIos` / `SheetFormMediaIos` / `SheetFormDestructiveIos` / `SheetCommitGlyphIos` | The form's rows: an uncontrolled native `TextField` row, Contacts' centred media-over-caption row, the full-width destructive `Section` row, and the ✓ bar glyph with its busy spinner. |
+| `ActionButtonIos` / `actionButtonModifiersIos` | THE portfolio button on iOS — a system `Button`, `prominent` (primary) or `bordered` (settled), sized `small`/`regular`/`large` by its container. The modifier stack is exported separately for the one caller that cannot nest a `Host` (`EmptyState.ios`'s CTA), so it still gets the identical control. |
+| `HeaderGlyphButtonIos` / `HeaderGlyphGroupIos` (+ `HEADER_GLYPH_SIZE`, `HEADER_CLOSE_GLYPH_SIZE`) | SF Symbol bar-button items, label-coloured on the system's glass (iOS 26 marks tappability with the capsule, not with tint). Use the GROUP when a bar needs two adjacent items — a screen-level `headerRight` REPLACES the one a sheet's options supply, so rendering one glyph silently drops the other. |
+| `SwiftUIHost` | `Host` wrapper with the safe-area handling bar items need (`ignoreSafeArea`) — a bar item framed by the safe area shifts when the keyboard opens. |
+| `SquashPressable` / `PRESS_SCALE` / `PRESS_SPRING` / `usePressSquash` | The portfolio's ONE press spring for tiles and cards (0.97, damping 22 / mass 0.4 / stiffness 360). Never hand-roll a scale. |
+| `PRESSED_OPACITY` / `BRAND_PRESSED_OPACITY` / `ICON_PRESS_OPACITY` / `ICON_PRESS_SCALE` | The fade treatment for INLINE rows and text actions — the other half of the press-language split (tiles squash, inline fades, native containers keep the system's own feedback). One constant because it was once declared in seven files at three values. |
+| `createText` / `TEXT_VARIANTS` | The shared type scale. Bones read line heights off it rather than copying numbers, since the scale is platform-split. |
+| `SnackbarProvider` / `useSnackbar` / `SnackbarContext` | App-level snackbar overlay (Android idiom; iOS uses it only for failures that have nowhere else to land). No SwiftUI equivalent — see the component matrix. |
+| `StateLab` | The DEV state picker — pins any surface to any one of its states so they can be stepped side by side. `__DEV__`-gated; each app supplies its own state groups and fixtures. |
+| `SheetBar` / `useSheetKeyboardInset` | Sheet chrome, and the keyboard inset for anything PINNED to a sheet's bottom — keyboard avoidance is a property of the container, not of the control (a `Form` handles its own). |
+| `CollapsingHeaderBar` / `CollapsingHeaderTitle` / `useCollapsingHeader` | The hand-built collapsing header, still used on Android and by Sound Shaper. iOS prefers the system large title (`headerLargeTitle`), which does the same job natively. |
+| `InitialArt` | The initial-letter placeholder every art-less surface falls back to. |
+| `useNavigationTheme` | React Navigation theme wired to the app palette — the fix for the dark-mode nav flicker caused by RN Navigation's `DefaultTheme`. |
+
 ## Adding an icon
 
 Icons come from Google's [`@expo/material-symbols`](https://www.npmjs.com/package/@expo/material-symbols)
@@ -71,6 +101,9 @@ Provided by the host app: `@expo/ui`, `expo-asset`, `expo-image`, `react`,
 `react-native`, `react-native-reanimated`, `react-native-safe-area-context`,
 `react-native-svg`. (Direct dependency: `@expo/material-symbols`.)
 
-> Android-first: the shared screens render through `@expo/ui` Jetpack Compose;
-> `.ios.tsx` variants cover SwiftUI (doc-driven, device-unverified). See the root
-> [README](../../README.md) for monorepo tooling and conventions.
+> The shared screens render through `@expo/ui` — Jetpack Compose on Android,
+> SwiftUI on iOS. The iOS side is simulator-verified on iPhone 17 / iOS 26.5;
+> every measured constant in this package names the device and OS it was
+> band-scanned on. See the root [README](../../README.md) for monorepo tooling
+> and conventions, and [`docs/expo-ui-customizations.md`](../../docs/expo-ui-customizations.md)
+> for the SwiftUI gotchas these components work around.
