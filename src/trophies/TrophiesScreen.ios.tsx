@@ -3,9 +3,10 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
   Button,
   Form,
+  Gauge,
   Host,
   HStack,
-  ProgressView,
+  Image,
   RNHostView,
   Section,
   Spacer,
@@ -15,6 +16,8 @@ import {
 import {
   font,
   foregroundStyle,
+  frame,
+  gaugeStyle,
   headerProminence,
   scrollContentBackground,
   tint,
@@ -28,7 +31,7 @@ import {
   type TrophiesScreenStrings,
 } from './TrophiesScreen';
 import { TrophyIcon } from './TrophyIcon';
-import { type ResolvedTrophy } from './types';
+import { type ResolvedTrophy, type TrophyTier } from './types';
 
 /**
  * iOS counterpart of `TrophiesScreen` — same prop API. The trophy list is a
@@ -54,11 +57,17 @@ import { type ResolvedTrophy } from './types';
  * grouped header is uppercased caption, and "7 of 7 earned" is a status line,
  * not a category label.
  *
- * THE BAR IS APPLE'S. `ProgressView(value:)` replaced a hand-painted track View
- * with a fill View inside it — which was `UIProgressView` redrawn by hand, the
- * same mistake the edit sheets and the verified badge each paid for once. It
- * takes the Form's `tint`, the system's own height and radius, and Dynamic Type
- * with everything else.
+ * THE SUMMARY IS A RING, NOT A BAR. It went headline + hand-painted track, then
+ * headline + a real `ProgressView`, and the second was native but still the
+ * wrong SHAPE: a labelled bar is the Material vocabulary for progress, and it
+ * read as one on a screen that is otherwise all grouped iOS chrome. Apple's own
+ * answer to "how much of this is done" is the Activity ring, and SwiftUI ships
+ * it as `Gauge(circularCapacity)`.
+ *
+ * The layout is Fitness's: ring, then the count beside it, then the metrics
+ * under the count. Those metrics are data the screen already held and threw
+ * away — every trophy knows its tier, so "7 of 7" can say WHICH seven. See the
+ * header itself for why they wear tier colour.
  */
 const ICON_SIZE = 26;
 const ICON_SLOT = 34;
@@ -67,23 +76,22 @@ const ICON_SLOT = 34;
  * THE PROGRESS HEADER'S OWN GEOMETRY, for the ONE bridged host that stands it
  * while the award cache loads.
  *
- * The header is native `Text` + `ProgressView` once the counts are real — the
+ * The header is a native `Gauge` + `Text` once the counts are real — the
  * platform primitives, which is the whole reason the summary moved into the
- * `Section` in the first place. It cannot ALSO bone its two figures in place:
+ * `Section` in the first place. It cannot ALSO bone its parts in place:
  * a bridged host per figure is a second and third `RNHostView` in one row, and
  * that blew the layout apart (titles clipped off the leading edge, the icon
  * slot gone, the header collapsed to a stub). One host per row is the ceiling.
  *
- * So the loading header is a SINGLE host holding the whole summary in RN — two
- * bones and a track — and every number here exists to land it exactly where the
- * native one sits. MEASURED off the live header (iPhone 17 / iOS 26.5, light):
+ * So the loading header is a SINGLE host holding the whole summary in RN — a
+ * disc for the ring and two bars for the count and the pips — and the numbers
+ * here exist to land it exactly where the native one sits. Verified by
+ * band-scan (iPhone 17 / iOS 26.5): card top 218.0 and every separator
+ * identical between the two states.
  *
- *   header content box   x 32.0 → 370.0     (338 wide; the grouped header's
- *                                            inset is 32, not the card's 18)
- *   progress bar         y 180.33 → 184.33  (4pt tall)
- *   card top             y 194.33           (10 below the bar)
- *
- * Re-measure those three if the header's type or `headerProminence` changes.
+ * The header content box is 338 wide at a 32pt inset — the grouped header's
+ * inset, not the card's 18. Re-measure if the header's type or
+ * `headerProminence` changes.
  */
 const HEADER_INSET = 32;
 /**
@@ -92,10 +100,32 @@ const HEADER_INSET = 32;
  * followed it down by the same 1.67, so the box is that much smaller.
  */
 const HEADER_LINE_BOX = 20.33;
-/** The `VStack`'s own spacing between the figures and the bar. */
-const HEADER_GAP = 8;
-/** `ProgressView`'s linear track, measured at 180.33 → 184.33. */
-const HEADER_BAR_HEIGHT = 4;
+/**
+ * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
+ * answer to "how much of this is done", and the reason the summary stopped
+ * being a linear bar: a `ProgressView` under a headline is the Material shape
+ * for progress, and it read as one on a screen that is otherwise all native
+ * grouped chrome.
+ *
+ * An accessory gauge draws small by default, so the frame states the size the
+ * header wants rather than accepting the widget one.
+ */
+const RING_SIZE = 56;
+/** The ring → text gap, and the tier row's own rhythm. */
+const HEADER_ROW_GAP = 16;
+const TIER_PIP_GAP = 12;
+const TIER_GLYPH_SIZE = 12;
+/** The count over the pips, inside the header's text column. */
+const HEADER_TEXT_GAP = 6;
+/** The pip row's own line box, and what its bone spans across four tiers. */
+const TIER_PIP_LINE_BOX = 20;
+const TIER_PIP_ROW_WIDTH = 132;
+
+/**
+ * PLATINUM FIRST, then down — PlayStation's order, which is the vernacular this
+ * trophy module is built in, and it puts the rarest thing where the eye lands.
+ */
+const TIER_ORDER: TrophyTier[] = ['platinum', 'gold', 'silver', 'bronze'];
 
 const TrophyRow = ({
   trophy,
@@ -229,6 +259,20 @@ export const TrophiesScreen = ({
   onTrophyPress,
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
+
+  /**
+   * EARNED per tier — what the pips count. Derived here rather than asked of
+   * the caller: every app that has trophies has tiers, and the screen already
+   * holds the resolved list, so a prop would only be a second place for the
+   * two to disagree.
+   */
+  const earnedByTier = TIER_ORDER.reduce<Record<TrophyTier, number>>(
+    (acc, tier) => ({
+      ...acc,
+      [tier]: trophies.filter(t => t.tier === tier && t.unlocked).length,
+    }),
+    {} as Record<TrophyTier, number>,
+  );
   const { width: screenWidth } = useWindowDimensions();
   const headerWidth = screenWidth - HEADER_INSET * 2;
 
@@ -248,26 +292,61 @@ export const TrophiesScreen = ({
                */
               <RNHostView matchContents>
                 <View style={[styles.headerBone, { width: headerWidth }]}>
-                  <View style={styles.headerFigures}>
-                    <SkeletonBone width={140} height={15} />
-                    <SkeletonBone width={42} height={13} />
-                  </View>
-                  {/* The track, at the bar's own height — an empty
-                      `ProgressView` and a bone of the same size read alike, and
-                      this one sweeps with everything else on screen. */}
+                  {/* Stands the ring, then the count over the pip row — the
+                      same three things the settled header shows, in the same
+                      places. */}
                   <SkeletonBone
-                    width="100%"
-                    height={HEADER_BAR_HEIGHT}
-                    radius={HEADER_BAR_HEIGHT / 2}
+                    width={RING_SIZE}
+                    height={RING_SIZE}
+                    radius={RING_SIZE / 2}
                   />
+                  <View style={styles.headerBoneText}>
+                    <View style={styles.headerHeadlineLine}>
+                      <SkeletonBone width={140} height={15} />
+                    </View>
+                    <View style={styles.headerPipLine}>
+                      <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
+                    </View>
+                  </View>
                 </View>
               </RNHostView>
             ) : (
-              <VStack alignment="leading" spacing={HEADER_GAP}>
-                {/* `lastTextBaseline`, so the tinted percent sits on the same
-                    line as the progress sentence rather than centring against
-                    it — the two are set at different sizes. */}
-                <HStack alignment="lastTextBaseline">
+              /**
+               * RING + COUNT + TIER PIPS — Fitness's own summary layout: the
+               * gauge carries the fraction, the text beside it carries the
+               * number, and the metrics sit under the number.
+               *
+               * The pips are real data the screen already had and was throwing
+               * away: every trophy knows its tier, so "7 of 7" can say WHICH
+               * seven. They wear `tierColor`, the same colours the row icons
+               * use, so the summary needs no legend — and platinum leads,
+               * PlayStation's order, which is the vernacular this module is
+               * built in.
+               */
+              <HStack alignment="center" spacing={HEADER_ROW_GAP}>
+                <Gauge
+                  value={fraction}
+                  // The percent lives INSIDE the ring, which is what the
+                  // `currentValueLabel` slot is for — it fills a centre that
+                  // otherwise reads as a decorative circle, and it keeps the
+                  // figure the old header showed instead of dropping it.
+                  currentValueLabel={
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'caption', weight: 'semibold' }),
+                        foregroundStyle(colors.onSurface),
+                      ]}
+                    >
+                      {strings.percent}
+                    </Text>
+                  }
+                  modifiers={[
+                    gaugeStyle('circularCapacity'),
+                    tint(colors.primary),
+                    frame({ width: RING_SIZE, height: RING_SIZE }),
+                  ]}
+                />
+                <VStack alignment="leading" spacing={6}>
                   <Text
                     modifiers={[
                       font({ textStyle: 'headline' }),
@@ -276,18 +355,28 @@ export const TrophiesScreen = ({
                   >
                     {strings.progress}
                   </Text>
-                  <Spacer />
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'subheadline', weight: 'semibold' }),
-                      foregroundStyle(colors.primary),
-                    ]}
-                  >
-                    {strings.percent}
-                  </Text>
-                </HStack>
-                <ProgressView value={fraction} />
-              </VStack>
+                  <HStack spacing={TIER_PIP_GAP}>
+                    {TIER_ORDER.map(tier => (
+                      <HStack key={tier} spacing={3}>
+                        <Image
+                          systemName="trophy.fill"
+                          size={TIER_GLYPH_SIZE}
+                          color={tierColor(tier)}
+                        />
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'subheadline' }),
+                            foregroundStyle(tierColor(tier)),
+                          ]}
+                        >
+                          {String(earnedByTier[tier])}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </HStack>
+                </VStack>
+                <Spacer />
+              </HStack>
             )
           }
         >
@@ -359,12 +448,18 @@ const styles = StyleSheet.create({
   // The body and footnote line boxes the native row stacks.
   titleLine: { height: 22, justifyContent: 'center' },
   supportingLine: { height: 18, justifyContent: 'center' },
-  headerBone: { gap: HEADER_GAP },
-  headerFigures: {
-    alignItems: 'flex-end',
+  /** Explicit box, margins not `gap` — see `rowBone` for why. */
+  headerBone: {
+    alignItems: 'center',
     flexDirection: 'row',
-    height: HEADER_LINE_BOX,
-    justifyContent: 'space-between',
+    height: RING_SIZE,
+  },
+  headerBoneText: { marginLeft: HEADER_ROW_GAP },
+  headerHeadlineLine: { height: HEADER_LINE_BOX, justifyContent: 'center' },
+  headerPipLine: {
+    height: TIER_PIP_LINE_BOX,
+    justifyContent: 'center',
+    marginTop: HEADER_TEXT_GAP,
   },
   iconSlot: {
     alignItems: 'center',
