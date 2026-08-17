@@ -18,8 +18,10 @@ import {
   foregroundStyle,
   frame,
   gaugeStyle,
-  headerProminence,
-  padding,
+  listRowBackground,
+  listRowInsets,
+  listRowSeparator,
+  listSectionSpacing,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -40,23 +42,25 @@ import { type ResolvedTrophy, type TrophyTier } from './types';
  * screen uses: system cell background, separators, radius, press highlight).
  * The trophy glyph (react-native-svg) bridges into each row via RNHostView.
  *
- * THE PROGRESS SUMMARY IS THE SECTION'S OWN HEADER, and that is what makes this
- * screen one scroller instead of two stacked boxes. It was a plain RN block
- * ABOVE the Form, which cost the sheet its bar: pinned chrome over a scroller
- * slides under a transparent nav bar, so the route had to carry
- * `pinnedHeader` — an OPAQUE bar, no scroll-edge effect, and a title that could
- * not collapse, on the one sheet in the account family that behaved that way.
- * Inside the Form, UIKit tracks the scroll again and the bar is Liquid Glass
- * like every other sheet's.
+ * THE PROGRESS SUMMARY LIVES INSIDE THE FORM, which is what makes this screen
+ * one scroller instead of two stacked boxes. It was a plain RN block ABOVE the
+ * Form, and that cost the sheet its bar: pinned chrome over a scroller slides
+ * under a transparent nav bar, so the route had to carry `pinnedHeader` — an
+ * OPAQUE bar, no scroll-edge effect, and a title that could not collapse, on
+ * the one sheet in the account family that behaved that way. Inside the Form,
+ * UIKit tracks the scroll again and the bar is Liquid Glass like every other
+ * sheet's.
  *
- * IT IS NOT THE CARD THAT WAS REJECTED. Boxing the summary as its own one-row
- * `Section` read as a stray pill that broke the page flow (user-flagged, and
- * still true). A grouped section HEADER is the other thing entirely: it sits ON
- * the grouped background, at the section inset, with no fill and no radius —
- * which is exactly where the RN block was drawing, minus the pinning.
- * `headerProminence('increased')` is what keeps it a real sentence: a standard
- * grouped header is uppercased caption, and "7 of 7 earned" is a status line,
- * not a category label.
+ * IT IS THE SCREEN'S OPENING BLOCK, NOT THE LIST'S HEADER. It spent a while as
+ * a `Section` header, and that is precisely why it read as a caption however
+ * large the type got: a grouped header is structurally a LABEL FOR THE THING
+ * BELOW IT, so scale can never promote it. As its own section with the row's
+ * fill cleared, its insets zeroed and its separator hidden, the same pixels
+ * become page content — the screen's headline, with the list as its body.
+ *
+ * IT IS STILL NOT A CARD. Boxing it read as a stray pill breaking the page flow
+ * (user-flagged, and still true), which is why the row's background is cleared
+ * rather than left to the grouped default.
  *
  * THE SUMMARY IS A RING, NOT A BAR. It went headline + hand-painted track, then
  * headline + a real `ProgressView`, and the second was native but still the
@@ -94,6 +98,13 @@ const ICON_SLOT = 34;
  * inset, not the card's 18. Re-measure if the header's type or
  * `headerProminence` changes.
  */
+/**
+ * A CLEARED ROW FILL. `listRowBackground` takes a colour string, so "no card"
+ * is a fully transparent one — which is what turns the summary's row from a
+ * grouped cell into page content.
+ */
+const TRANSPARENT = '#00000000';
+
 const HEADER_INSET = 32;
 /**
  * The headline's line box — what the two figures sit in. SOLVED, not guessed:
@@ -113,24 +124,31 @@ const HEADER_LINE_BOX = 25;
  */
 const RING_SIZE = 72;
 /**
- * HOW MUCH THE SUMMARY GIVES BACK AT ITS BOTTOM, so the gap down to the card
- * matches Home's.
+ * THE GAP FROM THE SUMMARY DOWN TO THE LIST, matched to Home's.
  *
  * Home's Following feed sets the rhythm for "a person's line, then their card",
  * and this sheet is the same shape one level down: a summary, then the thing it
- * summarises. Band-scanned last-ink to card-edge on iPhone 17 / iOS 26.5:
+ * summarises. Band-scanned last-ink to card-edge on iPhone 17 / iOS 26.5, on a
+ * clean column (reading either card through its rounded corner biases the two
+ * differently):
  *
- *   Home     @handle ink 504.67 → card 515.00   = 10.33
- *   Trophies pip ink   210.33 → card 234.00     = 23.67
+ *   Home      @handle ink 504.67 → card 515.00  = 10.33   ← the target
+ *   Trophies  pip ink 240.00 → card 284.00      = 44.00   at default spacing
  *
- * A grouped `Section` header reserves more room beneath itself than an RN
- * column does, so the difference is UIKit's and the only way to spend it is to
- * hand it back. 23.67 − 10.33 = 13.34.
+ * `listSectionSpacing` IS THE KNOB, not padding. Negative padding was tried
+ * first and CLIPS this row rather than pulling it — the ring came out flattened
+ * top and bottom and the pip digits lost their descenders, which is what a
+ * zero-inset row does with a negative inset. Section spacing is the semantic
+ * term for the space between two sections, and it simply moves the list.
+ *
+ * The value is solved, not guessed: at 10 the gap measured 19.00, so ~8.67 of
+ * the total is the row's own residual and the spacing has to be 10 − 8.67.
+ * Verified at 10.33 exactly.
  *
  * Re-measure BOTH if either side's type changes — the point is the match, not
  * the number.
  */
-const HEADER_BOTTOM_TRIM = -13.34;
+const SUMMARY_TO_LIST_GAP = 1.33;
 
 /** The ring → text gap, and the tier row's own rhythm. */
 const HEADER_ROW_GAP = 16;
@@ -322,55 +340,56 @@ export const TrophiesScreen = ({
       <Form
         modifiers={[scrollContentBackground('hidden'), tint(colors.primary)]}
       >
-        <Section
-          modifiers={[headerProminence('increased')]}
-          header={
-            loading ? (
-              /**
-               * ONE HOST for the whole summary — see the constants above for
-               * why it is not two bones dropped into the native header, and
-               * for the anchors this has to land on.
-               */
-              // THE TRIM RIDES AN OUTER WRAPPER, not the framed one. On a view
-              // that already carries a `frame` the negative padding never
-              // reached the layout — the bone header sat 13.33 low against the
-              // settled one, i.e. exactly untrimmed. The settled header applies
-              // it to its own outermost container too, so the two agree by
-              // construction.
-              <VStack modifiers={[padding({ bottom: HEADER_BOTTOM_TRIM })]}>
-                <VStack
-                  modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
-                >
-                  <RNHostView>
-                    <View style={[styles.headerBone, { width: headerWidth }]}>
-                      {/* Stands the ring, then the count over the pip row —
-                          the same three things the settled header shows, in
-                          the same places. */}
-                      <SkeletonBone
-                        width={RING_SIZE}
-                        height={RING_SIZE}
-                        radius={RING_SIZE / 2}
-                      />
-                      <View style={styles.headerBoneText}>
-                        <View style={styles.headerHeadlineLine}>
-                          <SkeletonBone width={140} height={15} />
-                        </View>
-                        <View style={styles.headerPipLine}>
-                          <SkeletonBone
-                            width={TIER_PIP_ROW_WIDTH}
-                            height={12}
-                          />
-                        </View>
+        {/**
+         * THE SUMMARY IS THE SCREEN'S OPENING BLOCK, not the list's header.
+         *
+         * It WAS a `Section` header, and that is why it read as a caption no
+         * matter how large the type got: a grouped header is structurally a
+         * LABEL FOR THE THING BELOW IT, so scale alone could never promote it.
+         * As its own section with the row's fill cleared, its insets zeroed and
+         * its separator hidden, the same pixels stop being a label and become
+         * page content — the screen's headline, with the list reading as its
+         * body. It is deliberately NOT given a card: that was tried and read as
+         * a stray pill breaking the page flow.
+         */}
+        <Section modifiers={[listSectionSpacing(SUMMARY_TO_LIST_GAP)]}>
+          <VStack
+            modifiers={[
+              listRowBackground(TRANSPARENT),
+              listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
+              listRowSeparator('hidden'),
+            ]}
+          >
+            {loading ? (
+              <VStack
+                modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
+              >
+                <RNHostView>
+                  <View style={[styles.headerBone, { width: headerWidth }]}>
+                    {/* Stands the ring, then the count over the pip row —
+                        the same three things the settled summary shows, in
+                        the same places. */}
+                    <SkeletonBone
+                      width={RING_SIZE}
+                      height={RING_SIZE}
+                      radius={RING_SIZE / 2}
+                    />
+                    <View style={styles.headerBoneText}>
+                      <View style={styles.headerHeadlineLine}>
+                        <SkeletonBone width={170} height={17} />
+                      </View>
+                      <View style={styles.headerPipLine}>
+                        <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
                       </View>
                     </View>
-                  </RNHostView>
-                </VStack>
+                  </View>
+                </RNHostView>
               </VStack>
             ) : (
               /**
                * RING + COUNT + TIER PIPS — Fitness's own summary layout: the
-               * gauge carries the fraction, the text beside it carries the
-               * number, and the metrics sit under the number.
+               * gauge carries the fraction, the count beside it is the
+               * screen's headline, and the metrics sit under the headline.
                *
                * The pips are real data the screen already had and was throwing
                * away: every trophy knows its tier, so "7 of 7" can say WHICH
@@ -379,11 +398,7 @@ export const TrophiesScreen = ({
                * PlayStation's order, which is the vernacular this module is
                * built in.
                */
-              <HStack
-                alignment="center"
-                spacing={HEADER_ROW_GAP}
-                modifiers={[padding({ bottom: HEADER_BOTTOM_TRIM })]}
-              >
+              <HStack alignment="center" spacing={HEADER_ROW_GAP}>
                 <Gauge
                   value={fraction}
                   // The percent lives INSIDE the ring, which is what the
@@ -406,10 +421,12 @@ export const TrophiesScreen = ({
                     frame({ width: RING_SIZE, height: RING_SIZE }),
                   ]}
                 />
-                <VStack alignment="leading" spacing={6}>
+                <VStack alignment="leading" spacing={HEADER_TEXT_GAP}>
+                  {/* `title`, bold — the screen's headline, which is the whole
+                      point of the summary no longer being a header. */}
                   <Text
                     modifiers={[
-                      font({ textStyle: 'title3', weight: 'semibold' }),
+                      font({ textStyle: 'title', weight: 'bold' }),
                       foregroundStyle(colors.onSurface),
                     ]}
                   >
@@ -425,7 +442,7 @@ export const TrophiesScreen = ({
                         />
                         <Text
                           modifiers={[
-                            font({ textStyle: 'subheadline' }),
+                            font({ textStyle: 'body' }),
                             foregroundStyle(tierColor(tier)),
                           ]}
                         >
@@ -437,9 +454,11 @@ export const TrophiesScreen = ({
                 </VStack>
                 <Spacer />
               </HStack>
-            )
-          }
-        >
+            )}
+          </VStack>
+        </Section>
+
+        <Section>
           {trophies.map(trophy => (
             <TrophyRow
               key={trophy.id}
