@@ -122,67 +122,92 @@ const TrophyRow = ({
     ? tierColor(trophy.tier)
     : colors.onSurfaceMuted;
 
+  /**
+   * The title bar is sized from the title it stands for — the row already HAS
+   * the string (it comes from config and copy, not the network), so the bones
+   * vary down the card the way the real names do instead of reading as a
+   * printed form. An approximation of the settled ink, not a measurement of it:
+   * what has to be exact is the row's HEIGHT, which the line boxes below pin.
+   */
+  const titleBoneWidth = Math.min(140, Math.max(56, trophy.title.length * 9));
+
   return (
     <Button onPress={onPress}>
       <HStack spacing={12}>
-        {/* THE ICON IS THE ROW'S CLAIM, so while the award cache is loading it
-            is a bone rather than a glyph: the tier COLOUR is what says a trophy
-            is earned, and pre-hydration every one of them resolves locked — a
-            column of grey trophies is a wrong answer, not a pending one. The
-            bone rides in the same 34pt slot the real glyph is centred in, so
-            the text column does not move on hand-off. */}
-        <RNHostView matchContents>
-          <View style={styles.iconSlot}>
-            {loading ? (
-              <SkeletonBone
-                width={ICON_SIZE}
-                height={ICON_SIZE}
-                radius={ICON_SIZE / 2}
-              />
-            ) : (
-              <TrophyIcon
-                color={iconColor}
-                size={ICON_SIZE}
-                locked={!trophy.unlocked}
-              />
-            )}
-          </View>
-        </RNHostView>
-        <VStack alignment="leading" spacing={2}>
-          {/* THE TITLE IS REAL EVEN WHILE LOADING — it comes from the app's
-              config and its own copy, not from the network, so there is nothing
-              to wait for and boning it would only cost the row its true height.
-              Its COLOUR does wait (an earned trophy's title is full-strength),
-              so it holds at `onSurfaceMuted` until the state is known: the
-              muted step is the one that claims nothing. */}
-          <Text
-            modifiers={[
-              foregroundStyle(
-                !loading && trophy.unlocked
-                  ? colors.onSurface
-                  : colors.onSurfaceMuted,
-              ),
-            ]}
-          >
-            {trophy.title}
-          </Text>
-          {/* THE SUPPORTING LINE STAYS REAL TEXT, and that is a limit rather
-              than a preference: a SECOND `RNHostView` in this row blew the
-              native layout apart — titles clipped off the leading edge, the
-              icon slot gone, the card displaced (iPhone 17 / iOS 26.5). One
-              bridged host per row is what this List sustains, and the icon has
-              it. So the line shows the locked sentence while loading, which is
-              also what it will say for most rows; the icon beside it is the
-              bone that says the state is still coming. */}
-          <Text
-            modifiers={[
-              font({ textStyle: 'footnote' }),
-              foregroundStyle(colors.onSurfaceMuted),
-            ]}
-          >
-            {supporting}
-          </Text>
-        </VStack>
+        {loading ? (
+          /**
+           * THE WHOLE ROW'S CONTENT IN ONE HOST — icon, title and supporting
+           * line together, because a row is either loading or it is not.
+           *
+           * This was a half-skeleton: a boned icon beside the REAL title and
+           * subtitle, greyed. It read as broken rather than as loading, and the
+           * subtitle was worse than cosmetic — it says "Earned Jul 16, 2026",
+           * which is exactly the fact the row is waiting on, printed next to a
+           * placeholder claiming to know nothing.
+           *
+           * The reason it ended up that way is the `RNHostView` ceiling: a
+           * SECOND host in this row blows the native layout apart (titles
+           * clipped off the leading edge, the icon slot gone). The answer is
+           * the one the progress header already uses — not fewer bones, but ONE
+           * host holding the whole RN sub-layout. The `Form` still owns the
+           * card, the separators and the insets, so only the row's own content
+           * is hand-sized.
+           */
+          <RNHostView matchContents>
+            <View style={styles.rowBone}>
+              <View style={styles.iconSlot}>
+                <SkeletonBone
+                  width={ICON_SIZE}
+                  height={ICON_SIZE}
+                  radius={ICON_SIZE / 2}
+                />
+              </View>
+              <View style={styles.rowBoneText}>
+                {/* Each bar sits in the LINE BOX of the text it stands for, so
+                    the row keeps the height it settles at — a bar is drawn
+                    thinner than its glyphs, which is why the box and the bar
+                    are two numbers. */}
+                <View style={styles.titleLine}>
+                  <SkeletonBone width={titleBoneWidth} height={15} />
+                </View>
+                <View style={styles.supportingLine}>
+                  <SkeletonBone width={SUPPORTING_BONE_WIDTH} height={11} />
+                </View>
+              </View>
+            </View>
+          </RNHostView>
+        ) : (
+          <>
+            <RNHostView matchContents>
+              <View style={styles.iconSlot}>
+                <TrophyIcon
+                  color={iconColor}
+                  size={ICON_SIZE}
+                  locked={!trophy.unlocked}
+                />
+              </View>
+            </RNHostView>
+            <VStack alignment="leading" spacing={2}>
+              <Text
+                modifiers={[
+                  foregroundStyle(
+                    trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted,
+                  ),
+                ]}
+              >
+                {trophy.title}
+              </Text>
+              <Text
+                modifiers={[
+                  font({ textStyle: 'footnote' }),
+                  foregroundStyle(colors.onSurfaceMuted),
+                ]}
+              >
+                {supporting}
+              </Text>
+            </VStack>
+          </>
+        )}
         <Spacer />
         {/* The one chevron definition the portfolio has — the same glyph the
             account sheet's own rows draw, rather than a local size constant
@@ -285,8 +310,55 @@ export const TrophiesScreen = ({
   );
 };
 
+/** The supporting line is one sentence at footnote size, whatever the row. */
+const SUPPORTING_BONE_WIDTH = 160;
+/** The native row's own artwork→text gap. */
+const ROW_BONE_GAP = 12;
+/**
+ * THE ROW'S CONTENT HEIGHT — solved from the rendered list, not from the line
+ * boxes it holds.
+ *
+ * Stacking the boxes (22 + 2 + 18 = 42) put every separator 4pt low and the
+ * pitch at 72 against the native 68. Band-scanned on iPhone 17 / iOS 26.5, the
+ * `Form`'s separators sit 68 apart, of which 1 is the separator itself and
+ * 2 × 14.5 is the grouped row's own vertical padding (the same 14.5
+ * `PersonListSkeletonIos` measured for its people rows) — so the content it
+ * wraps is 68 − 1 − 29 = 38, and the two text boxes are simply drawn tighter
+ * than their nominal line heights.
+ *
+ * IT STAYS 38 even though that leaves a third of a point on the table, and the
+ * alternative is the instructive part. Band-scanned separators, live against
+ * the bone:
+ *
+ *   38     261.67 / 329.67 / 397.67 / 465.67   pitch 68.00, a CONSTANT +0.34
+ *   37.67  261.33 / 329.00 / 396.67 / 464.67   row one exact, pitch 67.67
+ *
+ * So 37.67 buys a perfect first row and spends it on a pitch that drifts, which
+ * compounds down the card and is the worse defect by far — the eye reads
+ * accumulating separator error long before it reads one device pixel at the
+ * top. A constant sub-pixel offset with an exact pitch is the trade to take.
+ */
+const ROW_BONE_HEIGHT = 38;
+
 const styles = StyleSheet.create({
   host: { flex: 1 },
+  /**
+   * EXPLICIT BOX, no `gap` and no measuring. `RNHostView`'s `matchContents`
+   * sizes from the RN tree, and handed a nested flex row it dropped the leading
+   * child entirely — the icon bone vanished and the text slid into its slot
+   * (seen on iPhone 17 / iOS 26.5). Stating the row's own width and height, and
+   * spacing with margins rather than `gap`, leaves it nothing to work out.
+   */
+  rowBone: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: ROW_BONE_HEIGHT,
+    width: ICON_SLOT + ROW_BONE_GAP + SUPPORTING_BONE_WIDTH,
+  },
+  rowBoneText: { marginLeft: ROW_BONE_GAP },
+  // The body and footnote line boxes the native row stacks.
+  titleLine: { height: 22, justifyContent: 'center' },
+  supportingLine: { height: 18, justifyContent: 'center' },
   headerBone: { gap: HEADER_GAP },
   headerFigures: {
     alignItems: 'flex-end',
@@ -296,6 +368,7 @@ const styles = StyleSheet.create({
   },
   iconSlot: {
     alignItems: 'center',
+    height: ICON_SLOT,
     justifyContent: 'center',
     width: ICON_SLOT,
   },
