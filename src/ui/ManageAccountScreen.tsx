@@ -73,15 +73,15 @@ export type ManageAccountScreenProps = {
     title: string;
     rows: ManageAccountInfoRow[];
     /**
-     * iOS only. The facts have not arrived yet, so the rows render as Apple's
-     * own placeholder — `redacted(.placeholder)`.
+     * iOS only. The facts have not arrived yet, so each VALUE stands a
+     * `SkeletonBone` — the same sweeping placeholder every other loading
+     * surface in these apps uses.
      *
-     * THE CALLER STILL PASSES A FULL ROW SET while this is true, values and
-     * all; redaction replaces the INK, not the layout, so the card is already
-     * the height and shape it will settle at and nothing moves on hand-off.
-     * That is the whole reason this is a flag rather than a separate skeleton
-     * component: a bone hand-built beside these rows is the repo's most
-     * recurrent defect, and here the real rows can simply stand themselves.
+     * THE CALLER STILL PASSES A FULL ROW SET while this is true, so the row
+     * COUNT is settled from the first frame; the labels are static strings and
+     * render immediately, which is what pins each row's height. Nothing moves
+     * on hand-off, and no bone is hand-built beside these rows — the real rows
+     * stand themselves and only the unknown part is a bone.
      *
      * Android does not read it — a pushed screen whose facts come from the
      * auth object it was navigated with has nothing to wait for.

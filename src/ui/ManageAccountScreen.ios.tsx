@@ -6,7 +6,6 @@ import { Button, Form, Host, Section, Text } from '@expo/ui/swift-ui';
 import {
   disabled as disabledModifier,
   foregroundStyle,
-  redacted,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -63,20 +62,19 @@ export const ManageAccountScreen = ({
       >
         {info ? (
           /**
-           * REDACTED, NOT REPLACED, while the facts load. `.placeholder` is
-           * Apple's own skeleton (App Store, Music and News all show it), and
-           * because the caller passes the settled row SET the card is already
-           * its final height — the values simply fill in. What this replaced
-           * was rows appearing one at a time as each fact resolved: Member
-           * Since arriving late grew the card under the reader's finger, and
-           * Username stated "Not Set" before flipping to the real handle,
-           * which is worse than a placeholder because it is a wrong answer
-           * rather than no answer yet.
+           * ONLY THE VALUES WAIT. The labels — "Name", "Email" — are static
+           * strings, so they render on the first frame and the card is its
+           * settled height immediately; each unknown value stands the shared
+           * `SkeletonBone` in its slot (see `ValueSlot`). The caller still
+           * passes the settled row SET while loading, so the row COUNT is right
+           * too.
+           *
+           * What this replaced was rows appearing one at a time as each fact
+           * resolved: Member Since arriving late grew the card under the
+           * reader's finger, and Username stated "Not Set" before flipping to
+           * the real handle — a wrong answer rather than no answer yet.
            */
-          <Section
-            title={info.title}
-            modifiers={info.loading ? [redacted('placeholder')] : []}
-          >
+          <Section title={info.title}>
             {info.rows.map(row =>
               // An editable fact (Topper's Username) opens the shared native
               // alert and takes the disclosure chevron that marks it tappable
@@ -90,6 +88,7 @@ export const ManageAccountScreen = ({
                   <FormDisclosureRowIos
                     label={row.label}
                     value={row.value}
+                    loading={info.loading}
                     colors={colors}
                   />
                 </UsernameEditRowIos>
@@ -98,6 +97,7 @@ export const ManageAccountScreen = ({
                   key={row.label}
                   label={row.label}
                   value={row.value}
+                  loading={info.loading}
                   colors={colors}
                 />
               ),
