@@ -27,8 +27,15 @@ export function UsernameEditRowIos({
   children,
 }: {
   editor: SettingsUsernameEditor;
-  /** The row that presents the alert — rendered inside `Alert.Trigger`. */
-  children: React.ReactNode;
+  /**
+   * The row that presents the alert — rendered inside `Alert.Trigger`.
+   *
+   * `ReactElement`, not `ReactNode`: `Button`'s children are typed as elements
+   * (a native trigger has to be exactly one view), and `ReactNode` admits
+   * `null`, so the wider type failed to assign. It was never called with
+   * anything but a single element.
+   */
+  children: React.ReactElement;
 }) {
   const [visible, setVisible] = useState(false);
 

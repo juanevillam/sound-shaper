@@ -9,13 +9,13 @@ import {
   Image,
   RNHostView,
   Section,
-  Spacer,
   Text,
   VStack,
 } from '@expo/ui/swift-ui';
 import { font, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
+import { FormDisclosureRowIos } from './FormDisclosureRowIos';
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
@@ -119,23 +119,7 @@ export const SettingsAccountSection = ({
         <Section>
           {navRows.map(row => (
             <Button key={row.id} onPress={row.onPress}>
-              <HStack spacing={8}>
-                <Text
-                  modifiers={[
-                    ...(colors?.onSurface
-                      ? [foregroundStyle(colors.onSurface)]
-                      : []),
-                  ]}
-                >
-                  {row.label}
-                </Text>
-                <Spacer />
-                <Image
-                  systemName="chevron.right"
-                  size={13}
-                  color={colors?.onSurfaceMuted}
-                />
-              </HStack>
+              <FormDisclosureRowIos label={row.label} colors={colors} />
             </Button>
           ))}
 
