@@ -40,6 +40,17 @@ export type TrophiesScreenProps = {
   formatDate: (achievedAt: number) => string;
   /** Tapping a row — open the detail sheet. */
   onTrophyPress?: (id: string) => void;
+  /**
+   * iOS only. The awarded cache has not hydrated yet (`useTrophies().hydrated`
+   * is false), so the counts and lock states passed above are not yet true —
+   * render Apple's `redacted(.placeholder)` over the whole list instead of
+   * stating "0 of N" and every trophy locked.
+   *
+   * The rows are still passed in full, because redaction replaces the INK and
+   * not the layout: the list is already its settled height and nothing moves
+   * when the real state arrives. Android, frozen, does not read it.
+   */
+  loading?: boolean;
 };
 
 // Grouped-list geometry, mirroring the app's `settingsGroup.ts`: the rows share

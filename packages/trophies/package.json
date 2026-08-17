@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@portfolio/mobile-ui": "*",
     "react": "*",
     "react-native": "*",
     "react-native-gesture-handler": "*",

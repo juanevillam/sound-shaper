@@ -36,6 +36,15 @@ export type TrophySummary = {
   earnedObjectives: number;
   totalObjectives: number;
   platinumEarned: boolean;
+  /**
+   * The awarded cache has come back from storage. FALSE MEANS THE COUNTS ARE
+   * NOT YET TRUE, and that is the reason this is surfaced: before hydration
+   * `awarded` is empty, so every trophy resolves LOCKED and the summary reads
+   * "0 of 7" at 0%. A screen that renders that is not showing a loading state,
+   * it is stating a wrong answer and then correcting itself. Screens gate their
+   * placeholder on this.
+   */
+  hydrated: boolean;
 };
 
 /**
@@ -48,6 +57,7 @@ export const useTrophies = (
 ): TrophySummary => {
   const configs = useTrophyStore(state => state.configs);
   const awarded = useTrophyStore(state => state.awarded);
+  const hydrated = useTrophyStore(state => state.hydrated);
 
   return useMemo(() => {
     const trophies = resolveTrophies(configs, awarded, copy);
@@ -61,6 +71,7 @@ export const useTrophies = (
       earnedObjectives: objectives.filter(trophy => trophy.unlocked).length,
       totalObjectives: objectives.length,
       platinumEarned: Boolean(platinum?.unlocked),
+      hydrated,
     };
-  }, [configs, awarded, copy]);
+  }, [configs, awarded, copy, hydrated]);
 };
