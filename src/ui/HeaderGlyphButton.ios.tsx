@@ -1,21 +1,24 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Image, type ImageProps } from '@expo/ui/swift-ui';
+import { Button, Image, type ImageProps } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
+  buttonStyle,
   contentShape,
   disabled as disabledModifier,
   frame,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useAppTheme, withAlpha } from '@portfolio/core';
+import { useAppTheme } from '@portfolio/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 
 /**
  * A single SF Symbol bar-button item, shared by every portfolio app's iOS
- * navigation bars. `Image` exposes `onPress` directly, so no `Button` wrapper
- * is needed.
+ * navigation bars. The glyph sits inside a `plain` `Button` — an `Image` does
+ * expose `onPress` directly, but only a real control takes SwiftUI's own
+ * `disabled` treatment, and a bar item that can be present-but-inert needs it
+ * (see the `disabled` prop).
  *
  * It lives here rather than per app because the two apps had already drifted:
  * the starter's glyphs were label-coloured at 24/20pt while Topper's were
@@ -70,25 +73,6 @@ export const HEADER_GLYPH_SIZE = 24;
 const HEADER_TAP_TARGET = 43;
 
 /**
- * A DISABLED GLYPH'S INK — tertiaryLabel, stated here rather than left to
- * SwiftUI.
- *
- * `disabled(true)` alone does nothing to the look of one of these: SwiftUI's
- * disabled treatment applies to CONTROLS, and a bare `Image` with an `onPress`
- * is not one — verified on iPhone 17 / iOS 26.5, where the modifier left the
- * glyph at a full (0,0,0). Dropping `color` so SwiftUI could resolve its own
- * foreground did not help either, for the same reason. So the modifier stays
- * (it is what blocks the interaction) and the ink is set here.
- *
- * tertiaryLabel is the step below the secondaryLabel these tokens already are,
- * and `withAlpha` REPLACES alpha rather than multiplying it — so 0.3 on
- * `onSurfaceMuted` lands on tertiaryLabel exactly, in both appearances. That is
- * the same derivation `DisclosureChevron` documents for the same reason: a mark
- * that is present but not actionable recedes one step.
- */
-const DISABLED_INK = (onSurfaceMuted: string) => withAlpha(onSurfaceMuted, 0.3);
-
-/**
  * A sheet's dismiss glyph is the one bar item NOT sized against a title —
  * Apple draws it noticeably larger than an inline title's cap height so it
  * stays an easy target inside the fixed 43.3pt capsule.
@@ -107,8 +91,8 @@ export type HeaderGlyphButtonProps = {
   onPress: () => void;
   size?: number;
   /**
-   * PRESENT BUT INERT — the glyph keeps its slot, loses its handler, and
-   * recedes to `DISABLED_INK`.
+   * PRESENT BUT INERT — the glyph keeps its slot and takes the platform's own
+   * disabled treatment.
    *
    * This exists so a bar item does not COME AND GO with the screen's data.
    * Trash hid its ⋯ (Empty Trash) whenever there was nothing to empty, so the
@@ -118,8 +102,9 @@ export type HeaderGlyphButtonProps = {
    * (Mail's Edit, Photos' Select), which is both the steadier layout and the
    * clearer statement: the action exists, there is just nothing for it to do.
    *
-   * The colour is ours to set, not SwiftUI's — see `DISABLED_INK` for why the
-   * `disabled` modifier alone leaves the glyph at full strength.
+   * The dimming is SwiftUI's own — the glyph is wrapped in a `plain` `Button`
+   * precisely so `disabled(true)` reaches it, the same way every other disabled
+   * control in the portfolio is handled.
    */
   disabled?: boolean;
 };
@@ -222,33 +207,44 @@ export function HeaderGlyphGroupIos({
           ignoreSafeArea="all"
           style={expand ? styles.slot : undefined}
         >
-          <Image
-            systemName={systemName}
-            size={size ?? HEADER_GLYPH_SIZE}
-            color={
-              disabled ? DISABLED_INK(colors.onSurfaceMuted) : colors.onSurface
-            }
-            // Not merely dimmed: a disabled glyph carries no handler at all, so
-            // there is nothing to fire even if a tap gets past `disabled`.
-            onPress={disabled ? undefined : onPress}
+          {/* A `Button` (`plain`, so it draws no chrome of its own) rather
+              than a bare `Image` with `onPress`, and that is what `disabled`
+              needs: SwiftUI's disabled treatment applies to CONTROLS, so on the
+              bare Image the modifier left the glyph at a full (0,0,0) and this
+              file briefly hand-painted a tertiaryLabel of its own. That was the
+              only hand-painted disabled state in the portfolio — every other one
+              (`SheetFormIos` ×5, the comments send button, `ReactionRow`) just
+              passes `disabled(true)` and lets the platform dim it. Now this one
+              does too, and there is no colour to keep in step. */}
+          <Button
+            onPress={onPress}
             modifiers={[
-              // The glyph keeps its own size; the BOX around it is the target.
-              ...(expand
-                ? [
-                    frame({
-                      width: HEADER_TAP_TARGET,
-                      height: HEADER_TAP_TARGET,
-                    }),
-                    // Without this the enlarged frame is not tappable — an
-                    // `Image` hit-tests its drawn content, so the padding
-                    // would fall through.
-                    contentShape(shapes.rectangle()),
-                  ]
-                : []),
+              buttonStyle('plain'),
               ...(disabled ? [disabledModifier(true)] : []),
-              accessibilityLabel(label),
             ]}
-          />
+          >
+            <Image
+              systemName={systemName}
+              size={size ?? HEADER_GLYPH_SIZE}
+              color={colors.onSurface}
+              modifiers={[
+                // The glyph keeps its own size; the BOX around it is the target.
+                ...(expand
+                  ? [
+                      frame({
+                        width: HEADER_TAP_TARGET,
+                        height: HEADER_TAP_TARGET,
+                      }),
+                      // Without this the enlarged frame is not tappable — an
+                      // `Image` hit-tests its drawn content, so the padding
+                      // would fall through.
+                      contentShape(shapes.rectangle()),
+                    ]
+                  : []),
+                accessibilityLabel(label),
+              ]}
+            />
+          </Button>
         </SwiftUIHost>
       ))}
     </View>
