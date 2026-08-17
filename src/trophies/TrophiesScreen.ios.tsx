@@ -26,7 +26,11 @@ import {
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import { FormDisclosureIndicatorIos, SkeletonBone } from '@portfolio/mobile-ui';
+import {
+  FormDisclosureIndicatorIos,
+  GROUPED_ROW,
+  SkeletonBone,
+} from '@portfolio/mobile-ui';
 
 import { tierColor } from './tierColors';
 import {
@@ -76,7 +80,22 @@ import { type ResolvedTrophy, type TrophyTier } from './types';
  * header itself for why they wear tier colour.
  */
 const ICON_SIZE = 26;
-const ICON_SLOT = 34;
+/**
+ * THE LEADING SLOT IS THE PORTFOLIO'S GROUPED-ROW SLOT, not a size of its own.
+ *
+ * This row is structurally the same row a person and a trashed top get: leading
+ * media, a body line over a footnote, a chevron. It ran a 34pt slot against
+ * everyone else's 44 all the same, so its titles started at 80.00 where a trash
+ * row's start at 89.00 — two grouped lists one gesture apart in the same sheet
+ * stack, with different text columns (band-scanned, iPhone 17 / iOS 26.5).
+ *
+ * THE GLYPH DOES NOT GROW WITH IT. 26 is the trophy's own size and the list
+ * reads right at it; what had to be shared is the SLOT, because the slot is
+ * what fixes where every row's text begins. The box is therefore 44 WIDE and
+ * only as tall as the glyph — giving it the slot's 44pt height would push the
+ * row's content past the text's 38 and stretch a pitch that is already correct.
+ */
+const ICON_SLOT = GROUPED_ROW.art;
 
 /**
  * THE PROGRESS HEADER'S OWN GEOMETRY, for the ONE bridged host that stands it
@@ -217,7 +236,7 @@ const TrophyRow = ({
 
   return (
     <Button onPress={onPress}>
-      <HStack spacing={12}>
+      <HStack spacing={GROUPED_ROW.artGap}>
         {loading ? (
           /**
            * THE WHOLE ROW'S CONTENT IN ONE HOST — icon, title and supporting
@@ -279,7 +298,7 @@ const TrophyRow = ({
         ) : (
           <>
             <VStack
-              modifiers={[frame({ width: ICON_SLOT, height: ICON_SLOT })]}
+              modifiers={[frame({ width: ICON_SLOT, height: ICON_SIZE })]}
             >
               <RNHostView>
                 <View style={styles.iconSlot}>
@@ -504,7 +523,7 @@ export const TrophiesScreen = ({
 /** The supporting line is one sentence at footnote size, whatever the row. */
 const SUPPORTING_BONE_WIDTH = 160;
 /** The native row's own artwork→text gap. */
-const ROW_BONE_GAP = 12;
+const ROW_BONE_GAP = GROUPED_ROW.artGap;
 /** The bone row's own box, reserved in SwiftUI — see the note on the host. */
 const ROW_BONE_WIDTH = ICON_SLOT + 12 + SUPPORTING_BONE_WIDTH;
 /**
@@ -567,7 +586,7 @@ const styles = StyleSheet.create({
   },
   iconSlot: {
     alignItems: 'center',
-    height: ICON_SLOT,
+    height: ICON_SIZE,
     justifyContent: 'center',
     width: ICON_SLOT,
   },
