@@ -19,6 +19,7 @@ import {
   frame,
   gaugeStyle,
   headerProminence,
+  padding,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -99,7 +100,7 @@ const HEADER_INSET = 32;
  * at 22 the bar landed 182.0 against the native header's 180.33 and the card
  * followed it down by the same 1.67, so the box is that much smaller.
  */
-const HEADER_LINE_BOX = 20.33;
+const HEADER_LINE_BOX = 25;
 /**
  * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
  * answer to "how much of this is done", and the reason the summary stopped
@@ -110,16 +111,36 @@ const HEADER_LINE_BOX = 20.33;
  * An accessory gauge draws small by default, so the frame states the size the
  * header wants rather than accepting the widget one.
  */
-const RING_SIZE = 56;
+const RING_SIZE = 72;
+/**
+ * HOW MUCH THE SUMMARY GIVES BACK AT ITS BOTTOM, so the gap down to the card
+ * matches Home's.
+ *
+ * Home's Following feed sets the rhythm for "a person's line, then their card",
+ * and this sheet is the same shape one level down: a summary, then the thing it
+ * summarises. Band-scanned last-ink to card-edge on iPhone 17 / iOS 26.5:
+ *
+ *   Home     @handle ink 504.67 → card 515.00   = 10.33
+ *   Trophies pip ink   210.33 → card 234.00     = 23.67
+ *
+ * A grouped `Section` header reserves more room beneath itself than an RN
+ * column does, so the difference is UIKit's and the only way to spend it is to
+ * hand it back. 23.67 − 10.33 = 13.34.
+ *
+ * Re-measure BOTH if either side's type changes — the point is the match, not
+ * the number.
+ */
+const HEADER_BOTTOM_TRIM = -13.34;
+
 /** The ring → text gap, and the tier row's own rhythm. */
 const HEADER_ROW_GAP = 16;
 const TIER_PIP_GAP = 12;
-const TIER_GLYPH_SIZE = 12;
+const TIER_GLYPH_SIZE = 14;
 /** The count over the pips, inside the header's text column. */
 const HEADER_TEXT_GAP = 6;
 /** The pip row's own line box, and what its bone spans across four tiers. */
-const TIER_PIP_LINE_BOX = 20;
-const TIER_PIP_ROW_WIDTH = 132;
+const TIER_PIP_LINE_BOX = 22;
+const TIER_PIP_ROW_WIDTH = 148;
 
 /**
  * PLATINUM FIRST, then down — PlayStation's order, which is the vernacular this
@@ -310,29 +331,40 @@ export const TrophiesScreen = ({
                * why it is not two bones dropped into the native header, and
                * for the anchors this has to land on.
                */
-              <VStack
-                modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
-              >
-                <RNHostView>
-                  <View style={[styles.headerBone, { width: headerWidth }]}>
-                    {/* Stands the ring, then the count over the pip row — the
-                      same three things the settled header shows, in the same
-                      places. */}
-                    <SkeletonBone
-                      width={RING_SIZE}
-                      height={RING_SIZE}
-                      radius={RING_SIZE / 2}
-                    />
-                    <View style={styles.headerBoneText}>
-                      <View style={styles.headerHeadlineLine}>
-                        <SkeletonBone width={140} height={15} />
-                      </View>
-                      <View style={styles.headerPipLine}>
-                        <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
+              // THE TRIM RIDES AN OUTER WRAPPER, not the framed one. On a view
+              // that already carries a `frame` the negative padding never
+              // reached the layout — the bone header sat 13.33 low against the
+              // settled one, i.e. exactly untrimmed. The settled header applies
+              // it to its own outermost container too, so the two agree by
+              // construction.
+              <VStack modifiers={[padding({ bottom: HEADER_BOTTOM_TRIM })]}>
+                <VStack
+                  modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
+                >
+                  <RNHostView>
+                    <View style={[styles.headerBone, { width: headerWidth }]}>
+                      {/* Stands the ring, then the count over the pip row —
+                          the same three things the settled header shows, in
+                          the same places. */}
+                      <SkeletonBone
+                        width={RING_SIZE}
+                        height={RING_SIZE}
+                        radius={RING_SIZE / 2}
+                      />
+                      <View style={styles.headerBoneText}>
+                        <View style={styles.headerHeadlineLine}>
+                          <SkeletonBone width={140} height={15} />
+                        </View>
+                        <View style={styles.headerPipLine}>
+                          <SkeletonBone
+                            width={TIER_PIP_ROW_WIDTH}
+                            height={12}
+                          />
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </RNHostView>
+                  </RNHostView>
+                </VStack>
               </VStack>
             ) : (
               /**
@@ -347,7 +379,11 @@ export const TrophiesScreen = ({
                * PlayStation's order, which is the vernacular this module is
                * built in.
                */
-              <HStack alignment="center" spacing={HEADER_ROW_GAP}>
+              <HStack
+                alignment="center"
+                spacing={HEADER_ROW_GAP}
+                modifiers={[padding({ bottom: HEADER_BOTTOM_TRIM })]}
+              >
                 <Gauge
                   value={fraction}
                   // The percent lives INSIDE the ring, which is what the
@@ -357,7 +393,7 @@ export const TrophiesScreen = ({
                   currentValueLabel={
                     <Text
                       modifiers={[
-                        font({ textStyle: 'caption', weight: 'semibold' }),
+                        font({ textStyle: 'subheadline', weight: 'semibold' }),
                         foregroundStyle(colors.onSurface),
                       ]}
                     >
@@ -373,7 +409,7 @@ export const TrophiesScreen = ({
                 <VStack alignment="leading" spacing={6}>
                   <Text
                     modifiers={[
-                      font({ textStyle: 'headline' }),
+                      font({ textStyle: 'title3', weight: 'semibold' }),
                       foregroundStyle(colors.onSurface),
                     ]}
                   >
