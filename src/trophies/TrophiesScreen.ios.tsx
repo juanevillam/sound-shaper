@@ -125,30 +125,28 @@ const HEADER_LINE_BOX = 22;
  */
 const RING_SIZE = 64;
 /**
- * THE GAP FROM THE SUMMARY DOWN TO THE LIST — a SECTION gap, not a header gap.
+ * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
  *
- * This chased the wrong reference for two rounds. The brief was "match Home's
- * user-row-to-card gap", and it does measure ~10 there — but that relationship
- * is the OPPOSITE of this one. Home's owner row is a HEADER BOUND TO ITS CARD,
- * and its gap is deliberately tight for exactly that reason:
- * `OWNER_ROW_CARD_GAP` is 4, and its own note says "a header belongs to its
- * content; 4 puts it 9pt off its first card against the cards' 12".
+ * This took three passes and the two misses are the useful part, because each
+ * matched a real relationship that was not this one:
  *
- * The summary is not that. The whole point of promoting it out of the section
- * header was that it does NOT own the list — it is the screen's headline and
- * the list is the body, two independent blocks. Binding them at 10pt contradicts
- * the promotion, which is why it read as stuck to the list.
+ *   ~10  Home's owner-row-to-card. A HEADER BOUND TO ITS CARD, tight on
+ *        purpose — `OWNER_ROW_CARD_GAP` is 4 and its own note says "a header
+ *        belongs to its content". The summary was that once and is not now, so
+ *        it read as stuck to the list.
+ *   ~31  What iOS puts between two SECTIONS (account sheet card→card 30.67, a
+ *        real grouped list 31.33). Correct for two UNRELATED blocks — and these
+ *        two are not unrelated: the summary is the headline OF this list.
  *
- * So the reference is what iOS puts between two SECTIONS. Band-scanned on
- * iPhone 17 / iOS 26.5:
- *
- *   Account sheet, card → card   30.67   ← same family, same native Form
- *   a real iOS grouped list      31.33   (already recorded in home/index.ios)
+ * The screen's own ladder already names the rung in between — `card 12 <
+ * person 20 < section 28` (see `PERSON_GAP` in home/index.ios). 20 is the
+ * division that groups without separating, which is exactly a headline and its
+ * body.
  *
  * Solved rather than nudged: the mapping is exactly 1:1 (spacing 0 → 10.67,
- * spacing 24 → 34.67), so 20 lands 30.67. Verified.
+ * 24 → 34.67), so 9.33 lands 20.00. Verified.
  */
-const SUMMARY_TO_LIST_GAP = 20;
+const SUMMARY_TO_LIST_GAP = 9.33;
 
 /**
  * THE SUMMARY'S OWN TOP MARGIN — zero, because the section supplies its own.
