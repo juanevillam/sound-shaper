@@ -182,41 +182,61 @@ const TrophyRow = ({
            * host holding the whole RN sub-layout. The `Form` still owns the
            * card, the separators and the insets, so only the row's own content
            * is hand-sized.
+           *
+           * THE BOX IS RESERVED IN SWIFTUI, NOT MEASURED FROM RN. `matchContents`
+           * makes a host "update its size in the React Native view tree to match
+           * the children's" — an UPDATE, i.e. after the fact — so the row laid
+           * out once without it and again once it arrived, which is a shift on
+           * the frame the placeholder mounts and exactly the intermittent one
+           * Juan saw stepping the states. Framing the wrapper and letting the
+           * host fill it (its default) takes the measurement off the layout path
+           * for good. Same reasoning as `SHEET_BONE_TOP`: never put an async
+           * answer where a static one will do.
            */
-          <RNHostView matchContents>
-            <View style={styles.rowBone}>
-              <View style={styles.iconSlot}>
-                <SkeletonBone
-                  width={ICON_SIZE}
-                  height={ICON_SIZE}
-                  radius={ICON_SIZE / 2}
-                />
-              </View>
-              <View style={styles.rowBoneText}>
-                {/* Each bar sits in the LINE BOX of the text it stands for, so
+          <VStack
+            modifiers={[
+              frame({ width: ROW_BONE_WIDTH, height: ROW_BONE_HEIGHT }),
+            ]}
+          >
+            <RNHostView>
+              <View style={styles.rowBone}>
+                <View style={styles.iconSlot}>
+                  <SkeletonBone
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                    radius={ICON_SIZE / 2}
+                  />
+                </View>
+                <View style={styles.rowBoneText}>
+                  {/* Each bar sits in the LINE BOX of the text it stands for, so
                     the row keeps the height it settles at — a bar is drawn
                     thinner than its glyphs, which is why the box and the bar
                     are two numbers. */}
-                <View style={styles.titleLine}>
-                  <SkeletonBone width={titleBoneWidth} height={15} />
+                  <View style={styles.titleLine}>
+                    <SkeletonBone width={titleBoneWidth} height={15} />
+                  </View>
+                  <View style={styles.supportingLine}>
+                    <SkeletonBone width={SUPPORTING_BONE_WIDTH} height={11} />
+                  </View>
                 </View>
-                <View style={styles.supportingLine}>
-                  <SkeletonBone width={SUPPORTING_BONE_WIDTH} height={11} />
-                </View>
-              </View>
-            </View>
-          </RNHostView>
-        ) : (
-          <>
-            <RNHostView matchContents>
-              <View style={styles.iconSlot}>
-                <TrophyIcon
-                  color={iconColor}
-                  size={ICON_SIZE}
-                  locked={!trophy.unlocked}
-                />
               </View>
             </RNHostView>
+          </VStack>
+        ) : (
+          <>
+            <VStack
+              modifiers={[frame({ width: ICON_SLOT, height: ICON_SLOT })]}
+            >
+              <RNHostView>
+                <View style={styles.iconSlot}>
+                  <TrophyIcon
+                    color={iconColor}
+                    size={ICON_SIZE}
+                    locked={!trophy.unlocked}
+                  />
+                </View>
+              </RNHostView>
+            </VStack>
             <VStack alignment="leading" spacing={2}>
               <Text
                 modifiers={[
@@ -290,26 +310,30 @@ export const TrophiesScreen = ({
                * why it is not two bones dropped into the native header, and
                * for the anchors this has to land on.
                */
-              <RNHostView matchContents>
-                <View style={[styles.headerBone, { width: headerWidth }]}>
-                  {/* Stands the ring, then the count over the pip row — the
+              <VStack
+                modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
+              >
+                <RNHostView>
+                  <View style={[styles.headerBone, { width: headerWidth }]}>
+                    {/* Stands the ring, then the count over the pip row — the
                       same three things the settled header shows, in the same
                       places. */}
-                  <SkeletonBone
-                    width={RING_SIZE}
-                    height={RING_SIZE}
-                    radius={RING_SIZE / 2}
-                  />
-                  <View style={styles.headerBoneText}>
-                    <View style={styles.headerHeadlineLine}>
-                      <SkeletonBone width={140} height={15} />
-                    </View>
-                    <View style={styles.headerPipLine}>
-                      <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
+                    <SkeletonBone
+                      width={RING_SIZE}
+                      height={RING_SIZE}
+                      radius={RING_SIZE / 2}
+                    />
+                    <View style={styles.headerBoneText}>
+                      <View style={styles.headerHeadlineLine}>
+                        <SkeletonBone width={140} height={15} />
+                      </View>
+                      <View style={styles.headerPipLine}>
+                        <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
+                      </View>
                     </View>
                   </View>
-                </View>
-              </RNHostView>
+                </RNHostView>
+              </VStack>
             ) : (
               /**
                * RING + COUNT + TIER PIPS — Fitness's own summary layout: the
@@ -403,6 +427,8 @@ export const TrophiesScreen = ({
 const SUPPORTING_BONE_WIDTH = 160;
 /** The native row's own artwork→text gap. */
 const ROW_BONE_GAP = 12;
+/** The bone row's own box, reserved in SwiftUI — see the note on the host. */
+const ROW_BONE_WIDTH = ICON_SLOT + 12 + SUPPORTING_BONE_WIDTH;
 /**
  * THE ROW'S CONTENT HEIGHT — solved from the rendered list, not from the line
  * boxes it holds.
