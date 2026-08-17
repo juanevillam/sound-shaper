@@ -26,6 +26,8 @@ import {
   glassEffect,
   keyboardType as keyboardTypeModifier,
   lineLimit,
+  listRowBackground,
+  listRowSeparator,
   padding,
   scrollContentBackground,
   shapes,
@@ -33,6 +35,10 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useAppTheme } from '@portfolio/core';
 
+// Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
+// the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
+// suffix of its own to resolve against).
+import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
 import { SwiftUIHost } from './SwiftUIHost';
 import { spacing } from './tokens';
 
@@ -79,16 +85,6 @@ type SheetFormProps = {
   cancelLabel?: string;
   /** Dismiss without committing. Required whenever `cancelLabel` is given. */
   onCancel?: () => void;
-  /**
-   * The sheet presents as a TITLED route (a real UIKit navigation bar carries
-   * the title and the ✕ / ✓ live in `headerLeft` / `headerRight` — see
-   * `SheetCommitGlyphIos`), so this component renders ONLY the `Form`. This is
-   * the arrangement that gets genuine Liquid Glass: the bar is UIKit's, so
-   * scrolling content dissolves under it and the glyph capsules refract for
-   * real — the authored header below never can, because its glass sits over a
-   * static sheet with nothing ever passing behind it.
-   */
-  titledBar?: boolean;
   /** `Section`s — the form's rows. */
   children: React.ReactNode;
 };
@@ -129,6 +125,41 @@ const HEADER_CIRCLE = 44;
 const CLOSE_GLYPH_SIZE = 23;
 const COMMIT_GLYPH_SIZE = 23;
 
+/**
+ * THE FORM FOR A TITLED SHEET ROUTE — the whole component, because a titled
+ * route's chrome is UIKit's: the title sits in a real navigation bar and the
+ * ✕ / ✓ ride `headerLeft` / `headerRight` (see `sheetCommitBarOptionsIos`).
+ * That is the arrangement that gets genuine Liquid Glass — the bar is the
+ * system's, so scrolling content dissolves under it and the glyph capsules
+ * refract for real, which the authored header in `SheetFormIos` never can
+ * (its glass sits over a static sheet with nothing ever passing behind it).
+ *
+ * IT IS A SEPARATE EXPORT rather than a `titledBar` flag on `SheetFormIos`,
+ * because the flag made five of that component's props dead on arrival — a
+ * titled caller still had to pass `title`, `actionLabel`, `actionEnabled`,
+ * `busy` and `onAction`, none of which were read, while stating the same five
+ * things for real in its `Stack.Screen`. Both Topper editors did exactly that,
+ * so each named its commit action twice and neither copy was the one that
+ * rendered. Two components, each with only the props it uses.
+ */
+export function SheetFormBodyIos({ children }: { children: React.ReactNode }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Host style={styles.formHost}>
+      {/* EXACTLY the Settings sheet's Form — `tint` on the whole Form (so a
+          menu picker's value renders tinted, as Settings' Language and
+          Appearance values do) and the Form's OWN grouped background kept.
+          The editors first inherited the inline-header design's
+          `scrollContentBackground('hidden')` and no tint, and the same
+          control two sheets apart wore different value colours AND row
+          fills — caught by eye in both modes. One titled sheet family, one
+          Form recipe. */}
+      <Form modifiers={[tint(colors.primary)]}>{children}</Form>
+    </Host>
+  );
+}
+
 export function SheetFormIos({
   title,
   actionLabel,
@@ -137,25 +168,9 @@ export function SheetFormIos({
   onAction,
   cancelLabel,
   onCancel,
-  titledBar = false,
   children,
 }: SheetFormProps) {
   const { colors } = useAppTheme();
-
-  if (titledBar)
-    return (
-      <Host style={styles.formHost}>
-        {/* EXACTLY the Settings sheet's Form — `tint` on the whole Form (so a
-            menu picker's value renders tinted, as Settings' Language and
-            Appearance values do) and the Form's OWN grouped background kept.
-            The editors first inherited the inline-header design's
-            `scrollContentBackground('hidden')` and no tint, and the same
-            control two sheets apart wore different value colours AND row
-            fills — caught by eye in both modes. One titled sheet family, one
-            Form recipe. */}
-        <Form modifiers={[tint(colors.primary)]}>{children}</Form>
-      </Host>
-    );
 
   return (
     <Host style={styles.formHost}>
@@ -282,27 +297,64 @@ export function SheetFormFieldIos({
 type SheetFormMediaProps = {
   /** RNHostView bridges ONE RN element into SwiftUI — not a ReactNode list. */
   children: React.ReactElement;
-  caption: string;
+  /**
+   * Already-translated label under the media — an ACTION when `onPress` is
+   * given ("Add Photo"), a muted status otherwise.
+   *
+   * OPTIONAL because a caller may render the caption INSIDE its own press
+   * target instead (Topper's item editor does, so the artwork and its label
+   * are one control — the arrangement Home's create tile uses). Omit it and
+   * this component is just the transparent, separator-less media row.
+   */
+  caption?: string;
+  /** Makes the caption the tappable half of the picker (Contacts' "Add
+   *  Photo" label). Omit while busy to render it as a plain status line. */
+  onPress?: () => void;
 };
 
-/** Centred media over its caption, as a borderless form row. */
-export function SheetFormMediaIos({ children, caption }: SheetFormMediaProps) {
+/**
+ * Centred media over its caption — CONTACTS' photo-editor arrangement: the
+ * row is TRANSPARENT (no grouped fill, no separator), so the artwork floats
+ * directly on the sheet background with a small tinted action label under
+ * it. It sat on a grouped row fill before, and the placeholder's own fill on
+ * top of the row's read as a box inside a box (Juan: "looks weird") —
+ * Contacts draws exactly this control with no container behind it.
+ */
+const noop = () => {};
+
+export function SheetFormMediaIos({
+  children,
+  caption,
+  onPress,
+}: SheetFormMediaProps) {
   const { colors } = useAppTheme();
 
   return (
-    <VStack spacing={spacing.sm}>
+    <VStack
+      spacing={spacing.sm}
+      modifiers={[listRowBackground('transparent'), listRowSeparator('hidden')]}
+    >
       {/* RNHostView takes no style and `matchContents` is boolean-only, so
           the RN child must carry its own size AND centre itself in a
           full-width wrapper — the slot is as big as what you hand it. */}
       <RNHostView matchContents>{children}</RNHostView>
-      <SwiftUIText
-        modifiers={[
-          font({ textStyle: 'footnote' }),
-          foregroundStyle(colors.onSurfaceMuted),
-        ]}
-      >
-        {caption}
-      </SwiftUIText>
+      {/* ALWAYS a Button, even for the busy status — a `Text` swapped in
+          here rendered a footnote line where a small control had been, so
+          every state change jumped the sheet's layout (Juan caught the CLS).
+          Same control, same box; only the tint and the enabled state
+          change. */}
+      {caption ? (
+        <Button
+          label={caption}
+          onPress={onPress ?? noop}
+          modifiers={[
+            buttonStyle('borderless'),
+            controlSize('small'),
+            tint(onPress ? colors.primary : colors.onSurfaceMuted),
+            ...(onPress ? [] : [disabledModifier(true)]),
+          ]}
+        />
+      ) : null}
     </VStack>
   );
 }
@@ -338,6 +390,37 @@ type ActionButtonProps = {
  * iOS palette, and a different imitation per screen. One export, so a portfolio
  * button is the platform's button.
  */
+/**
+ * THE PORTFOLIO BUTTON'S MODIFIER STACK, on its own — so a caller that cannot
+ * use `ActionButtonIos` still gets the identical control.
+ *
+ * There is exactly one such caller and it is a real constraint, not laziness:
+ * `EmptyState.ios` puts its CTA in a `VStack` beside a `ContentUnavailableView`
+ * (the @expo/ui wrapper exposes no `actions` slot — see that file), and
+ * `ActionButtonIos` brings its own `Host`, which cannot nest inside another
+ * one. It was therefore hand-rolling `borderedProminent` + `large` + `tint`,
+ * three lines that had to stay in step with this file by memory. Now the stack
+ * is the shared thing and only the Host differs.
+ */
+export function actionButtonModifiersIos({
+  tintColor,
+  variant = 'bordered',
+  size = 'large',
+  disabled = false,
+}: {
+  tintColor: string;
+  variant?: 'bordered' | 'prominent';
+  size?: 'small' | 'regular' | 'large';
+  disabled?: boolean;
+}) {
+  return [
+    buttonStyle(variant === 'prominent' ? 'borderedProminent' : 'bordered'),
+    controlSize(size),
+    tint(tintColor),
+    ...(disabled ? [disabledModifier(true)] : []),
+  ];
+}
+
 export function ActionButtonIos({
   label,
   onPress,
@@ -350,7 +433,7 @@ export function ActionButtonIos({
 
   return (
     // `matchContents` hugs BOTH axes, and there is no option not to. Hugging
-    // only the vertical axis (what `SheetDestructiveButtonIos` does, because a
+    // only the vertical axis (what `SheetFormDestructiveIos` does, because a
     // Section row hands it a width) leaves the Host filling whatever width it
     // is given — and a capsule CTA is usually given none: a centred column or a
     // row's trailing slot has auto width, the button measures at ~0 wide, and
@@ -362,14 +445,12 @@ export function ActionButtonIos({
       <Button
         label={label}
         onPress={onPress}
-        modifiers={[
-          buttonStyle(
-            variant === 'prominent' ? 'borderedProminent' : 'bordered',
-          ),
-          controlSize(size),
-          tint(colors.primary),
-          ...(disabled ? [disabledModifier(true)] : []),
-        ]}
+        modifiers={actionButtonModifiersIos({
+          tintColor: colors.primary,
+          variant,
+          size,
+          disabled,
+        })}
       />
     </Host>
   );
@@ -437,6 +518,63 @@ type SheetCommitGlyphProps = {
   busy?: boolean;
   onPress: () => void;
 };
+
+type SheetCommitBarOptions = {
+  /** Already-translated screen title for the sheet's UIKit bar. */
+  title: string;
+  /** Already-translated "Cancel" — the ✕'s accessibility label. */
+  cancelLabel: string;
+  onCancel: () => void;
+  /** Already-translated action name — the ✓'s accessibility label. */
+  actionLabel: string;
+  actionEnabled?: boolean;
+  busy?: boolean;
+  onAction: () => void;
+};
+
+/**
+ * THE COMMIT-MODAL PAIR AS `Stack.Screen` OPTIONS — one statement of a titled
+ * editor sheet's bar, for every editor in the portfolio.
+ *
+ * Apple's arrangement, in the only place it can be genuine: the ✕ is a plain
+ * bar glyph that UIKit gives its own glass circle, the ✓ is
+ * `SheetCommitGlyphIos`, and the title is the bar's. Authoring the same three
+ * things per route is what this replaces — Topper's two editors carried
+ * byte-identical `headerLeft` blocks and near-identical `headerRight` ones, so
+ * a change to the pair had to be made twice and the second copy is the one that
+ * gets missed.
+ *
+ * It returns options rather than rendering, because a route declares its bar
+ * through `Stack.Screen` and the header slots are functions UIKit calls.
+ */
+export function sheetCommitBarOptionsIos({
+  title,
+  cancelLabel,
+  onCancel,
+  actionLabel,
+  actionEnabled = true,
+  busy = false,
+  onAction,
+}: SheetCommitBarOptions) {
+  return {
+    title,
+    headerLeft: () => (
+      <HeaderGlyphButtonIos
+        systemName="xmark"
+        label={cancelLabel}
+        onPress={onCancel}
+      />
+    ),
+    headerRight: () => (
+      <SheetCommitGlyphIos
+        label={actionLabel}
+        enabled={actionEnabled}
+        busy={busy}
+        onPress={onAction}
+      />
+    ),
+  };
+}
 
 export function SheetCommitGlyphIos({
   label,

@@ -36,6 +36,7 @@ export {
   HeaderGlyphGroupIos,
   type HeaderGlyphButtonProps,
 } from './HeaderGlyphButton';
+export { SkeletonBone } from './SkeletonBone';
 export { InitialArt } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
 export {
@@ -75,7 +76,10 @@ export {
 } from './createText';
 export {
   ActionButtonIos,
+  actionButtonModifiersIos,
   SheetCommitGlyphIos,
+  sheetCommitBarOptionsIos,
+  SheetFormBodyIos,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
   SheetFormIos,
