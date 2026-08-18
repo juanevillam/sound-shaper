@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { TEXT_VARIANTS } from '@portfolio/mobile-ui';
+
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
 import { type ResolvedTrophy } from './types';
@@ -105,7 +107,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     width: DISC_SIZE,
   },
-  title: { fontSize: 22, lineHeight: 28, textAlign: 'center' },
-  caption: { fontSize: 12, lineHeight: 16, textAlign: 'center' },
-  body: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  // THE SHARED SCALE, not three hand-written pairs. `TEXT_VARIANTS` is
+  // exported from `@portfolio/mobile-ui` for exactly this — "so package-level
+  // components still render on the exact same steps as every app screen" — and
+  // this file was writing the numbers out instead, which is how it came to
+  // render ANDROID's body size on iOS: 14/20 against the 15/20 its sibling
+  // sheet (`creator-info`, the verified-badge explainer) gets from
+  // `bodyMedium`. Same layout, same padding, same hero rhythm, one step of type
+  // apart.
+  title: { ...TEXT_VARIANTS.titleLarge, textAlign: 'center' },
+  caption: { ...TEXT_VARIANTS.labelMedium, textAlign: 'center' },
+  body: { ...TEXT_VARIANTS.bodyMedium, textAlign: 'center' },
 });
