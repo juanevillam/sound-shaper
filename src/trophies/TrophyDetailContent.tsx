@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import {
+  SHEET_HERO_BADGE_SIZE,
   SHEET_HERO_GLYPH_SIZE,
-  SHEET_HERO_SIZE,
   TEXT_VARIANTS,
 } from '@portfolio/mobile-ui';
 
@@ -17,9 +17,9 @@ import { type ResolvedTrophy } from './types';
 // unfinished on the elevated sheet. Colors ride in as props like the package's
 // other screens, so each app's platform palette applies.
 
-// THE SHARED HERO BOX — see `sheetHero`. This disc was 88 against the
-// verified-badge sheet's 64, on an otherwise identical layout.
-const DISC_SIZE = SHEET_HERO_SIZE;
+// A CONTAINER HERO, so it takes the BADGE size rather than the bare-symbol one
+// — see `sheetHero` for the measurement that separates the two.
+const DISC_SIZE = SHEET_HERO_BADGE_SIZE;
 const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
 // Tint strength for the disc behind the trophy glyph.
 const DISC_ALPHA = 0.16;
