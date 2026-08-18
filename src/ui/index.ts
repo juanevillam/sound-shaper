@@ -49,6 +49,7 @@ export {
   LIST_ROW_PADDING_VERTICAL,
 } from './groupedRow';
 export { LIST_ROW_ONE_LINE, LIST_ROW_TWO_LINES } from './listRowText';
+export { SHEET_HERO_GLYPH_SIZE, SHEET_HERO_SIZE } from './sheetHero';
 export { SkeletonBone } from './SkeletonBone';
 export { InitialArt } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
