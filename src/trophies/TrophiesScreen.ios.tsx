@@ -169,8 +169,13 @@ const RING_SIZE = 116;
 /**
  * How much bigger than the gauge draws itself. 58.00 intrinsic × this is the
  * ink the summary actually shows — and what the bone has to stand.
+ *
+ * 1.4 puts the ring's ink at 81.33 and its top 87.33 below the sheet's own top
+ * edge, within 4pt of where the account sheet opens its first content (83.67).
+ * Bigger read as crowding rather than emphasis — at 1.55 the ink is 90.00 and
+ * the gap under it falls to 22.50, against the 27.00 this leaves.
  */
-const RING_SCALE = 1.55;
+const RING_SCALE = 1.4;
 /** The gauge's intrinsic ink, measured — 58.00 at every frame size tried. */
 const RING_INTRINSIC = 58;
 /** What it ends up drawing, and therefore what the bone stands. */
@@ -203,16 +208,24 @@ const SUMMARY_TO_LIST_GAP = 9.33;
  * THE SUMMARY'S OWN TOP MARGIN — zero, because the section supplies its own.
  *
  * Promoting the summary out of the section header cost it the header's tighter
- * top inset and gave it the grouped list's, which dropped the first ink from
- * 151.00 to 184.00 — 33pt lower than it sat as a header, and far below where
- * the sibling sheets open. Band-scanned first content ink, iPhone 17 /
- * iOS 26.5:
+ * top inset and gave it the grouped list's, which dropped the first ink 33pt —
+ * far below where the sibling sheets open.
  *
- *   Account   145.67    Trash  177.00 (a card, no header above it)
- *   Trophies  184.00 before this, 145.00 with it
+ * MEASURE THIS RELATIVE TO THE SHEET, NOT THE SCREEN. This sheet is pushed as a
+ * SECOND sheet over the account one, and a stacked sheet's top edge sits 10pt
+ * lower (62.00 → 72.00, band-scanned): comparing raw screen coordinates says
+ * two sheets agree while one is in fact 10pt tighter than the other, which is
+ * exactly what an earlier note here concluded. Offsets from each sheet's own
+ * top edge, iPhone 17 / iOS 26.5:
  *
- * The account sheet is the right reference: it is the same family, and it opens
- * with a label above a card exactly as this now opens with a summary above one.
+ *                     title ink    first content ink
+ *   Account           32.33        83.67   (a section label)
+ *   Trophies          31.67        87.33   (the gauge's ink)
+ *
+ * The bar is the same object in both, to a third of a point. The account sheet
+ * is the right reference for the content below it, too: it is the same family,
+ * and it opens with a label above a card exactly as this opens with a summary
+ * above one.
  */
 const SUMMARY_TOP_MARGIN = 0;
 
