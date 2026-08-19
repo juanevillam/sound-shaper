@@ -193,29 +193,31 @@ const RING_INK = RING_INTRINSIC * RING_SCALE;
  * measured slope of ~0.85, so this is solved backwards rather than set: 17.5
  * lands 34.67 exactly. Re-measure the reference before changing it.
  */
-const SUMMARY_TO_LIST_GAP = 17.5;
+const SUMMARY_TO_LIST_GAP = 0;
 
 /**
- * WHERE THE SUMMARY CARD STARTS — pinned to the sheet family's first card.
+ * WHERE THE SUMMARY CARD STARTS — 84.00 below the sheet's own top edge, which
+ * is APPLE'S number, not this app's.
  *
  * MEASURE THIS RELATIVE TO THE SHEET, NOT THE SCREEN. This sheet is pushed as a
  * SECOND sheet over the account one, and a stacked sheet's top edge sits 10pt
- * lower (62.00 → 72.00, band-scanned): comparing raw screen coordinates says
- * two sheets agree while one is in fact 10pt tighter than the other, which is
- * exactly what an earlier note here concluded.
+ * lower (62.00 → 72.00, band-scanned), so raw screen coordinates say two sheets
+ * agree while one is really 10pt tighter than the other.
  *
- * The reference is `trash` — the same family, a first card with NO section
- * header above it, which is what this is now. Offsets from each sheet's own top
- * edge, iPhone 17 / iOS 26.5:
+ * THE REFERENCE IS SETTINGS, and it already had a name in this repo:
+ * `PeopleSheetListIos` band-scanned Settings' own first content at 146.0 from
+ * identical anchors, which on a root sheet (top edge 62.00) is 84.00 — the same
+ * 84 that `SHEET_BONE_TOP` is. The account sheet one push away lands 83.67.
  *
- *   Trash      first card   105.00
- *   Trophies   first card   105.00 with this, 70.00 without it
+ *   Settings (Apple)   84.00      account   83.67      trophies   84.00
  *
- * (`account` is the wrong reference for the card itself — its first card sits
- * at 110.33 because a section label rides above it. Its bar, though, is the
- * same object as this one to a third of a point: title ink 32.33 vs 31.67.)
+ * DO NOT PIN THIS TO trash OR blocked. They band-scan at 105.00 because they
+ * never took `PeopleSheetListIos`' `EMPTY_HEADER_SLOT` compensation — a grouped
+ * list reserves room above its first section for a header it does not have, and
+ * those two still carry the empty 21pt slot. This constant was briefly solved
+ * against trash's 105.00 and inherited the bug exactly.
  */
-const SUMMARY_TOP_MARGIN = 35;
+const SUMMARY_TOP_MARGIN = 14;
 
 const TrophyRow = ({
   trophy,
