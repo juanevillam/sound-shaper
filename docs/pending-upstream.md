@@ -249,6 +249,42 @@ records for the iOS edit sheets. One honest pill beats two imitation capsules.
 
 ---
 
+## A bar overflow's PULL-DOWN MENU — blocked on `react-native-screens`
+
+**What we want.** Recently Deleted's `⋯` opening a **pull-down menu anchored to
+its own glyph**, which is iOS 26's idiom for a bar overflow — Files' own
+Recently Deleted, Photos' album `⋯`, Mail's mailbox `⋯` all do exactly this.
+Ours raises an `ActionSheetIOS` instead: a sheet that slides up from the bottom
+of the screen with its own Cancel row, which is the pre-iOS-14 idiom and belongs
+to a choice that has no control to hang off.
+
+**Why it isn't built.** It WAS built, on 2026-08-19, and reverted the same hour.
+`@expo/ui`'s `Menu` works — it renders the real system menu, with a red
+`role="destructive"` row — but inside a `headerRight` it presents at the wrong
+anchor: the popover comes up **centred on the bar**, covering the sheet's title,
+instead of dropping below it. Measured on iPhone 17 / iOS 26.5: the menu's box
+ran 90.00 → 148.00 while the title's ink sits at 103.00 → 117.67, so it covered
+the title outright. Dropping `matchContents` on the hosting `SwiftUIHost` (the
+obvious suspect, since a host that resizes to its children gives UIKit a moving
+anchor) changed nothing — the placement is identical with and without it.
+
+The cause is the same one the entry above records: `headerRight` is ONE
+custom-view `UIBarButtonItem`, and a SwiftUI `Menu` inside a bridged host has no
+`UIBarButtonItem` to anchor its presentation to.
+
+**What unlocks it.** RNScreens exposing UIKit's own `UIBarButtonItem(menu:)` —
+the API that makes a bar button present a `UIMenu` natively, with correct
+anchoring for free. Grep `node_modules/react-native-screens/ios` for
+`UIBarButtonItem(` and for `menu`; today it only ever builds items from a title,
+an image or a custom view. Alternatively, `@expo/ui` gaining a way to present a
+`Menu` from a host that is itself a bar item.
+
+**Do NOT ship the menu as it renders today.** A menu that covers the sheet's own
+title is worse than the action sheet it replaces; the idiom is right and the
+placement is not, and only one of those is visible to a person using it.
+
+---
+
 ## The editor sheets' PROMINENT ✓ bar item — blocked on `react-native-screens`
 
 **What we want.** The trailing ✓ of the editors' commit-modal pair rendered the
