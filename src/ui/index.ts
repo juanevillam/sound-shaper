@@ -8,6 +8,7 @@ export { AppIcon, type AppIconProps } from './AppIcon';
 export {
   AUTHOR_CREDIT,
   AUTHOR_CREDIT_PREFIX,
+  AUTHOR_FULL_NAME,
   AUTHOR_NAME,
   AUTHOR_URL,
   authorUrl,
@@ -21,6 +22,28 @@ export {
   type DestructiveConfirmDialogContent,
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
+export {
+  AcknowledgementsListIos,
+  licenseText,
+  LicenseDetailIos,
+  type AcknowledgementsColors,
+  type AcknowledgementsListIosProps,
+  type LicenseDetailIosProps,
+  type LicenseManifest,
+  type LicensePackage,
+} from './AcknowledgementsIos';
+export {
+  ASSISTANCE_CREDIT,
+  buildCreditsRoles,
+  offerCreditsIos,
+} from './creditsContent';
+export {
+  CREDITS_GROUND,
+  CREDITS_INK,
+  CreditsScreen,
+  type CreditsRole,
+  type CreditsScreenProps,
+} from './CreditsScreen';
 export {
   ErrorScreen,
   type ErrorScreenColors,
@@ -68,6 +91,7 @@ export {
   type MediaContainer,
 } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
+export { iosOnlyRoute } from './iosOnlyRoute';
 export {
   WelcomeScreen,
   type AuthAction,
