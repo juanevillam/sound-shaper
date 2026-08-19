@@ -70,7 +70,8 @@ export type SettingsInfoRow = {
   value?: string;
   /** Optional external link the row opens when tapped, e.g. package docs. */
   url?: string;
-  /** Optional tap handler (wins over `url`), e.g. an easter-egg counter. */
+  /** Optional tap handler (wins over `url`) — an in-app destination or an
+   *  action, e.g. the legal pages and the Credits row. */
   onPress?: () => void;
   /**
    * The row PUSHES to another screen in this app, so it takes a disclosure

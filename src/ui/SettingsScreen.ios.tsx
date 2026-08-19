@@ -46,8 +46,9 @@ const styles = StyleSheet.create({
  *
  * Three shapes, decided by the row rather than by which card it is in:
  *
- *  - `onPress` runs on tap and WINS over `url` (the version row's easter-egg
- *    counter is the reason that precedence exists);
+ *  - `onPress` runs on tap and WINS over `url` (that precedence was written for
+ *    a version-row easter egg, removed in 2026-07 when the legal pages took the
+ *    slot; it earns its keep now on rows that go somewhere in-app);
  *  - `url` becomes a native `Link` that hands off to the browser;
  *  - neither is a plain fact, e.g. a version number.
  *
