@@ -134,6 +134,19 @@ const TRANSPARENT = '#00000000';
  * An accessory gauge draws small by default, so the frame states the size the
  * header wants rather than accepting the widget one.
  */
+/** Between each figure column and the ring. */
+const SUMMARY_COLUMN_GAP = 28;
+/**
+ * BOTH FIGURE COLUMNS TAKE THE SAME WIDTH, so the group is symmetric and the
+ * ring lands on the screen's centre.
+ *
+ * Left to hug their labels they are not: "Available" is wider than "Earned"
+ * (and "Disponibles" wider still), which pulled the whole group left and put
+ * the ring 5.33pt off centre — visible as a horizontal jump against the loading
+ * state, where the columns are absent and the ring centres properly. Wide
+ * enough for the longest label in any shipped locale.
+ */
+const FIGURE_WIDTH = 84;
 const RING_SIZE = 96;
 /**
  * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
@@ -360,43 +373,67 @@ export const TrophiesScreen = ({
             ]}
           >
             {/**
-             * THE RING, ALONE — the summary is one fact.
+             * THE RING AND ITS TWO FIGURES — how many earned, how many there
+             * are, and the fraction between them.
              *
-             * It carried the earned and available counts flanking it and a tier
-             * tally beneath, PlayStation's full block. That is the right density
-             * on a console screen that also shows the game, the player and a
-             * rarity column; here it was three ways of saying the same thing
-             * above a list that already names every trophy and its tier. What a
-             * person opens this sheet for is how far along they are, so that is
-             * what the summary says and nothing else. The gauge grew with the
-             * pruning: at 64 it was one element among several, at `RING_SIZE`
-             * it is the block.
+             * What it dropped was PlayStation's TIER TALLY, the row of four
+             * trophy glyphs with counts beneath. On a console screen that also
+             * shows the game, the player and a rarity column it earns its
+             * place; here it sat directly above a list that already names every
+             * trophy AND its tier, so it was a third way of saying what the
+             * rows say.
              *
-             * ITS PLACEHOLDER IS THE GAUGE ITSELF, EMPTY — no bone, and no
-             * bridged host. The summary used to stand a `SkeletonBone` through
-             * an `RNHostView`, and that host would not render here at all: the
-             * frame was reserved and the RN tree never appeared, through eight
-             * builds of explicit boxes, `matchContents` on and off, cleared
-             * insets, an opaque row fill and both `VStack` and `HStack` parents.
-             * Once the summary became a single `Gauge`, the host stopped being
-             * necessary — a gauge at zero IS the empty state of a gauge, it is
-             * what Apple draws, it is pixel-identical to the settled one by
-             * construction (same control, same frame, same place), and it
-             * cannot lie: an empty track says "not known yet", not "zero
-             * earned", because the figure that would have said zero is gone.
+             * CENTRED AND CLOSE, NOT SPREAD. An earlier pass pushed the three
+             * columns apart with `Spacer`s BETWEEN them — `space-between` by
+             * another name — and the figures ended hard against the sheet's
+             * gutters with a hole in the middle. The columns take a fixed gap
+             * and a single `Spacer` sits on each side of the whole group, which
+             * is what centres a row that otherwise hugs its content.
              *
-             * The rows below still sweep, so the app's placeholder language is
-             * intact everywhere it has bones to sweep.
+             * THE FIGURES ARE ABSENT WHILE LOADING, and nothing moves when they
+             * arrive: the ring is 96 against a column's ~48, so the ring alone
+             * sets the block's height, and the outer spacers keep it centred
+             * either way. They are omitted rather than boned because a
+             * `SkeletonBone` here needs an `RNHostView`, and that host will not
+             * render in this block — eight builds of explicit boxes,
+             * `matchContents` on and off, cleared insets, an opaque row fill and
+             * both `VStack` and `HStack` parents, all drawing nothing. The ring
+             * carries the wait on its own (see its `value`).
              */}
-            <HStack alignment="center">
+            <HStack alignment="center" spacing={SUMMARY_COLUMN_GAP}>
               <Spacer />
+              {loading ? null : (
+                <VStack
+                  spacing={2}
+                  modifiers={[frame({ width: FIGURE_WIDTH })]}
+                >
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'title2', weight: 'semibold' }),
+                      foregroundStyle(colors.onSurface),
+                    ]}
+                  >
+                    {String(earned)}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'footnote' }),
+                      foregroundStyle(colors.onSurfaceMuted),
+                    ]}
+                  >
+                    {strings.earnedLabel}
+                  </Text>
+                </VStack>
+              )}
+
+              {/* ITS PLACEHOLDER IS THE GAUGE ITSELF, EMPTY. A gauge at zero IS
+                  the empty state of a gauge, it is what Apple draws, and it is
+                  pixel-identical to the settled one by construction — same
+                  control, same frame, same place. It cannot lie either: an
+                  empty track says "not known yet" rather than "zero earned",
+                  because the figure that would have said zero is not shown. */}
               <Gauge
                 value={loading ? 0 : fraction}
-                // The percent lives INSIDE the ring, which is what the
-                // `currentValueLabel` slot is for. It scales with the ring: a
-                // `caption` sized for a 64pt gauge reads lost in this one. It
-                // is dropped entirely while loading — an empty ring with a
-                // number in it would be stating the number.
                 currentValueLabel={
                   loading ? undefined : (
                     <Text
@@ -415,12 +452,38 @@ export const TrophiesScreen = ({
                   frame({ width: RING_SIZE, height: RING_SIZE }),
                 ]}
               />
+
+              {loading ? null : (
+                <VStack
+                  spacing={2}
+                  modifiers={[frame({ width: FIGURE_WIDTH })]}
+                >
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'title2', weight: 'semibold' }),
+                      foregroundStyle(colors.onSurface),
+                    ]}
+                  >
+                    {String(total)}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'footnote' }),
+                      foregroundStyle(colors.onSurfaceMuted),
+                    ]}
+                  >
+                    {strings.availableLabel}
+                  </Text>
+                </VStack>
+              )}
               <Spacer />
             </HStack>
           </VStack>
         </Section>
 
-        <Section title={strings.allTitle}>
+        {/* UNTITLED. With one section on the screen a header only labels the
+            obvious — the sheet's own title already says Trophies. */}
+        <Section>
           {trophies.map(trophy => (
             <TrophyRow
               key={trophy.id}

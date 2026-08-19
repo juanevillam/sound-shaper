@@ -30,8 +30,9 @@ const TIERS: TrophyTier[] = ['bronze', 'silver', 'gold', 'platinum'];
 export type TrophyScreenStringsBase = {
   lockedLabel: string;
   achievedLabel: string;
-  /** The list section's title. */
-  allTitle: string;
+  /** The two figures flanking the summary ring. */
+  earnedLabel: string;
+  availableLabel: string;
   tierNames: Record<TrophyTier, string>;
 };
 
@@ -79,7 +80,8 @@ export const useTrophyContent = (): TrophyContent => {
       screenStrings: {
         lockedLabel: t('trophies.locked'),
         achievedLabel: t('trophies.earned'),
-        allTitle: t('trophies.allTitle'),
+        earnedLabel: t('trophies.earned'),
+        availableLabel: t('trophies.available'),
         tierNames,
       },
     };

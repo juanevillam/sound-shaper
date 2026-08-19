@@ -24,8 +24,9 @@ export type TrophiesScreenStrings = {
   progress: string;
   /** Pre-formatted completion percent, e.g. "43%" — sits inside the ring. */
   percent: string;
-  /** iOS: the list section's title. */
-  allTitle: string;
+  /** iOS: the two figures flanking the summary ring. */
+  earnedLabel: string;
+  availableLabel: string;
   /** Prefix before the date on an earned trophy, e.g. "Earned". */
   achievedLabel: string;
   tierNames: Record<TrophyTier, string>;
