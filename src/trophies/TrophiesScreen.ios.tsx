@@ -186,8 +186,16 @@ const SUMMARY_TOP_MARGIN = 0;
 
 /** The ring → text gap, and the tier row's own rhythm. */
 const HEADER_ROW_GAP = 16;
-const TIER_PIP_GAP = 12;
-const TIER_GLYPH_SIZE = 12;
+const TIER_GLYPH_SIZE = 26;
+/**
+ * The summary's own rhythm. FIXED gaps, not `Spacer`s — see the block itself:
+ * spacers spread the columns to the sheet's gutters and left a hole in the
+ * middle, where the console keeps a compact centred group.
+ */
+const SUMMARY_COLUMN_GAP = 28;
+const TIER_COLUMN_GAP = 28;
+/** Between the figures row and the tier tally beneath it. */
+const SUMMARY_ROW_GAP = 18;
 /** The count over the pips, inside the header's text column. */
 const HEADER_TEXT_GAP = 6;
 /** The pip row's own line box, and what its bone spans across four tiers. */
@@ -426,81 +434,119 @@ export const TrophiesScreen = ({
               </VStack>
             ) : (
               /**
-               * RING + COUNT + TIER PIPS — Fitness's own summary layout: the
-               * gauge carries the fraction, the count beside it is the
-               * screen's headline, and the metrics sit under the headline.
+               * PLAYSTATION'S SUMMARY, IN iOS CLOTHES — the count earned and
+               * the count available flanking the ring, with the tier tally on
+               * its own row beneath.
                *
-               * The pips are real data the screen already had and was throwing
-               * away: every trophy knows its tier, so "7 of 7" can say WHICH
-               * seven. They wear `tierColor`, the same colours the row icons
-               * use, so the summary needs no legend — and platinum leads,
-               * PlayStation's order, which is the vernacular this module is
-               * built in.
+               * CENTRED AND CLOSE, NOT SPREAD. The first pass pushed the three
+               * columns apart with `Spacer`s, which is `space-between` by
+               * another name: the figures ended up hard against the sheet's
+               * gutters with a hole in the middle. The console's is a compact
+               * group centred on the page, so the columns take a fixed spacing
+               * and the VStack's own centre alignment does the rest.
+               *
+               * NO CARD, deliberately. An `insetGrouped` card groups ROWS with
+               * separators; three columns and a tally row are not rows, and
+               * Fitness and Game Center both put their summary straight on the
+               * page. The Section below IS rows, so it keeps its card.
+               *
+               * The tiers are SF Symbols rather than the RN trophy glyph on
+               * purpose: four bridged hosts in one block is three past the
+               * ceiling that blew this layout apart once already.
                */
-              <HStack alignment="center" spacing={HEADER_ROW_GAP}>
-                <Gauge
-                  value={fraction}
-                  // The percent lives INSIDE the ring, which is what the
-                  // `currentValueLabel` slot is for — it fills a centre that
-                  // otherwise reads as a decorative circle, and it keeps the
-                  // figure the old header showed instead of dropping it.
-                  currentValueLabel={
+              <VStack spacing={SUMMARY_ROW_GAP}>
+                {/* A `Spacer` EACH SIDE OF THE GROUP, not between the columns.
+                    The group keeps its fixed gaps and the two outer spacers
+                    push it to the centre — the row hugs its content otherwise
+                    and sits hard against the leading gutter. */}
+                <HStack alignment="center" spacing={SUMMARY_COLUMN_GAP}>
+                  <Spacer />
+                  <VStack spacing={2}>
                     <Text
                       modifiers={[
-                        font({ textStyle: 'caption', weight: 'semibold' }),
+                        font({ textStyle: 'title2', weight: 'semibold' }),
                         foregroundStyle(colors.onSurface),
                       ]}
                     >
-                      {strings.percent}
+                      {String(earned)}
                     </Text>
-                  }
-                  modifiers={[
-                    gaugeStyle('circularCapacity'),
-                    tint(colors.primary),
-                    frame({ width: RING_SIZE, height: RING_SIZE }),
-                  ]}
-                />
-                <VStack alignment="leading" spacing={HEADER_TEXT_GAP}>
-                  {/* `title3` semibold — one step above the `headline` it wore
-                      as a caption, and no further: the STRUCTURE carries the
-                      importance now (page content, not a section header), so
-                      the type does not have to shout. It was briefly `title`
-                      bold and read as oversized against the list. */}
-                  <Text
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'footnote' }),
+                        foregroundStyle(colors.onSurfaceMuted),
+                      ]}
+                    >
+                      {strings.earnedLabel}
+                    </Text>
+                  </VStack>
+
+                  <Gauge
+                    value={fraction}
+                    currentValueLabel={
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'caption', weight: 'semibold' }),
+                          foregroundStyle(colors.onSurface),
+                        ]}
+                      >
+                        {strings.percent}
+                      </Text>
+                    }
                     modifiers={[
-                      font({ textStyle: 'title3', weight: 'semibold' }),
-                      foregroundStyle(colors.onSurface),
+                      gaugeStyle('circularCapacity'),
+                      tint(colors.primary),
+                      frame({ width: RING_SIZE, height: RING_SIZE }),
                     ]}
-                  >
-                    {strings.progress}
-                  </Text>
-                  <HStack spacing={TIER_PIP_GAP}>
-                    {TIER_ORDER.map(tier => (
-                      <HStack key={tier} spacing={3}>
-                        <Image
-                          systemName="trophy.fill"
-                          size={TIER_GLYPH_SIZE}
-                          color={tierColor(tier)}
-                        />
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'subheadline' }),
-                            foregroundStyle(tierColor(tier)),
-                          ]}
-                        >
-                          {String(earnedByTier[tier])}
-                        </Text>
-                      </HStack>
-                    ))}
-                  </HStack>
-                </VStack>
-                <Spacer />
-              </HStack>
+                  />
+
+                  <VStack spacing={2}>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'title2', weight: 'semibold' }),
+                        foregroundStyle(colors.onSurface),
+                      ]}
+                    >
+                      {String(total)}
+                    </Text>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'footnote' }),
+                        foregroundStyle(colors.onSurfaceMuted),
+                      ]}
+                    >
+                      {strings.availableLabel}
+                    </Text>
+                  </VStack>
+                  <Spacer />
+                </HStack>
+
+                <HStack alignment="center" spacing={TIER_COLUMN_GAP}>
+                  <Spacer />
+                  {TIER_ORDER.map(tier => (
+                    <VStack key={tier} spacing={4}>
+                      <Image
+                        systemName="trophy.fill"
+                        size={TIER_GLYPH_SIZE}
+                        color={tierColor(tier)}
+                      />
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'subheadline' }),
+                          foregroundStyle(colors.onSurfaceMuted),
+                        ]}
+                      >
+                        {String(earnedByTier[tier])}
+                      </Text>
+                    </VStack>
+                  ))}
+                  <Spacer />
+                </HStack>
+              </VStack>
             )}
           </VStack>
         </Section>
 
-        <Section>
+        <Section title={strings.allTitle}>
           {trophies.map(trophy => (
             <TrophyRow
               key={trophy.id}

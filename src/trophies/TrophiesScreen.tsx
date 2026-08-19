@@ -22,8 +22,13 @@ export type TrophiesScreenColors = {
 export type TrophiesScreenStrings = {
   /** Pre-formatted progress line, e.g. "3 of 7 earned". */
   progress: string;
-  /** Pre-formatted completion percent, e.g. "43%" — sits opposite the progress line. */
+  /** Pre-formatted completion percent, e.g. "43%" — sits inside the ring. */
   percent: string;
+  /** iOS: the two figures flanking the ring, PlayStation's summary shape. */
+  earnedLabel: string;
+  availableLabel: string;
+  /** iOS: the list section's title. */
+  allTitle: string;
   /** Prefix before the date on an earned trophy, e.g. "Earned". */
   achievedLabel: string;
   tierNames: Record<TrophyTier, string>;
