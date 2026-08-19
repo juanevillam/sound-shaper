@@ -156,7 +156,7 @@ export const translations = {
       progress: '{earned} of {total} earned',
       locked: 'Locked',
       earned: 'Earned',
-      allTitle: 'All Trophies',
+      available: 'Available',
       unlocked: 'Trophy Unlocked',
       tier: {
         bronze: 'Bronze',
@@ -424,7 +424,7 @@ export const translations = {
       progress: '{earned} de {total} conseguidos',
       locked: 'Bloqueado',
       earned: 'Conseguido',
-      allTitle: 'Todos los trofeos',
+      available: 'Disponibles',
       unlocked: 'Trofeo desbloqueado',
       tier: {
         bronze: 'Bronce',
