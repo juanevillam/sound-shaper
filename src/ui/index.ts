@@ -15,6 +15,7 @@ export {
   type LegalPage,
 } from './author';
 export { type WelcomeLegal } from './LegalFooter';
+export { confirmDestructiveIos } from './confirmDestructiveIos';
 export {
   DestructiveConfirmDialog,
   type DestructiveConfirmDialogContent,
