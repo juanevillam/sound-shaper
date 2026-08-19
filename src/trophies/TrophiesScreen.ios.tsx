@@ -127,12 +127,6 @@ const TRANSPARENT = '#00000000';
 
 const HEADER_INSET = 32;
 /**
- * The headline's line box — what the two figures sit in. SOLVED, not guessed:
- * at 22 the bar landed 182.0 against the native header's 180.33 and the card
- * followed it down by the same 1.67, so the box is that much smaller.
- */
-const HEADER_LINE_BOX = 22;
-/**
  * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
  * answer to "how much of this is done", and the reason the summary stopped
  * being a linear bar: a `ProgressView` under a headline is the Material shape
@@ -184,8 +178,6 @@ const SUMMARY_TO_LIST_GAP = 9.33;
  */
 const SUMMARY_TOP_MARGIN = 0;
 
-/** The ring → text gap, and the tier row's own rhythm. */
-const HEADER_ROW_GAP = 16;
 const TIER_GLYPH_SIZE = 26;
 /**
  * The summary's own rhythm. FIXED gaps, not `Spacer`s — see the block itself:
@@ -196,11 +188,17 @@ const SUMMARY_COLUMN_GAP = 28;
 const TIER_COLUMN_GAP = 28;
 /** Between the figures row and the tier tally beneath it. */
 const SUMMARY_ROW_GAP = 18;
-/** The count over the pips, inside the header's text column. */
-const HEADER_TEXT_GAP = 6;
-/** The pip row's own line box, and what its bone spans across four tiers. */
-const TIER_PIP_LINE_BOX = 20;
-const TIER_PIP_ROW_WIDTH = 132;
+/**
+ * THE SUMMARY BLOCK'S OWN HEIGHT, solved against the rendered screen.
+ *
+ * Stacking the parts (ring 64 + gap 18 + glyph 26 + 4 + a subheadline line)
+ * came out 3.66 short: the bone's card sat at 323.67 against the settled one's
+ * 327.33, constant down the sheet rather than accumulating. The settled tier
+ * column is a SwiftUI `VStack` of a symbol over a `subheadline`, and that does
+ * not measure where stacked RN line boxes do — the same lesson `GROUPED_ROW`
+ * records for its own two-line row.
+ */
+const SUMMARY_BONE_HEIGHT = 135.66;
 
 /**
  * PLATINUM FIRST, then down — PlayStation's order, which is the vernacular this
@@ -408,30 +406,57 @@ export const TrophiesScreen = ({
             ]}
           >
             {loading ? (
-              <VStack
-                modifiers={[frame({ width: headerWidth, height: RING_SIZE })]}
+              <HStack
+                modifiers={[
+                  frame({ width: headerWidth, height: SUMMARY_BONE_HEIGHT }),
+                ]}
               >
                 <RNHostView>
-                  <View style={[styles.headerBone, { width: headerWidth }]}>
-                    {/* Stands the ring, then the count over the pip row —
-                        the same three things the settled summary shows, in
-                        the same places. */}
-                    <SkeletonBone
-                      width={RING_SIZE}
-                      height={RING_SIZE}
-                      radius={RING_SIZE / 2}
-                    />
-                    <View style={styles.headerBoneText}>
-                      <View style={styles.headerHeadlineLine}>
-                        <SkeletonBone width={140} height={15} />
+                  <View style={[styles.summaryBone, { width: headerWidth }]}>
+                    {/* Stands the settled summary exactly: a figure column
+                        either side of the ring, then the four tier tallies. */}
+                    <View style={styles.summaryBoneFigures}>
+                      <View style={styles.summaryBoneCol}>
+                        <SkeletonBone width={24} height={22} />
+                        <SkeletonBone
+                          width={52}
+                          height={12}
+                          style={styles.summaryBoneLabel}
+                        />
                       </View>
-                      <View style={styles.headerPipLine}>
-                        <SkeletonBone width={TIER_PIP_ROW_WIDTH} height={12} />
+                      <SkeletonBone
+                        width={RING_SIZE}
+                        height={RING_SIZE}
+                        radius={RING_SIZE / 2}
+                      />
+                      <View style={styles.summaryBoneCol}>
+                        <SkeletonBone width={24} height={22} />
+                        <SkeletonBone
+                          width={60}
+                          height={12}
+                          style={styles.summaryBoneLabel}
+                        />
                       </View>
+                    </View>
+                    <View style={styles.summaryBoneTiers}>
+                      {TIER_ORDER.map(tier => (
+                        <View key={tier} style={styles.summaryBoneCol}>
+                          <SkeletonBone
+                            width={TIER_GLYPH_SIZE}
+                            height={TIER_GLYPH_SIZE}
+                            radius={TIER_GLYPH_SIZE / 2}
+                          />
+                          <SkeletonBone
+                            width={10}
+                            height={14}
+                            style={styles.summaryBoneTierCount}
+                          />
+                        </View>
+                      ))}
                     </View>
                   </View>
                 </RNHostView>
-              </VStack>
+              </HStack>
             ) : (
               /**
                * PLAYSTATION'S SUMMARY, IN iOS CLOTHES — the count earned and
@@ -617,19 +642,35 @@ const styles = StyleSheet.create({
   // The body and footnote line boxes the native row stacks.
   titleLine: { height: 22, justifyContent: 'center' },
   supportingLine: { height: 18, justifyContent: 'center' },
-  /** Explicit box, margins not `gap` — see `rowBone` for why. */
-  headerBone: {
+  /**
+   * THE SUMMARY BONE — and the SwiftUI wrapper around it is an `HStack`, not a
+   * `VStack`, which is the whole reason this renders at all.
+   *
+   * Framed inside a `VStack` the host drew NOTHING: the box was reserved and
+   * the RN tree never appeared. Six builds went at it from the RN side —
+   * explicit width and height on the root, explicit widths on each inner row,
+   * `matchContents` on and off, the row insets zeroed, the row background made
+   * opaque — and none of it mattered. Swapping the SwiftUI parent to an
+   * `HStack` fixed it first try. The trophy rows' own hosts sit in an `HStack`
+   * too, which is why they never showed the bug.
+   *
+   * Do not "simplify" this back to a `VStack`.
+   */
+  summaryBone: { alignItems: 'center', height: SUMMARY_BONE_HEIGHT },
+  summaryBoneFigures: {
     alignItems: 'center',
     flexDirection: 'row',
-    height: RING_SIZE,
+    gap: SUMMARY_COLUMN_GAP,
   },
-  headerBoneText: { marginLeft: HEADER_ROW_GAP },
-  headerHeadlineLine: { height: HEADER_LINE_BOX, justifyContent: 'center' },
-  headerPipLine: {
-    height: TIER_PIP_LINE_BOX,
-    justifyContent: 'center',
-    marginTop: HEADER_TEXT_GAP,
+  summaryBoneCol: { alignItems: 'center' },
+  summaryBoneLabel: { marginTop: 6 },
+  summaryBoneTiers: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: TIER_COLUMN_GAP,
+    marginTop: SUMMARY_ROW_GAP,
   },
+  summaryBoneTierCount: { marginTop: 6 },
   iconSlot: {
     alignItems: 'center',
     height: ICON_SIZE,
