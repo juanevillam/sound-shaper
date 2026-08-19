@@ -83,6 +83,7 @@ export {
   type SnackbarAction,
   type SnackbarContextValue,
 } from './snackbar';
+export { SnackbarOutlet } from './SnackbarOutlet';
 export { SnackbarProvider } from './SnackbarProvider';
 export {
   BRAND_PRESSED_OPACITY,

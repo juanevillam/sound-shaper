@@ -252,106 +252,147 @@ const SnackbarProvider = ({
     ],
   );
 
+  /**
+   * THE OUTLET REGISTRY — ids in claim order, so the LAST one mounted wins.
+   * Sheets stack (account → Recently Deleted), and without "topmost only" the
+   * toast drew once per stacked sheet.
+   */
+  const [outlets, setOutlets] = useState<number[]>([]);
+  const claimOutlet = useCallback(
+    (id: number) => setOutlets(current => [...current, id]),
+    [],
+  );
+  const releaseOutlet = useCallback(
+    (id: number) =>
+      setOutlets(current => {
+        const last = current.lastIndexOf(id);
+
+        return last === -1
+          ? current
+          : [...current.slice(0, last), ...current.slice(last + 1)];
+      }),
+    [],
+  );
+  const activeOutlet = outlets.length > 0 ? outlets[outlets.length - 1] : null;
+  // The active outlet's clearance, when it states one — see `SnackbarOutlet`.
+  const [outletInset, setOutletInset] = useState<number | undefined>(undefined);
+  const bottomClearance =
+    activeOutlet !== null && outletInset !== undefined
+      ? outletInset
+      : iosBottomInset;
+
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }],
   }));
 
-  return (
-    <SnackbarContext.Provider value={{ showSnackbar }}>
-      {children}
-      {message ? (
-        <SafeAreaView
-          edges={['bottom']}
-          pointerEvents="box-none"
+  /**
+   * THE TOAST AS A NODE, so a presented surface can render it instead of the
+   * root — see `SnackbarOutlet` for the defect that made this necessary and
+   * for why `FullWindowOverlay` was measured and rejected.
+   */
+  const toast = message ? (
+    <SafeAreaView
+      edges={['bottom']}
+      pointerEvents="box-none"
+      style={[
+        styles.host,
+        Platform.OS === 'ios' ? { paddingBottom: bottomClearance } : null,
+      ]}
+    >
+      <GestureDetector gesture={swipeGesture}>
+        <Animated.View
+          onLayout={
+            Platform.OS === 'ios'
+              ? event => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setToastSize({ w: width, h: height });
+                }
+              : undefined
+          }
           style={[
-            styles.host,
-            Platform.OS === 'ios' ? { paddingBottom: iosBottomInset } : null,
+            styles.snackbar,
+            {
+              // Android: solid M3 snackbar. iOS: transparent — the glass
+              // layer below is the surface.
+              backgroundColor:
+                Platform.OS === 'ios' ? 'transparent' : colors.surfaceVariant,
+            },
+            animatedStyle,
           ]}
         >
-          <GestureDetector gesture={swipeGesture}>
-            <Animated.View
-              onLayout={
-                Platform.OS === 'ios'
-                  ? event => {
-                      const { width, height } = event.nativeEvent.layout;
-                      setToastSize({ w: width, h: height });
-                    }
-                  : undefined
-              }
-              style={[
-                styles.snackbar,
-                {
-                  // Android: solid M3 snackbar. iOS: transparent — the glass
-                  // layer below is the surface.
-                  backgroundColor:
-                    Platform.OS === 'ios'
-                      ? 'transparent'
-                      : colors.surfaceVariant,
-                },
-                animatedStyle,
-              ]}
-            >
-              {/* The glass layer must cover the toast box exactly, so all
+          {/* The glass layer must cover the toast box exactly, so all
                   padding lives on the inner row (Yoga offsets absolute
                   children by the parent's padding). */}
-              {Platform.OS === 'ios' && toastSize ? (
-                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                  {/* Without `ignoreSafeArea` the hosting controller insets
+          {Platform.OS === 'ios' && toastSize ? (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {/* Without `ignoreSafeArea` the hosting controller insets
                       its SwiftUI content for the home indicator, so the
                       capsule renders half that inset above the toast box. */}
-                  <SwiftUIHost
-                    ignoreSafeArea="all"
-                    style={StyleSheet.absoluteFill}
-                  >
-                    <HStack
-                      modifiers={[
-                        frame({ width: toastSize.w, height: toastSize.h }),
-                        glassEffect({
-                          glass: { variant: 'regular' },
-                          shape: 'capsule',
-                        }),
-                      ]}
-                    >
-                      <Spacer />
-                    </HStack>
-                  </SwiftUIHost>
-                </View>
-              ) : null}
-              <View style={styles.content}>
-                <RNText
-                  style={[styles.message, { color: colors.onSurface }]}
-                  numberOfLines={2}
+              <SwiftUIHost ignoreSafeArea="all" style={StyleSheet.absoluteFill}>
+                <HStack
+                  modifiers={[
+                    frame({ width: toastSize.w, height: toastSize.h }),
+                    glassEffect({
+                      glass: { variant: 'regular' },
+                      shape: 'capsule',
+                    }),
+                  ]}
                 >
-                  {message}
-                </RNText>
-                {/* iOS: the trailing control exists ONLY when there is a real
+                  <Spacer />
+                </HStack>
+              </SwiftUIHost>
+            </View>
+          ) : null}
+          <View style={styles.content}>
+            <RNText
+              style={[styles.message, { color: colors.onSurface }]}
+              numberOfLines={2}
+            >
+              {message}
+            </RNText>
+            {/* iOS: the trailing control exists ONLY when there is a real
                     action (Undo). A toast never carries a DISMISS button on
                     iOS — auto-dismiss and swipe-down are the dismissal — so
                     the old always-there "OK" was Material's always-has-an-
                     action rule leaking across the split, and a hardcoded
                     untranslated string besides. Android keeps its constant
                     action slot (labels arrive translated via `action`). */}
-                {action || Platform.OS !== 'ios' ? (
-                  <Pressable
-                    hitSlop={8}
-                    onPress={action ? onActionPress : onDismissPress}
-                    // Inline text action → the shared press FADE (see the
-                    // press-language rule); it had no pressed state at all.
-                    style={({ pressed }) => ({
-                      opacity: pressed ? PRESSED_OPACITY : 1,
-                    })}
-                  >
-                    <RNText style={[styles.action, { color: colors.primary }]}>
-                      {action ? action.label : 'OK'}
-                    </RNText>
-                  </Pressable>
-                ) : null}
-              </View>
-            </Animated.View>
-          </GestureDetector>
-        </SafeAreaView>
-      ) : null}
+            {action || Platform.OS !== 'ios' ? (
+              <Pressable
+                hitSlop={8}
+                onPress={action ? onActionPress : onDismissPress}
+                // Inline text action → the shared press FADE (see the
+                // press-language rule); it had no pressed state at all.
+                style={({ pressed }) => ({
+                  opacity: pressed ? PRESSED_OPACITY : 1,
+                })}
+              >
+                <RNText style={[styles.action, { color: colors.primary }]}>
+                  {action ? action.label : 'OK'}
+                </RNText>
+              </Pressable>
+            ) : null}
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    </SafeAreaView>
+  ) : null;
+
+  return (
+    <SnackbarContext.Provider
+      value={{
+        activeOutlet,
+        claimOutlet,
+        releaseOutlet,
+        setOutletInset,
+        showSnackbar,
+        toast,
+      }}
+    >
+      {children}
+      {/* The ROOT renders it only when nothing above it has claimed it. */}
+      {activeOutlet === null ? toast : null}
     </SnackbarContext.Provider>
   );
 };
