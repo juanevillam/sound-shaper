@@ -1,0 +1,57 @@
+/**
+ * WHERE A SHEET'S CONTENT STARTS — one geometry, for every sheet in every app.
+ *
+ * These two numbers are APPLE'S, band-scanned out of Settings on iPhone 17 /
+ * iOS 26.5, not this portfolio's taste. They lived in Topper while only Topper's
+ * account family needed them, and moved here when the editors — which are built
+ * on `SheetFormIos`, in this package, and are used by Sound Shaper too — were
+ * found sitting below the same standard for the same reason.
+ */
+
+/**
+ * THE EMPTY SECTION-HEADER SLOT a native grouped `List` or `Form` reserves.
+ *
+ * A grouped container keeps room above its first section for a header whether
+ * or not one exists. Settings spends it on the word "General"; a sheet has no
+ * header — the bar carries the title — so it sits empty and the band under the
+ * title reads as a hole. Settings' first content lands 146.0 from identical
+ * anchors against 167.0 with the slot: exactly 21.
+ *
+ * TAKE IT OFF THE RN WRAPPER where there is one, never off the `List`.
+ * `PeopleSheetListIos` names the seven levers that were measured and why six of
+ * them are wrong; the short version is that moving the SwiftUI frame inside the
+ * Host leaves RNScreens' content inset describing the old layout, so the
+ * scroller gains 21pt of empty travel. Moving the hosting VIEW makes UIKit
+ * recompute with it. A `Form` that is NOT the RNScreens scroll root — the
+ * editors' — takes it as negative padding instead, which is measured, not
+ * assumed.
+ *
+ * IT IS A COMPENSATION, NOT A REMOVAL. `contentMargins` — absent on @expo/ui
+ * 57, tracked in docs/pending-upstream.md — is what actually deletes the slot,
+ * and on the day it lands this constant and every use of it go.
+ */
+export const SHEET_EMPTY_HEADER_SLOT = 21;
+
+/**
+ * HOW FAR BELOW A SHEET'S OWN TOP EDGE ITS FIRST CONTENT SITS.
+ *
+ * Settings' 146.0, less a root sheet's top edge at 62.00. MEASURE AGAINST THE
+ * SHEET, NEVER THE SCREEN: a sheet pushed over another sheet sits 10pt lower
+ * (62.00 → 72.00), so two sheets whose raw screen numbers agree are really 10pt
+ * apart.
+ *
+ * Every bone in a sheet stands at this too, which is why one term serves both.
+ */
+export const SHEET_CONTENT_TOP = 84;
+
+/**
+ * THE GAP BETWEEN A SHEET TITLE'S INK AND ITS FIRST CONTENT — the number to
+ * check when a sheet does NOT take the inline UIKit bar.
+ *
+ * The account family's bar is one object, so pinning `SHEET_CONTENT_TOP` fixes
+ * those sheets outright. The editors draw their own header, so their absolute
+ * offset can be right for the wrong reason (or wrong for a right one) — this is
+ * the invariant that survives a different bar. Band-scanned across the family:
+ * account 38.67, trophies 38.33.
+ */
+export const SHEET_TITLE_TO_CONTENT = 38.5;

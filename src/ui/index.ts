@@ -54,6 +54,11 @@ export {
   SHEET_HERO_GLYPH_SIZE,
   SHEET_HERO_SYMBOL_SIZE,
 } from './sheetHero';
+export {
+  SHEET_CONTENT_TOP,
+  SHEET_EMPTY_HEADER_SLOT,
+  SHEET_TITLE_TO_CONTENT,
+} from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
 export { InitialArt } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
