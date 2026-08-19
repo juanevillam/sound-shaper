@@ -17,11 +17,9 @@ import {
   foregroundStyle,
   frame,
   gaugeStyle,
-  listRowBackground,
   listRowInsets,
   listRowSeparator,
   listSectionMargins,
-  listSectionSpacing,
   scaleEffect,
   scrollContentBackground,
   tint,
@@ -59,13 +57,18 @@ import { type ResolvedTrophy } from './types';
  * IT IS THE SCREEN'S OPENING BLOCK, NOT THE LIST'S HEADER. It spent a while as
  * a `Section` header, and that is precisely why it read as a caption however
  * large the type got: a grouped header is structurally a LABEL FOR THE THING
- * BELOW IT, so scale can never promote it. As its own section with the row's
- * fill cleared, its insets zeroed and its separator hidden, the same pixels
+ * BELOW IT, so scale can never promote it. As its own section the same pixels
  * become page content — the screen's headline, with the list as its body.
  *
- * IT IS STILL NOT A CARD. Boxing it read as a stray pill breaking the page flow
- * (user-flagged, and still true), which is why the row's background is cleared
- * rather than left to the grouped default.
+ * AND IT IS A CARD. This was got wrong once in the other direction: boxing a
+ * WIDE, SHORT summary read as a stray pill, and the row's fill was cleared to
+ * fix it. Once the block became a tall three-column one, the pill reading went
+ * with it and the cleared fill left the only substantive content in the whole
+ * sheet sitting loose on the grouped background. iOS 26 does not do that —
+ * every Settings screen opens with its summary block IN A CARD over the
+ * grouped ground, and what lives on the ground itself is labels and footers.
+ * So the row keeps the grouped default, and the two cards are spaced by the
+ * family's own card-to-card rung (below).
  *
  * THE SUMMARY IS A RING, NOT A BAR. It went headline + hand-painted track, then
  * headline + a real `ProgressView`, and the second was native but still the
@@ -118,13 +121,6 @@ const ICON_SLOT = GROUPED_ROW.art;
  * inset, not the card's 18. Re-measure if the header's type or
  * `headerProminence` changes.
  */
-/**
- * A CLEARED ROW FILL. `listRowBackground` takes a colour string, so "no card"
- * is a fully transparent one — which is what turns the summary's row from a
- * grouped cell into page content.
- */
-const TRANSPARENT = '#00000000';
-
 /**
  * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
  * answer to "how much of this is done", and the reason the summary stopped
@@ -181,53 +177,45 @@ const RING_INTRINSIC = 58;
 /** What it ends up drawing, and therefore what the bone stands. */
 const RING_INK = RING_INTRINSIC * RING_SCALE;
 /**
- * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
+ * THE GAP BETWEEN THE SUMMARY CARD AND THE TROPHY LIST — the family's own
+ * card-to-card rung, measured rather than chosen.
  *
- * This took three passes and the two misses are the useful part, because each
- * matched a real relationship that was not this one:
+ * While the summary was NAKED on the grouped ground this was a hand-picked
+ * 20.00, argued from the screen's `card 12 < person 20 < section 28` ladder,
+ * because none of the OS's own spacings fit a block that was not in a
+ * container. In a card the question answers itself: two cards in one grouped
+ * list are separated by what iOS 26 separates them by, and the account sheet
+ * one push away band-scans that at 34.67 (iPhone 17 / iOS 26.5).
  *
- *   ~10  Home's owner-row-to-card. A HEADER BOUND TO ITS CARD, tight on
- *        purpose — `OWNER_ROW_CARD_GAP` is 4 and its own note says "a header
- *        belongs to its content". The summary was that once and is not now, so
- *        it read as stuck to the list.
- *   ~31  What iOS puts between two SECTIONS (account sheet card→card 30.67, a
- *        real grouped list 31.33). Correct for two UNRELATED blocks — and these
- *        two are not unrelated: the summary is the headline OF this list.
- *
- * The screen's own ladder already names the rung in between — `card 12 <
- * person 20 < section 28` (see `PERSON_GAP` in home/index.ios). 20 is the
- * division that groups without separating, which is exactly a headline and its
- * body.
- *
- * Solved rather than nudged: the mapping is exactly 1:1 (spacing 0 → 10.67,
- * 24 → 34.67), so 9.33 lands 20.00. Verified.
+ * `listSectionSpacing` is NOT the lever here — it stopped moving the gap the
+ * moment the row took a background (19.67 at both 20 and 35). `listSectionMargins`
+ * on the bottom edge does move it, and it ADDS to that 19.67 baseline at a
+ * measured slope of ~0.85, so this is solved backwards rather than set: 17.5
+ * lands 34.67 exactly. Re-measure the reference before changing it.
  */
-const SUMMARY_TO_LIST_GAP = 9.33;
+const SUMMARY_TO_LIST_GAP = 17.5;
 
 /**
- * THE SUMMARY'S OWN TOP MARGIN — zero, because the section supplies its own.
- *
- * Promoting the summary out of the section header cost it the header's tighter
- * top inset and gave it the grouped list's, which dropped the first ink 33pt —
- * far below where the sibling sheets open.
+ * WHERE THE SUMMARY CARD STARTS — pinned to the sheet family's first card.
  *
  * MEASURE THIS RELATIVE TO THE SHEET, NOT THE SCREEN. This sheet is pushed as a
  * SECOND sheet over the account one, and a stacked sheet's top edge sits 10pt
  * lower (62.00 → 72.00, band-scanned): comparing raw screen coordinates says
  * two sheets agree while one is in fact 10pt tighter than the other, which is
- * exactly what an earlier note here concluded. Offsets from each sheet's own
- * top edge, iPhone 17 / iOS 26.5:
+ * exactly what an earlier note here concluded.
  *
- *                     title ink    first content ink
- *   Account           32.33        83.67   (a section label)
- *   Trophies          31.67        87.33   (the gauge's ink)
+ * The reference is `trash` — the same family, a first card with NO section
+ * header above it, which is what this is now. Offsets from each sheet's own top
+ * edge, iPhone 17 / iOS 26.5:
  *
- * The bar is the same object in both, to a third of a point. The account sheet
- * is the right reference for the content below it, too: it is the same family,
- * and it opens with a label above a card exactly as this opens with a summary
- * above one.
+ *   Trash      first card   105.00
+ *   Trophies   first card   105.00 with this, 70.00 without it
+ *
+ * (`account` is the wrong reference for the card itself — its first card sits
+ * at 110.33 because a section label rides above it. Its bar, though, is the
+ * same object as this one to a third of a point: title ink 32.33 vs 31.67.)
  */
-const SUMMARY_TOP_MARGIN = 0;
+const SUMMARY_TOP_MARGIN = 35;
 
 const TrophyRow = ({
   trophy,
@@ -396,18 +384,21 @@ export const TrophiesScreen = ({
          * As its own section with the row's fill cleared, its insets zeroed and
          * its separator hidden, the same pixels stop being a label and become
          * page content — the screen's headline, with the list reading as its
-         * body. It is deliberately NOT given a card: that was tried and read as
-         * a stray pill breaking the page flow.
+         * body, and it takes the grouped default fill like every other block of
+         * content in this sheet family (see the note at the top of the file for
+         * why the cleared fill it used to carry was wrong).
          */}
         <Section
           modifiers={[
             listSectionMargins({ edges: 'top', length: SUMMARY_TOP_MARGIN }),
-            listSectionSpacing(SUMMARY_TO_LIST_GAP),
+            listSectionMargins({
+              edges: 'bottom',
+              length: SUMMARY_TO_LIST_GAP,
+            }),
           ]}
         >
           <VStack
             modifiers={[
-              listRowBackground(TRANSPARENT),
               listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
               listRowSeparator('hidden'),
             ]}
