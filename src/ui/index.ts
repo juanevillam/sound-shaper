@@ -60,7 +60,12 @@ export {
   SHEET_TITLE_TO_CONTENT,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
-export { InitialArt } from './InitialArt';
+export {
+  EMPTY_MEDIA_INITIAL_RATIO,
+  emptyMediaColor,
+  InitialArt,
+  type MediaContainer,
+} from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
 export {
   WelcomeScreen,
