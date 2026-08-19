@@ -24,9 +24,6 @@ export type TrophiesScreenStrings = {
   progress: string;
   /** Pre-formatted completion percent, e.g. "43%" — sits inside the ring. */
   percent: string;
-  /** iOS: the two figures flanking the ring, PlayStation's summary shape. */
-  earnedLabel: string;
-  availableLabel: string;
   /** iOS: the list section's title. */
   allTitle: string;
   /** Prefix before the date on an earned trophy, e.g. "Earned". */
