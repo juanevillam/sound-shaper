@@ -1,4 +1,4 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import {
   Button,
@@ -6,7 +6,6 @@ import {
   Gauge,
   Host,
   HStack,
-  Image,
   RNHostView,
   Section,
   Spacer,
@@ -39,7 +38,7 @@ import {
   type TrophiesScreenStrings,
 } from './TrophiesScreen';
 import { TrophyIcon } from './TrophyIcon';
-import { type ResolvedTrophy, type TrophyTier } from './types';
+import { type ResolvedTrophy } from './types';
 
 /**
  * iOS counterpart of `TrophiesScreen` — same prop API. The trophy list is a
@@ -125,7 +124,6 @@ const ICON_SLOT = GROUPED_ROW.art;
  */
 const TRANSPARENT = '#00000000';
 
-const HEADER_INSET = 32;
 /**
  * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
  * answer to "how much of this is done", and the reason the summary stopped
@@ -136,7 +134,7 @@ const HEADER_INSET = 32;
  * An accessory gauge draws small by default, so the frame states the size the
  * header wants rather than accepting the widget one.
  */
-const RING_SIZE = 64;
+const RING_SIZE = 96;
 /**
  * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
  *
@@ -177,34 +175,6 @@ const SUMMARY_TO_LIST_GAP = 9.33;
  * with a label above a card exactly as this now opens with a summary above one.
  */
 const SUMMARY_TOP_MARGIN = 0;
-
-const TIER_GLYPH_SIZE = 26;
-/**
- * The summary's own rhythm. FIXED gaps, not `Spacer`s — see the block itself:
- * spacers spread the columns to the sheet's gutters and left a hole in the
- * middle, where the console keeps a compact centred group.
- */
-const SUMMARY_COLUMN_GAP = 28;
-const TIER_COLUMN_GAP = 28;
-/** Between the figures row and the tier tally beneath it. */
-const SUMMARY_ROW_GAP = 18;
-/**
- * THE SUMMARY BLOCK'S OWN HEIGHT, solved against the rendered screen.
- *
- * Stacking the parts (ring 64 + gap 18 + glyph 26 + 4 + a subheadline line)
- * came out 3.66 short: the bone's card sat at 323.67 against the settled one's
- * 327.33, constant down the sheet rather than accumulating. The settled tier
- * column is a SwiftUI `VStack` of a symbol over a `subheadline`, and that does
- * not measure where stacked RN line boxes do — the same lesson `GROUPED_ROW`
- * records for its own two-line row.
- */
-const SUMMARY_BONE_HEIGHT = 135.66;
-
-/**
- * PLATINUM FIRST, then down — PlayStation's order, which is the vernacular this
- * trophy module is built in, and it puts the rarest thing where the eye lands.
- */
-const TIER_ORDER: TrophyTier[] = ['platinum', 'gold', 'silver', 'bronze'];
 
 const TrophyRow = ({
   trophy,
@@ -359,22 +329,6 @@ export const TrophiesScreen = ({
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
 
-  /**
-   * EARNED per tier — what the pips count. Derived here rather than asked of
-   * the caller: every app that has trophies has tiers, and the screen already
-   * holds the resolved list, so a prop would only be a second place for the
-   * two to disagree.
-   */
-  const earnedByTier = TIER_ORDER.reduce<Record<TrophyTier, number>>(
-    (acc, tier) => ({
-      ...acc,
-      [tier]: trophies.filter(t => t.tier === tier && t.unlocked).length,
-    }),
-    {} as Record<TrophyTier, number>,
-  );
-  const { width: screenWidth } = useWindowDimensions();
-  const headerWidth = screenWidth - HEADER_INSET * 2;
-
   return (
     <Host style={styles.host}>
       <Form
@@ -405,169 +359,64 @@ export const TrophiesScreen = ({
               listRowSeparator('hidden'),
             ]}
           >
-            {loading ? (
-              <HStack
+            {/**
+             * THE RING, ALONE — the summary is one fact.
+             *
+             * It carried the earned and available counts flanking it and a tier
+             * tally beneath, PlayStation's full block. That is the right density
+             * on a console screen that also shows the game, the player and a
+             * rarity column; here it was three ways of saying the same thing
+             * above a list that already names every trophy and its tier. What a
+             * person opens this sheet for is how far along they are, so that is
+             * what the summary says and nothing else. The gauge grew with the
+             * pruning: at 64 it was one element among several, at `RING_SIZE`
+             * it is the block.
+             *
+             * ITS PLACEHOLDER IS THE GAUGE ITSELF, EMPTY — no bone, and no
+             * bridged host. The summary used to stand a `SkeletonBone` through
+             * an `RNHostView`, and that host would not render here at all: the
+             * frame was reserved and the RN tree never appeared, through eight
+             * builds of explicit boxes, `matchContents` on and off, cleared
+             * insets, an opaque row fill and both `VStack` and `HStack` parents.
+             * Once the summary became a single `Gauge`, the host stopped being
+             * necessary — a gauge at zero IS the empty state of a gauge, it is
+             * what Apple draws, it is pixel-identical to the settled one by
+             * construction (same control, same frame, same place), and it
+             * cannot lie: an empty track says "not known yet", not "zero
+             * earned", because the figure that would have said zero is gone.
+             *
+             * The rows below still sweep, so the app's placeholder language is
+             * intact everywhere it has bones to sweep.
+             */}
+            <HStack alignment="center">
+              <Spacer />
+              <Gauge
+                value={loading ? 0 : fraction}
+                // The percent lives INSIDE the ring, which is what the
+                // `currentValueLabel` slot is for. It scales with the ring: a
+                // `caption` sized for a 64pt gauge reads lost in this one. It
+                // is dropped entirely while loading — an empty ring with a
+                // number in it would be stating the number.
+                currentValueLabel={
+                  loading ? undefined : (
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'title2', weight: 'semibold' }),
+                        foregroundStyle(colors.onSurface),
+                      ]}
+                    >
+                      {strings.percent}
+                    </Text>
+                  )
+                }
                 modifiers={[
-                  frame({ width: headerWidth, height: SUMMARY_BONE_HEIGHT }),
+                  gaugeStyle('circularCapacity'),
+                  tint(colors.primary),
+                  frame({ width: RING_SIZE, height: RING_SIZE }),
                 ]}
-              >
-                <RNHostView>
-                  <View style={[styles.summaryBone, { width: headerWidth }]}>
-                    {/* Stands the settled summary exactly: a figure column
-                        either side of the ring, then the four tier tallies. */}
-                    <View style={styles.summaryBoneFigures}>
-                      <View style={styles.summaryBoneCol}>
-                        <SkeletonBone width={24} height={22} />
-                        <SkeletonBone
-                          width={52}
-                          height={12}
-                          style={styles.summaryBoneLabel}
-                        />
-                      </View>
-                      <SkeletonBone
-                        width={RING_SIZE}
-                        height={RING_SIZE}
-                        radius={RING_SIZE / 2}
-                      />
-                      <View style={styles.summaryBoneCol}>
-                        <SkeletonBone width={24} height={22} />
-                        <SkeletonBone
-                          width={60}
-                          height={12}
-                          style={styles.summaryBoneLabel}
-                        />
-                      </View>
-                    </View>
-                    <View style={styles.summaryBoneTiers}>
-                      {TIER_ORDER.map(tier => (
-                        <View key={tier} style={styles.summaryBoneCol}>
-                          <SkeletonBone
-                            width={TIER_GLYPH_SIZE}
-                            height={TIER_GLYPH_SIZE}
-                            radius={TIER_GLYPH_SIZE / 2}
-                          />
-                          <SkeletonBone
-                            width={10}
-                            height={14}
-                            style={styles.summaryBoneTierCount}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </RNHostView>
-              </HStack>
-            ) : (
-              /**
-               * PLAYSTATION'S SUMMARY, IN iOS CLOTHES — the count earned and
-               * the count available flanking the ring, with the tier tally on
-               * its own row beneath.
-               *
-               * CENTRED AND CLOSE, NOT SPREAD. The first pass pushed the three
-               * columns apart with `Spacer`s, which is `space-between` by
-               * another name: the figures ended up hard against the sheet's
-               * gutters with a hole in the middle. The console's is a compact
-               * group centred on the page, so the columns take a fixed spacing
-               * and the VStack's own centre alignment does the rest.
-               *
-               * NO CARD, deliberately. An `insetGrouped` card groups ROWS with
-               * separators; three columns and a tally row are not rows, and
-               * Fitness and Game Center both put their summary straight on the
-               * page. The Section below IS rows, so it keeps its card.
-               *
-               * The tiers are SF Symbols rather than the RN trophy glyph on
-               * purpose: four bridged hosts in one block is three past the
-               * ceiling that blew this layout apart once already.
-               */
-              <VStack spacing={SUMMARY_ROW_GAP}>
-                {/* A `Spacer` EACH SIDE OF THE GROUP, not between the columns.
-                    The group keeps its fixed gaps and the two outer spacers
-                    push it to the centre — the row hugs its content otherwise
-                    and sits hard against the leading gutter. */}
-                <HStack alignment="center" spacing={SUMMARY_COLUMN_GAP}>
-                  <Spacer />
-                  <VStack spacing={2}>
-                    <Text
-                      modifiers={[
-                        font({ textStyle: 'title2', weight: 'semibold' }),
-                        foregroundStyle(colors.onSurface),
-                      ]}
-                    >
-                      {String(earned)}
-                    </Text>
-                    <Text
-                      modifiers={[
-                        font({ textStyle: 'footnote' }),
-                        foregroundStyle(colors.onSurfaceMuted),
-                      ]}
-                    >
-                      {strings.earnedLabel}
-                    </Text>
-                  </VStack>
-
-                  <Gauge
-                    value={fraction}
-                    currentValueLabel={
-                      <Text
-                        modifiers={[
-                          font({ textStyle: 'caption', weight: 'semibold' }),
-                          foregroundStyle(colors.onSurface),
-                        ]}
-                      >
-                        {strings.percent}
-                      </Text>
-                    }
-                    modifiers={[
-                      gaugeStyle('circularCapacity'),
-                      tint(colors.primary),
-                      frame({ width: RING_SIZE, height: RING_SIZE }),
-                    ]}
-                  />
-
-                  <VStack spacing={2}>
-                    <Text
-                      modifiers={[
-                        font({ textStyle: 'title2', weight: 'semibold' }),
-                        foregroundStyle(colors.onSurface),
-                      ]}
-                    >
-                      {String(total)}
-                    </Text>
-                    <Text
-                      modifiers={[
-                        font({ textStyle: 'footnote' }),
-                        foregroundStyle(colors.onSurfaceMuted),
-                      ]}
-                    >
-                      {strings.availableLabel}
-                    </Text>
-                  </VStack>
-                  <Spacer />
-                </HStack>
-
-                <HStack alignment="center" spacing={TIER_COLUMN_GAP}>
-                  <Spacer />
-                  {TIER_ORDER.map(tier => (
-                    <VStack key={tier} spacing={4}>
-                      <Image
-                        systemName="trophy.fill"
-                        size={TIER_GLYPH_SIZE}
-                        color={tierColor(tier)}
-                      />
-                      <Text
-                        modifiers={[
-                          font({ textStyle: 'subheadline' }),
-                          foregroundStyle(colors.onSurfaceMuted),
-                        ]}
-                      >
-                        {String(earnedByTier[tier])}
-                      </Text>
-                    </VStack>
-                  ))}
-                  <Spacer />
-                </HStack>
-              </VStack>
-            )}
+              />
+              <Spacer />
+            </HStack>
           </VStack>
         </Section>
 
@@ -642,35 +491,6 @@ const styles = StyleSheet.create({
   // The body and footnote line boxes the native row stacks.
   titleLine: { height: 22, justifyContent: 'center' },
   supportingLine: { height: 18, justifyContent: 'center' },
-  /**
-   * THE SUMMARY BONE — and the SwiftUI wrapper around it is an `HStack`, not a
-   * `VStack`, which is the whole reason this renders at all.
-   *
-   * Framed inside a `VStack` the host drew NOTHING: the box was reserved and
-   * the RN tree never appeared. Six builds went at it from the RN side —
-   * explicit width and height on the root, explicit widths on each inner row,
-   * `matchContents` on and off, the row insets zeroed, the row background made
-   * opaque — and none of it mattered. Swapping the SwiftUI parent to an
-   * `HStack` fixed it first try. The trophy rows' own hosts sit in an `HStack`
-   * too, which is why they never showed the bug.
-   *
-   * Do not "simplify" this back to a `VStack`.
-   */
-  summaryBone: { alignItems: 'center', height: SUMMARY_BONE_HEIGHT },
-  summaryBoneFigures: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: SUMMARY_COLUMN_GAP,
-  },
-  summaryBoneCol: { alignItems: 'center' },
-  summaryBoneLabel: { marginTop: 6 },
-  summaryBoneTiers: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: TIER_COLUMN_GAP,
-    marginTop: SUMMARY_ROW_GAP,
-  },
-  summaryBoneTierCount: { marginTop: 6 },
   iconSlot: {
     alignItems: 'center',
     height: ICON_SIZE,
