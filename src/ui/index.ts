@@ -75,6 +75,8 @@ export {
   type WelcomeScreenProps,
   type WelcomeFeatureItem,
 } from './WelcomeScreen';
+export { ProgressOverlayIos } from './ProgressOverlayIos';
+export { ProgressViewIos } from './ProgressViewIos';
 export { Screen } from './Screen';
 export { SheetBar } from './SheetBar';
 export {

@@ -45,7 +45,12 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
  * shapes. Apple's own apps (App Store, Music, News, TV) match it: static blocks
  * that swap for content, no pulse and no sweep. Where Apple wants to signal
  * ACTIVITY rather than SHAPE it uses a spinner, which is a different control
- * for a different job.
+ * for a different job — `ProgressViewIos`, the sibling of this file. Which of
+ * the two a given wait takes is decided by AGENTS.md → "Waiting has two
+ * shapes", and NOT by how long the wait is: a bone promises a layout that is
+ * going to arrive, so a surface whose shape cannot be predicted before it
+ * lands (search results) or a task the person started (a delete, a save) is
+ * the spinner's, however long it runs.
  *
  * THE NATIVE PRIMITIVE IS THEREFORE NAMED AND REJECTED, as the standard
  * requires, and the reason is reach rather than taste: `.redacted` is a SwiftUI
