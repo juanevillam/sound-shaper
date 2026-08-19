@@ -33,14 +33,32 @@ import {
   shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
+
 import { useAppTheme } from '@portfolio/core';
 
 // Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
 // the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
 // suffix of its own to resolve against).
 import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
+import { SHEET_EMPTY_HEADER_SLOT } from './sheetMetrics';
 import { SwiftUIHost } from './SwiftUIHost';
 import { spacing } from './tokens';
+
+/**
+ * WHAT THE BODY PULLS BACK — the grouped empty section-header slot, less a
+ * measured 3.33 residual.
+ *
+ * The slot itself is `SHEET_EMPTY_HEADER_SLOT`, the same 21 every sheet in the
+ * portfolio takes off. The residual is not a fudge: this Form's own first
+ * section inset differs from a `List`'s by that much, so a flat 21 landed the
+ * first card 80.67 below the sheet's own top edge against the family's 84.00.
+ * SOLVED BACKWARDS against `SHEET_CONTENT_TOP`, band-scanned on iPhone 17 /
+ * iOS 26.5, not chosen.
+ *
+ * Re-measure against a family sheet — `manage-account` or `trophies` — if the
+ * sheet chrome changes; the target is the constant, this is the compensation.
+ */
+const BODY_PULL_BACK = SHEET_EMPTY_HEADER_SLOT - 3.33;
 
 /**
  * Chrome for the iOS form-sheet routes, shared by every portfolio app: the
@@ -69,6 +87,27 @@ import { spacing } from './tokens';
 const styles = StyleSheet.create({
   // The native form owns the whole sheet, so its host fills it.
   formHost: { flex: 1 },
+  /**
+   * THE EMPTY SECTION-HEADER SLOT, pulled back — the same 21pt every other
+   * sheet in the portfolio takes off, and taken the same way.
+   *
+   * This body sits under the NATIVE inline bar (`sheetCommitBarOptionsIos`),
+   * so it is the account family's shape, not the inline-header one: its `Form`
+   * reserves room above its first section for a header it does not have, and
+   * the band under the title read as a hole. Measured 55.67 below the title's
+   * ink against the family's `SHEET_TITLE_TO_CONTENT` of 38.5.
+   *
+   * IT COMES OFF THE HOSTING VIEW, never off the `Form`. `PeopleSheetListIos`
+   * measured seven levers and this is the one that shipped: moving the SwiftUI
+   * frame inside the Host leaves RNScreens' content inset describing the old
+   * layout and the scroller gains 21pt of empty travel, while moving the
+   * hosting VIEW makes UIKit recompute with it. Confirmed here too — negative
+   * padding on this Form was a no-op.
+   *
+   * `formHost` above keeps NO pull-back on purpose: `SheetFormIos` draws its
+   * own header inside the Host, so shifting the box would move the header too.
+   */
+  bodyHost: { flex: 1, marginTop: -BODY_PULL_BACK },
 });
 
 type SheetFormProps = {
@@ -146,7 +185,7 @@ export function SheetFormBodyIos({ children }: { children: React.ReactNode }) {
   const { colors } = useAppTheme();
 
   return (
-    <Host style={styles.formHost}>
+    <Host style={styles.bodyHost}>
       {/* EXACTLY the Settings sheet's Form — `tint` on the whole Form (so a
           menu picker's value renders tinted, as Settings' Language and
           Appearance values do) and the Form's OWN grouped background kept.
