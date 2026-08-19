@@ -6,7 +6,6 @@ import {
   Button,
   ConfirmationDialog,
   HStack,
-  Image,
   RNHostView,
   Section,
   Text,
@@ -16,6 +15,7 @@ import { font, foregroundStyle, frame } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
 import { FormDisclosureRowIos } from './FormDisclosureRowIos';
+import { InitialArt } from './InitialArt';
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
@@ -57,25 +57,41 @@ export const SettingsAccountSection = ({
       {/* SwiftUI `Image` can't load remote URLs, so the Google photo bridges
           back through RNHostView (same idiom as the Android Compose row);
           the SF person icon stays as the no-photo fallback. */}
-      {profile.photoUrl ? (
-        <VStack
-          modifiers={[frame({ width: AVATAR_SIZE, height: AVATAR_SIZE })]}
-        >
-          <RNHostView>
+      <VStack modifiers={[frame({ width: AVATAR_SIZE, height: AVATAR_SIZE })]}>
+        <RNHostView>
+          {profile.photoUrl ? (
             <RemoteImage
               source={{ uri: profile.photoUrl }}
               style={styles.avatar}
               contentFit="cover"
             />
-          </RNHostView>
-        </VStack>
-      ) : (
-        <Image
-          systemName="person.crop.circle.fill"
-          size={AVATAR_SIZE}
-          color={colors.onSurfaceMuted}
-        />
-      )}
+          ) : (
+            /**
+             * THE INITIAL, like every other person without a photo in these
+             * apps — not an SF `person.crop.circle.fill`, which is what this
+             * row drew before.
+             *
+             * That glyph is Apple's mark for an account with no identity yet
+             * (a signed-OUT Apple Account); a signed-in person with a name
+             * gets a monogram in Contacts, Mail and Messages, and gets one
+             * everywhere else in this app. So the same person read as a
+             * generic silhouette here and as their own initial one screen
+             * away. `InitialArt` is in this package precisely so a shared
+             * screen can draw the portfolio's answer instead of picking a
+             * glyph of its own.
+             *
+             * ONE HOST EITHER WAY: the branches swap inside a single
+             * `RNHostView` rather than adding a second one beside it, which
+             * is the ceiling a native row has.
+             */
+            <InitialArt
+              size={AVATAR_SIZE}
+              style={styles.avatar}
+              title={profile.displayName}
+            />
+          )}
+        </RNHostView>
+      </VStack>
       <VStack alignment="leading" spacing={2}>
         <Text modifiers={[foregroundStyle(colors.onSurface)]}>
           {profile.displayName}
