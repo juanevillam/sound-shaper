@@ -72,6 +72,16 @@ export type SettingsInfoRow = {
   url?: string;
   /** Optional tap handler (wins over `url`), e.g. an easter-egg counter. */
   onPress?: () => void;
+  /**
+   * The row PUSHES to another screen in this app, so it takes a disclosure
+   * chevron (iOS only — Android's Material rows carry none either way).
+   *
+   * Not a style knob: on iOS the chevron is what distinguishes going somewhere
+   * from doing something, and these rows already carry both kinds. The legal
+   * links hand off to Safari and get none — Apple's own Settings does exactly
+   * this split — while Acknowledgements and Credits open a screen and get one.
+   */
+  destination?: boolean;
 };
 
 /** Trailing read-only block, e.g. "About" with app/package versions. */

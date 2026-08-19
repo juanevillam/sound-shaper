@@ -6,10 +6,12 @@ import {
   Button,
   Form,
   Host,
+  HStack,
   LabeledContent,
   Link,
   Picker,
   Section,
+  Spacer,
   Text,
 } from '@expo/ui/swift-ui';
 import {
@@ -19,16 +21,97 @@ import {
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
+import { FormDisclosureIndicatorIos } from './FormDisclosureRowIos';
 import { Screen } from './Screen';
 import {
   SettingsAccountSection,
   SettingsSignOutSection,
 } from './SettingsAccountSection';
-import { type SettingsScreenProps } from './SettingsScreen';
+import {
+  type SettingsInfoRow,
+  type SettingsScreenProps,
+} from './SettingsScreen';
 
 const styles = StyleSheet.create({
   host: { flex: 1 },
 });
+
+/**
+ * ONE ROW RENDERER FOR BOTH READ-ONLY CARDS — About and Legal.
+ *
+ * They were two nearly identical inline blocks, and the "nearly" was already
+ * costing: About handled a trailing value and Legal did not, so a legal row
+ * that ever grew one would have silently dropped it. One definition also means
+ * the chevron rule below is stated once.
+ *
+ * Three shapes, decided by the row rather than by which card it is in:
+ *
+ *  - `onPress` runs on tap and WINS over `url` (the version row's easter-egg
+ *    counter is the reason that precedence exists);
+ *  - `url` becomes a native `Link` that hands off to the browser;
+ *  - neither is a plain fact, e.g. a version number.
+ *
+ * `foregroundStyle` keeps the label from picking up the control tint inside a
+ * `Button` or a `Link` — in Apple's Settings blue means "do something", and
+ * navigating is neutral plus a chevron.
+ */
+const InfoRow = ({
+  row,
+  colors,
+}: {
+  row: SettingsInfoRow;
+  colors: SettingsScreenProps['colors'];
+}) => {
+  // Valueless rows (the legal links) render as a plain label — LabeledContent
+  // with empty trailing text reads as a broken row.
+  const label = row.value ? (
+    <LabeledContent label={row.label}>
+      {/* SwiftUI dims a LabeledContent's trailing text to the secondary style,
+          which reads as "disabled" next to the link rows — those sit inside a
+          `foregroundStyle` wrapper, so their value stays full-strength. Match
+          them: a read-only value is not a disabled one. */}
+      <Text modifiers={[foregroundStyle(colors.onSurface)]}>{row.value}</Text>
+    </LabeledContent>
+  ) : (
+    <Text>{row.label}</Text>
+  );
+
+  // A row that goes somewhere IN this app takes the disclosure chevron; one
+  // that hands off to Safari does not. `@expo/ui`'s `Button` draws no indicator
+  // of its own, so the glyph is stated here — the same reason
+  // `FormDisclosureRowIos` exists, and it is that file's glyph and colour.
+  const content = row.destination ? (
+    <HStack spacing={8}>
+      {label}
+      <Spacer />
+      <FormDisclosureIndicatorIos color={colors.onSurfaceMuted} />
+    </HStack>
+  ) : (
+    label
+  );
+
+  if (row.onPress)
+    return (
+      <Button
+        onPress={row.onPress}
+        modifiers={[foregroundStyle(colors.onSurface)]}
+      >
+        {content}
+      </Button>
+    );
+
+  if (row.url)
+    return (
+      <Link
+        destination={row.url}
+        modifiers={[foregroundStyle(colors.onSurface)]}
+      >
+        {content}
+      </Link>
+    );
+
+  return content;
+};
 
 /**
  * iOS counterpart of `SettingsScreen` — same prop API as the Android variant,
@@ -118,78 +201,23 @@ export const SettingsScreen = ({
 
         {about ? (
           <Section title={about.title}>
-            {about.rows.map(row => {
-              // Valueless rows (the legal links) render as a plain label —
-              // LabeledContent with empty trailing text reads as a broken row.
-              const content = row.value ? (
-                <LabeledContent key={row.label} label={row.label}>
-                  {/* SwiftUI dims a LabeledContent's trailing text to the
-                      secondary style, which reads as "disabled" next to the
-                      link rows — those sit inside a `foregroundStyle`
-                      wrapper, so their value stays full-strength. Match them:
-                      a read-only value is not a disabled one. */}
-                  <Text modifiers={[foregroundStyle(colors.onSurface)]}>
-                    {row.value}
-                  </Text>
-                </LabeledContent>
-              ) : (
-                <Text key={row.label}>{row.label}</Text>
-              );
-
-              // Rows with an onPress run it on tap (wins over url, e.g. the
-              // version row's easter-egg counter); rows with a url become a
-              // native Link that opens the browser. foregroundStyle keeps the
-              // label from picking up the control tint in both cases.
-              return row.onPress ? (
-                <Button
-                  key={row.label}
-                  onPress={row.onPress}
-                  modifiers={[foregroundStyle(colors.onSurface)]}
-                >
-                  {content}
-                </Button>
-              ) : row.url ? (
-                <Link
-                  key={row.label}
-                  destination={row.url}
-                  modifiers={[foregroundStyle(colors.onSurface)]}
-                >
-                  {content}
-                </Link>
-              ) : (
-                content
-              );
-            })}
+            {about.rows.map(row => (
+              <InfoRow key={row.label} row={row} colors={colors} />
+            ))}
           </Section>
         ) : null}
 
         {/* Policy links in a card of their own, between About and Sign Out —
             Apple's grouping. They are policy, not build info, so they don't
             belong beside version numbers (which is where Android, frozen,
-            still shows them). */}
+            still shows them). Acknowledgements rides here too: an open-source
+            notice IS a legal notice, and Apple's own Settings keeps them in the
+            same group. */}
         {legal?.rows.length ? (
           <Section title={legal.title}>
-            {legal.rows.map(row =>
-              row.onPress ? (
-                <Button
-                  key={row.label}
-                  onPress={row.onPress}
-                  modifiers={[foregroundStyle(colors.onSurface)]}
-                >
-                  <Text>{row.label}</Text>
-                </Button>
-              ) : row.url ? (
-                <Link
-                  key={row.label}
-                  destination={row.url}
-                  modifiers={[foregroundStyle(colors.onSurface)]}
-                >
-                  <Text>{row.label}</Text>
-                </Link>
-              ) : (
-                <Text key={row.label}>{row.label}</Text>
-              ),
-            )}
+            {legal.rows.map(row => (
+              <InfoRow key={row.label} row={row} colors={colors} />
+            ))}
           </Section>
         ) : null}
 
