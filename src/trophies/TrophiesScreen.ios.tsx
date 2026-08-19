@@ -22,6 +22,7 @@ import {
   listRowSeparator,
   listSectionMargins,
   listSectionSpacing,
+  scaleEffect,
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -155,9 +156,25 @@ const FIGURE_WIDTH = 72;
  * bones, equal hosts, ring on the same centre in both states.
  */
 const FIGURE_BONE_LABEL = 56;
+/**
+ * THE BOX THE RING SITS IN — and the ring does NOT scale with it.
+ *
+ * `circularCapacity` draws at its own intrinsic size whatever frame it is
+ * given: band-scanned at 58.00 across a 116 frame AND at 58.00 across a 144
+ * one. The frame only pads. So the box is sized to hold the SCALED ring plus
+ * the row's breathing room, and `RING_SCALE` is the only thing that makes the
+ * gauge bigger.
+ */
 const RING_SIZE = 116;
-/** What the gauge actually draws inside that frame — measured, not derived. */
-const RING_INK = 58;
+/**
+ * How much bigger than the gauge draws itself. 58.00 intrinsic × this is the
+ * ink the summary actually shows — and what the bone has to stand.
+ */
+const RING_SCALE = 1.55;
+/** The gauge's intrinsic ink, measured — 58.00 at every frame size tried. */
+const RING_INTRINSIC = 58;
+/** What it ends up drawing, and therefore what the bone stands. */
+const RING_INK = RING_INTRINSIC * RING_SCALE;
 /**
  * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
  *
@@ -495,6 +512,7 @@ export const TrophiesScreen = ({
                   modifiers={[
                     gaugeStyle('circularCapacity'),
                     tint(colors.primary),
+                    scaleEffect(RING_SCALE),
                     frame({ width: RING_SIZE, height: RING_SIZE }),
                   ]}
                 />
