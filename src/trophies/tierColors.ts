@@ -11,7 +11,12 @@ import { type TrophyTier } from './types';
  */
 export const TIER_COLORS: Record<TrophyTier, string> = {
   bronze: '#BE7B3A',
-  silver: '#8F9AA6',
+  // Deeper and cooler than it looks like it needs to be, on purpose: the old
+  // #8F9AA6 landed on iOS's own secondary-label grey (light `onSurfaceMuted`
+  // resolves to ~#8E8E93), which is the exact colour a LOCKED trophy is drawn
+  // in — so an earned silver read as un-earned, on the banner and in the list.
+  // A tier colour has to be a reward first and a metal second.
+  silver: '#78889B',
   gold: '#CC9A34',
   platinum: '#6FA9C6',
 };
