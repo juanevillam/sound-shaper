@@ -135,7 +135,7 @@ const TRANSPARENT = '#00000000';
  * header wants rather than accepting the widget one.
  */
 /** Between each figure column and the ring. */
-const SUMMARY_COLUMN_GAP = 28;
+const SUMMARY_COLUMN_GAP = 14;
 /**
  * BOTH FIGURE COLUMNS TAKE THE SAME WIDTH, so the group is symmetric and the
  * ring lands on the screen's centre.
@@ -146,8 +146,18 @@ const SUMMARY_COLUMN_GAP = 28;
  * state, where the columns are absent and the ring centres properly. Wide
  * enough for the longest label in any shipped locale.
  */
-const FIGURE_WIDTH = 84;
-const RING_SIZE = 96;
+const FIGURE_WIDTH = 72;
+/**
+ * BOTH LABEL BONES TAKE ONE WIDTH. Sized to their real labels — 52 for
+ * "Earned", 60 for "Available" — they made the two hosts different widths, and
+ * a bridged host reports its CONTENT rather than the box it was given, so the
+ * asymmetry pushed the ring 8.34pt right of where the settled one sits. Equal
+ * bones, equal hosts, ring on the same centre in both states.
+ */
+const FIGURE_BONE_LABEL = 56;
+const RING_SIZE = 116;
+/** What the gauge actually draws inside that frame — measured, not derived. */
+const RING_INK = 58;
 /**
  * THE GAP FROM THE SUMMARY DOWN TO THE LIST — the MIDDLE rung of the ladder.
  *
@@ -380,29 +390,50 @@ export const TrophiesScreen = ({
              * trophy glyphs with counts beneath. On a console screen that also
              * shows the game, the player and a rarity column it earns its
              * place; here it sat directly above a list that already names every
-             * trophy AND its tier, so it was a third way of saying what the
-             * rows say.
+             * trophy AND its tier.
              *
-             * CENTRED AND CLOSE, NOT SPREAD. An earlier pass pushed the three
-             * columns apart with `Spacer`s BETWEEN them — `space-between` by
-             * another name — and the figures ended hard against the sheet's
-             * gutters with a hole in the middle. The columns take a fixed gap
-             * and a single `Spacer` sits on each side of the whole group, which
-             * is what centres a row that otherwise hugs its content.
+             * THE RING IS THE SUBJECT AND IS SIZED LIKE ONE. At 96 against two
+             * 84-wide columns 28pt away it read as bullied by its own labels —
+             * three elements of similar weight rather than a headline with
+             * supporting figures. The gauge takes `RING_SIZE`, the columns pull
+             * in to `SUMMARY_COLUMN_GAP` and narrow to what they need.
              *
-             * THE FIGURES ARE ABSENT WHILE LOADING, and nothing moves when they
-             * arrive: the ring is 96 against a column's ~48, so the ring alone
-             * sets the block's height, and the outer spacers keep it centred
-             * either way. They are omitted rather than boned because a
-             * `SkeletonBone` here needs an `RNHostView`, and that host will not
-             * render in this block — eight builds of explicit boxes,
-             * `matchContents` on and off, cleared insets, an opaque row fill and
-             * both `VStack` and `HStack` parents, all drawing nothing. The ring
-             * carries the wait on its own (see its `value`).
+             * BOTH COLUMNS TAKE THE SAME WIDTH so the group is symmetric and the
+             * ring lands on the screen's centre. Left to hug their labels they
+             * are not — "Available" is wider than "Earned", "Disponibles" wider
+             * still — which pulled the group left and put the ring 5.33pt off
+             * centre against the loading state.
              */}
-            <HStack alignment="center" spacing={SUMMARY_COLUMN_GAP}>
+            {/* THE ROW'S HEIGHT IS STATED, not left to its content. The ring
+                is the tallest thing in it in both states, so this is a no-op
+                once the gauge is there — but while loading the block is three
+                bridged hosts, and hosts report their size after the fact, so
+                without it the row collapsed and clipped the ring bone to a
+                semicircle. */}
+            <HStack
+              alignment="center"
+              spacing={SUMMARY_COLUMN_GAP}
+              modifiers={[frame({ height: RING_SIZE })]}
+            >
               <Spacer />
-              {loading ? null : (
+              {loading ? (
+                <VStack
+                  modifiers={[
+                    frame({ width: FIGURE_WIDTH, height: RING_SIZE }),
+                  ]}
+                >
+                  <RNHostView>
+                    <View style={styles.figureBone}>
+                      <SkeletonBone width={26} height={24} />
+                      <SkeletonBone
+                        width={FIGURE_BONE_LABEL}
+                        height={12}
+                        style={styles.figureBoneLabel}
+                      />
+                    </View>
+                  </RNHostView>
+                </VStack>
+              ) : (
                 <VStack
                   spacing={2}
                   modifiers={[frame({ width: FIGURE_WIDTH })]}
@@ -426,34 +457,67 @@ export const TrophiesScreen = ({
                 </VStack>
               )}
 
-              {/* ITS PLACEHOLDER IS THE GAUGE ITSELF, EMPTY. A gauge at zero IS
-                  the empty state of a gauge, it is what Apple draws, and it is
-                  pixel-identical to the settled one by construction — same
-                  control, same frame, same place. It cannot lie either: an
-                  empty track says "not known yet" rather than "zero earned",
-                  because the figure that would have said zero is not shown. */}
-              <Gauge
-                value={loading ? 0 : fraction}
-                currentValueLabel={
-                  loading ? undefined : (
+              {/* THE RING IS BONED TOO, not drawn empty. An empty track is a
+                  real gauge reading zero, and it read as disabled rather than
+                  as waiting — a state, not a placeholder. A disc on the app's
+                  own sweep says "loading" in the same language every other
+                  surface uses. */}
+              {loading ? (
+                <VStack
+                  modifiers={[frame({ width: RING_SIZE, height: RING_SIZE })]}
+                >
+                  <RNHostView>
+                    <View style={styles.ringBone}>
+                      <SkeletonBone
+                        width={RING_INK}
+                        height={RING_INK}
+                        radius={RING_INK / 2}
+                      />
+                    </View>
+                  </RNHostView>
+                </VStack>
+              ) : (
+                <Gauge
+                  value={fraction}
+                  // The percent lives INSIDE the ring — the `currentValueLabel`
+                  // slot — and scales with it: a `caption` sized for a 64pt
+                  // gauge reads lost in this one.
+                  currentValueLabel={
                     <Text
                       modifiers={[
-                        font({ textStyle: 'title2', weight: 'semibold' }),
+                        font({ textStyle: 'title', weight: 'semibold' }),
                         foregroundStyle(colors.onSurface),
                       ]}
                     >
                       {strings.percent}
                     </Text>
-                  )
-                }
-                modifiers={[
-                  gaugeStyle('circularCapacity'),
-                  tint(colors.primary),
-                  frame({ width: RING_SIZE, height: RING_SIZE }),
-                ]}
-              />
+                  }
+                  modifiers={[
+                    gaugeStyle('circularCapacity'),
+                    tint(colors.primary),
+                    frame({ width: RING_SIZE, height: RING_SIZE }),
+                  ]}
+                />
+              )}
 
-              {loading ? null : (
+              {loading ? (
+                <VStack
+                  modifiers={[
+                    frame({ width: FIGURE_WIDTH, height: RING_SIZE }),
+                  ]}
+                >
+                  <RNHostView>
+                    <View style={styles.figureBone}>
+                      <SkeletonBone width={26} height={24} />
+                      <SkeletonBone
+                        width={FIGURE_BONE_LABEL}
+                        height={12}
+                        style={styles.figureBoneLabel}
+                      />
+                    </View>
+                  </RNHostView>
+                </VStack>
+              ) : (
                 <VStack
                   spacing={2}
                   modifiers={[frame({ width: FIGURE_WIDTH })]}
@@ -554,6 +618,50 @@ const styles = StyleSheet.create({
   // The body and footnote line boxes the native row stacks.
   titleLine: { height: 22, justifyContent: 'center' },
   supportingLine: { height: 18, justifyContent: 'center' },
+  /**
+   * THE SUMMARY BONES. Each sits in its OWN `RNHostView` — three hosts in this
+   * block, which is above the one-per-row ceiling everywhere else, and is why
+   * they are three separate small trees rather than one: a single host holding
+   * the whole summary rendered BLANK here, through eight builds of explicit
+   * boxes, `matchContents` on and off, cleared insets, an opaque row fill and
+   * both `VStack` and `HStack` parents. Split per element they draw.
+   */
+  /**
+   * Each bone box is the ring's HEIGHT, so all three hosts report the same box
+   * and the `HStack`'s centre alignment has something to centre. Left to hug
+   * their content the figure hosts sat at the top of the row while the ring
+   * bone centred, because a host's own height arrives after the fact.
+   */
+  figureBone: {
+    alignItems: 'center',
+    height: RING_SIZE,
+    justifyContent: 'center',
+    width: FIGURE_WIDTH,
+  },
+  figureBoneLabel: { marginTop: 8 },
+  /**
+   * The disc stands the ring's INK, inside a box the size of its FRAME. A
+   * `circularCapacity` gauge draws well inside the frame it is given — band
+   * scanned at 58.00 across a 116 frame — so a bone at `RING_SIZE` came out
+   * twice the ring it replaces. The box keeps the row's height either way.
+   */
+  /**
+   * The disc stands the ring's INK inside a box the size of its FRAME. A
+   * `circularCapacity` gauge draws well inside the frame it is given — band
+   * scanned at 58.00 across a 116 frame — so a bone at `RING_SIZE` came out
+   * twice the ring it replaces.
+   *
+   * The SLOT is reserved in SwiftUI (see the framed `VStack` around the host),
+   * not measured from here: left to report their own size the three hosts gave
+   * the row widths that were neither live's nor each other's, and the ring
+   * landed 8.34 right at one guess and 20.00 left at the next.
+   */
+  ringBone: {
+    alignItems: 'center',
+    height: RING_SIZE,
+    justifyContent: 'center',
+    width: RING_SIZE,
+  },
   iconSlot: {
     alignItems: 'center',
     height: ICON_SIZE,
