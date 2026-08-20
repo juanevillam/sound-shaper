@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import type {
   SettingsAboutConfig,
   SettingsInfoRow,
@@ -7,15 +5,6 @@ import type {
 } from './SettingsScreen';
 
 type Translate = (key: string) => string;
-
-/**
- * The published @expo/ui docs, per platform — the standard "About" row links
- * here. Same across every portfolio app, so it lives with the builder.
- */
-const EXPO_UI_DOCS_URL = Platform.select({
-  ios: 'https://docs.expo.dev/versions/latest/sdk/ui/swift-ui/',
-  default: 'https://docs.expo.dev/versions/latest/sdk/ui/jetpack-compose/',
-}) as string;
 
 /**
  * Live preference state for the standard "General" section. Generic over the
@@ -69,10 +58,25 @@ export const buildGeneralSettingsSections = <
  * native binary, so it reflects what's actually on the device), then the
  * bundled @expo/ui version linking to that platform's @expo/ui docs.
  */
+/**
+ * NO FRAMEWORK VERSION. This used to carry an "Expo UI Version" row linking to
+ * the Expo docs, and it is gone from every app deliberately (Juan, 2026-08-20):
+ * a shipped product should not announce what it is built with. Anyone reading
+ * that row learns the app is React Native, which is an invitation to go looking.
+ *
+ * It is worth being straight about what this buys. A determined reader gets the
+ * same answer out of the IPA in seconds — Hermes and the Expo frameworks are
+ * right there in the bundle — so this is not a security control. What it is: a
+ * framework version has NO user-facing purpose in a product, so it was dev
+ * chrome that had no business shipping, and removing it costs nothing.
+ *
+ * The APP version stays. It is the one thing here a person might genuinely need
+ * ("what version are you on?"), it is where Apple puts it, and it gives nothing
+ * away.
+ */
 export const buildAboutSettingsSection = (
   t: Translate,
   appVersion: string,
-  expoUiVersion: string,
   /** App-specific trailing rows, e.g. Topper's legal-page links (stores
    *  require the privacy policy reachable from inside the app). */
   extraRows: SettingsInfoRow[] = [],
@@ -82,11 +86,6 @@ export const buildAboutSettingsSection = (
     {
       label: t('settings.about.appVersion'),
       value: appVersion,
-    },
-    {
-      label: t('settings.about.expoUiVersion'),
-      value: expoUiVersion,
-      url: EXPO_UI_DOCS_URL,
     },
     ...extraRows,
   ],

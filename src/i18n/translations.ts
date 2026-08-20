@@ -247,7 +247,6 @@ export const translations = {
       about: {
         title: 'About',
         appVersion: 'Sound Shaper Version',
-        expoUiVersion: 'Expo UI Version',
       },
     },
     snackbar: {
@@ -523,7 +522,6 @@ export const translations = {
       about: {
         title: 'Acerca de',
         appVersion: 'Versión de Sound Shaper',
-        expoUiVersion: 'Versión de Expo UI',
       },
     },
     snackbar: {
@@ -797,7 +795,6 @@ export const translations = {
       about: {
         title: '关于',
         appVersion: 'Sound Shaper 版本',
-        expoUiVersion: 'Expo UI 版本',
       },
     },
     snackbar: {
