@@ -97,6 +97,19 @@ const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
 export const SONG_TILE_METRICS = {
   artRadius: ART_RADIUS,
   artToCaption: EMPTY_MEDIA_CAPTION_GAP,
+  /**
+   * The optical nudge the captions take to clear the artwork's rounded corner.
+   * The BONES need it too, and did not have it: they sat flush at the tile's
+   * left edge while the real text starts 6pt in, so every caption jumped right
+   * on settle. Vertical geometry was shared here and horizontal was not, which
+   * is the same defect one axis over. Topper's rail skeleton had it right
+   * (`railBodyIos`), which is why the jump showed up in one app and not the
+   * other.
+   */
+  captionInset: Platform.select({
+    ios: opticalTextInset(ART_RADIUS),
+    default: 0,
+  }) as number,
   /** The gap the title's own `marginBottom` opens under it. */
   titleGap: 1,
   lines: Platform.select({
@@ -259,7 +272,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: CAPTION_TITLE,
         lineHeight: CAPTION_TITLE + 5,
-        paddingLeft: opticalTextInset(ART_RADIUS),
+        paddingLeft: SONG_TILE_METRICS.captionInset,
       },
     }),
   },
@@ -268,7 +281,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: CAPTION_SUB,
         lineHeight: CAPTION_SUB + 5,
-        paddingLeft: opticalTextInset(ART_RADIUS),
+        paddingLeft: SONG_TILE_METRICS.captionInset,
       },
     }) ?? {},
 });
