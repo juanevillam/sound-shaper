@@ -20,6 +20,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { SheetFormDestructiveIos, SheetFormIos } from '@portfolio/mobile-ui';
 
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useShapesSubscription } from '@/hooks/useShapesSubscription';
@@ -138,130 +139,138 @@ function ShaperSheetScreen() {
   ];
 
   return (
-    <SheetFormIos
-      title={t('player.shape.title')}
-      actionLabel={t('player.shapes.save')}
-      onAction={promptSaveShape}
-    >
-      {/* One row that says which preset is on and opens the list to change it,
+    // `SheetScreen` for the toast — see `SnackbarOutlet`. Saving or deleting a
+    // shape confirms with a snackbar, and from inside a sheet that message drew
+    // behind the presentation.
+    <SheetScreen>
+      <SheetFormIos
+        title={t('player.shape.title')}
+        actionLabel={t('player.shapes.save')}
+        onAction={promptSaveShape}
+      >
+        {/* One row that says which preset is on and opens the list to change it,
           rather than six capsules competing for the eye — the Settings idiom.
           A saved shape overrides the preset, so nothing is selected then. */}
-      <Section>
-        <Picker
-          label={t('player.shapes.presets')}
-          selection={activeShapeId === null ? activePreset : null}
-          onSelectionChange={key => applyPreset(String(key))}
-          modifiers={[pickerStyle('menu')]}
-        >
-          {EQ_PRESETS.map(preset => (
-            <SwiftUIText key={preset.i18nKey} modifiers={[tag(preset.i18nKey)]}>
-              {presetLabel(preset.i18nKey)}
-            </SwiftUIText>
-          ))}
-        </Picker>
-      </Section>
-
-      {shapes.length > 0 ? (
-        <Section title={t('player.shapes.mine')}>
-          {shapes.map(shape => (
-            // Trailing checkmark on the applied one — how iOS marks the chosen
-            // row in a list you can pick from.
-            <Button key={shape.id} onPress={() => onApplyShape(shape.id)}>
-              <HStack>
-                <SwiftUIText modifiers={[foregroundStyle(colors.onSurface)]}>
-                  {shape.name}
-                </SwiftUIText>
-                <Spacer />
-                {activeShapeId === shape.id ? (
-                  <Image systemName="checkmark" color={colors.primary} />
-                ) : null}
-              </HStack>
-            </Button>
-          ))}
+        <Section>
+          <Picker
+            label={t('player.shapes.presets')}
+            selection={activeShapeId === null ? activePreset : null}
+            onSelectionChange={key => applyPreset(String(key))}
+            modifiers={[pickerStyle('menu')]}
+          >
+            {EQ_PRESETS.map(preset => (
+              <SwiftUIText
+                key={preset.i18nKey}
+                modifiers={[tag(preset.i18nKey)]}
+              >
+                {presetLabel(preset.i18nKey)}
+              </SwiftUIText>
+            ))}
+          </Picker>
         </Section>
-      ) : null}
 
-      {/* The band numbers are hertz, which means nothing to most people — say
+        {shapes.length > 0 ? (
+          <Section title={t('player.shapes.mine')}>
+            {shapes.map(shape => (
+              // Trailing checkmark on the applied one — how iOS marks the chosen
+              // row in a list you can pick from.
+              <Button key={shape.id} onPress={() => onApplyShape(shape.id)}>
+                <HStack>
+                  <SwiftUIText modifiers={[foregroundStyle(colors.onSurface)]}>
+                    {shape.name}
+                  </SwiftUIText>
+                  <Spacer />
+                  {activeShapeId === shape.id ? (
+                    <Image systemName="checkmark" color={colors.primary} />
+                  ) : null}
+                </HStack>
+              </Button>
+            ))}
+          </Section>
+        ) : null}
+
+        {/* The band numbers are hertz, which means nothing to most people — say
           what the ends of the range actually sound like. In a Form that line is
           the section's FOOTER, which is where iOS puts explanatory text. */}
-      <Section
-        title={t('player.eq.title')}
-        footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
-      >
-        {EQ_BANDS.map((band, index) => (
-          <HStack key={band.hz} spacing={8}>
-            <SwiftUIText
-              modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
-            >
-              {band.label}
-            </SwiftUIText>
-            <Slider
-              value={gains[index]}
-              min={EQ_MIN_DB}
-              max={EQ_MAX_DB}
-              step={1}
-              onValueChange={value => setBandGain(index, Math.round(value))}
-            />
-            <SwiftUIText
-              modifiers={[
-                ...mutedText,
-                frame({ width: EQ_LABEL_WIDTH, alignment: 'trailing' }),
-              ]}
-            >
-              {dbLabel(gains[index])}
-            </SwiftUIText>
-          </HStack>
-        ))}
-      </Section>
+        <Section
+          title={t('player.eq.title')}
+          footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
+        >
+          {EQ_BANDS.map((band, index) => (
+            <HStack key={band.hz} spacing={8}>
+              <SwiftUIText
+                modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
+              >
+                {band.label}
+              </SwiftUIText>
+              <Slider
+                value={gains[index]}
+                min={EQ_MIN_DB}
+                max={EQ_MAX_DB}
+                step={1}
+                onValueChange={value => setBandGain(index, Math.round(value))}
+              />
+              <SwiftUIText
+                modifiers={[
+                  ...mutedText,
+                  frame({ width: EQ_LABEL_WIDTH, alignment: 'trailing' }),
+                ]}
+              >
+                {dbLabel(gains[index])}
+              </SwiftUIText>
+            </HStack>
+          ))}
+        </Section>
 
-      <Section
-        header={
-          <HStack>
-            <SwiftUIText>{t('player.speed')}</SwiftUIText>
-            <Spacer />
-            <SwiftUIText>{rateLabel(rate)}</SwiftUIText>
-          </HStack>
-        }
-      >
-        <Slider
-          value={rate}
-          min={RATE_MIN}
-          max={RATE_MAX}
-          step={RATE_STEP}
-          onValueChange={value =>
-            // Float math on 0.1 steps drifts (0.7000000000000001), so snap to
-            // one decimal.
-            setRate(Math.round(value / RATE_STEP) / 10)
+        <Section
+          header={
+            <HStack>
+              <SwiftUIText>{t('player.speed')}</SwiftUIText>
+              <Spacer />
+              <SwiftUIText>{rateLabel(rate)}</SwiftUIText>
+            </HStack>
           }
-        />
-      </Section>
+        >
+          <Slider
+            value={rate}
+            min={RATE_MIN}
+            max={RATE_MAX}
+            step={RATE_STEP}
+            onValueChange={value =>
+              // Float math on 0.1 steps drifts (0.7000000000000001), so snap to
+              // one decimal.
+              setRate(Math.round(value / RATE_STEP) / 10)
+            }
+          />
+        </Section>
 
-      {/* Keep pitch belongs WITH speed — it only decides whether changing the
+        {/* Keep pitch belongs WITH speed — it only decides whether changing the
           speed also changes how high the sound is. Its explanation is the
           section footer, so nothing here has to hand-place a support line. */}
-      <Section
-        footer={<SwiftUIText>{t('player.keepPitchDescription')}</SwiftUIText>}
-      >
-        <Toggle
-          isOn={keepPitch}
-          label={t('player.keepPitch')}
-          onIsOnChange={setKeepPitch}
-        />
-      </Section>
+        <Section
+          footer={<SwiftUIText>{t('player.keepPitchDescription')}</SwiftUIText>}
+        >
+          <Toggle
+            isOn={keepPitch}
+            label={t('player.keepPitch')}
+            onIsOnChange={setKeepPitch}
+          />
+        </Section>
 
-      {/* Destructive action last and in its OWN section — the Contacts "Delete
+        {/* Destructive action last and in its OWN section — the Contacts "Delete
           Contact" pattern, which is also why it spans the full width without
           anyone forcing a frame onto it. Only while one of your own shapes is
           applied. */}
-      {activeShape ? (
-        <Section>
-          <SheetFormDestructiveIos
-            label={t('player.shapes.delete')}
-            onPress={onDeleteShape}
-          />
-        </Section>
-      ) : null}
-    </SheetFormIos>
+        {activeShape ? (
+          <Section>
+            <SheetFormDestructiveIos
+              label={t('player.shapes.delete')}
+              onPress={onDeleteShape}
+            />
+          </Section>
+        ) : null}
+      </SheetFormIos>
+    </SheetScreen>
   );
 }
 
