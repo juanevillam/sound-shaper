@@ -14,6 +14,7 @@ import {
 import { SheetFormIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -61,65 +62,69 @@ function ClipsSheetScreen() {
   };
 
   return (
-    <SheetFormIos
-      title={t('player.clips.title')}
-      actionLabel={t('player.clips.new')}
-      onAction={onNewClip}
-    >
-      {clips.length === 0 ? (
-        <Section>
-          <SwiftUIText modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
-            {t('player.clips.empty')}
-          </SwiftUIText>
-        </Section>
-      ) : (
-        <Section>
-          {clips.map(clip => {
-            const isActive = activeClip?.clipId === clip.id;
-            const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+    // `SheetScreen` for the toast — see `SnackbarOutlet`. Deleting a clip
+    // confirms with a snackbar that drew behind this sheet.
+    <SheetScreen>
+      <SheetFormIos
+        title={t('player.clips.title')}
+        actionLabel={t('player.clips.new')}
+        onAction={onNewClip}
+      >
+        {clips.length === 0 ? (
+          <Section>
+            <SwiftUIText modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
+              {t('player.clips.empty')}
+            </SwiftUIText>
+          </Section>
+        ) : (
+          <Section>
+            {clips.map(clip => {
+              const isActive = activeClip?.clipId === clip.id;
+              const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
-            return (
-              // Delete is a SWIPE action now, not a trailing trash icon: two
-              // tap targets in one row is an Android table idiom, and iOS
-              // hides row destruction behind the swipe (Mail, Reminders).
-              <SwipeActions key={clip.id}>
-                <Button
-                  onPress={() => {
-                    haptics.selection();
-                    playClip(clip.id, clip.startMs, clip.endMs);
-                  }}
-                >
-                  <SwiftUIText
-                    modifiers={[
-                      foregroundStyle(
-                        isActive ? colors.primary : colors.onSurface,
-                      ),
-                    ]}
+              return (
+                // Delete is a SWIPE action now, not a trailing trash icon: two
+                // tap targets in one row is an Android table idiom, and iOS
+                // hides row destruction behind the swipe (Mail, Reminders).
+                <SwipeActions key={clip.id}>
+                  <Button
+                    onPress={() => {
+                      haptics.selection();
+                      playClip(clip.id, clip.startMs, clip.endMs);
+                    }}
                   >
-                    {range}
-                  </SwiftUIText>
-                </Button>
-                <SwipeActions.Actions edge="trailing">
-                  {/* ICON ONLY, no label. Revealing an action translates the
+                    <SwiftUIText
+                      modifiers={[
+                        foregroundStyle(
+                          isActive ? colors.primary : colors.onSurface,
+                        ),
+                      ]}
+                    >
+                      {range}
+                    </SwiftUIText>
+                  </Button>
+                  <SwipeActions.Actions edge="trailing">
+                    {/* ICON ONLY, no label. Revealing an action translates the
                       row's content left by the action's own width, so a
                       "🗑 Delete clip" action (~110pt) pushed this row's short
                       time range clean off the leading edge and left an empty
                       pill behind. Mail's swipe actions are glyphs for the same
                       reason. */}
-                  <Button
-                    role="destructive"
-                    onPress={() => onDelete(clip.id)}
-                    modifiers={[accessibilityLabel(t('player.clips.delete'))]}
-                  >
-                    <Image systemName="trash" />
-                  </Button>
-                </SwipeActions.Actions>
-              </SwipeActions>
-            );
-          })}
-        </Section>
-      )}
-    </SheetFormIos>
+                    <Button
+                      role="destructive"
+                      onPress={() => onDelete(clip.id)}
+                      modifiers={[accessibilityLabel(t('player.clips.delete'))]}
+                    >
+                      <Image systemName="trash" />
+                    </Button>
+                  </SwipeActions.Actions>
+                </SwipeActions>
+              );
+            })}
+          </Section>
+        )}
+      </SheetFormIos>
+    </SheetScreen>
   );
 }
 

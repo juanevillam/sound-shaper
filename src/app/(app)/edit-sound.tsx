@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Section } from '@expo/ui/swift-ui';
 import {
+  confirmDestructiveIos,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
   SheetFormIos,
@@ -13,6 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { type PickedSongFile } from '@/components/songs/EditSongSheet';
 import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -177,95 +179,98 @@ function EditSoundSheetScreen() {
     router.back();
   };
 
+  // Cancel is the PREFERRED action, which is Apple's own treatment for a
+  // destructive alert and the reason every one of them in this app comes from
+  // `confirmDestructiveIos` rather than a hand-built `Alert.alert` call.
   const confirmDelete = () =>
-    Alert.alert(
-      t('songEdit.deleteConfirm.title'),
-      t('songEdit.deleteConfirm.message'),
-      [
-        { text: t('songEdit.deleteConfirm.cancel'), style: 'cancel' },
-        {
-          text: t('songEdit.deleteConfirm.confirm'),
-          style: 'destructive',
-          onPress: runDelete,
-        },
-      ],
-    );
+    confirmDestructiveIos({
+      title: t('songEdit.deleteConfirm.title'),
+      message: t('songEdit.deleteConfirm.message'),
+      cancelLabel: t('songEdit.deleteConfirm.cancel'),
+      confirmLabel: t('songEdit.deleteConfirm.confirm'),
+      onConfirm: runDelete,
+    });
 
   // Deep-linked with nothing to edit or create: an empty sheet helps no one.
   if (!editingSong && !pickedFile)
     return <View style={{ backgroundColor: colors.sheet }} />;
 
   return (
-    <SheetFormIos
-      title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
-      actionLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
-      actionEnabled={!nameInvalid}
-      busy={isSaving}
-      onAction={save}
-    >
-      {/* Cover art is a read-only preview: it comes from the file's ID3 tag,
+    // `SheetScreen` for the toast: a sheet is presented above the RN root, so
+    // this editor's "Sound saved" / "Couldn't save" messages drew BEHIND it and
+    // were never seen. See `SnackbarOutlet`.
+    <SheetScreen>
+      <SheetFormIos
+        title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
+        actionLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
+        actionEnabled={!nameInvalid}
+        busy={isSaving}
+        onAction={save}
+      >
+        {/* Cover art is a read-only preview: it comes from the file's ID3 tag,
           never hand-picked, so the disc is disabled rather than a picker.
           Same disc, same block, same caption slot as Topper's editor and as
           this app's own Android sheet — only the tappability differs. */}
-      <Section>
-        <SheetFormMediaIos
-          caption={t(
-            isSaving
-              ? 'songEdit.uploading'
-              : artPreviewUri
-                ? 'songEdit.art.embedded'
-                : 'songEdit.art.none',
-          )}
-        >
-          <View style={styles.mediaSlot}>
-            <MediaPickerAvatar
-              onPress={noop}
-              disabled
-              surfaceColor={colors.surfaceVariant}
-              contentColor={colors.onSurfaceMuted}
-              emoji={SONG_EMOJI}
-              imageUrl={artPreviewUri}
-            />
-          </View>
-        </SheetFormMediaIos>
-      </Section>
-
-      <Section>
-        <SheetFormFieldIos
-          value={name}
-          onChangeText={setName}
-          placeholder={t('songEdit.name.label')}
-          error={nameError ? t('songEdit.name.error') : null}
-        />
-        <SheetFormFieldIos
-          value={artist}
-          onChangeText={setArtist}
-          placeholder={t('songEdit.artist.label')}
-        />
-        <SheetFormFieldIos
-          value={album}
-          onChangeText={setAlbum}
-          placeholder={t('songEdit.album.label')}
-        />
-        <SheetFormFieldIos
-          value={year}
-          onChangeText={setYear}
-          placeholder={t('songEdit.year.label')}
-          error={yearInvalid ? t('songEdit.year.error') : null}
-          keyboardType="numberPad"
-        />
-      </Section>
-
-      {songId ? (
         <Section>
-          <SheetFormDestructiveIos
-            label={t('songEdit.delete')}
-            disabled={isSaving}
-            onPress={confirmDelete}
+          <SheetFormMediaIos
+            caption={t(
+              isSaving
+                ? 'songEdit.uploading'
+                : artPreviewUri
+                  ? 'songEdit.art.embedded'
+                  : 'songEdit.art.none',
+            )}
+          >
+            <View style={styles.mediaSlot}>
+              <MediaPickerAvatar
+                onPress={noop}
+                disabled
+                surfaceColor={colors.surfaceVariant}
+                contentColor={colors.onSurfaceMuted}
+                emoji={SONG_EMOJI}
+                imageUrl={artPreviewUri}
+              />
+            </View>
+          </SheetFormMediaIos>
+        </Section>
+
+        <Section>
+          <SheetFormFieldIos
+            value={name}
+            onChangeText={setName}
+            placeholder={t('songEdit.name.label')}
+            error={nameError ? t('songEdit.name.error') : null}
+          />
+          <SheetFormFieldIos
+            value={artist}
+            onChangeText={setArtist}
+            placeholder={t('songEdit.artist.label')}
+          />
+          <SheetFormFieldIos
+            value={album}
+            onChangeText={setAlbum}
+            placeholder={t('songEdit.album.label')}
+          />
+          <SheetFormFieldIos
+            value={year}
+            onChangeText={setYear}
+            placeholder={t('songEdit.year.label')}
+            error={yearInvalid ? t('songEdit.year.error') : null}
+            keyboardType="numberPad"
           />
         </Section>
-      ) : null}
-    </SheetFormIos>
+
+        {songId ? (
+          <Section>
+            <SheetFormDestructiveIos
+              label={t('songEdit.delete')}
+              disabled={isSaving}
+              onPress={confirmDelete}
+            />
+          </Section>
+        ) : null}
+      </SheetFormIos>
+    </SheetScreen>
   );
 }
 
