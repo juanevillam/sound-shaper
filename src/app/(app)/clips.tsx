@@ -52,7 +52,6 @@ function ClipsSheetScreen() {
   };
 
   const onNewClip = () => {
-    haptics.selection();
     router.back();
     requestClipFraming();
   };
@@ -84,10 +83,7 @@ function ClipsSheetScreen() {
                 // hides row destruction behind the swipe (Mail, Reminders).
                 <SwipeActions key={clip.id}>
                   <Button
-                    onPress={() => {
-                      haptics.selection();
-                      playClip(clip.id, clip.startMs, clip.endMs);
-                    }}
+                    onPress={() => playClip(clip.id, clip.startMs, clip.endMs)}
                   >
                     <SwiftUIText
                       modifiers={[

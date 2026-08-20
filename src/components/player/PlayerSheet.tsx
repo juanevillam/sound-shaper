@@ -431,10 +431,7 @@ export function PlayerSheet() {
     [progress, reduceMotion],
   );
 
-  const expand = useCallback(() => {
-    haptics.selection();
-    springTo(1);
-  }, [springTo]);
+  const expand = useCallback(() => springTo(1), [springTo]);
 
   const collapse = useCallback(() => springTo(0), [springTo]);
 
@@ -584,8 +581,6 @@ export function PlayerSheet() {
         settleBack();
         return;
       }
-
-      haptics.selection();
 
       const { position } = usePlayerStore.getState();
       // `previous()` restarts the song when deep into it, and a lone song wraps
@@ -872,7 +867,6 @@ export function PlayerSheet() {
   };
 
   const onPreviewClip = () => {
-    haptics.selection();
     playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
   };
 
@@ -1398,7 +1392,6 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   const startAt = (song: (typeof ordered)[number] | undefined) => {
     if (!song) return;
 
-    haptics.selection();
     playSong(song, ordered);
     requestExpand();
   };

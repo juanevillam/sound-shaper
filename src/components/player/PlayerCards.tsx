@@ -8,7 +8,6 @@ import { AppIcon } from '@portfolio/mobile-ui';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { haptics } from '@/lib/haptics';
 
 import { CARDS_HEIGHT, type PlayerCardsProps } from './chrome';
 
@@ -39,7 +38,6 @@ export function PlayerCards({ cards }: PlayerCardsProps) {
           <Surface
             key={card.key}
             onClick={() => {
-              haptics.selection();
               card.onPress();
             }}
             color="transparent"

@@ -181,7 +181,6 @@ export default function ManageAccount() {
   const confirmDelete = () => {
     if (deleting) return;
 
-    haptics.selection();
     confirmDestructiveIos({
       title: t('settings.manageAccount.deleteDialog.title'),
       message: t('settings.manageAccount.deleteDialog.message'),
