@@ -435,28 +435,54 @@ export function PlayerSheet() {
 
   const collapse = useCallback(() => springTo(0), [springTo]);
 
-  // A surface asked for the full player (tapping a song tile). If the sheet is
-  // just mounting (nothing was loaded before), jump straight to the expanded
-  // layout so the container's own slide-in IS the open animation; if the
-  // banner was already up, grow it in place.
+  /**
+   * A surface asked for the full player (tapping a song tile).
+   *
+   * ONE MOTION, ALWAYS: `progress` 0 → 1, which `containerStyle` turns into a
+   * rise from the banner's resting place to the full window. It does not matter
+   * whether the banner was already up or the sheet is mounting for the first
+   * time — the same animation opens it either way, and there is exactly one
+   * thing driving translateY.
+   *
+   * IT USED TO SPECIAL-CASE THE FIRST OPEN and that was the "flick". On a cold
+   * start nothing is loaded, so tapping a tile mounts this sheet AND asks it to
+   * open; the old code jumped `progress` straight to 1 and left the container's
+   * `entering={SlideInDown}` to play the opening, per a comment reasoning that
+   * "the container's own slide-in IS the open animation". Two things drive
+   * translateY under that plan — the layout animation and `containerStyle` —
+   * and the view paints once at its FINAL position before the layout animation
+   * takes it. Recorded at 60fps on a cold launch and stepped frame by frame,
+   * the first open ran: banner visible → banner gone (2 frames) → the whole
+   * expanded player flashed fully formed for ONE frame → gone again for 4 →
+   * then it finally slid up. About 67ms of wrongness, which is why it reads as
+   * a flick rather than as a glitch you can point at.
+   *
+   * `isExpandingMount` is what lets this be one motion: a mount that is already
+   * being asked to open skips the slide-in entirely, so `progress` owns the
+   * whole thing. The sheet paints one frame at the banner's position — its
+   * genuine starting state — and animates from there.
+   */
   const lastExpandNonce = useRef(expandNonce);
   const hadCurrentRef = useRef(current !== null);
+  /**
+   * Read during render, deliberately: `entering` is only consulted on the frame
+   * the container mounts, which is this one. Both refs still hold their
+   * pre-effect values here, which is exactly what makes the test work.
+   */
+  const isExpandingMount =
+    !hadCurrentRef.current &&
+    current !== null &&
+    expandNonce !== lastExpandNonce.current;
+
   useEffect(() => {
-    const freshMount = !hadCurrentRef.current && current !== null;
     hadCurrentRef.current = current !== null;
 
     if (expandNonce === lastExpandNonce.current) return;
     lastExpandNonce.current = expandNonce;
     if (!current) return;
 
-    if (freshMount) {
-      progress.value = 1;
-      setExpanded(true);
-      usePlayerStore.getState().setSheetExpanded(true);
-    } else {
-      springTo(1);
-    }
-  }, [expandNonce, current, progress, springTo]);
+    springTo(1);
+  }, [expandNonce, current, springTo]);
 
   // Android back collapses the player instead of popping the screen under it.
   useEffect(() => {
@@ -945,7 +971,18 @@ export function PlayerSheet() {
   return (
     <>
       <Animated.View
-        entering={reduceMotion ? undefined : SlideInDown.duration(220)}
+        /**
+         * The slide-in is for a banner ARRIVING — a song started and the pill
+         * rises into place. A mount that is already opening skips it, because
+         * `progress` is doing that motion itself and two animations on one
+         * translateY is what produced the first-open flick (see
+         * `isExpandingMount`).
+         */
+        entering={
+          reduceMotion || isExpandingMount
+            ? undefined
+            : SlideInDown.duration(220)
+        }
         style={[styles.container, { height: winH }, containerStyle]}
       >
         {/* THE surface: a pill at rest, the whole window when open. It is
@@ -1319,6 +1356,18 @@ export function PlayerSheet() {
 
         <GestureDetector gesture={artGesture}>
           <Animated.View
+            /**
+             * TRANSPARENT TO TOUCH WHILE COLLAPSED. This layer is drawn LAST so
+             * the shared artwork rides above every other layer as it travels,
+             * which also means it sits on top of the mini row and hit-tests
+             * first. Both of its gestures are `.enabled(expanded)`, so on the
+             * banner it swallowed the tap and then did nothing with it: the
+             * cover was the one part of the banner that would not open the
+             * player. `miniBody` already spans the full width underneath —
+             * its `paddingLeft` clears the art visually, not for touch — so
+             * letting the tap fall through is the whole fix.
+             */
+            pointerEvents={expanded ? 'auto' : 'none'}
             style={[
               styles.art,
               {
