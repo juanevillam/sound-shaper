@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BRAND_PRESSED_OPACITY, PRESSED_OPACITY } from '@portfolio/mobile-ui';
+
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -8,11 +10,16 @@ import { PILL_RADIUS } from '@/styles/shape';
 
 import { CLIP_ACTIONS_HEIGHT, type ClipActionsRowProps } from './chrome';
 
-const PRESSED_OPACITY = 0.55;
-
 // iOS counterpart of `ClipActionsRow`. Material's outlined/filled button pair
 // becomes the iOS capsule pair: a plain tinted text button for the secondary
 // action and a filled capsule for the primary one.
+//
+// TWO DIFFERENT DIMS, both the package's. Press feedback here is a FADE rather
+// than the card squash — these are inline actions in a row — and the portfolio
+// has exactly two fade values: `PRESSED_OPACITY` for text and rows, and the
+// gentler `BRAND_PRESSED_OPACITY` for a large FILLED surface, where half alpha
+// reads far heavier than the same fraction on a line of text. This file had one
+// locally-declared 0.55 doing both jobs.
 export function ClipActionsRow({
   onCancel,
   onPreview,
@@ -55,7 +62,7 @@ export function ClipActionsRow({
           styles.primary,
           {
             backgroundColor: colors.primary,
-            opacity: pressed ? PRESSED_OPACITY : 1,
+            opacity: pressed ? BRAND_PRESSED_OPACITY : 1,
           },
         ]}
       >
