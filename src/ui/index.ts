@@ -61,6 +61,7 @@ export {
   SHEET_TITLE_TO_CONTENT,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
+export { StateWrapIos } from './StateWrapIos';
 export {
   EMPTY_MEDIA_INITIAL_RATIO,
   emptyMediaColor,
