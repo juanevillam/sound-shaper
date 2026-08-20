@@ -2,14 +2,40 @@ import type { ReactNode } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { ActionButtonIos } from '@portfolio/mobile-ui';
+import {
+  Button,
+  ContentUnavailableView,
+  Host,
+  VStack,
+} from '@expo/ui/swift-ui';
+import { actionButtonModifiersIos } from '@portfolio/mobile-ui';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Text } from '@/components/ui/Text';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
-const EMOJI_SIZE = 48;
+/**
+ * EXTRA spacing above the CTA — deliberately NONE.
+ *
+ * The button cannot go in `ContentUnavailableView`'s own `actions` slot: the
+ * @expo/ui wrapper exposes only title / systemImage / description (see
+ * docs/pending-upstream.md), so it sits in a `VStack` BESIDE the view. That
+ * means anything here is added ON TOP of the view's own trailing inset rather
+ * than replacing it, and a `VStack` gap is the wrong tool for a relationship
+ * Apple already spaces. Measured in Topper at 37.0pt with this at 0 and 57.0pt
+ * with it at 20 — the latter 2.4× the widest rhythm the view uses internally,
+ * which is what made the CTA read as floating.
+ *
+ * Kept as a named constant rather than a bare `0` because the zero is a
+ * DECISION — the number to change if the `actions` slot ever lands, at which
+ * point this whole VStack goes away.
+ */
+const CTA_SPACING = 0;
 
 type EmptyStateProps = {
+  /** Android only — the iOS variant draws `systemImage` instead. */
   emoji?: string;
+  /** iOS only. SF Symbol for the native `ContentUnavailableView`. */
+  systemImage?: SFSymbol;
   title: string;
   subtitle?: string;
   /** Standard call-to-action below the text (see the Android variant). */
@@ -18,44 +44,51 @@ type EmptyStateProps = {
   children?: ReactNode;
 };
 
-// iOS counterpart of `EmptyState` — same prop shape, pure RN: centered emoji +
-// title + subtitle, with the CTA as a tinted capsule button (the iOS
-// `borderedProminent` read) instead of a Material filled button. No Host at
-// all, so nothing here can mis-measure the way a matchContents Compose Host
-// does on the Android side.
+/**
+ * iOS empty / error state — SwiftUI's own `ContentUnavailableView`, which is
+ * exactly this surface. Apple's typography, spacing, symbol weight and
+ * secondary colours, plus Dynamic Type, instead of the RN column of emoji +
+ * title + subtitle this used to hand-build with app type styles. Same component
+ * Topper's iOS screens use, so the two apps' error states are one surface.
+ *
+ * THE CTA SITS BESIDE IT, NOT INSIDE IT — see `CTA_SPACING`.
+ *
+ * THE EMOJI IS GONE on iOS, and that is the deliberate cost: `systemImage` is
+ * typed `SFSymbol`, so 🎵 / 🚫 cannot be shown. Each call site names the symbol
+ * that carries the same meaning. Android keeps every emoji, unchanged.
+ */
 export function EmptyState({
-  emoji,
+  systemImage,
   title,
   subtitle,
   action,
   children,
 }: EmptyStateProps) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.centered}>
-      {emoji ? <Text doNotTranslate text={emoji} style={styles.emoji} /> : null}
-      <Text
-        doNotTranslate
-        text={title}
-        variant="titleLarge"
-        style={styles.title}
-      />
-      {subtitle ? (
-        <Text
-          doNotTranslate
-          muted
-          text={subtitle}
-          variant="bodyMedium"
-          style={styles.subtitle}
-        />
-      ) : null}
-      {action ? (
-        <ActionButtonIos
-          label={action.label}
-          onPress={action.onPress}
-          variant="prominent"
-          style={styles.cta}
-        />
-      ) : null}
+      <Host matchContents={{ vertical: true }} style={styles.host}>
+        <VStack spacing={CTA_SPACING}>
+          <ContentUnavailableView
+            title={title}
+            systemImage={systemImage}
+            description={subtitle}
+          />
+          {action ? (
+            <Button
+              label={action.label}
+              onPress={action.onPress}
+              // The portfolio's own button, minus its Host — this CTA has to
+              // live in the VStack beside the view, and a Host cannot nest.
+              modifiers={actionButtonModifiersIos({
+                tintColor: colors.primary,
+                variant: 'prominent',
+              })}
+            />
+          ) : null}
+        </VStack>
+      </Host>
       {children}
     </View>
   );
@@ -65,13 +98,10 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
     flex: 1,
-    gap: 8,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  // Spacing only — the capsule itself is the system's.
-  cta: { marginTop: 8 },
-  emoji: { fontSize: EMOJI_SIZE, lineHeight: EMOJI_SIZE + 8 },
-  subtitle: { textAlign: 'center' },
-  title: { textAlign: 'center' },
+  // `ContentUnavailableView` centres itself in whatever width it gets, so the
+  // host takes the full one.
+  host: { width: '100%' },
 });
