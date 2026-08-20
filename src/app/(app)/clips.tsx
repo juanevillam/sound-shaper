@@ -2,15 +2,11 @@ import { View } from 'react-native';
 
 import {
   Button,
-  Image,
   Section,
   SwipeActions,
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
-import {
-  accessibilityLabel,
-  foregroundStyle,
-} from '@expo/ui/swift-ui/modifiers';
+import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
 import { SheetFormIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 
@@ -104,19 +100,21 @@ function ClipsSheetScreen() {
                     </SwiftUIText>
                   </Button>
                   <SwipeActions.Actions edge="trailing">
-                    {/* ICON ONLY, no label. Revealing an action translates the
-                      row's content left by the action's own width, so a
-                      "🗑 Delete clip" action (~110pt) pushed this row's short
-                      time range clean off the leading edge and left an empty
-                      pill behind. Mail's swipe actions are glyphs for the same
-                      reason. */}
+                    {/* LABELLED, like every swipe action in the portfolio.
+                      This was glyph-only on the grounds that a worded action
+                      pushes this row's short time range off the leading edge
+                      and leaves an empty pill — which happens, and is what
+                      APPLE ships: Reminders on iOS 26.5, swiped on a row whose
+                      whole content is "Hi", draws icon AND label at ~88pt and
+                      pushes the text completely away. The old note also cited
+                      Mail as glyph-only and put a labelled action at ~110pt;
+                      neither survived measurement. */}
                     <Button
                       role="destructive"
+                      label={t('player.clips.delete')}
+                      systemImage="trash"
                       onPress={() => onDelete(clip.id)}
-                      modifiers={[accessibilityLabel(t('player.clips.delete'))]}
-                    >
-                      <Image systemName="trash" />
-                    </Button>
+                    />
                   </SwipeActions.Actions>
                 </SwipeActions>
               );
