@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { SKELETON_ROWS } from '@/app/(app)/home';
 import { STATE_LAB } from '@/dev/flags';
 
 /**
@@ -78,7 +79,13 @@ export const HOME_STATES: Labelled<HomeState>[] = [
   {
     value: 'skeleton',
     label: 'First-load skeleton',
-    note: 'Three full rows, running off the bottom. Row 2 must start where live does — band-scan both.',
+    /**
+     * COUNTED, NOT RESTATED. This note said "three tile bones", then "two full
+     * rows", then "three full rows" inside one sitting, and was stale at every
+     * step — prose about a number rots the moment the number moves. It reads
+     * `SKELETON_ROWS` now, so the two cannot disagree.
+     */
+    note: `${SKELETON_ROWS} full rows, the last running off the bottom. Row 2 must start where live does — band-scan both.`,
   },
   {
     value: 'error',
