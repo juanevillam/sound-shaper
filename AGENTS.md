@@ -10,12 +10,31 @@ full Firebase (Spark), no self-hosted backend.
 **No tabs, no playlists.** Home is the single root screen: a 2-column grid of
 SONG tiles (cover art + title/artist) plus an Add-song tile — you upload a
 song and it's just there (flat library at `users/{uid}/songs`, newest first;
-playlists were dropped 2026-07-19). Settings hangs off the wordmark-row gear;
-manage-account pushes from there. The player is NOT a route: a bottom banner
+playlists were dropped 2026-07-19). The player is NOT a route: a bottom banner
 that expands in place (PlayerSheet). There is NO Explore and NO profile
-screen — the username lives in Settings' account section only. Don't
-reintroduce social affordances (visibility toggles, feeds, follows) or
-playlists — simplicity is the point.
+screen. Don't reintroduce social affordances (visibility toggles, feeds,
+follows) or playlists — simplicity is the point.
+
+**Where Settings and Account live (iOS, 2026-08-20).** Home's bar carries TWO
+trailing glyphs in one merged Liquid Glass pill — Account, then Settings — and
+both present as full-height native FORM SHEETS, with Trophies stacking over
+Account. That is the portfolio-wide placement, matching Topper and
+expo-ui-starter; the route table and the reasoning are in `lib/sheetRoutes.ts`
+(`IOS_SHEET_SCREENS`). Account is the identity surface here, the way the
+Profile header is in Topper — a personal app has no profile tab for it to hang
+off. ANDROID IS UNCHANGED: there these are ordinary pushed Material screens and
+Trophies stays a row in Settings.
+
+**Home's iOS header is the SYSTEM large title**, not the shared
+`CollapsingHeaderBar` (Android still uses that). The one thing it costs is
+spelled out in `home.tsx`: the bar EMPTIES while the player is expanded rather
+than hiding, because hiding it re-lays-out the screen and drops the player 8.67pt.
+
+**The dev state lab is on** (`src/dev/flags.ts` → `STATE_LAB`). It pins home,
+the account sheet and trophies to any of their UI states; the picker is the
+shared `StateLab`. While it is on, the real account deletion is REFUSED
+(`dev/deleteAccountGuard`) — turn the flag off to delete for real. THERE ARE NO
+FIXTURES and none are to be added.
 
 **The build plan is the source of truth:**
 [`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) — scope,
@@ -47,9 +66,12 @@ graph — preamp + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
 (personal replay bookmarks), and background playback via the plugin's media
 foreground service.
 
-Deliberate gaps, in build order: delete-account flow (needs reauth + sweep),
-lock-screen now-playing metadata, **iOS route twins** (`*.ios.tsx` —
-Android-first like Topper was; the Compose screens don't render on iOS yet).
+Deliberate gaps, in build order: lock-screen now-playing metadata, and
+re-authentication before account deletion (the sweep and the Auth delete are
+wired and the sheet blocks itself while they run — see `manage-account.ios` —
+but a stale sign-in still fails with `auth/requires-recent-login`, which the
+snackbar reports rather than recovering from; Topper's `useDeleteAccount`
+re-authenticates FIRST and is the model).
 
 Brand is deliberately **deferred to the end** — the launcher icon / splash /
 welcome hero currently use **placeholder art borrowed from expo-ui-starter**; the
