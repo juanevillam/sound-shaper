@@ -55,10 +55,17 @@ const APP_BAR_HEIGHT = 64;
 /**
  * Clearance above the first grid row.
  *
- * iOS needs none — `contentInsetAdjustmentBehavior="automatic"` hands the list
- * the large title's height as a content inset, and that IS the gap (it is also
- * what drives the collapse). Anything added here would sit on top of UIKit's
- * own spacing.
+ * iOS: `contentInsetAdjustmentBehavior="automatic"` hands the list the large
+ * title's height as a content inset, but UIKit leaves only ~11pt of its own
+ * under the title's ink — band-scanned at 10.67 here, with the first cover
+ * starting at 168.00pt against a title whose ink ends at 157.33. That is the
+ * bare value Topper measured and REJECTED as "the first section glued to the
+ * title", and it spends 24 on top of it (`TITLE_TO_FIRST_SECTION`). The same
+ * 24 lands this grid's first cover 34.67pt below the title ink, against
+ * Topper's section header box at ~35 — the two screens' first content then
+ * starts at the same place, which is the thing to keep true. Topper's number
+ * reads as a bigger gap only because a text row has leading above its ink and
+ * a cover has none.
  *
  * Android's static app bar sits directly on the content, so this IS the gap,
  * and it is set to match Topper: measured on device, Topper leaves 31.6dp
@@ -67,7 +74,7 @@ const APP_BAR_HEIGHT = 64;
  * accident — list padding plus a section row's own centring — so copying the
  * outcome is the only way to actually match it.
  */
-const GRID_TOP_GAP = IS_IOS ? 0 : 29.5;
+const GRID_TOP_GAP = IS_IOS ? 24 : 29.5;
 
 const toGridRows = (songs: Song[]): GridRow[] => {
   const cells: (Song | 'add')[] = ['add', ...songs];

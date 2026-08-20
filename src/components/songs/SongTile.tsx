@@ -2,6 +2,13 @@ import { useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
+import {
+  artworkRadius,
+  emptyMediaPlusStyle,
+  EMPTY_MEDIA_CAPTION_GAP,
+  EMPTY_MEDIA_PLUS,
+} from '@portfolio/mobile-ui';
+
 import { NowPlayingBars } from '@/components/songs/NowPlayingBars';
 import { SongArt } from '@/components/ui/SongArt';
 import { SquashPressable } from '@/components/ui/SquashPressable';
@@ -10,7 +17,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Song } from '@/services/firebase/songs';
 import { opticalTextInset } from '@/styles/metrics';
-import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
+import { CONTINUOUS_CURVE, HAIRLINE, SHAPE_MD } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the song's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
@@ -19,6 +26,27 @@ import { CONTINUOUS_CURVE, HAIRLINE, TILE_RADIUS } from '@/styles/shape';
 // The tile measures its own art box, so this only covers the very first frame
 // before `onLayout` reports — roughly a tile's width at the usual grid.
 const ART_FALLBACK_SIZE = 148;
+
+/**
+ * THE GRID CELL, measured: 402 screen − 2 × 16 gutter − 14 gap, halved.
+ *
+ * Stated as a constant because two SHARED terms are derived from it — the
+ * artwork's corner and the add tile's plus — and both are ratios of the box
+ * rather than numbers of their own. It is a static figure for a 2-column grid
+ * on iPhone; if the grid ever gains a column or runs on iPad, this is the one
+ * value to make dynamic and everything below follows it.
+ */
+const GRID_CELL = 178;
+
+/**
+ * ARTWORK, so the shared RATIO rather than the grouped-container constant this
+ * used to pass. `TILE_RADIUS` is 26 — the iOS grouped-list radius, which is
+ * correct for a card and wrong in kind for a cover — and it agreed with the
+ * ratio only by coincidence at this exact cell size (0.15 × 178 = 27). Topper's
+ * rail tile draws its cover from the same function at 124pt; that is what keeps
+ * the two apps' artwork one shape family instead of two that happen to match.
+ */
+const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
 
 type SongTileProps = {
   song: Song;
@@ -55,7 +83,7 @@ export function SongTile({
           displayWidth={artSize || undefined}
           size={artSize || ART_FALLBACK_SIZE}
           title={song.name}
-          style={[styles.artMedia, { borderRadius: TILE_RADIUS }]}
+          style={[styles.artMedia, { borderRadius: ART_RADIUS }]}
         />
         {isCurrent ? (
           <View style={styles.nowPlaying} pointerEvents="none">
@@ -93,7 +121,7 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
         style={[
           styles.art,
           styles.addBox,
-          { borderRadius: TILE_RADIUS },
+          { borderRadius: ART_RADIUS },
           // iOS: a FILLED placeholder. A dashed border reads as a web/Material
           // dropzone; Apple's nearest equivalent — the iWork document manager's
           // "Create Document" cell — is a filled tile, and a fill keeps the
@@ -110,7 +138,7 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
             : { borderColor: colors.border },
         ]}
       >
-        <Text doNotTranslate text="+" style={styles.plus} />
+        <Text doNotTranslate text={EMPTY_MEDIA_PLUS} style={styles.plus} />
       </View>
       <Text text="home.addSong" variant="bodyMedium" style={styles.name} />
     </SquashPressable>
@@ -119,7 +147,10 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
 
 const styles = StyleSheet.create({
   nowPlaying: { bottom: 8, left: 8, position: 'absolute' },
-  art: { aspectRatio: 1, marginBottom: 10, width: '100%' },
+  // The shared artwork-to-caption gap, which Topper's create tile and the item
+  // editor's picker also take — it was a bare 10 here, the value that spec was
+  // written from.
+  art: { aspectRatio: 1, marginBottom: EMPTY_MEDIA_CAPTION_GAP, width: '100%' },
   artMedia: { height: '100%', width: '100%', ...CONTINUOUS_CURVE },
   addBox: {
     alignItems: 'center',
@@ -131,14 +162,23 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  plus: {
-    fontSize: 40,
-    fontWeight: '300',
-    // iOS clips a glyph this large to the font's line box, which lops the top
-    // off the plus and leaves it reading as a "T". Android measures it fine,
-    // and its layout is frozen, so only iOS gets the explicit line height.
-    ...Platform.select({ ios: { lineHeight: 48 } }),
-  },
+  /**
+   * THE SHARED "ADD MEDIA" PLUS, derived from the box rather than hard-coded.
+   *
+   * This drew a fixed 40 on a 178pt cell — a ratio of 0.225, which is precisely
+   * the value Topper's rail tile was moved OFF on 2026-08-16 for reading as "a
+   * small mark in a large empty square". Topper's number followed the spec and
+   * this one did not, so the two add tiles drifted apart on the one term a
+   * comment in `HomeRailTilesIos` claimed they shared. At 0.3 this renders 53.
+   *
+   * The explicit line height comes with it: iOS clips a glyph this large to the
+   * font's line box and the plus renders as a "T". Android keeps its frozen
+   * layout, so it takes neither.
+   */
+  plus: Platform.select({
+    ios: emptyMediaPlusStyle(GRID_CELL),
+    default: { fontSize: 40, fontWeight: '300' as const },
+  }),
   // The shared type scale is one set of point sizes for both platforms, but SF
   // Pro's smaller x-height makes 14/12 read dwarfed next to a full-width cover
   // on iOS. Apple Music's own album grid captions sit at 15/13 — match those,
@@ -153,7 +193,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: 15,
         lineHeight: 20,
-        paddingLeft: opticalTextInset(TILE_RADIUS),
+        paddingLeft: opticalTextInset(ART_RADIUS),
       },
     }),
   },
@@ -162,7 +202,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: 13,
         lineHeight: 18,
-        paddingLeft: opticalTextInset(TILE_RADIUS),
+        paddingLeft: opticalTextInset(ART_RADIUS),
       },
     }) ?? {},
 });
