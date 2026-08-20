@@ -14,6 +14,7 @@ export const translations = {
     common: {
       back: 'Back',
       cancel: 'Cancel',
+      close: 'Close',
       done: 'Done',
       retry: 'Try Again',
       pickMedia: 'Choose an Emoji',
@@ -191,6 +192,7 @@ export const translations = {
     settings: {
       account: {
         title: 'Account',
+        sheetTitle: 'Account',
         noName: 'Your Account',
       },
       trophies: 'Trophies',
@@ -209,6 +211,10 @@ export const translations = {
             'All of your sounds and clips will be deleted permanently. This can’t be undone.',
           confirm: 'Delete',
           cancel: 'Cancel',
+          confirmTitle: 'Delete Account Permanently?',
+          confirmMessage:
+            'Your account and all of its data will be deleted permanently.',
+          confirmCta: 'Delete Account',
         },
       },
       general: {
@@ -281,6 +287,7 @@ export const translations = {
     common: {
       back: 'Atrás',
       cancel: 'Cancelar',
+      close: 'Cerrar',
       done: 'OK',
       retry: 'Reintentar',
       pickMedia: 'Elegir un emoji',
@@ -460,6 +467,7 @@ export const translations = {
     settings: {
       account: {
         title: 'Cuenta',
+        sheetTitle: 'Cuenta',
         noName: 'Tu cuenta',
       },
       trophies: 'Trofeos',
@@ -478,6 +486,10 @@ export const translations = {
             'Todos tus sonidos y clips se eliminarán permanentemente. Esta acción no se puede deshacer.',
           confirm: 'Eliminar',
           cancel: 'Cancelar',
+          confirmTitle: '¿Eliminar la cuenta permanentemente?',
+          confirmMessage:
+            'Tu cuenta y todos sus datos se eliminarán permanentemente.',
+          confirmCta: 'Eliminar cuenta',
         },
       },
       general: {
@@ -555,6 +567,7 @@ export const translations = {
     common: {
       back: '返回',
       cancel: '取消',
+      close: '关闭',
       done: '完成',
       retry: '重试',
       pickMedia: '选择表情符号',
@@ -729,6 +742,7 @@ export const translations = {
     settings: {
       account: {
         title: '账户',
+        sheetTitle: '账户',
         noName: '你的账户',
       },
       trophies: '奖杯',
@@ -746,6 +760,9 @@ export const translations = {
           message: '你的所有音频和片段将被永久删除。此操作无法撤销。',
           confirm: '删除',
           cancel: '取消',
+          confirmTitle: '永久删除账户？',
+          confirmMessage: '你的账户及其所有数据将被永久删除。',
+          confirmCta: '删除账户',
         },
       },
       general: {
