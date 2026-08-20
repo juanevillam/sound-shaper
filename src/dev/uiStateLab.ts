@@ -78,7 +78,7 @@ export const HOME_STATES: Labelled<HomeState>[] = [
   {
     value: 'skeleton',
     label: 'First-load skeleton',
-    note: 'Two full rows. Row 2 must start at the same point as live — band-scan both.',
+    note: 'Three full rows, running off the bottom. Row 2 must start where live does — band-scan both.',
   },
   {
     value: 'error',

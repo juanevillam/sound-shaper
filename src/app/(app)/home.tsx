@@ -125,7 +125,16 @@ export default function HomeScreen() {
 
   const openAddSong = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
-      type: 'audio/*',
+      /**
+       * MP3, NOT `audio/*`. The picker used to offer every audio type while
+       * the pipeline behind it takes exactly one: `uploadSongAudio` labels
+       * every upload `audio/mpeg` and `readId3Tags` reads ID3v2, so an .m4a
+       * was accepted, uploaded mislabelled and arrived with no tags at all.
+       * A picker that offers what the app cannot keep is the app lying to
+       * you before you have even chosen. The Add Sound tile says MP3 for the
+       * same reason; the two now agree.
+       */
+      type: 'audio/mpeg',
       copyToCacheDirectory: true,
     });
 
@@ -309,14 +318,19 @@ export default function HomeScreen() {
             // anywhere else IS layout shift. (Android's `StateWrap` is a plain
             // scroller; the inset behaviour is iOS's.)
             <StateWrap top>
-              {/* TWO FULL ROWS. It stood three bones and an empty cell, which
-                  is the shape of a grid holding an odd number of songs — a
-                  statement about the DATA, and one the skeleton cannot know
-                  and has no business making. A 2-up grid's placeholder is
-                  whole rows; the gap read as a missing tile rather than as
-                  content still arriving. */}
+              {/* THREE FULL ROWS, which is what it takes to reach the bottom
+                  of the screen. Whole rows because three bones and an empty
+                  cell is the shape of a grid holding an ODD NUMBER of songs —
+                  a statement about the data a skeleton cannot know and has no
+                  business making. Three of them because two stop at 690pt on
+                  an 874pt screen, leaving a blank band above the player banner
+                  that reads as "this is all there is" rather than as content
+                  still arriving. The row pitch is 249pt (178 artwork + 43
+                  caption + the row gap), so the third runs off the bottom
+                  edge — which is the point: a placeholder should fill the
+                  screen it is standing in for. */}
               <View style={styles.skeletonGrid}>
-                {[0, 1].map(row => (
+                {[0, 1, 2].map(row => (
                   <View key={row} style={styles.gridRow}>
                     <View style={styles.cell}>
                       <SongTileSkeleton />
