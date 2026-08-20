@@ -67,11 +67,16 @@ graph — preamp + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
 foreground service.
 
 Deliberate gaps, in build order: lock-screen now-playing metadata, and
-re-authentication before account deletion (the sweep and the Auth delete are
-wired and the sheet blocks itself while they run — see `manage-account.ios` —
-but a stale sign-in still fails with `auth/requires-recent-login`, which the
-snackbar reports rather than recovering from; Topper's `useDeleteAccount`
-re-authenticates FIRST and is the model).
+Cloudinary media on account deletion (the audio and artwork orphan — deleting
+them needs a signed backend call this app doesn't have, the same accepted gap as
+deleting a single song).
+
+**Account deletion is `hooks/useDeleteAccount` on iOS** — re-auth FIRST, then the
+Firestore sweep, then the Apple token revoke, then the Auth user. Android calls
+the combined `deleteAccount` and has no re-auth. Its sweep silently deleted no
+songs or clips until 2026-08-20 (wrong collection paths that were still legal
+paths); the refs now mirror `songs.ts` / `clips.ts` exactly, and any new
+subcollection has to be added there or a recreated account inherits it.
 
 Brand is deliberately **deferred to the end** — the launcher icon / splash /
 welcome hero currently use **placeholder art borrowed from expo-ui-starter**; the
