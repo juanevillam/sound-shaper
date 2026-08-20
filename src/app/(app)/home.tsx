@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { StateWrapIos as StateWrap } from '@portfolio/mobile-ui';
+import { StateWrapIos as StateWrap, EmptyState } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
@@ -21,7 +21,6 @@ import {
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
 import { HomeBarGlyphsIos } from '@/components/ui/HomeBarGlyphsIos';
 // DEV LAB — delete with `src/dev/uiStateLab`.
