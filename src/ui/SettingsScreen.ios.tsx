@@ -211,9 +211,7 @@ export const SettingsScreen = ({
         {/* Policy links in a card of their own, between About and Sign Out —
             Apple's grouping. They are policy, not build info, so they don't
             belong beside version numbers (which is where Android, frozen,
-            still shows them). Acknowledgements rides here too: an open-source
-            notice IS a legal notice, and Apple's own Settings keeps them in the
-            same group. */}
+            still shows them). */}
         {legal?.rows.length ? (
           <Section title={legal.title}>
             {legal.rows.map(row => (
