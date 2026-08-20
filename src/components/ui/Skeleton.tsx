@@ -73,14 +73,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   fill: { height: '100%', width: '100%' },
-  // The line BOX, with the bar centred in it — the tile's own two rows.
+  // The line BOX, with the bar centred in it — the tile's own two rows. The
+  // left inset is the tile's too: its captions clear the artwork's rounded
+  // corner, and bones flush to the edge slid 6pt right on settle.
   tileNameLine: {
     height: SONG_TILE_METRICS.lines.title,
     justifyContent: 'center',
     marginBottom: SONG_TILE_METRICS.titleGap,
+    paddingLeft: SONG_TILE_METRICS.captionInset,
   },
   tileArtistLine: {
     height: SONG_TILE_METRICS.lines.subtitle,
     justifyContent: 'center',
+    paddingLeft: SONG_TILE_METRICS.captionInset,
   },
 });
