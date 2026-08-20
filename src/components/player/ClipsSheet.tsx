@@ -88,10 +88,7 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
             title={t('player.clips.title')}
             saveLabel={t('player.clips.new')}
             saving={false}
-            onSave={() => {
-              haptics.selection();
-              onNewClip();
-            }}
+            onSave={onNewClip}
           />
 
           {clips.length === 0 ? (
@@ -113,10 +110,7 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
                 return (
                   <Surface
                     key={clip.id}
-                    onClick={() => {
-                      haptics.selection();
-                      playClip(clip.id, clip.startMs, clip.endMs);
-                    }}
+                    onClick={() => playClip(clip.id, clip.startMs, clip.endMs)}
                     color="transparent"
                     shape={CLIP_ROW_SHAPE}
                     modifiers={[fillMaxWidth()]}

@@ -6,7 +6,6 @@ import Animated from 'react-native-reanimated';
 import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { haptics } from '@/lib/haptics';
 import { TILE_GAP } from '@/styles/metrics';
 import { CARD_RADIUS, CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
@@ -44,10 +43,7 @@ function PlayerCardTile({ card }: { card: PlayerCard }) {
       <Pressable
         accessibilityLabel={card.label}
         accessibilityRole="button"
-        onPress={() => {
-          haptics.selection();
-          card.onPress();
-        }}
+        onPress={card.onPress}
         onPressIn={squash.onPressIn}
         onPressOut={squash.onPressOut}
         style={[styles.card, { borderColor: colors.border }]}
