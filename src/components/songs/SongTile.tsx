@@ -39,6 +39,39 @@ const ART_FALLBACK_SIZE = 148;
 const GRID_CELL = 178;
 
 /**
+ * CAPTION TYPE, sized against the COVER rather than taken from the shared
+ * scale — and stepped, not scaled.
+ *
+ * The shared `bodyMedium` / `bodySmall` (14 / 12) is what Topper's rail tile
+ * uses, and it is right THERE: a 124pt cover with a 14pt title puts the caption
+ * at 0.113 of the artwork. Under this app's 178pt grid cover the same 14 falls
+ * to 0.079 and reads dwarfed — the tile is 44% wider and the words under it are
+ * not, which is the disproportion Juan called out (2026-08-20). The 15 / 13
+ * this file already carried only half-closed it, at 0.084.
+ *
+ * SO WHY NOT A RATIO, the way the artwork corner and the add tile's plus are?
+ * Because type is not geometry. iOS text styles are a fixed, named ladder that
+ * Dynamic Type scales as a unit; deriving a point size from a container's width
+ * leaves that ladder, ships a size Apple never draws, and breaks the moment
+ * someone raises their text size. The right move is to step UP the ladder, not
+ * off it.
+ *
+ * 17 / 15 is `body` / `subheadline` — both real styles, and the pairing Apple
+ * captions a large artwork cell with. It lands at 0.096 of the cover: not
+ * Topper's 0.113, and it should not be, because a smaller tile carries a
+ * proportionally larger caption. Compared on device against 15/13 and 16/14
+ * (16 is `callout`, but 14 is nothing on the ladder — that pair was off it).
+ *
+ * The `+ 5` leading below is not a house rule either: it reproduces Apple's own
+ * for both, 17/22 and 15/20. If either size moves off this pair, check the
+ * leading against the real style rather than keeping the arithmetic.
+ *
+ * Android is frozen and keeps the Material scale untouched.
+ */
+const CAPTION_TITLE = 17;
+const CAPTION_SUB = 15;
+
+/**
  * ARTWORK, so the shared RATIO rather than the grouped-container constant this
  * used to pass. `TILE_RADIUS` is 26 — the iOS grouped-list radius, which is
  * correct for a card and wrong in kind for a cover — and it agreed with the
@@ -179,10 +212,7 @@ const styles = StyleSheet.create({
     ios: emptyMediaPlusStyle(GRID_CELL),
     default: { fontSize: 40, fontWeight: '300' as const },
   }),
-  // The shared type scale is one set of point sizes for both platforms, but SF
-  // Pro's smaller x-height makes 14/12 read dwarfed next to a full-width cover
-  // on iOS. Apple Music's own album grid captions sit at 15/13 — match those,
-  // iOS only, so Android's Material scale is untouched.
+  // Sizes come from CAPTION_TITLE / CAPTION_SUB above.
   // The optical nudge is iOS-only: the caption sits under the artwork's rounded
   // bottom corners, which curve the edge inward right where the text starts, so
   // flush to the true edge it reads as hanging past the cover. Android's layout
@@ -191,8 +221,8 @@ const styles = StyleSheet.create({
     marginBottom: 1,
     ...Platform.select({
       ios: {
-        fontSize: 15,
-        lineHeight: 20,
+        fontSize: CAPTION_TITLE,
+        lineHeight: CAPTION_TITLE + 5,
         paddingLeft: opticalTextInset(ART_RADIUS),
       },
     }),
@@ -200,8 +230,8 @@ const styles = StyleSheet.create({
   artist:
     Platform.select({
       ios: {
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: CAPTION_SUB,
+        lineHeight: CAPTION_SUB + 5,
         paddingLeft: opticalTextInset(ART_RADIUS),
       },
     }) ?? {},
