@@ -229,11 +229,26 @@ export default function HomeScreen() {
     [renderCell],
   );
 
-  // The banner is always parked at the bottom, so the grid always clears it —
-  // and it is a DETACHED pill, so "clearing it" means its own bottom gap plus
-  // its height plus one grid gutter, not a guessed number.
-  const listBottomPadding =
-    insets.bottom + BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + TILE_GAP;
+  /**
+   * CLEARANCE FOR THE PLAYER BANNER — and NOT for the home indicator, which
+   * `contentInsetAdjustmentBehavior="automatic"` already supplies.
+   *
+   * This added `insets.bottom` on top of that, so the safe area was counted
+   * twice: band-scanned at the scroll's rest position, the last row came to
+   * rest 47.33pt above the banner where one grid gutter (14) is wanted —
+   * 33.33pt of dead space, which is `insets.bottom` to the pixel. Topper's home
+   * carries the same finding one layer up (see its `listContent`), where the
+   * padding could go entirely.
+   *
+   * IT CANNOT GO ENTIRELY HERE, and that is the real difference between the two
+   * screens. Topper's tab bar is UIKit's own, so `automatic` insets the scroll
+   * content for it; this banner is an RN view mounted INSIDE the screen and
+   * UIKit does not know it exists. So the banner's own box still has to be
+   * spent by hand — its bottom gap, its height, and one grid gutter, because it
+   * is a DETACHED pill rather than a bar welded to the edge. Only the
+   * safe-area term was the duplicate.
+   */
+  const listBottomPadding = BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + TILE_GAP;
 
   return (
     <Screen>
