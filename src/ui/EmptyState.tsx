@@ -2,21 +2,19 @@ import type { ReactNode } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Column, Text } from '@expo/ui/jetpack-compose';
+import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 
-import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@portfolio/core';
 
 const EMOJI_SIZE = 48;
 
 type EmptyStateProps = {
   emoji?: string;
   /**
-   * iOS only — the `.ios` variant draws it as the native
-   * `ContentUnavailableView`'s symbol. Declared here purely so a shared call
-   * site type-checks: `tsc` resolves the base specifier and never applies
-   * `.ios`. See AGENTS.md → "iOS-only components".
+   * iOS only — the SF Symbol its `ContentUnavailableView` draws. Accepted and
+   * IGNORED here: Android keeps the emoji, which reads better against Material's
+   * surfaces and needs no symbol vocabulary.
    */
   systemImage?: string;
   title: string;
@@ -31,10 +29,24 @@ type EmptyStateProps = {
   children?: ReactNode;
 };
 
-// Centered empty/error state. The Host matches contents only vertically: a
-// boolean matchContents sizes the Host to the text's intrinsic single-line
-// width, which can exceed the screen — vertical-only keeps the width
-// constrained so subtitles wrap.
+/**
+ * THE PORTFOLIO'S EMPTY / ERROR STATE, one component for every app.
+ *
+ * It lived in Topper and was PORTED into Sound Shaper on 2026-08-20, which is
+ * exactly the drift AGENTS.md's "a surface solved in one app must be THE SAME
+ * COMPONENT in the others" rule exists to end — the two copies were already 87%
+ * identical on iOS and 96% on Android before either had been touched twice.
+ *
+ * It hosts its own Compose embed rather than taking an app's `ThemedHost`, and
+ * reads the palette straight from `@portfolio/core` — each app's `useAppTheme`
+ * is a pure re-export of that hook, so this is the same theme they resolve and
+ * not a second one.
+ *
+ * The Host matches contents only VERTICALLY: a boolean `matchContents` sizes it
+ * to the text's intrinsic single-line width, which can exceed the screen (text
+ * never wraps, it just clips at the edges) — vertical-only keeps the width
+ * constrained so subtitles wrap.
+ */
 export function EmptyState({
   emoji,
   title,
@@ -42,11 +54,21 @@ export function EmptyState({
   action,
   children,
 }: EmptyStateProps) {
-  const { colors } = useAppTheme();
+  const { colors, scheme, seedColor } = useAppTheme();
 
   return (
     <View style={styles.centered}>
-      <ThemedHost style={styles.host} matchContents={{ vertical: true }}>
+      {/* The app-side `ThemedHost` this used to take is a `Host` with the
+          resolved scheme forwarded; a package component can ask for the scheme
+          itself. There is NO brand seed today (every portfolio app rides the
+          platform-default palette), but it is forwarded so this stays ready if
+          one ever returns. */}
+      <Host
+        colorScheme={scheme}
+        seedColor={seedColor}
+        style={styles.host}
+        matchContents={{ vertical: true }}
+      >
         <Column
           horizontalAlignment="center"
           verticalArrangement={{ spacedBy: 8 }}
@@ -74,7 +96,7 @@ export function EmptyState({
           ) : null}
           {children}
         </Column>
-      </ThemedHost>
+      </Host>
     </View>
   );
 }

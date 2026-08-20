@@ -21,6 +21,7 @@ export {
   type DestructiveConfirmDialogContent,
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
+export { EmptyState } from './EmptyState';
 export {
   ErrorScreen,
   type ErrorScreenColors,
