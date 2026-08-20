@@ -12,7 +12,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
-  BANNER_BOTTOM_GAP,
+  bannerBottomOffset,
   MINI_PLAYER_HEIGHT,
   PlayerSheet,
 } from '@/components/player/PlayerSheet';
@@ -248,7 +248,14 @@ export default function HomeScreen() {
    * is a DETACHED pill rather than a bar welded to the edge. Only the
    * safe-area term was the duplicate.
    */
-  const listBottomPadding = BANNER_BOTTOM_GAP + MINI_PLAYER_HEIGHT + TILE_GAP;
+  const listBottomPadding =
+    bannerBottomOffset(insets.bottom) +
+    MINI_PLAYER_HEIGHT +
+    TILE_GAP -
+    // Only iOS gets the safe area for free (see above). Android has no
+    // `contentInsetAdjustmentBehavior`, so its nav-bar inset — which is already
+    // inside `bannerBottomOffset` there — is the list's to spend too.
+    (IS_IOS ? insets.bottom : 0);
 
   return (
     <Screen>

@@ -118,14 +118,49 @@ export const MINI_PLAYER_HEIGHT = 68;
 export const BANNER_SIDE_INSET = SCREEN_PADDING;
 
 /**
- * Clearance UNDER the banner, above the home indicator / nav-bar inset. Apple
- * floats an accessory bar just clear of the indicator; Material holds a
- * floating surface a full grid step off the navigation bar.
+ * WHERE THE PORTFOLIO'S BOTTOM CHROME BEGINS — iOS, measured.
+ *
+ * Topper's floating tab bar and this banner are the same kind of object: a
+ * detached surface hanging off the bottom of the screen, over content. Flipping
+ * between the apps, what you notice is where that surface STARTS, and they did
+ * not agree — band-scanned on iPhone 17 / iOS 26.5 (874pt tall):
+ *
+ *              top       bottom    height   above the screen edge
+ *   Topper    791.00     852.67    61.67          21.33
+ *   here      759.33     827.67    68.00          46.33
+ *
+ * The banner began 31.67pt higher, and almost all of that is the BOTTOM gap:
+ * this cleared the whole safe area and then added 12 on top, while UIKit's own
+ * floating bar does not clear it at all — it sits 21.33pt off the edge and lets
+ * the home indicator draw over it.
+ *
+ * So the anchor is stated as the TOP, 83pt above the screen's bottom edge
+ * (874 − 791), and each surface's height decides where it ends. The banner is
+ * TALLER than the tab bar (68 against 61.67), so it ends 6.33pt LOWER — 15pt
+ * off the edge against Topper's 21.33, which still clears the home indicator
+ * (it draws around 860–866).
  */
-export const BANNER_BOTTOM_GAP = Platform.select({
-  ios: 12,
-  default: 16,
-}) as number;
+const FLOATING_CHROME_TOP = 83;
+
+/**
+ * ANDROID KEEPS CLEARING ITS NAVIGATION BAR, and must: the inset there is real
+ * chrome the system draws opaquely, not an indicator that floats over content.
+ * Anchoring to a measured iOS figure would put the banner UNDER the nav bar.
+ */
+const ANDROID_BANNER_GAP = 16;
+
+/**
+ * Clearance under the banner, from the screen's bottom EDGE — a total, not
+ * something to add an inset to.
+ *
+ * `Math.max` because the iOS value is derived: a banner taller than the anchor
+ * would compute a negative offset and hang off the screen. `SCREEN_PADDING` is
+ * the floor, and also the sane answer on a device with no home indicator.
+ */
+export const bannerBottomOffset = (bottomInset: number) =>
+  Platform.OS === 'ios'
+    ? Math.max(FLOATING_CHROME_TOP - MINI_PLAYER_HEIGHT, SCREEN_PADDING)
+    : bottomInset + ANDROID_BANNER_GAP;
 
 // A rounded RECTANGLE. Half the height would be a capsule, and a capsule at
 // this size stops reading as a piece of the app.
@@ -426,7 +461,7 @@ export function PlayerSheet() {
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is moderate (~58% width) so the whole console fits without scrolling.
-  const miniTotal = MINI_PLAYER_HEIGHT + bottomInset + BANNER_BOTTOM_GAP;
+  const miniTotal = MINI_PLAYER_HEIGHT + bannerBottomOffset(bottomInset);
   const travel = winH - miniTotal;
   const artFull = Math.min(Math.round(winW * 0.58), 260);
   const artExpandedX = (winW - artFull) / 2;
@@ -1483,7 +1518,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           // so it needs none of the animation, only the shape.
           borderColor: colors.border,
           borderWidth: IOS_ONLY_HAIRLINE,
-          bottom: bottomInset + BANNER_BOTTOM_GAP,
+          bottom: bannerBottomOffset(bottomInset),
         },
       ]}
     >
