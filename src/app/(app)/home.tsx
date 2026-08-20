@@ -76,6 +76,22 @@ const APP_BAR_HEIGHT = 64;
  */
 const GRID_TOP_GAP = IS_IOS ? 24 : 29.5;
 
+/**
+ * ROWS OF BONES the first-load skeleton stands.
+ *
+ * EXPORTED because the dev lab's note describes it in prose, and prose about a
+ * number drifts the moment the number does — this went "three bones" → "two
+ * full rows" → "three full rows" in one sitting, and was wrong at each step
+ * until someone noticed. The note now counts these rows rather than restating
+ * them (see `HOME_STATES`).
+ *
+ * Three because two stop at 690pt on an 874pt screen, leaving a blank band
+ * above the player banner that reads as "this is all there is" rather than as
+ * content still arriving. At a 249pt row pitch the third runs off the bottom
+ * edge, which is what filling the screen means here.
+ */
+export const SKELETON_ROWS = 3;
+
 const toGridRows = (songs: Song[]): GridRow[] => {
   const cells: (Song | 'add')[] = ['add', ...songs];
   const rows: GridRow[] = [];
@@ -318,19 +334,12 @@ export default function HomeScreen() {
             // anywhere else IS layout shift. (Android's `StateWrap` is a plain
             // scroller; the inset behaviour is iOS's.)
             <StateWrap top>
-              {/* THREE FULL ROWS, which is what it takes to reach the bottom
-                  of the screen. Whole rows because three bones and an empty
-                  cell is the shape of a grid holding an ODD NUMBER of songs —
-                  a statement about the data a skeleton cannot know and has no
-                  business making. Three of them because two stop at 690pt on
-                  an 874pt screen, leaving a blank band above the player banner
-                  that reads as "this is all there is" rather than as content
-                  still arriving. The row pitch is 249pt (178 artwork + 43
-                  caption + the row gap), so the third runs off the bottom
-                  edge — which is the point: a placeholder should fill the
-                  screen it is standing in for. */}
+              {/* WHOLE ROWS — three bones and an empty cell is the shape of a
+                  grid holding an ODD NUMBER of songs, a statement about the
+                  data a skeleton cannot know and has no business making. How
+                  many rows, and why, is `SKELETON_ROWS`. */}
               <View style={styles.skeletonGrid}>
-                {[0, 1, 2].map(row => (
+                {Array.from({ length: SKELETON_ROWS }, (_, row) => (
                   <View key={row} style={styles.gridRow}>
                     <View style={styles.cell}>
                       <SongTileSkeleton />
