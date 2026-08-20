@@ -9,6 +9,8 @@ import { router, useNavigation } from 'expo-router';
 
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
+import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
@@ -68,6 +70,17 @@ export default function ManageAccount() {
   const [deleting, setDeleting] = useState(false);
 
   /**
+   * DEV LAB — applied to the values the route already derives, so the branch
+   * that renders is the real one.
+   */
+  const accountLab = useUiStateLab(state => state.account);
+  const lab = UI_STATE_LAB && accountLab !== 'live';
+
+  const loading = lab ? accountLab === 'skeleton' : !hasSettled;
+  // Pinnable because it cannot be reached by hand — see `AccountState`.
+  const showDeleting = lab ? accountLab === 'deleting' : deleting;
+
+  /**
    * THE TWO DISMISSALS THE OVERLAY CANNOT REACH. A form sheet's ✕ and its
    * grabber are UIKit chrome presented ABOVE this screen's content, so no view
    * rendered in here covers them — they have to be taken off the route itself.
@@ -83,11 +96,11 @@ export default function ManageAccount() {
    */
   useEffect(() => {
     navigation.setOptions({
-      gestureEnabled: !deleting,
-      sheetGrabberVisible: !deleting,
-      headerRight: deleting ? () => null : () => <HeaderCloseButton />,
+      gestureEnabled: !showDeleting,
+      sheetGrabberVisible: !showDeleting,
+      headerRight: showDeleting ? () => null : () => <HeaderCloseButton />,
     });
-  }, [navigation, deleting]);
+  }, [navigation, showDeleting]);
 
   /**
    * THE ROW SET IS THE SAME WHILE LOADING — three rows, values and all, with
@@ -109,13 +122,18 @@ export default function ManageAccount() {
     {
       label: t('settings.manageAccount.memberSince'),
       value: formatMemberSince(
-        profile?.createdAt ?? (hasSettled ? null : Date.now()),
+        profile?.createdAt ?? (loading ? Date.now() : null),
         locale,
       ),
     },
   ];
 
   const runDelete = async () => {
+    // DEV GUARD — see `dev/deleteAccountGuard`. Refused before anything is
+    // touched; the two alerts above it stay reachable, since they are what
+    // there is to review.
+    if (isGuardedAccountRun()) return;
+
     haptics.medium();
     setDeleting(true);
 
@@ -164,7 +182,7 @@ export default function ManageAccount() {
     // is a package screen and brings its own (colour-less) root. Wrapping it is
     // what lets a failed deletion's snackbar be SEEN — a sheet is presented
     // above the RN root, so the root's toast draws behind it.
-    <SheetScreen>
+    <SheetScreen screen="account">
       <ManageAccountScreen
         colors={colors}
         // The app's RESOLVED appearance, so the native Form follows an explicit
@@ -174,7 +192,7 @@ export default function ManageAccount() {
         info={{
           title: t('settings.manageAccount.infoTitle'),
           rows: infoRows,
-          loading: !hasSettled,
+          loading,
         }}
         // Trophies lives here on iOS: the home bar shows ONE identity glyph
         // (Apple's Apple Account pattern) and everything account-shaped sits
@@ -201,14 +219,14 @@ export default function ManageAccount() {
           rowDescription: t('settings.manageAccount.deleteAccountHint'),
           icon: 'delete-forever',
           onPress: confirmDelete,
-          disabled: deleting,
+          disabled: showDeleting,
         }}
       >
         {/* Mounted through the screen's own `children` slot — the same slot
             Android hangs its Compose dialog on. The two twins do the same job
             in their own language: Android's dialog stays up and goes busy,
             iOS's alert is Apple's and cannot, so the blocking lives here. */}
-        <ProgressOverlayIos visible={deleting} />
+        <ProgressOverlayIos visible={showDeleting} />
       </ManageAccountScreen>
     </SheetScreen>
   );

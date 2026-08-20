@@ -24,9 +24,12 @@ import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
 import { HomeBarGlyphsIos } from '@/components/ui/HomeBarGlyphsIos';
+// DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
+import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
@@ -93,7 +96,7 @@ export default function HomeScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const songs = useSongsStore(s => s.songs);
-  const error = useSongsStore(s => s.error);
+  const rawError = useSongsStore(s => s.error);
   const retry = useSongsStore(s => s.retry);
   const hasSettled = useSongsStore(s => s.hasSettled);
   const playSong = usePlayerStore(s => s.playSong);
@@ -103,6 +106,13 @@ export default function HomeScreen() {
   const rate = usePlayerStore(s => s.rate);
   const sheetExpanded = usePlayerStore(s => s.sheetExpanded);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
+
+  /**
+   * DEV LAB: force a UI state. Applied to the values the screen already
+   * derives, so every branch below renders for real.
+   */
+  const labState = useUiStateLab(state => state.home);
+  const lab = UI_STATE_LAB && labState !== 'live';
 
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -140,7 +150,8 @@ export default function HomeScreen() {
     [playSong, requestExpand, songs],
   );
 
-  const firstLoad = !hasSettled;
+  const firstLoad = lab ? labState === 'skeleton' : !hasSettled;
+  const error = lab ? labState === 'error' : rawError;
   const rows = toGridRows(songs);
 
   const renderCell = useCallback(
@@ -368,6 +379,8 @@ export default function HomeScreen() {
           unaffected either way — that lives in <AudioEngine>, still mounted in
           the layout. */}
       <PlayerSheet />
+      {/* DEV LAB: state picker, clear of the player banner. */}
+      {UI_STATE_LAB ? <UiStateLabBar screen="home" /> : null}
     </Screen>
   );
 }
