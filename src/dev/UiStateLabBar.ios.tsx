@@ -11,6 +11,7 @@ import {
   type TrophiesState,
 } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevSettingsStore } from '@/store/devSettings';
 
 /**
  * DEV-ONLY — Sound Shaper's adapter over the shared `StateLab`.
@@ -36,6 +37,13 @@ const HOME_BOTTOM_OFFSET = 68 + 12;
 
 export function UiStateLabBar({ screen }: { screen: LabScreen }) {
   const { colors } = useAppTheme();
+  /**
+   * The Settings sheet's Dev section can hide the picker, to see the UI as a
+   * person without the lab would. Toggling it off also resets every pinned
+   * state to live (see `devSettings`), so hiding never strands a pin behind an
+   * invisible control.
+   */
+  const barVisible = useDevSettingsStore(s => s.stateLabBar);
 
   const account = useUiStateLab(s => s.account);
   const home = useUiStateLab(s => s.home);
@@ -67,6 +75,8 @@ export function UiStateLabBar({ screen }: { screen: LabScreen }) {
       value: trophies,
     },
   };
+
+  if (!barVisible) return null;
 
   return (
     <StateLab

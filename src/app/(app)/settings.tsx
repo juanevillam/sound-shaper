@@ -23,6 +23,7 @@ import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { signOutFromGoogle } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/auth';
+import { useDevSettingsStore } from '@/store/devSettings';
 import { useThemeStore } from '@/store/theme';
 import { SUPPORTED_THEMES } from '@/styles/themes';
 
@@ -69,6 +70,8 @@ export default function Settings() {
   const user = useAuthStore(s => s.user);
   const { colors, scheme, seedColor } = useAppTheme();
   const { showSnackbar } = useSnackbar();
+  const devStateLabBar = useDevSettingsStore(s => s.stateLabBar);
+  const setDevStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
 
   // Identity display only — personal app, so no username line or editor.
   const profile: SettingsAccountProfile | undefined = user
@@ -110,6 +113,28 @@ export default function Settings() {
                 },
                 onSignOut: signOut,
               },
+              /**
+               * DEV-ONLY — gated on `__DEV__` itself, not just hidden: a
+               * release build passes no prop and the section cannot exist.
+               * Plain-English labels on purpose; dev chrome is exempt from the
+               * translation pipeline (the same exemption the state lab's own
+               * copy takes). The switch lives in `store/devSettings`, seeded
+               * from `dev/flags.ts`. Matches Topper's Dev section.
+               */
+              ...(__DEV__
+                ? {
+                    devToggles: {
+                      title: 'Dev',
+                      rows: [
+                        {
+                          label: 'State Lab',
+                          value: devStateLabBar,
+                          onValueChange: setDevStateLabBar,
+                        },
+                      ],
+                    },
+                  }
+                : {}),
             }
           : {
               account: {
