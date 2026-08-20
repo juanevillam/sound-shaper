@@ -52,6 +52,12 @@ import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
 import { PlayerScrubber } from '@/components/player/PlayerScrubber';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
+import {
+  NextGlyph,
+  PauseGlyph,
+  PlayGlyph,
+  PreviousGlyph,
+} from '@/components/player/TransportGlyphs';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
 import { IconButton } from '@/components/ui/IconButton';
 import { SongArt } from '@/components/ui/SongArt';
@@ -337,33 +343,6 @@ const SIDE_PADDING = 24;
 // Stable fallback for the clips selector (an inline `?? []` loops
 // useSyncExternalStore into "maximum update depth exceeded").
 const NO_CLIPS: never[] = [];
-
-// Hand-drawn transport glyphs for the collapsed row (Compose Icons here would
-// blink on navigation returns — the drag-dots lesson).
-const PlayGlyph = ({ color }: { color: string }) => (
-  <View style={[styles.playTriangle, { borderLeftColor: color }]} />
-);
-
-const PauseGlyph = ({ color }: { color: string }) => (
-  <View style={styles.pauseRow}>
-    <View style={[styles.pauseBar, { backgroundColor: color }]} />
-    <View style={[styles.pauseBar, { backgroundColor: color }]} />
-  </View>
-);
-
-const NextGlyph = ({ color }: { color: string }) => (
-  <View style={styles.nextRow}>
-    <View style={[styles.nextTriangle, { borderLeftColor: color }]} />
-    <View style={[styles.nextBar, { backgroundColor: color }]} />
-  </View>
-);
-
-const PreviousGlyph = ({ color }: { color: string }) => (
-  <View style={styles.previousRow}>
-    <View style={[styles.nextBar, { backgroundColor: color }]} />
-    <View style={[styles.previousTriangle, { borderRightColor: color }]} />
-  </View>
-);
 
 type GlyphButtonProps = {
   children: React.ReactNode;
@@ -1701,33 +1680,6 @@ const styles = StyleSheet.create({
     height: MINI_ROW_HEIGHT,
     justifyContent: 'center',
     width: MINI_BUTTON_WIDTH,
-  },
-  playTriangle: {
-    borderBottomColor: 'transparent',
-    borderBottomWidth: 9,
-    borderLeftWidth: 14,
-    borderTopColor: 'transparent',
-    borderTopWidth: 9,
-    marginLeft: 3,
-  },
-  pauseRow: { flexDirection: 'row', gap: 4 },
-  pauseBar: { borderRadius: 1.5, height: 16, width: 4.5 },
-  nextRow: { alignItems: 'center', flexDirection: 'row', gap: 1.5 },
-  nextTriangle: {
-    borderBottomColor: 'transparent',
-    borderBottomWidth: 7,
-    borderLeftWidth: 11,
-    borderTopColor: 'transparent',
-    borderTopWidth: 7,
-  },
-  nextBar: { borderRadius: 1, height: 14, width: 2.5 },
-  previousRow: { alignItems: 'center', flexDirection: 'row', gap: 1.5 },
-  previousTriangle: {
-    borderBottomColor: 'transparent',
-    borderBottomWidth: 7,
-    borderRightWidth: 11,
-    borderTopColor: 'transparent',
-    borderTopWidth: 7,
   },
   expanded: {
     bottom: 0,
