@@ -200,7 +200,16 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
       >
         <Text doNotTranslate text={EMPTY_MEDIA_PLUS} style={styles.plus} />
       </View>
+      {/* TWO CAPTION LINES, like every real tile — and the second one is not
+          filler. Sound Shaper's add tile goes STRAIGHT to the file picker
+          (Topper's opens an editor, which is why its create tile needs no
+          second line), so what belongs here is what the picker wants. That is
+          MP3 and only MP3: `uploadSongAudio` labels every upload `audio/mpeg`
+          and `readId3Tags` reads ID3v2, so anything else arrives mislabelled
+          and untagged. Saying so on the tile is cheaper than finding out after
+          the upload. Muted, like the artist line it stands in for. */}
       <Text text="home.addSong" variant="bodyMedium" style={styles.name} />
+      <Text muted text="home.addSongFormat" style={styles.artist} />
     </SquashPressable>
   );
 }
