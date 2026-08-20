@@ -260,8 +260,29 @@ const IOS_ONLY_HAIRLINE = Platform.OS === 'ios' ? HAIRLINE : 0;
 // The wash starts appearing only this far into the expansion.
 const BACKDROP_FADE_START = 0.8;
 
-const EXPAND_MS = 320;
-const COLLAPSE_MS = 260;
+/**
+ * OPENING AND CLOSING ARE SPRINGS, not eased timings.
+ *
+ * iOS moves sheets with springs — SwiftUI's own presentation is
+ * `.spring(duration:bounce:)` — and a cubic ease-out is the tell that something
+ * was hand-animated: it decelerates on a fixed schedule rather than settling.
+ * Same durations the timings used, so the pacing is unchanged and only the
+ * character moves.
+ *
+ * CRITICALLY DAMPED, and that is a correctness requirement here rather than
+ * taste. `progress` feeds interpolations that are NOT clamped — the surface's
+ * `borderRadius: BANNER_RADIUS * (1 - p)` goes negative past 1, its `height`
+ * exceeds the window, and `left`/`right` push the container off both edges. A
+ * bouncy spring overshoots 1 by construction, so a visible bounce here would
+ * not be a flourish, it would be a frame of broken geometry. `dampingRatio: 1`
+ * approaches the target monotonically and can never exceed it.
+ *
+ * The house already had this instinct for the song pager (`SETTLE_SPRING`,
+ * "settles without overshoot"); this states it as the reason rather than the
+ * preference.
+ */
+const EXPAND_SPRING = { duration: 320, dampingRatio: 1 } as const;
+const COLLAPSE_SPRING = { duration: 260, dampingRatio: 1 } as const;
 // Drag-release: past this progress (or flung faster than this) it commits.
 const SNAP_PROGRESS = 0.28;
 const SNAP_VELOCITY = 600;
@@ -423,10 +444,11 @@ export function PlayerSheet() {
       setExpanded(target === 1);
       // Mirrored so screens' back handlers can yield to the sheet's.
       usePlayerStore.getState().setSheetExpanded(target === 1);
-      progress.value = withTiming(target, {
-        duration: reduceMotion ? 0 : target === 1 ? EXPAND_MS : COLLAPSE_MS,
-        easing: Easing.out(Easing.cubic),
-      });
+      progress.value = reduceMotion
+        ? // Reduce Motion takes the destination, not a faster spring: the
+          // setting asks for no movement, not for brisk movement.
+          withTiming(target, { duration: 0 })
+        : withSpring(target, target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING);
     },
     [progress, reduceMotion],
   );
