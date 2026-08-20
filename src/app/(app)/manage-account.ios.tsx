@@ -12,10 +12,10 @@ import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { deleteAccount } from '@/services/firebase/account';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
@@ -27,13 +27,22 @@ import { useProfileStore } from '@/store/profile';
  * section: this is a personal app with no social module. Only the delete
  * CONFIRMATION is platform-specific.
  *
- * ANDROID'S DIALOG BECOMES TWO ALERTS HERE, and Topper's account sheet is the
- * reference for why. A `UIAlertController` cannot disable, relabel or go busy,
- * so the friction iOS spends instead is two deliberate confirms back to back,
- * with CANCEL AS THE PREFERRED ACTION in both — the safe choice is the one iOS
- * draws prominently and the one a reflex tap lands on. That is Apple's own
- * treatment for a destructive alert, and it is where every destructive alert in
- * this app now comes from (`confirmDestructiveIos`).
+ * ANDROID'S DIALOG BECOMES THREE THINGS HERE, and none of them is a timer. A
+ * `UIAlertController` cannot disable, relabel or go busy, so a countdown would
+ * need a hand-built dialog — the one thing this repo's rules forbid drawing.
+ * What iOS spends instead:
+ *
+ *  - TWO deliberate confirms back to back, the platform's friction idiom.
+ *  - CANCEL AS THE PREFERRED ACTION in both, so the safe choice is the one iOS
+ *    draws prominently and the one a reflex tap lands on. That is Apple's own
+ *    treatment for a destructive alert, and where every destructive alert in
+ *    this app now comes from (`confirmDestructiveIos`).
+ *  - RE-AUTHENTICATION as the pipeline's FIRST step (`useDeleteAccount`): the
+ *    provider's own sheet, before anything is touched, and a dismissal aborts
+ *    with everything intact. Apple escalates a consequential action by asking
+ *    who you are, not by making you wait.
+ *
+ * The two twins are siblings, not clones: Android waits, iOS asks.
  */
 
 const formatMemberSince = (millis: number | null, locale: string) =>
@@ -52,6 +61,7 @@ export default function ManageAccount() {
   const profile = useProfileStore(s => s.profile);
   const hasSettled = useProfileStore(s => s.hasSettled);
   const navigation = useNavigation();
+  const deleteAccount = useDeleteAccount();
 
   /**
    * THE DELETE IS RUNNING, AND THE SHEET IS SEALED WHILE IT IS.
@@ -129,9 +139,9 @@ export default function ManageAccount() {
   ];
 
   const runDelete = async () => {
-    // DEV GUARD — see `dev/deleteAccountGuard`. Refused before anything is
-    // touched; the two alerts above it stay reachable, since they are what
-    // there is to review.
+    // DEV GUARD — see `dev/deleteAccountGuard`. Refused before the pipeline's
+    // FIRST step, which re-authenticates against the provider; the two alerts
+    // above it stay reachable, since they are what there is to review.
     if (isGuardedAccountRun()) return;
 
     haptics.medium();
@@ -144,6 +154,17 @@ export default function ManageAccount() {
       // Auth listener notices the signed-out state and resets the app.
     } catch (error: unknown) {
       setDeleting(false);
+
+      /**
+       * A DISMISSED RE-AUTH SHEET IS NOT A FAILURE, and it is the common exit
+       * from here — the pipeline's first step is the provider's own sheet, and
+       * backing out of it is how someone changes their mind. Nothing has been
+       * touched at that point, so it says nothing; the overlay lifting IS the
+       * feedback.
+       */
+      if ((error as { message?: string })?.message === 'reauth-cancelled')
+        return;
+
       const code = (error as { code?: string })?.code ?? '';
       showSnackbar(
         t(
