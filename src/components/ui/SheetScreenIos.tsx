@@ -4,6 +4,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { SnackbarOutlet } from '@portfolio/mobile-ui';
 
+// DEV LAB — these imports and the picker below go with `src/dev`.
+import { UI_STATE_LAB, type LabScreen } from '@/dev/uiStateLab';
+import { UiStateLabBar } from '@/dev/UiStateLabBar';
+
 /**
  * THE ROOT OF A FULL-HEIGHT iOS FORM SHEET — one definition, for every route
  * that presents as one.
@@ -43,11 +47,22 @@ export {
   SHEET_EMPTY_HEADER_SLOT,
 } from '@portfolio/mobile-ui';
 
-export function SheetScreen({ children }: { children: ReactNode }) {
+export function SheetScreen({
+  children,
+  screen,
+}: {
+  children: ReactNode;
+  /** Which dev-lab group this sheet's picker shows. Omit for a sheet with no
+   *  lab states of its own. */
+  screen?: LabScreen;
+}) {
   return (
     <View style={styles.sheet}>
       {children}
-      {/* LAST, so it paints above the sheet's own content.
+      {/* DEV LAB: state picker. Delete with `src/dev`. */}
+      {UI_STATE_LAB && screen ? <UiStateLabBar screen={screen} /> : null}
+      {/* LAST, so it paints above the dev lab bar as well as the sheet's own
+          content.
 
           THE APP'S TOAST, RENDERED HERE WHILE THIS SHEET IS ON TOP. A sheet is
           presented above the root view, so a toast left at the root draws

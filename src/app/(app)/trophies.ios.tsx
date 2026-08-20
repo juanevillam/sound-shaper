@@ -6,6 +6,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+// DEV LAB — delete with `src/dev/uiStateLab`.
+import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
@@ -28,6 +30,14 @@ export default function TrophiesRoute() {
   const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total, hydrated } = useTrophies(copy);
 
+  /**
+   * DEV LAB — applied to the value the route already derives, so the branch
+   * that renders is the real one.
+   */
+  const trophiesLab = useUiStateLab(state => state.trophies);
+  const lab = UI_STATE_LAB && trophiesLab !== 'live';
+  const loading = lab ? trophiesLab === 'skeleton' : !hydrated;
+
   // `t` doesn't interpolate, so fill the count placeholders by hand (the same
   // idiom the account/meta strings use).
   const progress = t('trophies.progress')
@@ -47,7 +57,7 @@ export default function TrophiesRoute() {
     }).format(new Date(achievedAt));
 
   return (
-    <SheetScreen>
+    <SheetScreen screen="trophies">
       {/* The Host is SHORTENED for the home indicator rather than padded from
           inside: a native `Form` insets its own CONTENT for the safe area, not
           its frame, so nothing about the Host's box tells it the indicator is
@@ -60,7 +70,7 @@ export default function TrophiesRoute() {
           // Before the store hydrates every trophy reads locked, so the summary
           // states a confident "0 of 7" at 0% — a wrong answer, not a pending
           // one. The package's own placeholder says so instead.
-          loading={!hydrated}
+          loading={loading}
           colors={{
             background: colors.background,
             surface: colors.surfaceContainer,
