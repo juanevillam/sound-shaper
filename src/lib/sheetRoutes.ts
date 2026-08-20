@@ -29,7 +29,50 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   { name: 'trophy-detail', detents: 'fitToContents' },
 ];
 
-/** Focused-pathname forms of the sheet routes (the (app) group is elided). */
+/**
+ * Routes that exist on BOTH platforms but present as sheets only on iOS:
+ * Settings and everything it drills into.
+ *
+ * Separate from `IOS_FORM_SHEETS` because Android really does navigate to
+ * these — they are ordinary pushed screens in its Material stack, and their
+ * `Stack.Screen` entries have to keep their Android titles. Only the iOS
+ * options come from here.
+ *
+ * WHY THE CHILDREN ARE SHEETS TOO, and not pushes inside the Settings sheet:
+ * RNScreens draws NO back button for a screen pushed on top of a `formSheet`
+ * root — no chevron and no edge-swipe, so the reader is trapped one level in.
+ * Stacking each child as its own sheet keeps every level dismissible and
+ * returns you to the sheet below on swipe-down or close. Topper hit this first
+ * and made the same call; see its `IOS_SHEET_SCREENS` for the rejected
+ * alternative.
+ *
+ * All full height: each one scrolls, and a `fitToContents` sheet over a native
+ * SwiftUI `Form` renders 0pt tall (the Form is a scroll container with no
+ * intrinsic height — same trap as the editors above).
+ */
+export const IOS_SHEET_SCREENS: ReadonlyArray<{
+  name: string;
+  detents: 'fitToContents' | number[];
+  titleKey: string;
+}> = [
+  { name: 'settings', detents: [1], titleKey: 'app.settings' },
+  {
+    name: 'manage-account',
+    // "Account", not "Manage account": on iOS this IS the account surface,
+    // opened straight from the home bar, rather than a sub-screen of Settings.
+    // Android keeps the longer title, because there it really is one row inside
+    // Settings.
+    detents: [1],
+    titleKey: 'settings.account.sheetTitle',
+  },
+  { name: 'trophies', detents: [1], titleKey: 'trophies.title' },
+];
+
+/**
+ * Focused-pathname forms of every iOS sheet route (the (app) group is elided) —
+ * both families, since `useIosSheetPresented` cares only about "is a native
+ * sheet covering the RN root right now".
+ */
 export const IOS_FORM_SHEET_PATHS: ReadonlySet<string> = new Set(
-  IOS_FORM_SHEETS.map(sheet => `/${sheet.name}`),
+  [...IOS_FORM_SHEETS, ...IOS_SHEET_SCREENS].map(sheet => `/${sheet.name}`),
 );
