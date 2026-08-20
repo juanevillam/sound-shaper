@@ -134,25 +134,44 @@ const BANNER_RADIUS = FLOATING_RADIUS;
 const MINI_ART_SIZE = 46;
 
 // Everything inside the banner sits at ONE inset from its edges — which is
-// also what centres the 44pt artwork vertically in a 64pt box, so the corners
-// are truly concentric rather than approximately so.
+// also what centres the artwork vertically in the banner's box, so the corners
+// are truly concentric rather than approximately so. Derived from the two, so
+// the sentence cannot go stale the way its hard-coded "44pt artwork in a 64pt
+// box" did when both grew.
 const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 
-// A detached surface needs a lift or it reads as a sticker painted on the
-// screen. iOS casts a soft shadow, Android raises it through the elevation
-// system; both let go as the banner becomes the full-screen player, which is a
-// surface with nothing behind it to cast onto.
-const BANNER_SHADOW_OPACITY = 0.3;
+/**
+ * THE LIFT — Android's alone. iOS's was measured out of existence.
+ *
+ * A detached surface needs to read as floating rather than as a sticker painted
+ * on the screen, and Android raises it through the elevation system. iOS had an
+ * RN drop shadow beside it (0.3 opacity, 14 radius, +6) written when the banner
+ * was an OPAQUE card. It is Liquid Glass now, and the material supplies its own
+ * separation — so the shadow was stacked on top of something already doing the
+ * job.
+ *
+ * Band-scanned against the portfolio's other floating glass surface, Topper's
+ * UIKit tab bar, sampling the page just outside each edge (iPhone 17 / iOS 26.5,
+ * light; darkening in luminance steps from a CLEAN page reference):
+ *
+ *              2pt out   8pt out   16pt out
+ *   UIKit         +8        +5        +3
+ *   ours @0.3    +40       +26       +12
+ *   ours @0.09   +21       +13        +7
+ *   ours @0.035  +15        +9        +5
+ *   ours OFF     +15        +9        +5   ← identical
+ *
+ * The last two rows are the finding: by the time the shadow is faint enough to
+ * approach UIKit it contributes NOTHING, because the glass alone already
+ * darkens the gutter by +15 — roughly twice what UIKit's whole treatment does.
+ * Any RN shadow on top can only overshoot. iOS therefore draws none and lets
+ * the material be the lift, which is the iOS 26 idiom besides.
+ *
+ * Take the reference FAR from the banner: it sits 16pt from the screen edge and
+ * its own halo reaches the gutter, so a "page" sample beside it is already
+ * darkened and flatters whatever is being tested.
+ */
 const BANNER_ELEVATION = 8;
-// The static half of the lift — only the opacity animates. Black rather than a
-// palette token on purpose: a shadow is absence of light, not a colour of the
-// theme (same call the clip handles already make).
-const BANNER_LIFT = {
-  shadowColor: '#000',
-  shadowOffset: { height: 6, width: 0 },
-  shadowOpacity: BANNER_SHADOW_OPACITY,
-  shadowRadius: 14,
-};
 // How much of the expansion the banner's own chrome — border, lift — takes to
 // disappear. Matches the surface's colour cross-fade, so the whole "this is a
 // floating object" story ends at once.
@@ -700,7 +719,6 @@ export function PlayerSheet() {
       height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
       left: BANNER_SIDE_INSET * (1 - p),
       right: BANNER_SIDE_INSET * (1 - p),
-      shadowOpacity: BANNER_SHADOW_OPACITY * chrome,
     };
   });
 
@@ -1495,7 +1513,6 @@ const styles = StyleSheet.create({
     left: BANNER_SIDE_INSET,
     position: 'absolute',
     right: BANNER_SIDE_INSET,
-    ...BANNER_LIFT,
     ...CONTINUOUS_CURVE,
   },
   idleArt: {
@@ -1515,7 +1532,6 @@ const styles = StyleSheet.create({
   surface: {
     position: 'absolute',
     top: 0,
-    ...BANNER_LIFT,
     ...CONTINUOUS_CURVE,
   },
   backdropLayer: {
