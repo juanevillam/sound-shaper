@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { version as expoUiVersion } from '@expo/ui/package.json';
 import {
   buildAboutSettingsSection,
   buildGeneralSettingsSections,
@@ -181,7 +180,6 @@ export default function Settings() {
           // The versionName of the installed binary — the ground truth for
           // "which build is on this device" (falls back for web/tests).
           nativeApplicationVersion ?? '0.0.0',
-          expoUiVersion,
         )}
         // Stores require the privacy policy reachable INSIDE the app
         // (Apple 5.1.1(i) / Play User Data policy), not just pre-login.
