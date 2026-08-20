@@ -80,7 +80,7 @@ export type SettingsInfoRow = {
    * Not a style knob: on iOS the chevron is what distinguishes going somewhere
    * from doing something, and these rows already carry both kinds. The legal
    * links hand off to Safari and get none — Apple's own Settings does exactly
-   * this split — while Acknowledgements and Credits open a screen and get one.
+   * this split — while Topper's Credits row opens a screen and gets one.
    */
   destination?: boolean;
 };

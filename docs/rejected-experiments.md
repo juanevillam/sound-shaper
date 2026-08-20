@@ -5,6 +5,60 @@ task proposes one of these, the answer is "already run, here's the verdict" —
 link this file instead of rebuilding. (Some verdicts also live as in-code
 comments; this is the one-stop list.)
 
+## An in-app Acknowledgements / open-source licences screen — REMOVED 2026-08-19, deliberate risk call
+
+Built end to end for both Topper and expo-ui-starter, sim-verified, then removed
+at Juan's call. **Not rejected on taste or on feasibility — it worked.** The call
+was that most indie apps ship without one, nobody is likely to raise it, and he
+will add it if that ever changes. Recorded here so the next session neither
+rebuilds it by reflex nor re-litigates the decision.
+
+What it was: Settings → Legal → Acknowledgements, a native inset-grouped SwiftUI
+`List` of every shipped open-source package, each row pushing a sheet with that
+package's licence in full. Data came from a committed, generated manifest
+(`scripts/gen-licenses.mjs` → `apps/<app>/src/generated/licenses.json`).
+
+**The findings are the part worth keeping.** If this comes back, these do not
+need re-deriving:
+
+- **A dependency tree is the WRONG source.** `npm ls --omit=dev --all` answered
+  **683** packages for Topper; only **104** reach a device. `expo` declares
+  metro, babel, `@expo/cli` and jimp as RUNTIME dependencies, so a tree walk
+  cannot tell a bundler from a bundle. Measured: metro, babel and jimp
+  contribute ZERO files to the exported bundle; `@expo/cli` contributes exactly
+  one (its metro require shim). The right source is the sourcemap of a real
+  `expo export --source-maps`, iOS and Android unioned. 683 → 104 for Topper,
+  595 → 78 for the starter; 561KB → 84KB and 512KB → 64KB of bundled JSON.
+- **The licence split leaves nothing to filter.** Of Topper's 104: MIT 91,
+  Apache-2.0 4 (all Firebase), BSD-3 3, ISC 2, BSD-2 1, Unicode-DFS 1,
+  MIT-AND-Apache 1, UNKNOWN 1 (`@expo/cli`, no `license` field). Filtering to
+  "licences that require attribution" removes exactly ONE package (`tslib`,
+  0BSD) — ~99% of the ecosystem is MIT and MIT IS an attribution licence.
+  **No copyleft anywhere** in either app (zero GPL/AGPL/LGPL/MPL), which is the
+  finding that actually matters.
+- **The security argument against publishing the list does not hold**, and this
+  was measured rather than asserted. The package names are already recoverable
+  from any build: `strings` on the app binary returns the native packages by
+  name, `Frameworks/` names the pods outright, and even a release **Hermes**
+  bundle leaks module names as string literals (`@react-native-firebase/auth`,
+  `@shopify/flash-list`, `zustand`, `expo-audio`, … all pulled out of a real
+  `.hbc`). The screen was never what exposed them. What a screen CAN add is
+  **versions** — a `name@version` table turns a package list into a ready-made
+  CVE lookup, and licences never ask for a version, so if this returns it should
+  ship names and licences only.
+- **What the licences actually say**, for whenever the risk call gets revisited:
+  MIT/ISC make the notice a CONDITION of the grant; BSD-2/BSD-3 name the binary
+  case explicitly ("Redistributions in binary form must reproduce the above
+  copyright notice…"); Apache-2.0 §4 wants recipients given a copy of the
+  licence. The realistic exposure is not a lawsuit — it is a diligence
+  checklist (acquisition, enterprise customer, partner review), where "show me
+  your OSS attributions" is a standard line.
+
+The UI work that outlived it: `SettingsInfoRow.destination` (the disclosure
+chevron that distinguishes an in-app destination from a hand-off to Safari) and
+the single `InfoRow` renderer shared by the About and Legal cards both came from
+this and stay — Topper's Credits row uses them.
+
 ## Liquid Glass on Sound Shaper's header buttons + collapsed banner — REJECTED 2026-07-28
 
 Built, sim-verified, and rejected on taste ("experimental learning"), fully

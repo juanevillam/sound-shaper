@@ -23,16 +23,6 @@ export {
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
 export {
-  AcknowledgementsListIos,
-  licenseText,
-  LicenseDetailIos,
-  type AcknowledgementsColors,
-  type AcknowledgementsListIosProps,
-  type LicenseDetailIosProps,
-  type LicenseManifest,
-  type LicensePackage,
-} from './AcknowledgementsIos';
-export {
   ASSISTANCE_CREDIT,
   buildCreditsRoles,
   offerCreditsIos,
@@ -91,7 +81,6 @@ export {
   type MediaContainer,
 } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
-export { iosOnlyRoute } from './iosOnlyRoute';
 export {
   WelcomeScreen,
   type AuthAction,
