@@ -8,7 +8,6 @@ export { AppIcon, type AppIconProps } from './AppIcon';
 export {
   AUTHOR_CREDIT,
   AUTHOR_CREDIT_PREFIX,
-  AUTHOR_FULL_NAME,
   AUTHOR_NAME,
   AUTHOR_URL,
   authorUrl,
@@ -22,18 +21,6 @@ export {
   type DestructiveConfirmDialogContent,
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
-export {
-  ASSISTANCE_CREDIT,
-  buildCreditsRoles,
-  offerCreditsIos,
-} from './creditsContent';
-export {
-  CREDITS_GROUND,
-  CREDITS_INK,
-  CreditsScreen,
-  type CreditsRole,
-  type CreditsScreenProps,
-} from './CreditsScreen';
 export {
   ErrorScreen,
   type ErrorScreenColors,

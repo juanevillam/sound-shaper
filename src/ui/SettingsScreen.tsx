@@ -70,19 +70,8 @@ export type SettingsInfoRow = {
   value?: string;
   /** Optional external link the row opens when tapped, e.g. package docs. */
   url?: string;
-  /** Optional tap handler (wins over `url`) — an in-app destination or an
-   *  action, e.g. the legal pages and the Credits row. */
+  /** Optional tap handler (wins over `url`), e.g. the legal pages. */
   onPress?: () => void;
-  /**
-   * The row PUSHES to another screen in this app, so it takes a disclosure
-   * chevron (iOS only — Android's Material rows carry none either way).
-   *
-   * Not a style knob: on iOS the chevron is what distinguishes going somewhere
-   * from doing something, and these rows already carry both kinds. The legal
-   * links hand off to Safari and get none — Apple's own Settings does exactly
-   * this split — while Topper's Credits row opens a screen and gets one.
-   */
-  destination?: boolean;
 };
 
 /** Trailing read-only block, e.g. "About" with app/package versions. */

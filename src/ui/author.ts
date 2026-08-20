@@ -13,12 +13,6 @@ export const AUTHOR_CREDIT = 'by juanevillam';
  *  the name as a native SwiftUI `Link`, so the "by" stays plain). */
 export const AUTHOR_CREDIT_PREFIX = 'by';
 export const AUTHOR_NAME = 'juanevillam';
-/**
- * The author's real name, for the one place that credits a PERSON rather than
- * linking a portfolio: the credit roll. The byline above stays the handle
- * because it is a link to a site; a credit list is a list of people.
- */
-export const AUTHOR_FULL_NAME = 'Juan Villa';
 // SENTINEL: google.com marks every external link that still needs its real
 // destination (juanevillam.com is not live yet). Grep for google.com to find
 // every link left to tackle before release.

@@ -107,18 +107,6 @@ export type HeaderGlyphButtonProps = {
    * control in the portfolio is handled.
    */
   disabled?: boolean;
-  /**
-   * OVERRIDE THE GLYPH'S INK, for a bar that floats over a surface which fixes
-   * its own appearance rather than following the OS. The credits crawl is the
-   * case: its ground is the brand's `#222222` in BOTH appearances, so a
-   * theme-coloured glyph is near-black on near-black in light mode.
-   *
-   * Same prop, same word and same reason as `ProgressViewIos`' `ink` — a
-   * control whose container's colour is not the theme's needs to be told, and
-   * telling it is the alternative to hand-painting a second copy of the
-   * control. Leave it unset everywhere else: `onSurface` is the rule.
-   */
-  ink?: string;
 };
 
 export function HeaderGlyphButtonIos({
@@ -126,10 +114,9 @@ export function HeaderGlyphButtonIos({
   label,
   onPress,
   size = HEADER_GLYPH_SIZE,
-  ink,
 }: HeaderGlyphButtonProps) {
   return (
-    <HeaderGlyphGroupIos glyphs={[{ systemName, label, onPress, size, ink }]} />
+    <HeaderGlyphGroupIos glyphs={[{ systemName, label, onPress, size }]} />
   );
 }
 
@@ -207,7 +194,7 @@ export function HeaderGlyphGroupIos({
 
   return (
     <View style={styles.row}>
-      {glyphs.map(({ systemName, label, onPress, size, disabled, ink }) => (
+      {glyphs.map(({ systemName, label, onPress, size, disabled }) => (
         <SwiftUIHost
           key={systemName}
           matchContents
@@ -239,7 +226,7 @@ export function HeaderGlyphGroupIos({
             <Image
               systemName={systemName}
               size={size ?? HEADER_GLYPH_SIZE}
-              color={ink ?? colors.onSurface}
+              color={colors.onSurface}
               modifiers={[
                 // The glyph keeps its own size; the BOX around it is the target.
                 ...(expand

@@ -5,13 +5,62 @@ task proposes one of these, the answer is "already run, here's the verdict" —
 link this file instead of rebuilding. (Some verdicts also live as in-code
 comments; this is the one-stop list.)
 
+## The credit roll (Star-Wars-style crawl) — REMOVED 2026-08-19, not wanted
+
+Built, iterated on twice, sim-verified, and removed. **Not a failure and not a
+taste rejection of the idea** — the second pass looked good. Juan's call was
+simply that neither this nor the licences screen below is something these apps
+should carry: both were a fun experiment, and nothing else.
+
+What it was: a full-screen modal off Settings → About, unlocked by Topper's
+platinum. The app's icon faded in over black and receded, then the roll climbed
+a plane tilting away to a vanishing point — every role to one person, an AI
+assistance line crediting Claude, a Built With list, and a closing card. It
+briefly shipped in expo-ui-starter too, gated on "every showcase visited", and
+that half was removed first: a catalogue is not a game.
+
+**The findings worth keeping, if a crawl is ever wanted again:**
+
+- **The plane must rotate about its OWN CENTRE.** `transformOrigin` moves RN's
+  rotation origin but leaves the PERSPECTIVE vanishing point at the view's
+  centre; with the two disagreeing the projection goes off-axis and every line
+  comes out sheared to the right, reading as a bad italic. Left at the centre
+  they agree. 34° at a perspective of 640 keeps a line legible for about the
+  top two thirds of its travel at phone sizes; 58° squeezes the whole roll into
+  a band a few lines tall.
+- **Dress it in the platform, not the brand.** The first version used the icon's
+  greys (`#F5F5F5`/`#222222`) and invented type sizes — 34pt names at weight 800
+  over 22pt uppercase at 0.55 opacity — and Juan called it sloppy on sight, which
+  it was. The fix was `IOS_COLORS.dark` (black ground, `label`, `secondaryLabel`)
+  and `TEXT_VARIANTS`, the HIG scale this repo already ships. Pinning the DARK
+  palette in both appearances is the iOS answer rather than an exception to it:
+  Apple's immersive surfaces — video player, Photos viewer, the TV app's own end
+  credits — are black whatever the system appearance is.
+- **Feather BOTH edges.** A horizon gradient at the top is the obvious half; the
+  one that made it read as finished was a short gradient at the BOTTOM, so lines
+  emerge instead of appearing fully formed at the screen's edge.
+- **Budget the pre-roll in hundreds of ms, not seconds.** The first version spent
+  6.2s on three queued beats before anything scrolled. Folding the opening
+  sentence into the crawl as its first paragraph — which is also closer to the
+  form being quoted — got it to 1.3s.
+- **No audio, ever.** A theme is someone else's copyright, and this family
+  already learned that playing anything interrupts what the person is listening
+  to.
+
+Two things that came out of the work and STAY, because they were right
+independently: the single `InfoRow` renderer shared by Settings' About and Legal
+cards (they were near-duplicate inline blocks, and Legal silently dropped a
+trailing value), and `HeaderCloseButton`'s use across the sheet family.
+
 ## An in-app Acknowledgements / open-source licences screen — REMOVED 2026-08-19, deliberate risk call
 
 Built end to end for both Topper and expo-ui-starter, sim-verified, then removed
-at Juan's call. **Not rejected on taste or on feasibility — it worked.** The call
-was that most indie apps ship without one, nobody is likely to raise it, and he
-will add it if that ever changes. Recorded here so the next session neither
-rebuilds it by reflex nor re-litigates the decision.
+at Juan's call — the same day, and for the same overall reason, as the credit
+roll above: both were an experiment, not a feature these apps want. **Not
+rejected on taste or on feasibility — it worked.** The specific call was that
+most indie apps ship without one, nobody is likely to raise it, and he will add
+it if that ever changes. Recorded here so the next session neither rebuilds it
+by reflex nor re-litigates the decision.
 
 What it was: Settings → Legal → Acknowledgements, a native inset-grouped SwiftUI
 `List` of every shipped open-source package, each row pushing a sheet with that
