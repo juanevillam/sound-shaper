@@ -12,6 +12,13 @@ const EMOJI_SIZE = 48;
 
 type EmptyStateProps = {
   emoji?: string;
+  /**
+   * iOS only — the `.ios` variant draws it as the native
+   * `ContentUnavailableView`'s symbol. Declared here purely so a shared call
+   * site type-checks: `tsc` resolves the base specifier and never applies
+   * `.ios`. See AGENTS.md → "iOS-only components".
+   */
+  systemImage?: string;
   title: string;
   subtitle?: string;
   /**

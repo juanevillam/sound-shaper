@@ -2,11 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import {
-  CollapsingHeaderBar,
-  CollapsingHeaderTitle,
-  useCollapsingHeader,
-} from '@portfolio/mobile-ui';
+import { StateWrapIos as StateWrap } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
@@ -25,9 +21,9 @@ import {
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
-import { BarIconButton } from '@/components/ui/BarIconButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
+import { HomeBarGlyphsIos } from '@/components/ui/HomeBarGlyphsIos';
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
@@ -57,8 +53,10 @@ const APP_BAR_HEIGHT = 64;
 /**
  * Clearance above the first grid row.
  *
- * iOS needs none — there the heading is the list's own first row and carries
- * its own gap (see `HEADING_TO_TILE_GAP`).
+ * iOS needs none — `contentInsetAdjustmentBehavior="automatic"` hands the list
+ * the large title's height as a content inset, and that IS the gap (it is also
+ * what drives the collapse). Anything added here would sit on top of UIKit's
+ * own spacing.
  *
  * Android's static app bar sits directly on the content, so this IS the gap,
  * and it is set to match Topper: measured on device, Topper leaves 31.6dp
@@ -68,29 +66,6 @@ const APP_BAR_HEIGHT = 64;
  * outcome is the only way to actually match it.
  */
 const GRID_TOP_GAP = IS_IOS ? 0 : 29.5;
-
-/**
- * EXTRA air under the heading, so the gap you SEE here equals the one in
- * Topper: 34pt from the heading's ink to the next thing drawn.
- *
- * Topper's next element is a 52pt section row whose label is centred inside it,
- * so ~18pt of that row is blank before any ink appears. This grid's tiles start
- * drawing at their own box edge, with nothing in front. Adding that difference
- * back here is what made the two read identically.
- *
- * ⚠️ STALE ON iOS, 2026-08-06. This was derived when BOTH screens drew the
- * shared `CollapsingHeaderTitle`, and the original note said as much ("both
- * screens already share the same header token"). Topper's iOS home has since
- * moved to the SYSTEM large title, so UIKit — not this token — owns the space
- * under its heading, and the premise no longer holds. Topper's iOS gap measures
- * 24.7pt ink-to-ink today, not 34. Android still shares the header and is
- * unaffected.
- *
- * RE-DERIVE against the system large title when Sound Shaper's iOS pass runs;
- * it could not be measured here because Sound Shaper is not installed. Do not
- * trust the 34 for iOS until then.
- */
-const HEADING_TO_TILE_GAP = 15;
 
 const toGridRows = (songs: Song[]): GridRow[] => {
   const cells: (Song | 'add')[] = ['add', ...songs];
@@ -108,8 +83,8 @@ const toGridRows = (songs: Song[]): GridRow[] => {
   return rows;
 };
 
-// The whole library on one screen: the shared collapsing header (app name +
-// settings gear) over a 2-column grid of song tiles — YT Music's album-tile
+// The whole library on one screen: the app's header (Account + Settings) over a
+// 2-column grid of song tiles — YT Music's album-tile
 // language, one song per tile. No playlists: you upload one and it's there.
 // Tap = play (and the player opens); long-press = edit/delete; the add tile
 // closes the grid.
@@ -117,7 +92,6 @@ export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const header = useCollapsingHeader();
   const songs = useSongsStore(s => s.songs);
   const error = useSongsStore(s => s.error);
   const retry = useSongsStore(s => s.retry);
@@ -127,6 +101,7 @@ export default function HomeScreen() {
   const currentSongId = usePlayerStore(s => s.current?.id);
   const isPlaying = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
+  const sheetExpanded = usePlayerStore(s => s.sheetExpanded);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
 
   const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
@@ -220,52 +195,71 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      {/* NEITHER platform uses the navigator's header here, and Android's
-          absence is load-bearing: the navigator draws its header ABOVE the
-          screen, so the expanded player — which is mounted inside this screen
-          and is meant to be full-bleed — came up underneath the app bar. The
-          static Material bar below is the same bar, drawn as content, so the
-          player simply covers it like it covers everything else. */}
-      <Stack.Screen options={{ headerShown: false }} />
+      {/* iOS: the SYSTEM LARGE TITLE — the 34pt heading in the content that
+          settles into the 17pt inline bar as you scroll, with the trailing
+          glyphs staying put in the bar the whole way. Same bar Topper's iOS
+          home runs, which is what makes the two read as one family; it
+          replaced a hand-built Reanimated collapse (`CollapsingHeaderBar` +
+          `CollapsingHeaderTitle`, still shared with Android) whose bar buttons
+          had to ask SwiftUI for `.glassEffect` by hand because there was no
+          real navigation bar to take the material from.
+
+          `headerTransparent` (set stack-wide) is what arms the system
+          scroll-edge effect: the bar is clear over the top of the content and
+          materialises as Liquid Glass once anything is behind it.
+
+          THE BAR EMPTIES WHILE THE PLAYER IS EXPANDED — it does NOT go away,
+          and the difference is a measured bug. RNScreens draws its bar ABOVE
+          the screen's content view, so the expanded player (mounted inside this
+          screen, meant to be full-bleed) cannot cover it the way it covers
+          everything else, and the obvious answer was `headerShown:
+          !sheetExpanded`. Hiding the bar RE-LAYS-OUT the screen: the content
+          view's origin shifts and the player's bottom-anchored, window-height
+          container comes to rest 8.67pt low, leaving a band of the grid above
+          it. Band-scanned on iPhone 17 / iOS 26.5 — 8.67pt with the toggle,
+          0.67pt with the header never shown at all, so the toggle was the
+          cause and not some pre-existing gap.
+
+          Blanking the bar's CONTENTS costs no relayout: with `headerTransparent`
+          it already paints nothing, so an empty title and no glyphs leave
+          literally nothing on screen, and eight consecutive frames measure
+          flush to y=0. The empty bar does not swallow touches either — the
+          player's own ⋯ and collapse chevron sit inside its band and both were
+          verified working.
+
+          `headerLargeTitle` stays TRUE throughout rather than following
+          `sheetExpanded`: toggling it off and back on left the bar showing its
+          INLINE title at scroll-top until the next scroll re-armed the large
+          one. Held constant, the large title is simply back the moment the
+          player collapses.
+
+          Android keeps drawing its OWN Material bar as content, below, for
+          precisely the same reason stated the other way round: there the
+          navigator's header cannot be hidden per-state without the layout
+          jumping, so the bar was made content once and stays that way. */}
+      <Stack.Screen
+        options={
+          IS_IOS
+            ? {
+                headerShown: true,
+                headerLargeTitle: true,
+                headerLargeTitleShadowVisible: false,
+                headerTitle: sheetExpanded ? '' : t('app.title'),
+                headerRight: sheetExpanded
+                  ? () => null
+                  : () => <HomeBarGlyphsIos />,
+              }
+            : { headerShown: false }
+        }
+      />
 
       <SafeAreaView style={styles.safeArea} edges={[]}>
-        {/* iOS: the portfolio's app-root header (`@portfolio/mobile-ui`) —
-            this bar plus the big heading that scrolls under it from inside the
-            list. The same component and the same collapse Topper's iOS home
-            uses, so the two apps read as one family there. */}
-        {IS_IOS ? (
-          <CollapsingHeaderBar
-            title={t('app.title')}
-            scrollY={header.scrollY}
-            // Account, then Settings. Account lives on the HOME header in this
-            // app because the portfolio's rule is that its entry sits where
-            // the user's identity already lives — the Profile tab in Topper,
-            // and here, with no profile tab, the home bar. Settings itself is
-            // app CONFIGURATION only and identical in every app.
-            right={
-              <View style={styles.barActions}>
-                <BarIconButton
-                  name="manage-accounts"
-                  systemName="person.crop.circle"
-                  onPress={() => router.push('/manage-account')}
-                  tint={colors.primary}
-                  accessibilityLabel={t('settings.account.title')}
-                />
-                <BarIconButton
-                  name="settings"
-                  systemName="gearshape"
-                  onPress={() => router.push('/settings')}
-                  tint={colors.primary}
-                  accessibilityLabel={t('app.settings')}
-                />
-              </View>
-            }
-          />
-        ) : (
-          /* Android: M3's small top app bar, drawn as content. Same tonal
-             container, same 64dp, same 22sp title on the grid margin, and the
-             gear is still a real Compose action — the only thing that changed
-             is who owns the view, which is what lets the player cover it. */
+        {/* Android only: M3's small top app bar, drawn as content. Same tonal
+            container, same 64dp, same 22sp title on the grid margin, and the
+            gear is still a real Compose action — the only thing that changed is
+            who owns the view, which is what lets the player cover it. iOS takes
+            the navigator's own bar instead (see the Stack.Screen above). */}
+        {IS_IOS ? null : (
           <View
             style={[
               styles.appBar,
@@ -292,53 +286,54 @@ export default function HomeScreen() {
 
         {firstLoad ? (
           showSkeleton ? (
-            <View style={styles.skeletonGrid}>
-              {IS_IOS ? (
-                <View style={styles.headingBlock}>
-                  <CollapsingHeaderTitle text={t('app.title')} />
+            // `top`, not centred: these bones stand in for real content and
+            // have to START where it will — under the large title, with the
+            // inset UIKit hands the list itself. A skeleton that begins
+            // anywhere else IS layout shift. (Android's `StateWrap` is a plain
+            // scroller; the inset behaviour is iOS's.)
+            <StateWrap top>
+              <View style={styles.skeletonGrid}>
+                <View style={styles.gridRow}>
+                  <View style={styles.cell}>
+                    <SongTileSkeleton />
+                  </View>
+                  <View style={styles.cell}>
+                    <SongTileSkeleton />
+                  </View>
                 </View>
-              ) : null}
-              <View style={styles.gridRow}>
-                <View style={styles.cell}>
-                  <SongTileSkeleton />
-                </View>
-                <View style={styles.cell}>
-                  <SongTileSkeleton />
+                <View style={styles.gridRow}>
+                  <View style={styles.cell}>
+                    <SongTileSkeleton />
+                  </View>
+                  <View style={styles.cell} />
                 </View>
               </View>
-              <View style={styles.gridRow}>
-                <View style={styles.cell}>
-                  <SongTileSkeleton />
-                </View>
-                <View style={styles.cell} />
-              </View>
-            </View>
+            </StateWrap>
           ) : null
         ) : error ? (
-          <EmptyState
-            title={t('home.error.title')}
-            subtitle={t('home.error.subtitle')}
-            action={{ label: t('common.retry'), onPress: retry }}
-          />
+          // CENTRED, so no `top` — `EmptyState` centres itself in whatever box
+          // it gets, and an `automatic` inset would push that centre half the
+          // header too low. The contract and the measurement behind it live on
+          // `StateWrapIos`.
+          <StateWrap>
+            <EmptyState
+              systemImage="exclamationmark.triangle"
+              title={t('home.error.title')}
+              subtitle={t('home.error.subtitle')}
+              action={{ label: t('common.retry'), onPress: retry }}
+            />
+          </StateWrap>
         ) : (
           <FlashList
             style={styles.list}
             data={rows}
             keyExtractor={row => row.id}
             renderItem={renderRow}
-            // The heading is the list's first row, not chrome — which is what
-            // lets it scroll away under the bar with no overlay or inset
-            // trickery. No paddingTop: it sits directly under the (empty at
-            // rest) bar, where a native expanded large title starts.
-            ListHeaderComponent={
-              IS_IOS ? (
-                <View style={styles.headingBlock}>
-                  <CollapsingHeaderTitle text={t('app.title')} />
-                </View>
-              ) : null
-            }
-            onScroll={header.onScroll}
-            scrollEventThrottle={header.scrollEventThrottle}
+            // No in-content heading: the stack's native large title owns it.
+            // `automatic` is what hands the list that title's height as a
+            // content inset and drives the collapse — without it the first row
+            // starts under the expanded title. Android ignores the prop.
+            contentInsetAdjustmentBehavior="automatic"
             contentContainerStyle={{
               paddingHorizontal: SCREEN_PADDING,
               paddingTop: GRID_TOP_GAP,
@@ -378,8 +373,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Two bar items sit in a row; the bar's own slot positions the pair.
-  barActions: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   safeArea: { flex: 1 },
   appBar: {
     alignItems: 'center',
@@ -396,7 +389,6 @@ const styles = StyleSheet.create({
   // matching the other two apps beats being closer to the spec on this one
   // screen: measured side by side, 22/400 read 9% larger AND lighter.
   appBarTitle: { flexShrink: 1, fontSize: 20, fontWeight: '500' },
-  headingBlock: { paddingBottom: HEADING_TO_TILE_GAP },
   list: { flex: 1 },
   gridRow: {
     flexDirection: 'row',
