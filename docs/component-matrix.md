@@ -164,8 +164,8 @@ the hosted child a concrete one (the avatar is handed a `size`) and it behaves.
 
 That refactor is now DONE for every people list: `follow-list`, Explore's See All
 and Blocked Users are one shared `PeopleSheetListIos`, and `TrashListIos` applies
-the same shape to a list of tops. The rule they establish — adopt the shared row,
-never write another one — is what is left to apply to `CommentRow.ios`.
+the same shape to a list of tops. `CommentListIos` was the last row to adopt it
+(2026-08-19) and closes the set.
 
 The genuine remaining limits are a row whose artwork CANNOT be given a concrete
 size up front, and a `Host` per cell across a large grid (see `emoji-picker`
@@ -183,14 +183,24 @@ Other standing exceptions:
 
 ### Still to do
 
-- **`CommentRow.ios` → a native `List` row with `SwipeActions`.** The last
-  hand-built row of consequence. Not blocked: `PersonListRowIos` proves a hosted
-  avatar inside a native `List` row, and `TopItemListIos` proves swipe actions on
-  one. What is left is ordinary work — move the row into a `List`, take the swipe
-  for Delete/Report, and drop the long-press + hand-drawn `•••`
-  `ActionSheetIOS` menu. Note the one real constraint before starting: the
-  comments sheet's thread sits ABOVE a pinned composer, so the `List` has to
-  cohabit with `useSheetKeyboardInset` rather than own the whole sheet.
+- ~~`CommentRow.ios` → a native `List` row with `SwipeActions`~~ — **DONE
+  2026-08-19** (`CommentListIos`), found by the craft audit. The row is an
+  `insetGrouped` `List` row: a `plain` `Button` opening the author's profile, the
+  avatar bridged through `RNHostView`, and Delete / Report behind a trailing
+  swipe. The long-press `ActionSheetIOS` and the `•••` that was DRAWN OUT OF
+  THREE 3.15pt `View`s are both gone. The constraint noted here was real and
+  held: the Host is one `flex: 1` child of the route's column, above the pinned
+  composer, and `scrollDismissesKeyboard('interactively')` replaces the RN
+  list's `keyboardDismissMode`.
+
+  Two things came out of it worth keeping. The rows are mapped in JS as direct
+  children of the `List` rather than through `List.ForEach`, because an
+  `RNHostView` inside a `ForEach` row renders the whole row blank — the same
+  arrangement `PeopleSheetListIos` already ran. And the FlashList's
+  scroll-to-top-on-change effect was DELETED rather than ported: it existed
+  because FlashList held its old offset, and a SwiftUI `List` anchors its
+  content instead.
+
 - **`ProfileHeader.ios` — SETTLED AS AUTHORED RN, not outstanding work.** iOS has
   no native container for a centred profile header, and the two things inside it
   that iOS DOES provide are now the platform's own: the Follow control is
