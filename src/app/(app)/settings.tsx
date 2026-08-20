@@ -1,3 +1,5 @@
+import { type ReactNode } from 'react';
+
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { version as expoUiVersion } from '@expo/ui/package.json';
@@ -14,6 +16,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { type TranslationKey, useI18n } from '@/i18n';
@@ -30,6 +33,30 @@ const APP_NAME = Constants.expoConfig?.name ?? '';
 // welcome disclaimer in site analytics.
 const openLegalPage = (page: LegalPage) =>
   WebBrowser.openBrowserAsync(legalUrl(APP_NAME, page, 'settings'));
+
+/**
+ * SETTINGS IS THE ONE SCREEN IN THE SHEET FAMILY THAT ANDROID ALSO RENDERS, so
+ * its root is chosen per platform rather than being `SheetScreen` outright.
+ *
+ * On iOS this route presents as a full-height form sheet (see
+ * `IOS_SHEET_SCREENS`), and a sheet is presented ABOVE the RN root — so the
+ * app's toast, which lives at that root, draws BEHIND it. This screen fires
+ * one (a failed sign-out), and it had never been seen. `SheetScreen` mounts
+ * the `SnackbarOutlet` that moves the toast into this tree; every other sheet
+ * in the app already had it and this was the one that was missed.
+ *
+ * On Android Settings is an ordinary pushed screen whose root toast works
+ * fine, and mounting an outlet there would claim the toast into this screen
+ * and hand it the SHEET's clearance instead of the app's. Android is frozen;
+ * it keeps the plain View.
+ */
+function SettingsRoot({ children }: { children: ReactNode }) {
+  return Platform.OS === 'ios' ? (
+    <SheetScreen>{children}</SheetScreen>
+  ) : (
+    <View style={styles.root}>{children}</View>
+  );
+}
 
 export default function Settings() {
   const { t, locale, setLocale } = useI18n();
@@ -60,7 +87,7 @@ export default function Settings() {
   };
 
   return (
-    <View style={styles.root}>
+    <SettingsRoot>
       <SettingsScreen
         // Sign Out is the ONE session action every app has, so it lives here
         // rather than in the Account screen — that is what keeps this screen
@@ -154,7 +181,7 @@ export default function Settings() {
         seedColor={seedColor}
         colors={colors}
       />
-    </View>
+    </SettingsRoot>
   );
 }
 
