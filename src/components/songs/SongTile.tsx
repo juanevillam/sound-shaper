@@ -7,6 +7,7 @@ import {
   emptyMediaPlusStyle,
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
+  TEXT_VARIANTS,
 } from '@portfolio/mobile-ui';
 
 import { NowPlayingBars } from '@/components/songs/NowPlayingBars';
@@ -80,6 +81,32 @@ const CAPTION_SUB = 15;
  * the two apps' artwork one shape family instead of two that happen to match.
  */
 const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
+
+/**
+ * THE TILE'S GEOMETRY, EXPORTED FOR ITS SKELETON — style objects, not a copy of
+ * their numbers.
+ *
+ * `SongTileSkeleton` stood a hand-copied set that had rotted: a 26 radius
+ * against this file's 27, and a caption block of 16 + 6 + 12 = 34pt against the
+ * real 22 + 1 + 20 = 43. Nine points of jump per row on settle, invisible in
+ * the skeleton itself. Topper's rail hit the identical bug (its labels traced
+ * 15/13 against 20/18 line boxes and left the rail 10pt short) and its
+ * `Skeleton.tsx` records the rule this now follows: reserve the LINE BOX, draw
+ * the bar thinner inside it.
+ */
+export const SONG_TILE_METRICS = {
+  artRadius: ART_RADIUS,
+  artToCaption: EMPTY_MEDIA_CAPTION_GAP,
+  /** The gap the title's own `marginBottom` opens under it. */
+  titleGap: 1,
+  lines: Platform.select({
+    ios: { title: CAPTION_TITLE + 5, subtitle: CAPTION_SUB + 5 },
+    default: {
+      title: TEXT_VARIANTS.bodyMedium.lineHeight as number,
+      subtitle: TEXT_VARIANTS.bodySmall.lineHeight as number,
+    },
+  }) as { title: number; subtitle: number },
+};
 
 type SongTileProps = {
   song: Song;

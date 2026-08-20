@@ -78,7 +78,7 @@ export const HOME_STATES: Labelled<HomeState>[] = [
   {
     value: 'skeleton',
     label: 'First-load skeleton',
-    note: 'Three tile bones. They must start exactly where the real grid does, under the large title.',
+    note: 'Two full rows. Row 2 must start at the same point as live — band-scan both.',
   },
   {
     value: 'error',

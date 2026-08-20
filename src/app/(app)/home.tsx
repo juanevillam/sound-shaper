@@ -309,21 +309,23 @@ export default function HomeScreen() {
             // anywhere else IS layout shift. (Android's `StateWrap` is a plain
             // scroller; the inset behaviour is iOS's.)
             <StateWrap top>
+              {/* TWO FULL ROWS. It stood three bones and an empty cell, which
+                  is the shape of a grid holding an odd number of songs — a
+                  statement about the DATA, and one the skeleton cannot know
+                  and has no business making. A 2-up grid's placeholder is
+                  whole rows; the gap read as a missing tile rather than as
+                  content still arriving. */}
               <View style={styles.skeletonGrid}>
-                <View style={styles.gridRow}>
-                  <View style={styles.cell}>
-                    <SongTileSkeleton />
+                {[0, 1].map(row => (
+                  <View key={row} style={styles.gridRow}>
+                    <View style={styles.cell}>
+                      <SongTileSkeleton />
+                    </View>
+                    <View style={styles.cell}>
+                      <SongTileSkeleton />
+                    </View>
                   </View>
-                  <View style={styles.cell}>
-                    <SongTileSkeleton />
-                  </View>
-                </View>
-                <View style={styles.gridRow}>
-                  <View style={styles.cell}>
-                    <SongTileSkeleton />
-                  </View>
-                  <View style={styles.cell} />
-                </View>
+                ))}
               </View>
             </StateWrap>
           ) : null
@@ -385,8 +387,13 @@ export default function HomeScreen() {
           unaffected either way — that lives in <AudioEngine>, still mounted in
           the layout. */}
       <PlayerSheet />
-      {/* DEV LAB: state picker, clear of the player banner. */}
-      {UI_STATE_LAB ? <UiStateLabBar screen="home" /> : null}
+      {/* DEV LAB: state picker, clear of the player banner — and GONE while the
+          player is expanded. The picker floats above everything at the bottom
+          of the screen, so over the full-bleed player it sat on top of the
+          transport controls: a dev tool covering the surface it exists to let
+          you look at. It pins Home's states, and Home is not what is on screen
+          then. */}
+      {UI_STATE_LAB && !sheetExpanded ? <UiStateLabBar screen="home" /> : null}
     </Screen>
   );
 }
