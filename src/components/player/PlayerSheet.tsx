@@ -248,8 +248,9 @@ const MINI_TRAILING_GLYPH_INSET = 18;
 /**
  * Gap between the title and the artist under it. 1pt was a hairline crack
  * rather than a relationship; 2 is the same title→supporting step the iOS
- * sheets use, and it puts the two-line block at 40pt inside the 46pt artwork
- * beside it — the copy now fills its own band instead of floating in it.
+ * sheets use. With Body over Subheadline the two-line block measures 44pt
+ * (22 + 2 + 20) against the 46pt artwork beside it — the copy fills its own
+ * band instead of floating in it. Re-derive if either variant moves.
  */
 const MINI_COPY_GAP = 2;
 // The row's own padding is then whatever gets the glyph there, so changing the
@@ -1118,11 +1119,18 @@ export function PlayerSheet() {
                   numberOfLines={1}
                   style={styles.miniTitle}
                 />
+                {/* SUBHEADLINE, not Footnote. The same two facts — a sound's
+                    name and its artist — are typeset three times in this app,
+                    and this was the only one that stepped down two rungs: the
+                    home tile pairs Body with Subheadline (17/15) and so does
+                    the EXPANDED console a few hundred lines below, while the
+                    banner paired Body with Footnote (17/13). Apple pairs Body
+                    with Subheadline; the odd one out was here. */}
                 <AppText
                   doNotTranslate
                   muted
                   text={subtitle}
-                  variant="bodySmall"
+                  variant="bodyMedium"
                   numberOfLines={1}
                 />
               </View>
