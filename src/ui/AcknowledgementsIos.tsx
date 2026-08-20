@@ -24,9 +24,11 @@ import { spacing } from './tokens';
  * "Open Source" — see AGENTS.md → Voice.
  *
  * The data is `apps/<app>/src/generated/licenses.json`, produced by
- * `scripts/gen-licenses.mjs` from the app's whole TRANSITIVE production
- * dependency tree. That script's header explains the compliance reasoning and
- * the pooling; this file only has to render it.
+ * `scripts/gen-licenses.mjs` from the packages Metro actually PUT IN THE
+ * BUNDLE — not the dependency tree, which is six times larger and mostly build
+ * tools the device never sees. That script's header explains the compliance
+ * reasoning, why licences requiring nothing are left off, and why no version
+ * numbers are carried; this file only has to render it.
  *
  * WHY THE TEXT PANE IS RN AND THE LIST IS NOT. The list is a real inset-grouped
  * SwiftUI `List` — the same container Settings, Explore's results and every
@@ -40,8 +42,9 @@ import { spacing } from './tokens';
  */
 
 export type LicensePackage = {
+  /** Also the row's identity — the generator emits one entry per package, so a
+   *  name is unique within a manifest. */
   name: string;
-  version: string;
   /** SPDX id from the package's own manifest, e.g. `MIT`. */
   license: string;
   /** That package's own attribution lines, split out of its licence file. */
@@ -149,7 +152,7 @@ export const AcknowledgementsListIos = ({
       <Section title={caption}>
         {manifest.packages.map(entry => (
           <Button
-            key={`${entry.name}@${entry.version}`}
+            key={entry.name}
             onPress={() => onSelect(entry)}
             // Without this the row's label inherits the control tint and reads
             // blue; navigation is neutral plus a chevron. See
@@ -218,8 +221,11 @@ export const LicenseDetailIos = ({
       showsVerticalScrollIndicator
     >
       <View style={styles.detailHeader}>
-        <RNText style={[styles.version, { color: colors.onSurfaceMuted }]}>
-          {`${entry.version} · ${entry.license}`}
+        {/* The SPDX id alone. NO VERSION — a licence does not ask for one, and
+            a published `name@version` table is what turns a package list into a
+            ready-made CVE lookup. See the generator's header. */}
+        <RNText style={[styles.license, { color: colors.onSurfaceMuted }]}>
+          {entry.license}
         </RNText>
       </View>
       {/* The licence file, verbatim and pre-wrapped as its authors wrote it.
@@ -243,7 +249,7 @@ const styles = StyleSheet.create({
     paddingTop: SHEET_CONTENT_TOP - INK_LEADING,
   },
   detailHeader: { marginBottom: spacing.lg },
-  version: { fontSize: 13, fontWeight: '500' },
+  license: { fontSize: 13, fontWeight: '500' },
   // Footnote metrics: a licence is reference text, not reading copy, and this
   // is the size Apple's own Legal Notices sets it at.
   body: { fontSize: 13, lineHeight: 19 },
