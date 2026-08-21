@@ -57,14 +57,33 @@ in the file's header; the ones worth knowing before touching it:
   control stays `onSurface` — including the SwiftUI `Slider`, which needs an
   explicit `tint`. Clip-framing is the one exception and is deliberate: the trim
   brackets mark a SELECTION and Save is a filled brand action.
-- **NO TOP BAR.** A grabber, and the overflow moved beside the title. The bar it
-  replaced was built on `IconButton`'s `matchContents` Host and a re-render moved
-  it 79pt (chevron ink centre 87.67 fresh, 166.67 after a live appearance
-  change, artwork unmoved).
+- **A BAR ROW, AND IT IS NOT A GRABBER.** `chevron.down` leading, the overflow
+  `Menu` trailing, both at the portfolio's 43pt bar target. Two alternatives were
+  built and rejected: a sheet GRABBER (this surface has a bottom sheet's dismiss
+  gesture but is not a sheet, and a grabber is UIKit's promise that it is one)
+  and hanging the overflow off the TITLE (a "…" that acts on the screen does not
+  belong inside the copy naming the song). What must not come back is how the
+  ORIGINAL row was built — on `IconButton`'s `matchContents` Host, which moved it
+  79pt on a re-render. Every host in the row states its box.
+- **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
+  expand ramp so it exists only on the open console. 0.94 read as a rendering
+  wobble, 0.82 opened a gap under the bar row.
 
-Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst in light
-and a 6-frame burst in dark: grabber 70.00, artwork 95.00, footer 766.00 →
-827.00, clearance below 47.00 (inset 34 + `FLOATING_EDGE_GAP` 12).
+Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst with no
+interaction: bar glyph ink 79.00, artwork 119.00 (inset 62 + target 43 + gap
+14), footer 766.00 → 827.00, clearance below 47.00 (inset 34 +
+`FLOATING_EDGE_GAP` 12). Cover 369.00 wide playing, 324.00 paused, centre held.
+A LIVE appearance switch reads the same numbers, which is the proof the
+`matchContents` header jump is gone.
+
+**The player's four sheets are on TOPPER'S bar** (2026-08-21). `shaper`,
+`clips` and `edit-sound` are `titled` in `IOS_FORM_SHEETS` and state their bar
+through `sheetCommitBarOptionsIos` (or, for `clips`, their own slots — it
+commits nothing, so its trailing glyph is `plus`, not a ✓). They drew an
+authored header above their Form before, which cannot have genuine Liquid Glass
+and carried the filled-primary-disc ✓ that Topper already rejected.
+`sound-info` stays untitled and stays RN on purpose: a `fitToContents` sheet is
+too short for a bar, and a native `Form` renders 0pt tall inside one.
 
 **Home's iOS header is the SYSTEM large title**, not the shared
 `CollapsingHeaderBar` (Android still uses that). The one thing it costs is
