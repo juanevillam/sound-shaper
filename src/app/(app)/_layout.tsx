@@ -11,7 +11,6 @@ import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
-import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
 import { useSoundsSubscription } from '@/hooks/useSoundsSubscription';
 import { useTrophiesSync } from '@/hooks/useTrophiesSync';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
@@ -28,10 +27,13 @@ import { useAuthStore } from '@/store/auth';
 const glassUnderlay = Platform.OS === 'ios' ? makeGlassUnderlay() : undefined;
 
 function AuthenticatedSubscriptions() {
-  // Session-wide Firestore listeners (own profile + the flat sound library).
-  // Mounted once here so every screen reads from the store instead of
-  // re-subscribing.
-  useOwnProfileSync();
+  // The one session-wide Firestore listener: the flat sound library, which
+  // every screen reads from the store instead of re-subscribing to.
+  //
+  // The PROFILE used to be here too, as a second live listener. It is a
+  // one-shot read from the Account sheet now (`useOwnProfile`) — nothing else
+  // writes that doc and one row on one rarely-opened screen reads it, so
+  // holding a listener over it for the whole session bought nothing.
   useSoundsSubscription();
   // Trophies: point the engine at this user, bank listening time, and let the
   // store-derived objectives re-evaluate on every snapshot.

@@ -2,7 +2,6 @@ import {
   doc,
   getDoc,
   getFirestore,
-  onSnapshot,
   serverTimestamp,
   setDoc,
   type QueryDocumentSnapshot,
@@ -10,7 +9,7 @@ import {
 } from '@react-native-firebase/firestore';
 
 import { USERS_COLLECTION } from '@/services/firebase/collections';
-import { reported, reportedOnError } from '@/services/firebase/crashlytics';
+import { reported } from '@/services/firebase/crashlytics';
 
 // Personal-only: the profile doc is just the signed-in identity snapshot
 // (usernames were dropped 2026-07-20 along with the whole account section).
@@ -20,12 +19,6 @@ export type UserProfile = {
   photoUrl: string | null;
   uid: string;
   updatedAt: number | null;
-};
-
-type SubscribeToUserProfileParams = {
-  onError: (error: Error) => void;
-  onNext: (profile: UserProfile | null) => void;
-  uid: string;
 };
 
 type UpsertOwnProfileParams = {
@@ -74,19 +67,26 @@ export const upsertOwnProfile = reported(
   },
 );
 
-export const subscribeToUserProfile = ({
-  onError,
-  onNext,
-  uid,
-}: SubscribeToUserProfileParams): (() => void) =>
-  onSnapshot(doc(getFirestore(), USERS_COLLECTION, uid), {
-    error: reportedOnError('users.subscribeToUserProfile', onError),
-    next: snapshot => {
-      if (!snapshot?.exists()) {
-        onNext(null);
-        return;
-      }
+/**
+ * ONE READ, NOT A LISTENER — and the shape of the data is the reason.
+ *
+ * This doc holds a display name, a photo and a creation date. Only THIS device
+ * ever writes it (`upsertOwnProfile`, once per sign-in), and the only surface
+ * that reads it is the Account sheet's "member since" row. A live listener over
+ * it was held open for the entire session, from the authenticated layout, to
+ * keep a date that cannot change in sync with a screen almost nobody opens.
+ *
+ * A listener is the right tool for data OTHER writers change while you are
+ * looking at it. This is the other kind: fetch it when the screen that reads it
+ * appears, keep it in the store so a second visit is instant.
+ */
+export const fetchUserProfile = reported(
+  'users.fetchUserProfile',
+  async (uid: string): Promise<UserProfile | null> => {
+    const snapshot = await getDoc(doc(getFirestore(), USERS_COLLECTION, uid));
 
-      onNext(profileToModel(snapshot as unknown as QueryDocumentSnapshot));
-    },
-  });
+    if (!snapshot.exists()) return null;
+
+    return profileToModel(snapshot as unknown as QueryDocumentSnapshot);
+  },
+);

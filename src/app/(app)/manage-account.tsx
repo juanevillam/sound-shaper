@@ -7,6 +7,7 @@ import {
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -33,6 +34,9 @@ export default function ManageAccount() {
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const user = useAuthStore(s => s.user);
+  // The profile is fetched HERE rather than held live app-wide — this sheet
+  // is its only reader. The store keeps it, so a second visit is instant.
+  useOwnProfile();
   const profile = useProfileStore(s => s.profile);
 
   const [deleteVisible, setDeleteVisible] = useState(false);
