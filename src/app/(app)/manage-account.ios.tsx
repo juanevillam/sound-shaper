@@ -13,6 +13,7 @@ import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
+import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -58,6 +59,9 @@ export default function ManageAccount() {
   const { colors, scheme } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const user = useAuthStore(s => s.user);
+  // The profile is fetched HERE rather than held live app-wide — this sheet
+  // is its only reader. The store keeps it, so a second visit is instant.
+  useOwnProfile();
   const profile = useProfileStore(s => s.profile);
   const hasSettled = useProfileStore(s => s.hasSettled);
   const navigation = useNavigation();
