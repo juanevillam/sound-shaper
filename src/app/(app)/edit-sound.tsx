@@ -72,18 +72,12 @@ function EditSoundSheetScreen() {
   const [artist, setArtist] = useState(
     editingSound?.artist ?? tags?.artist ?? '',
   );
-  const [album, setAlbum] = useState(editingSound?.album ?? tags?.album ?? '');
-  const [year, setYear] = useState(
-    editingSound?.releaseYear != null
-      ? String(editingSound.releaseYear)
-      : (tags?.year ?? ''),
-  );
   const [isSaving, setIsSaving] = useState(false);
   const { pickCover, uploadCover } = useCoverPicker();
   const [showNameError, setShowNameError] = useState(false);
 
-  // Re-entry guard: the year field's keyboard "done" calls save() directly and
-  // isn't gated by the disabled Save button.
+  // Re-entry guard: a field's keyboard "done" can call save() directly, which
+  // is not gated by the disabled Save button.
   const savingRef = useRef(false);
 
   /**
@@ -110,22 +104,6 @@ function EditSoundSheetScreen() {
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
   const nameError = showNameError && nameInvalid;
 
-  const parseYear = (): number | null | 'invalid' => {
-    const trimmed = year.trim();
-
-    if (trimmed.length === 0) return null;
-
-    const parsed = Number(trimmed);
-    const currentYear = new Date().getFullYear();
-
-    if (!Number.isInteger(parsed) || parsed < 0 || parsed > currentYear)
-      return 'invalid';
-
-    return parsed;
-  };
-
-  const yearInvalid = parseYear() === 'invalid';
-
   const save = async () => {
     if (savingRef.current) return;
 
@@ -134,12 +112,8 @@ function EditSoundSheetScreen() {
       return;
     }
 
-    if (yearInvalid) return;
-
-    const releaseYear = parseYear() as number | null;
     const trimmedName = name.trim();
     const trimmedArtist = artist.trim();
-    const trimmedAlbum = album.trim();
 
     savingRef.current = true;
 
@@ -156,11 +130,9 @@ function EditSoundSheetScreen() {
           const cover = await uploadCover(pickedCover);
 
           await updateSound({
-            album: trimmedAlbum,
             artist: trimmedArtist,
             cover,
             name: trimmedName,
-            releaseYear,
             soundId,
           });
 
@@ -176,10 +148,8 @@ function EditSoundSheetScreen() {
       }
 
       updateSound({
-        album: trimmedAlbum,
         artist: trimmedArtist,
         name: trimmedName,
-        releaseYear,
         soundId,
       })
         .then(() => showSnackbar(t('snackbar.sound-updated')))
@@ -201,7 +171,6 @@ function EditSoundSheetScreen() {
       const picked = pickedCover ? await uploadCover(pickedCover) : null;
 
       await createSound({
-        album: trimmedAlbum,
         artist: trimmedArtist,
         cover: picked,
         art: tags?.picture
@@ -209,7 +178,6 @@ function EditSoundSheetScreen() {
           : null,
         localAudioUri: pickedFile.uri,
         name: trimmedName,
-        releaseYear,
       });
 
       showSnackbar(t('snackbar.sound-created'));
@@ -339,22 +307,23 @@ function EditSoundSheetScreen() {
             placeholder={t('soundEdit.name.label')}
             error={nameError ? t('soundEdit.name.error') : null}
           />
+          {/* TWO FIELDS, AND THE SECOND ONE IS A SUBTITLE.
+              
+              This form carried four — Title, Artist, Album, Release Year — read
+              off the file's ID3 tag. Album and year are gone with the read-only
+              info sheet that displayed them (Juan, 2026-08-21): a library that
+              takes any MP3 holds ringtones and voice memos, and asking those
+              for an album is asking a question the app has no use for.
+              
+              "Artist" went the same way for the same reason "song" did — the
+              second line under a cover is whatever the person wants written
+              there. The stored FIELD stays `artist`, exactly as the Firestore
+              subcollection stays `songs`: nobody reads a wire path, and
+              renaming it would migrate every existing document. */}
           <SheetFormFieldIos
             value={artist}
             onChangeText={setArtist}
-            placeholder={t('soundEdit.artist.label')}
-          />
-          <SheetFormFieldIos
-            value={album}
-            onChangeText={setAlbum}
-            placeholder={t('soundEdit.album.label')}
-          />
-          <SheetFormFieldIos
-            value={year}
-            onChangeText={setYear}
-            placeholder={t('soundEdit.year.label')}
-            error={yearInvalid ? t('soundEdit.year.error') : null}
-            keyboardType="numberPad"
+            placeholder={t('soundEdit.subtitle.label')}
           />
         </Section>
 

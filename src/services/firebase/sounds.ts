@@ -39,8 +39,20 @@ export type Sound = {
   updatedAt: number | null;
 };
 
+/**
+ * ALBUM AND RELEASE YEAR ARE OPTIONAL, AND iOS NO LONGER SENDS THEM.
+ *
+ * The app does not handle either any more (Juan, 2026-08-21): the editor holds
+ * a title and a subtitle and nothing else, and the read-only info sheet those
+ * two fed is gone on iOS. They stay on the WRITE as optional rather than being
+ * deleted outright for two reasons — existing documents carry values, and
+ * `updateSound` writing `undefined` would leave them alone rather than clearing
+ * them, which is what "not handled" should mean; and Android's editor still
+ * passes both, because Android is frozen and cannot be verified (root
+ * AGENTS.md). Delete them here when Android's twin catches up.
+ */
 type CreateSoundParams = {
-  album: string;
+  album?: string;
   artist: string;
   /**
    * A cover PICKED from the photo library, already uploaded. Wins over `art`:
@@ -53,14 +65,14 @@ type CreateSoundParams = {
   /** Local uri of the picked .mp3 (document-picker cache copy). */
   localAudioUri: string;
   name: string;
-  releaseYear: number | null;
+  releaseYear?: number | null;
 };
 
 type UpdateSoundParams = {
-  album: string;
+  album?: string;
   artist: string;
   name: string;
-  releaseYear: number | null;
+  releaseYear?: number | null;
   soundId: string;
   /**
    * A NEWLY PICKED cover, already uploaded. Omit to leave the existing artwork
@@ -126,7 +138,22 @@ const soundToModel = (snapshot: QueryDocumentSnapshot): Sound => {
   };
 };
 
-/** The whole personal library, newest upload first. */
+/**
+ * The whole personal library, newest upload first.
+ *
+ * DELIBERATELY UNBOUNDED, and the reason is the word "personal". This is the
+ * app's ONE session-long listener; it has to be live, because an upload has to
+ * land on the grid without a refresh. Capping it would hide someone's own
+ * sounds from their own library — a silent truncation of the only content the
+ * app holds — so the fix for a huge library is PAGING (a cursor plus a "load
+ * more" the grid drives), not a `limit()` bolted on here.
+ *
+ * The cost is bounded in practice by Firestore's disk cache, which is on by
+ * default and which nothing in this app disables: a cold start replays the
+ * library from disk and resumes the listener from its token, so only sounds
+ * that actually CHANGED are billed after the first run. Revisit if a library
+ * ever passes a few hundred sounds; nothing here is near that.
+ */
 export const subscribeToSounds = ({
   onError,
   onNext,
@@ -162,7 +189,7 @@ export const createSound = reported(
       pickedCover ?? (art ? await uploadSoundArt(art.base64, art.mime) : null);
 
     const docRef = await addDoc(soundsCollection(), {
-      album,
+      ...(album === undefined ? {} : { album }),
       artist,
       artPublicId: cover?.publicId ?? '',
       artUrl: cover?.url ?? '',
@@ -170,7 +197,7 @@ export const createSound = reported(
       audioUrl: audio.url,
       createdAt: serverTimestamp(),
       name,
-      releaseYear,
+      ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
     });
 
@@ -190,10 +217,10 @@ export const updateSound = reported(
     soundId,
   }: UpdateSoundParams): Promise<void> => {
     await updateDoc(soundDoc(soundId), {
-      album,
+      ...(album === undefined ? {} : { album }),
       artist,
       name,
-      releaseYear,
+      ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
       ...(cover ? { artPublicId: cover.publicId, artUrl: cover.url } : {}),
     });

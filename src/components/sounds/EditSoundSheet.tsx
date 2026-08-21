@@ -81,25 +81,16 @@ export function EditSoundSheet({
     tags?.title ??
     (pickedFile ? nameFromFile(pickedFile.fileName) : '');
   const initialArtist = editingSound?.artist ?? tags?.artist ?? '';
-  const initialAlbum = editingSound?.album ?? tags?.album ?? '';
-  const initialYear =
-    editingSound?.releaseYear != null
-      ? String(editingSound.releaseYear)
-      : (tags?.year ?? '');
 
   const sheetRef = useRef<ModalBottomSheetRef>(null);
-  // Re-entry guard: the year field's keyboard "done" calls save() directly and
-  // isn't gated by the disabled Save button.
+  // Re-entry guard: the subtitle field's keyboard "done" calls save() directly
+  // and isn't gated by the disabled Save button.
   const savingRef = useRef(false);
   const artistFieldRef = useRef<TextFieldRef>(null);
   const nameState = useNativeState(initialName);
   const artistState = useNativeState(initialArtist);
-  const albumState = useNativeState(initialAlbum);
-  const yearState = useNativeState(initialYear);
   const [name, setName] = useState(initialName);
   const [artist, setArtist] = useState(initialArtist);
-  const [album, setAlbum] = useState(initialAlbum);
-  const [year, setYear] = useState(initialYear);
   const [isSaving, setIsSaving] = useState(false);
   const { pickCover, uploadCover } = useCoverPicker();
   const [showNameError, setShowNameError] = useState(false);
@@ -133,22 +124,6 @@ export function EditSoundSheet({
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
   const nameError = showNameError && nameInvalid;
 
-  const parseYear = (): number | null | 'invalid' => {
-    const trimmed = year.trim();
-
-    if (trimmed.length === 0) return null;
-
-    const parsed = Number(trimmed);
-    const currentYear = new Date().getFullYear();
-
-    if (!Number.isInteger(parsed) || parsed < 0 || parsed > currentYear)
-      return 'invalid';
-
-    return parsed;
-  };
-
-  const yearInvalid = parseYear() === 'invalid';
-
   const save = async () => {
     if (savingRef.current) return;
 
@@ -157,12 +132,8 @@ export function EditSoundSheet({
       return;
     }
 
-    if (yearInvalid) return;
-
-    const releaseYear = parseYear() as number | null;
     const trimmedName = name.trim();
     const trimmedArtist = artist.trim();
-    const trimmedAlbum = album.trim();
 
     savingRef.current = true;
 
@@ -177,11 +148,9 @@ export function EditSoundSheet({
           const cover = await uploadCover(pickedCover);
 
           await updateSound({
-            album: trimmedAlbum,
             artist: trimmedArtist,
             cover,
             name: trimmedName,
-            releaseYear,
             soundId,
           });
 
@@ -199,10 +168,8 @@ export function EditSoundSheet({
       // Metadata-only update: latency-compensated, so close immediately and
       // let a single trailing snackbar confirm success OR failure.
       updateSound({
-        album: trimmedAlbum,
         artist: trimmedArtist,
         name: trimmedName,
-        releaseYear,
         soundId,
       })
         .then(() => showSnackbar(t('snackbar.sound-updated')))
@@ -223,7 +190,6 @@ export function EditSoundSheet({
       const picked = pickedCover ? await uploadCover(pickedCover) : null;
 
       await createSound({
-        album: trimmedAlbum,
         artist: trimmedArtist,
         cover: picked,
         art: tags?.picture
@@ -231,7 +197,6 @@ export function EditSoundSheet({
           : null,
         localAudioUri: pickedFile.uri,
         name: trimmedName,
-        releaseYear,
       });
 
       showSnackbar(t('snackbar.sound-created'));
@@ -359,6 +324,16 @@ export function EditSoundSheet({
               )}
             </OutlinedTextField>
 
+            {/* TWO FIELDS. Album and Release Year are gone (Juan, 2026-08-21)
+                — a library that takes any MP3 holds ringtones and voice memos,
+                and asking those for an album is asking a question the app has
+                no use for. "Artist" became "Subtitle" for the same reason
+                "song" became "sound": the second line under a cover is whatever
+                the person wants written there. The stored FIELD stays `artist`,
+                exactly as the Firestore subcollection stays `songs`.
+
+                UNVERIFIED — nothing Android is installed or run while the
+                portfolio is iOS-only (root AGENTS.md). Re-check on device. */}
             <OutlinedTextField
               ref={artistFieldRef}
               value={artistState}
@@ -366,56 +341,17 @@ export function EditSoundSheet({
               singleLine
               keyboardOptions={{
                 capitalization: 'words',
-                imeAction: 'next',
+                imeAction: 'done',
               }}
-              modifiers={[fillMaxWidth()]}
-            >
-              <OutlinedTextField.Label>
-                <Text>{t('soundEdit.artist.label')}</Text>
-              </OutlinedTextField.Label>
-              <OutlinedTextField.Placeholder>
-                <Text>{t('soundEdit.artist.placeholder')}</Text>
-              </OutlinedTextField.Placeholder>
-            </OutlinedTextField>
-
-            <OutlinedTextField
-              value={albumState}
-              onValueChange={setAlbum}
-              singleLine
-              keyboardOptions={{
-                capitalization: 'words',
-                imeAction: 'next',
-              }}
-              modifiers={[fillMaxWidth()]}
-            >
-              <OutlinedTextField.Label>
-                <Text>{t('soundEdit.album.label')}</Text>
-              </OutlinedTextField.Label>
-              <OutlinedTextField.Placeholder>
-                <Text>{t('soundEdit.album.placeholder')}</Text>
-              </OutlinedTextField.Placeholder>
-            </OutlinedTextField>
-
-            <OutlinedTextField
-              value={yearState}
-              onValueChange={setYear}
-              singleLine
-              isError={yearInvalid}
-              keyboardOptions={{ keyboardType: 'number', imeAction: 'done' }}
               keyboardActions={{ onDone: save }}
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
-                <Text>{t('soundEdit.year.label')}</Text>
+                <Text>{t('soundEdit.subtitle.label')}</Text>
               </OutlinedTextField.Label>
               <OutlinedTextField.Placeholder>
-                <Text>{t('soundEdit.year.placeholder')}</Text>
+                <Text>{t('soundEdit.subtitle.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
-              {yearInvalid && (
-                <OutlinedTextField.SupportingText>
-                  <Text>{t('soundEdit.year.error')}</Text>
-                </OutlinedTextField.SupportingText>
-              )}
             </OutlinedTextField>
 
             {soundId ? (
