@@ -63,6 +63,20 @@ const GRID_CELL = 178;
  * proportionally larger caption. Compared on device against 15/13 and 16/14
  * (16 is `callout`, but 14 is nothing on the ladder — that pair was off it).
  *
+ * WEIGHT STAYS REGULAR, and the split with the banner is deliberate. The same
+ * song name is semibold in the collapsed banner (`miniTitle`) and bold in the
+ * expanded console, and one rule explains all three: WHERE THE ANCHOR IS. The
+ * banner and the console have no artwork to carry the message, so the name IS
+ * the message and takes the weight. Here the message is 178pt of cover and the
+ * name is its label — which is also why Topper's rail tile captions regular,
+ * and this grid should not drift off that.
+ *
+ * Rendered against Medium and Semibold in both appearances (2026-08-20). 17/600
+ * is `headline`, so it is on the ladder and it does read more deliberate, but
+ * it turns a calm library into a store listing and puts the caption in
+ * competition with the cover. 17/500 was rejected outright: Medium is not a
+ * named iOS style, the same defect that ruled out 16/14 above.
+ *
  * The `+ 5` leading below is not a house rule either: it reproduces Apple's own
  * for both, 17/22 and 15/20. If either size moves off this pair, check the
  * leading against the real style rather than keeping the arithmetic.
@@ -164,6 +178,11 @@ export function SongTile({
           </View>
         ) : null}
       </View>
+      {/* ACTIVE IS COLOUR ONLY, and stays that way. The state is already
+          carried non-chromatically by the bars over the artwork, so the tint is
+          never the sole signal. Weight would also re-truncate: "Nightmare"
+          measures 77.00pt regular against 82.00pt semibold — 6.5% wider — so a
+          name that just fits would ellipsize the moment it started playing. */}
       <Text
         doNotTranslate
         text={song.name}
