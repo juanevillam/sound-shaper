@@ -1,9 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Slider } from '@expo/ui/swift-ui';
+import { tint } from '@expo/ui/swift-ui/modifiers';
 
 import { Text } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 
 import { type PlayerScrubberProps } from './chrome';
@@ -28,10 +30,19 @@ export function PlayerScrubber({
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.block}>
       <ThemedHost style={styles.host}>
         <Slider
+          // MONOCHROME, like every other control on this surface. A
+          // now-playing screen is tinted by its ARTWORK — that is what
+          // `PlayerBackdrop` paints — and Apple leaves the controls on top in
+          // the content colour rather than the accent. The default `Slider`
+          // fills its played portion with the system tint, which is the last
+          // place `colors.primary` survived on the iOS console.
+          modifiers={[tint(colors.onSurface)]}
           value={Math.min(position, duration)}
           min={0}
           max={duration}
@@ -45,12 +56,14 @@ export function PlayerScrubber({
         <Text
           doNotTranslate
           muted
+          style={styles.time}
           text={formatTime(position)}
           variant="labelMedium"
         />
         <Text
           doNotTranslate
           muted
+          style={styles.time}
           text={formatTime(totalDuration)}
           variant="labelMedium"
         />
@@ -70,6 +83,14 @@ export function PlayerScrubber({
 
 const styles = StyleSheet.create({
   block: { width: '100%' },
+  /**
+   * TABULAR FIGURES. The elapsed readout changes every second and SF's
+   * proportional digits are not the same width, so a leading `1` shifts the
+   * whole label sideways as it ticks — a control that twitches once a second
+   * beside a slider that does not. `tabular-nums` is what SwiftUI's
+   * `monospacedDigit` does, which is what Apple sets on every running timer.
+   */
+  time: { fontVariant: ['tabular-nums'] },
   host: { height: SLIDER_HEIGHT, width: '100%' },
   labels: {
     flexDirection: 'row',
