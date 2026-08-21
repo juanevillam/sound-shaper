@@ -22,6 +22,7 @@ import {
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
+import { HeaderSettingsButton } from '@/components/ui/HeaderSettingsButton';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
