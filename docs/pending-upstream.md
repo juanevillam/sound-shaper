@@ -310,3 +310,38 @@ leading ✕. State lives in colour; the glass stays real.
 (or `rightBarButtonItems` with style control — see the two-capsule entry
 above, same underlying gap). On the day it lands: `SheetCommitGlyphIos`
 becomes a styled bar item and the fill returns as Apple draws it.
+
+## The play/pause SYMBOL REPLACE transition — blocked on `@expo/ui`
+
+**What we want.** Apple's transport does not hard-swap `play.fill` for
+`pause.fill`; it MORPHS them, which is `.contentTransition(.symbolEffect(.replace))`
+in SwiftUI. It is the single cheapest piece of life a now-playing screen has,
+it is what Music, Podcasts and Control Center all do, and it costs nothing —
+the symbol is already an `Image` in `TransportGlyphs.ios`.
+
+**Why it isn't built.** On `@expo/ui` 57 neither half of the API is reachable:
+
+| symbol to grep for  | what 57 exposes                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `contentTransition` | `'numericText' \| 'identity' \| 'opacity' \| 'interpolate'`                            |
+| `symbolEffect`      | appear/bounce/breathe/disappear/drawOn/drawOff/pulse/rotate/scale/variableColor/wiggle |
+
+`.replace` appears in neither list — `contentTransition` has no
+`symbolEffect` case, and `symbolEffect`'s union has no `replace` member (it
+carries only the indefinite and discrete effects, none of which is a
+content swap).
+
+`contentTransition('interpolate')` on one `Image` whose `systemName` changes is
+the nearest reachable thing and is NOT a substitute: interpolate morphs between
+two renderings of the SAME symbol, and these are two different symbols with
+different path counts.
+
+**What SHIPPED instead.** Two `Image`s behind a conditional — React unmounts
+one and mounts the other, so the glyph changes on a frame with no transition.
+Correct, just inert.
+
+**What unlocks it.** `@expo/ui` adding `'symbolEffect'` to `contentTransition`'s
+union (or a `replace` member on `SymbolEffect`). On the day it lands:
+`TransportGlyphs.ios` gains a single `PlayPauseGlyph` holding ONE `Image` whose
+`systemName` is driven by `playing`, carrying the modifier — the two-component
+split exists only because the swap is inert today.

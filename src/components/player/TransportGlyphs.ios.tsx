@@ -37,9 +37,24 @@ import { type TransportGlyphProps } from './TransportGlyphs';
 
 /** Default point size — matches the ink the drawn glyphs occupied (~14–16pt). */
 const GLYPH_POINT_SIZE = 19;
-/** The box the host reserves. Square and generous enough for the widest of the
- *  four (`forward.end.fill`) so no symbol is clipped. */
-const GLYPH_BOX = 24;
+
+/**
+ * The box the host reserves, as a multiple of the POINT SIZE — never a fixed
+ * number. It was a hard 24 while every call site rendered at 19, which held
+ * exactly as long as that stayed true: the console's transport asks for a
+ * play glyph at more than twice that, and a 44pt symbol in a 24pt box is
+ * clipped on all four sides.
+ *
+ * The box has to clear the WIDEST of the four (`forward.end.fill`, whose bar
+ * and triangle run wider than a symbol's nominal point size) with room for its
+ * optical bearing. Measured against the four at 19 and at 44; 1.3 clears every
+ * one without padding the row out.
+ *
+ * A ratio, not a step, because this is GEOMETRY inside its own box — the rule
+ * that governs `artworkRadius` and `emptyMediaPlusStyle`. The point size it
+ * multiplies is the thing that steps.
+ */
+const GLYPH_BOX_RATIO = 1.3;
 
 const Glyph = ({
   color,
@@ -47,13 +62,20 @@ const Glyph = ({
   systemName,
 }: TransportGlyphProps & {
   systemName: NonNullable<ImageProps['systemName']>;
-}) => (
-  <View style={styles.box} pointerEvents="none">
-    <SwiftUIHost style={styles.host} ignoreSafeArea="all">
-      <Image systemName={systemName} size={size} color={color} />
-    </SwiftUIHost>
-  </View>
-);
+}) => {
+  const box = Math.round(size * GLYPH_BOX_RATIO);
+
+  return (
+    <View
+      style={[styles.box, { height: box, width: box }]}
+      pointerEvents="none"
+    >
+      <SwiftUIHost style={{ height: box, width: box }} ignoreSafeArea="all">
+        <Image systemName={systemName} size={size} color={color} />
+      </SwiftUIHost>
+    </View>
+  );
+};
 
 export const PlayGlyph = (props: TransportGlyphProps) => (
   <Glyph {...props} systemName="play.fill" />
@@ -72,11 +94,5 @@ export const PreviousGlyph = (props: TransportGlyphProps) => (
 );
 
 const styles = StyleSheet.create({
-  box: {
-    alignItems: 'center',
-    height: GLYPH_BOX,
-    justifyContent: 'center',
-    width: GLYPH_BOX,
-  },
-  host: { height: GLYPH_BOX, width: GLYPH_BOX },
+  box: { alignItems: 'center', justifyContent: 'center' },
 });
