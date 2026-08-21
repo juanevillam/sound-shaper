@@ -140,27 +140,6 @@ const TRANSPORT_GAP = 30;
 const BAR_GLYPH_SIZE = 20;
 
 /**
- * THE BAR GLYPHS STAND ON GLASS, and it is a readability guarantee rather than
- * decoration.
- *
- * The artwork wash is at full strength now, which means the top band takes the
- * cover's own colour — and the bar row sits in exactly the part of the gradient
- * that is least scrimmed. A near-black cover in LIGHT mode puts black glyphs on
- * a (36,36,36) ground: 1.35:1, unreadable. Solving that with a scrim floor
- * needs ~0.37 of page colour at the top, which would flatten the wash for
- * precisely the covers it should be strongest on.
- *
- * So the glyphs get their own ground instead — the portfolio's floating
- * material, whose `GLASS_FLOOR` is the measured term that lifts whatever is
- * behind it toward the page colour. It is also what Apple does: Photos puts its
- * viewer controls on glass over arbitrary photography for this exact reason.
- *
- * A CIRCLE, sized to the tap target, so the two read as the bar items they are
- * — the same shape UIKit gives a real `headerLeft`/`headerRight` glyph.
- */
-const BAR_GLASS = PLAYER_BAR_TARGET;
-
-/**
  * The collapse glyph. It is NOT in `TransportGlyphs.ios` — that module is the
  * four transport symbols and a chevron is not one of them — and it states its
  * box for the same reason everything else in this row does.
@@ -170,16 +149,6 @@ function CollapseGlyph({ color }: { color: string }) {
     <SwiftUIHost style={styles.barGlyphHost} ignoreSafeArea="all">
       <Image systemName="chevron.down" size={BAR_GLYPH_SIZE} color={color} />
     </SwiftUIHost>
-  );
-}
-
-/** The glass disc under a bar glyph. Decorative and pointer-transparent — the
- *  glyph's own control sits above it and keeps the touch. */
-function BarGlass() {
-  return (
-    <View pointerEvents="none" style={styles.barGlass}>
-      <GlassSurfaceIos width={BAR_GLASS} height={BAR_GLASS} shape="capsule" />
-    </View>
   );
 }
 
@@ -421,21 +390,15 @@ export function PlayerConsole({
           and Switch Control can reach (this is not a real UIKit sheet, so
           nothing publishes a dismiss action on its behalf). */}
       <View style={[styles.barRow, { paddingTop: insets.top }]}>
-        <View style={styles.barItem}>
-          <BarGlass />
-          <GlyphButton
-            accessibilityLabel={t('common.back')}
-            hitSlop={0}
-            onPress={onCollapse}
-            style={styles.barSlot}
-          >
-            <CollapseGlyph color={colors.onSurface} />
-          </GlyphButton>
-        </View>
-        <View style={styles.barItem}>
-          <BarGlass />
-          <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
-        </View>
+        <GlyphButton
+          accessibilityLabel={t('common.back')}
+          hitSlop={0}
+          onPress={onCollapse}
+          style={styles.barSlot}
+        >
+          <CollapseGlyph color={colors.onSurface} />
+        </GlyphButton>
+        <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
       </View>
 
       <View
@@ -599,13 +562,6 @@ const styles = StyleSheet.create({
     right: 0,
   },
   barGlyphHost: { height: PLAYER_BAR_TARGET, width: PLAYER_BAR_TARGET },
-  barItem: {
-    alignItems: 'center',
-    height: BAR_GLASS,
-    justifyContent: 'center',
-    width: BAR_GLASS,
-  },
-  barGlass: { height: BAR_GLASS, position: 'absolute', width: BAR_GLASS },
   barSlot: {
     alignItems: 'center',
     height: PLAYER_BAR_TARGET,
