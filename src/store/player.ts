@@ -76,6 +76,30 @@ type PlayerState = {
 // counts as "the new stream has actually started".
 const START_EPSILON_S = 1;
 
+/**
+ * RESTART THE SOUND THAT IS ALREADY LOADED — a seek, not a reload.
+ *
+ * This is what "previous" does when you are deep into a track, and what a
+ * one-sound queue does in either direction. It used to bump `loadNonce`, which
+ * tears the `<Audio>` element down and mounts a fresh one — and a fresh remote
+ * element is not free: react-native-audio-api probes the URL for byte-range
+ * support (a HEAD, or a Range GET where HEAD is blocked) before it can stream,
+ * then opens a new connection and rebuilds the EQ graph from scratch. For a
+ * track whose bytes are already flowing, all of that buys nothing.
+ *
+ * A remount is still the right answer for an ENDED element — a plain `play()`
+ * on one does nothing, which is the whole reason `loadNonce` exists. This is
+ * the other case: the element is alive, so the playhead just moves.
+ */
+const restartLoaded = (set: (partial: Partial<PlayerState>) => void): void => {
+  audioEngine.seek(0);
+  audioEngine.play();
+  // `pendingStart` for the same reason a reload sets it: a position report can
+  // already be in flight from before the seek, and letting it land would put
+  // the playhead back where the restart just moved it away from.
+  set({ activeClip: null, pendingStart: true, position: 0, playing: true });
+};
+
 // The fresh-transport reset a (re)load shares.
 const loadReset = (nonce: number) => ({
   activeClip: null,
@@ -170,7 +194,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     // Deep into a sound, "previous" restarts it — the universal player idiom.
     if (position > RESTART_THRESHOLD_S) {
-      set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
+      restartLoaded(set);
       return;
     }
 
@@ -181,7 +205,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         : undefined;
 
     if (!previousSound) {
-      set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
+      restartLoaded(set);
       return;
     }
 
