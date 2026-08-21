@@ -7,18 +7,14 @@ import {
   StyleSheet,
   View,
   useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
 } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 import {
+  artworkRadius,
   FLOATING_COPY_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
-  ICON_PRESS_OPACITY,
-  ICON_PRESS_SCALE,
-  usePressSquash,
 } from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
 import { router } from 'expo-router';
@@ -48,16 +44,15 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import {
-  HANDLES_REGION_HEIGHT,
+  playerArtSize,
+  playerArtTop,
+  playerConsoleTop,
   type PlayerCard,
 } from '@/components/player/chrome';
-import { ClipActionsRow } from '@/components/player/ClipActionsRow';
-import { ClipHandles } from '@/components/player/ClipHandles';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
+import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
-import { PlayerCards } from '@/components/player/PlayerCards';
-import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
-import { PlayerScrubber } from '@/components/player/PlayerScrubber';
+import { PlayerConsole } from '@/components/player/PlayerConsole';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SongInfoSheet } from '@/components/player/SongInfoSheet';
 import {
@@ -67,7 +62,6 @@ import {
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
 import { EditSongSheet } from '@/components/songs/EditSongSheet';
-import { IconButton } from '@/components/ui/IconButton';
 import { SongArt } from '@/components/ui/SongArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { TROPHY_IDS } from '@/constants/trophies';
@@ -76,7 +70,7 @@ import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { formatTime, rateLabel } from '@/lib/player';
+import { rateLabel } from '@/lib/player';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
@@ -216,13 +210,6 @@ const MINI_COPY_GAP = FLOATING_COPY_GAP;
 const MINI_ROW_PADDING_RIGHT =
   MINI_TRAILING_GLYPH_INSET - (MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2;
 
-// Extra room under the scrubber WHILE FRAMING A CLIP only. Framing adds a
-// third line (the range) under the elapsed/total pair, which without this
-// crowds straight into the play button. The default player keeps its original
-// tight column — there is no third line to make room for. iOS gets more: SF's
-// shorter labels leave less optical air of their own.
-const CLIP_FRAMING_GAP = Platform.select({ ios: 16, default: 8 }) as number;
-
 // iOS trades the banner's solid fill for real Liquid Glass, so the library's
 // cover art reads through it. The player it becomes is opaque, so the fill
 // ramps in — and the glass out — over this window, fast enough that the
@@ -308,56 +295,9 @@ const SKIP_FAIL_Y = 28;
 // Settles without overshoot — a bouncy song swap looks like a glitch.
 const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 
-const PLAY_BUTTON_SIZE = 64;
-const SIDE_PADDING = 24;
-
 // Stable fallback for the clips selector (an inline `?? []` loops
 // useSyncExternalStore into "maximum update depth exceeded").
 const NO_CLIPS: never[] = [];
-
-type GlyphButtonProps = {
-  children: React.ReactNode;
-  onPress: () => void;
-  accessibilityLabel: string;
-  hitSlop?: number;
-  style?: StyleProp<ViewStyle>;
-};
-
-/**
- * The transport buttons. Their glyphs are hand-drawn Views rather than icons
- * (a Compose Icon here would blink on navigation returns — the drag-dots
- * lesson), so they can't go through `components/ui/IconButton` — but they use
- * the same press feedback it does, which is the point: one squash, both
- * platforms, no `android_ripple` that iOS silently ignores.
- */
-function GlyphButton({
-  children,
-  onPress,
-  accessibilityLabel,
-  hitSlop = MINI_BUTTON_HIT_SLOP,
-  style,
-}: GlyphButtonProps) {
-  const squash = usePressSquash({
-    scale: ICON_PRESS_SCALE,
-    opacity: ICON_PRESS_OPACITY,
-  });
-
-  return (
-    <Animated.View style={squash.style}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={squash.onPressIn}
-        onPressOut={squash.onPressOut}
-        hitSlop={hitSlop}
-        style={style}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
-  );
-}
 
 export function PlayerSheet() {
   const { t } = useI18n();
@@ -406,11 +346,23 @@ export function PlayerSheet() {
   // is moderate (~58% width) so the whole console fits without scrolling.
   const miniTotal = MINI_PLAYER_HEIGHT + bannerBottomOffset(bottomInset);
   const travel = winH - miniTotal;
-  const artFull = Math.min(Math.round(winW * 0.58), 260);
+  // The console's box is SHARED with whichever twin renders it — see
+  // `chrome.ts`. The sheet may only place the artwork (it is the element that
+  // travels), so the two halves of one geometry cannot be derived twice.
+  const artFull = playerArtSize(winW);
+  /**
+   * THE COVER'S CORNER IS A RATIO OF THE COVER, not a container constant.
+   * This drew `TILE_RADIUS` — the grouped-CARD radius, 26 whatever the box —
+   * which was within a point of right while the expanded art was 233 and is
+   * plainly wrong now that it is the content box's full width: 26 on 370 is
+   * 0.070 of it, against the term's 0.15. `artworkRadius` exists for exactly
+   * this drift and the player was the one caller that never adopted it.
+   */
+  const artFullRadius = artworkRadius(artFull, TILE_RADIUS);
   const artExpandedX = (winW - artFull) / 2;
-  const artExpandedY = insets.top + 60;
+  const artExpandedY = playerArtTop(insets.top);
   const artScaleMin = MINI_ART_SIZE / artFull;
-  const contentTop = artExpandedY + artFull + 36;
+  const contentTop = playerConsoleTop(artExpandedY, artFull);
 
   const progress = useSharedValue(0);
   const [expanded, setExpanded] = useState(false);
@@ -755,7 +707,7 @@ export function PlayerSheet() {
     // Counter-scale the corner so the rendered radius lands on the values
     // above instead of shrinking with the artwork.
     const renderedRadius =
-      MINI_ART_RADIUS + (TILE_RADIUS - MINI_ART_RADIUS) * p;
+      MINI_ART_RADIUS + (artFullRadius - MINI_ART_RADIUS) * p;
 
     return {
       borderRadius: renderedRadius / scale,
@@ -1102,6 +1054,7 @@ export function PlayerSheet() {
             {/* Skipping wraps, so previous always leads somewhere — the
                 banner never drops a control depending on queue position. */}
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={onPrevious}
               style={styles.miniButton}
               accessibilityLabel={t('player.previous')}
@@ -1109,6 +1062,7 @@ export function PlayerSheet() {
               <PreviousGlyph color={colors.onSurface} />
             </GlyphButton>
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={onToggle}
               style={styles.miniButton}
               accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
@@ -1120,6 +1074,7 @@ export function PlayerSheet() {
               )}
             </GlyphButton>
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={onNext}
               style={styles.miniButton}
               accessibilityLabel={t('player.next')}
@@ -1129,209 +1084,57 @@ export function PlayerSheet() {
           </Animated.View>
         </GestureDetector>
 
-        {/* Expanded chrome. */}
-        <Animated.View
-          style={[styles.expanded, expandedStyle]}
-          pointerEvents={expanded ? 'auto' : 'none'}
-        >
-          {/* One full-width drag-to-close zone spanning everything above the
-              console (header row, the gutters beside the art). Buttons and
-              the art render ABOVE it, so they keep their own touches. */}
-          <GestureDetector gesture={topGesture}>
-            <View style={[styles.dragZone, { height: contentTop }]} />
-          </GestureDetector>
-
-          <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-            <IconButton
-              name="chevron-down"
-              onPress={collapse}
-              accessibilityLabel={t('common.back')}
-            />
-            {/* Song overflow: metadata + the same edit/delete sheet the
-                library's long-press opens. Compose anchors a dropdown to the
-                trigger; iOS opens the system action sheet instead. Both twins
-                size their own touch target, so there is no wrapper here — one
-                would only decentre the smaller of the two. */}
-            <PlayerMenuButton
-              onInfo={() =>
-                Platform.OS === 'ios'
-                  ? router.push('/sound-info')
-                  : setInfoVisible(true)
-              }
-              onEdit={() =>
-                Platform.OS === 'ios'
-                  ? router.push({
-                      pathname: '/edit-sound',
-                      params: { songId: current.id },
-                    })
-                  : setEditVisible(true)
-              }
-            />
-          </View>
-
-          {/* The console below the art — a fixed column, nothing scrolls. */}
-          <View style={[styles.expandedBody, { top: contentTop }]}>
-            <GestureDetector gesture={titleGesture}>
-              <View style={styles.titleSlot}>
-                <Animated.View style={[styles.titleBlock, pagerStyle]}>
-                  <AppText
-                    doNotTranslate
-                    text={current.name}
-                    variant="titleLarge"
-                    numberOfLines={1}
-                    style={styles.titleText}
-                  />
-                  <AppText
-                    doNotTranslate
-                    muted
-                    text={subtitle}
-                    variant="bodyMedium"
-                    numberOfLines={1}
-                  />
-                </Animated.View>
-
-                {/* The neighbours' text rides the same pager as their artwork,
-                    so the title arrives WITH the swipe. Absolutely positioned,
-                    so they never affect the console's layout. */}
-                {expanded
-                  ? (
-                      [
-                        { song: neighbours.previous, side: -1 },
-                        { song: neighbours.next, side: 1 },
-                      ] as const
-                    ).map(({ song, side }) =>
-                      song ? (
-                        <Animated.View
-                          key={`title:${side}:${song.id}`}
-                          pointerEvents="none"
-                          style={[
-                            styles.titleBlock,
-                            styles.titleGhost,
-                            { left: side * winW },
-                            pagerStyle,
-                          ]}
-                        >
-                          <AppText
-                            doNotTranslate
-                            text={song.name}
-                            variant="titleLarge"
-                            numberOfLines={1}
-                            style={styles.titleText}
-                          />
-                          <AppText
-                            doNotTranslate
-                            muted
-                            text={song.artist || ' '}
-                            variant="bodyMedium"
-                            numberOfLines={1}
-                          />
-                        </Animated.View>
-                      ) : null,
-                    )
-                  : null}
-              </View>
-            </GestureDetector>
-
-            {/* THE scrubber — always the native slider. While framing, the
-                tertiary trim brackets ride on top (Google Photos): edges
-                resize, the tinted middle slides the whole clip. */}
-            <View
-              style={[
-                styles.sliderBlock,
-                clipMode && styles.sliderBlockFraming,
-              ]}
-            >
-              <PlayerScrubber
-                position={position}
-                duration={duration}
-                totalDuration={storeDuration}
-                clipLabel={
-                  clipMode
-                    ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
-                    : null
-                }
-                onDrag={value => {
-                  lastDragRef.current = value;
-                  setDragValue(value);
-                }}
-                onDragEnd={() => {
-                  // seek() also ends any clip replay.
-                  seek(lastDragRef.current);
-                  setDragValue(null);
-                }}
-              />
-              {clipMode ? (
-                <View style={styles.handlesRegion} pointerEvents="box-none">
-                  <ClipHandles
-                    durationS={trimmerDuration}
-                    startS={clipRange.startS}
-                    endS={clipRange.endS}
-                    onChange={(startS, endS) => setClipRange({ startS, endS })}
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            {/* Transport in RN, not Compose: a Compose IconButton's state
-                layer is invisible on this dark surface. Feedback is the app's
-                squash, which — unlike the ripple these used to carry — also
-                exists on iOS. */}
-            <View style={styles.transportRow}>
-              <GlyphButton
-                onPress={onPrevious}
-                hitSlop={12}
-                style={styles.transportSide}
-                accessibilityLabel={t('player.previous')}
-              >
-                <PreviousGlyph color={colors.onSurface} />
-              </GlyphButton>
-              <GlyphButton
-                onPress={onToggle}
-                hitSlop={12}
-                style={[
-                  styles.transportPlay,
-                  { backgroundColor: colors.primary },
-                ]}
-                accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
-              >
-                {playing ? (
-                  <PauseGlyph color={colors.onPrimary} />
-                ) : (
-                  <PlayGlyph color={colors.onPrimary} />
-                )}
-              </GlyphButton>
-              <GlyphButton
-                onPress={onNext}
-                hitSlop={12}
-                style={styles.transportSide}
-                accessibilityLabel={t('player.next')}
-              >
-                <NextGlyph color={colors.onSurface} />
-              </GlyphButton>
-            </View>
-
-            {/* While framing a clip, the action row takes the cards' place. */}
-            {clipMode ? (
-              <View style={styles.firstCardHost}>
-                <ClipActionsRow
-                  onCancel={() => setClipMode(false)}
-                  onPreview={onPreviewClip}
-                  onSave={onSaveClip}
-                />
-              </View>
-            ) : (
-              /* Shape + Clips — the two studios, side by side as the
-                 console's footer. Outlined, not filled: a filled surface sat
-                 as two slabs on top of the artwork wash and cut the gradient
-                 in half. A hairline outline keeps the wash running edge to
-                 edge, and one row of two instead of two stacked rows gives
-                 ~90dp of it back. */
-              <View style={[styles.cardHost, styles.firstCardHost]}>
-                <PlayerCards cards={cards} />
-              </View>
-            )}
-          </View>
-        </Animated.View>
+        <PlayerConsole
+          cards={cards}
+          clipMode={clipMode}
+          clipRange={clipRange}
+          consoleStyle={expandedStyle}
+          contentTop={contentTop}
+          duration={duration}
+          expanded={expanded}
+          neighbours={neighbours}
+          onClipCancel={() => setClipMode(false)}
+          onClipPreview={onPreviewClip}
+          onClipRangeChange={(startS, endS) => setClipRange({ startS, endS })}
+          onClipSave={onSaveClip}
+          onCollapse={collapse}
+          onEdit={() =>
+            Platform.OS === 'ios'
+              ? router.push({
+                  pathname: '/edit-sound',
+                  params: { songId: current.id },
+                })
+              : setEditVisible(true)
+          }
+          onInfo={() =>
+            Platform.OS === 'ios'
+              ? router.push('/sound-info')
+              : setInfoVisible(true)
+          }
+          onNext={onNext}
+          onPrevious={onPrevious}
+          onScrub={value => {
+            lastDragRef.current = value;
+            setDragValue(value);
+          }}
+          onScrubEnd={() => {
+            // seek() also ends any clip replay.
+            seek(lastDragRef.current);
+            setDragValue(null);
+          }}
+          onToggle={onToggle}
+          pagerStyle={pagerStyle}
+          playing={playing}
+          position={position}
+          songId={current.id}
+          subtitle={subtitle}
+          title={current.name}
+          titleGesture={titleGesture}
+          topGesture={topGesture}
+          totalDuration={storeDuration}
+          trimmerDuration={trimmerDuration}
+          winW={winW}
+        />
 
         {/* THE shared artwork — one element across both states, so the
             transition can't pop or resize discontinuously. Drag it down to
@@ -1354,7 +1157,7 @@ export function PlayerSheet() {
                     styles.art,
                     CONTINUOUS_CURVE,
                     {
-                      borderRadius: TILE_RADIUS,
+                      borderRadius: artFullRadius,
                       height: artFull,
                       left: artExpandedX + side * winW,
                       top: artExpandedY,
@@ -1540,6 +1343,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         {first ? (
           <>
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={() => startAt(ordered[ordered.length - 1])}
               style={styles.miniButton}
               accessibilityLabel={t('player.previous')}
@@ -1547,6 +1351,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               <PreviousGlyph color={colors.onSurface} />
             </GlyphButton>
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={start}
               style={styles.miniButton}
               accessibilityLabel={t('player.play')}
@@ -1554,6 +1359,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               <PlayGlyph color={colors.onSurface} />
             </GlyphButton>
             <GlyphButton
+              hitSlop={MINI_BUTTON_HIT_SLOP}
               onPress={() => startAt(ordered[1] ?? first)}
               style={styles.miniButton}
               accessibilityLabel={t('player.next')}
@@ -1666,86 +1472,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: MINI_BUTTON_WIDTH,
   },
-  expanded: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  expandedTop: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingLeft: 12,
-    paddingRight: 12,
-  },
-  // The invisible drag-to-close surface behind the whole header region.
-  dragZone: {
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  expandedBody: {
-    bottom: 0,
-    left: 0,
-    paddingHorizontal: SIDE_PADDING,
-    position: 'absolute',
-    right: 0,
-  },
-  titleSlot: { width: '100%' },
-  titleBlock: {
-    gap: 3,
-    paddingBottom: 18,
-    width: '100%',
-  },
-  // Overlays the real title block, so a neighbour's text costs no layout.
-  titleGhost: { position: 'absolute', top: 0 },
-  titleText: { fontWeight: '700' },
-  host: { width: '100%' },
-  transportRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 28,
-    justifyContent: 'center',
-    paddingVertical: 4,
-    width: '100%',
-  },
-  transportSide: {
-    alignItems: 'center',
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
-  },
-  transportPlay: {
-    alignItems: 'center',
-    borderRadius: PLAY_BUTTON_SIZE / 2,
-    height: PLAY_BUTTON_SIZE,
-    justifyContent: 'center',
-    width: PLAY_BUTTON_SIZE,
-  },
-  sliderBlock: { position: 'relative', width: '100%' },
-  sliderBlockFraming: { marginBottom: CLIP_FRAMING_GAP },
-  // The brackets ride the slider row — never down into the time labels.
-  handlesRegion: {
-    height: HANDLES_REGION_HEIGHT,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  clipActionsHost: {
-    height: 56,
-    width: '100%',
-  },
-  cardHost: {
-    height: 96,
-    marginTop: 12,
-    width: '100%',
-  },
-  // Extra air between the transport and the first card.
-  firstCardHost: { marginTop: 28 },
   art: { overflow: 'hidden', position: 'absolute', ...CONTINUOUS_CURVE },
   artMedia: { height: '100%', width: '100%' },
 });
