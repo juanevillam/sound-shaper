@@ -14,6 +14,7 @@ import {
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import { DestructiveConfirmDialog } from '@portfolio/mobile-ui';
 
+import { ArtImage } from '@/components/ui/ArtImage';
 import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
 import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -26,6 +27,9 @@ import { type Id3Tags } from '@/lib/id3';
 import { createSong, deleteSong, updateSong } from '@/services/firebase/songs';
 import { usePlayerStore } from '@/store/player';
 import { useSongsStore } from '@/store/songs';
+
+/** The picture fills the slot the package sized and clipped. */
+const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
 
 /** A freshly picked .mp3, parsed: the parent runs the document picker + ID3
  *  read BEFORE mounting this sheet, so the form opens already prefilled. */
@@ -236,11 +240,22 @@ export function EditSongSheet({
               <RNHostView matchContents>
                 <MediaPickerAvatar
                   onPress={() => {}}
+                  accessibilityLabel={t('common.pickMedia')}
                   disabled
                   surfaceColor={colors.surfaceVariant}
                   contentColor={colors.onSurfaceMuted}
                   emoji="🎵"
-                  imageUrl={artPreviewUri}
+                  // Same `ArtImage` the slot rendered internally before it
+                  // moved to the package — ANDROID IS FROZEN and this keeps
+                  // its output identical, tokens and circle included.
+                  preview={
+                    artPreviewUri ? (
+                      <ArtImage
+                        uri={artPreviewUri}
+                        style={MEDIA_PREVIEW_FILL}
+                      />
+                    ) : null
+                  }
                 />
               </RNHostView>
               <Text
