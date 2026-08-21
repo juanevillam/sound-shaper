@@ -6,7 +6,7 @@ import {
   SwipeActions,
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
-import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
+import { foregroundStyle, tint } from '@expo/ui/swift-ui/modifiers';
 import {
   EmptyState,
   HeaderGlyphButtonIos,
@@ -149,10 +149,15 @@ function ClipsSheetScreen() {
                       pushes the text completely away. The old note also cited
                       Mail as glyph-only and put a labelled action at ~110pt;
                       neither survived measurement. */}
+                    {/* TINTED EXPLICITLY — a swipe action takes its background
+                        from the inherited `tint`, and `SheetFormBodyIos` tints
+                        the Form `primary`, so `role="destructive"` alone
+                        rendered this BLUE. */}
                     <Button
                       role="destructive"
                       label={t('player.clips.delete')}
                       systemImage="trash"
+                      modifiers={[tint(colors.danger)]}
                       onPress={() => onDelete(clip.id)}
                     />
                   </SwipeActions.Actions>
