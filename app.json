@@ -96,6 +96,14 @@
           "androidFSTypes": ["mediaPlayback"],
           "iosBackgroundMode": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false,
+          "cameraPermission": false,
+          "photosPermission": "Sound Shaper uses your photo library so you can set cover art for your sounds."
+        }
       ]
     ],
     "experiments": {
