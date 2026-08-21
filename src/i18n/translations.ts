@@ -195,6 +195,11 @@ export const translations = {
         title: 'Account',
         sheetTitle: 'Account',
         noName: 'Your Account',
+        // The legend under the name on Settings' account banner — what is
+        // behind the row, in Apple's construction (App Store: "Account info,
+        // payments and settings"). Sentence case, no period: it is a
+        // description, not a label.
+        summary: 'Account info and trophies',
       },
       trophies: 'Trophies',
       manageAccount: {
@@ -470,6 +475,7 @@ export const translations = {
         title: 'Cuenta',
         sheetTitle: 'Cuenta',
         noName: 'Tu cuenta',
+        summary: 'Información de la cuenta y trofeos',
       },
       trophies: 'Trofeos',
       manageAccount: {
@@ -745,6 +751,7 @@ export const translations = {
         title: '账户',
         sheetTitle: '账户',
         noName: '你的账户',
+        summary: '账户信息和奖杯',
       },
       trophies: '奖杯',
       manageAccount: {
