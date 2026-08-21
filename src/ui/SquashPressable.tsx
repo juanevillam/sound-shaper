@@ -33,7 +33,21 @@ import Animated, {
 
 // expo-ui's Compose tree exposes no press-in/out events, so press feedback
 // lives on the RN side. Spring tuned like the old bare-RN app.
-export const PRESS_SCALE = 0.97;
+//
+// 0.96, NOT THE 0.97 THIS SHIPPED WITH (Juan, 2026-08-21). 3% is 5.3pt of
+// travel on a 178pt home tile and only 3.9 on a 131pt cell in Sound Shaper's
+// glass bar — subtle on the big surfaces and close to invisible on the small
+// ones, which is where he called it. 0.95 was rendered first and was too much;
+// 4% gives 7.1 and 5.2, half a step deeper, and it is one value for the whole
+// portfolio rather than a per-surface nudge, which is the point of this
+// constant existing at all.
+//
+// The alternative was a third named scale for "small card", between this and
+// `ICON_PRESS_SCALE` below. Rejected: the glass bar's compartments would be its
+// only caller today, and a press that differs between a tile and a card for no
+// reason a person can see is exactly what one shared spring prevents. If it
+// reads weak on a small cell it reads weak on a large one too.
+export const PRESS_SCALE = 0.96;
 export const PRESS_SPRING = { damping: 22, mass: 0.4, stiffness: 360 };
 
 /**
