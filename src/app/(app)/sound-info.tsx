@@ -35,7 +35,12 @@ function SoundInfoSheetScreen() {
         styles.sheet,
         {
           backgroundColor: colors.sheet,
-          paddingBottom: Math.max(bottom, 28),
+          // THE FAMILY'S RHYTHM, not this sheet's own. Every `fitToContents`
+          // info sheet in the portfolio stands its content 32 off both ends —
+          // Topper's `creator-info` and `item-detail`, and this app's
+          // `trophy-detail`. This one had drifted to 20/28 and was the only
+          // member sitting tighter than its siblings.
+          paddingBottom: Math.max(bottom, 32),
         },
       ]}
     >
@@ -71,7 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
   },
-  sheet: { gap: 14, paddingHorizontal: 24, paddingTop: 20 },
+  sheet: { gap: 14, paddingHorizontal: 24, paddingTop: 32 },
   value: { alignItems: 'flex-end', flex: 1 },
   valueText: { textAlign: 'right' },
 });

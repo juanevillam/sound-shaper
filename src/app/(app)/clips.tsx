@@ -7,8 +7,8 @@ import {
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
 import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
-import { SheetFormIos } from '@portfolio/mobile-ui';
-import { router } from 'expo-router';
+import { HeaderGlyphButtonIos, SheetFormBodyIos } from '@portfolio/mobile-ui';
+import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
@@ -60,11 +60,31 @@ function ClipsSheetScreen() {
     // `SheetScreen` for the toast — see `SnackbarOutlet`. Deleting a clip
     // confirms with a snackbar that drew behind this sheet.
     <SheetScreen>
-      <SheetFormIos
-        title={t('player.clips.title')}
-        actionLabel={t('player.clips.new')}
-        onAction={onNewClip}
-      >
+      {/* Real UIKit bar, Topper's standard — but NOT the commit-modal pair.
+          This sheet commits nothing: it lists what exists and its trailing
+          action ADDS one, so the glyph is `plus`. A ✓ would say "done" about a
+          form there is none of. Both slots are stated here, because a
+          screen-level `headerRight` REPLACES the close glyph the route table
+          supplies — the trap `HeaderGlyphGroupIos` records. */}
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <HeaderGlyphButtonIos
+              systemName="xmark"
+              label={t('common.close')}
+              onPress={() => router.back()}
+            />
+          ),
+          headerRight: () => (
+            <HeaderGlyphButtonIos
+              systemName="plus"
+              label={t('player.clips.new')}
+              onPress={onNewClip}
+            />
+          ),
+        }}
+      />
+      <SheetFormBodyIos>
         {clips.length === 0 ? (
           <Section>
             <SwiftUIText modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
@@ -117,7 +137,7 @@ function ClipsSheetScreen() {
             })}
           </Section>
         )}
-      </SheetFormIos>
+      </SheetFormBodyIos>
     </SheetScreen>
   );
 }

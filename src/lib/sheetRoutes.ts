@@ -13,19 +13,53 @@
 export const IOS_FORM_SHEETS: ReadonlyArray<{
   name: string;
   detents: 'fitToContents' | number[];
+  /**
+   * Give the sheet a real UIKit navigation bar — an inline title plus glass
+   * bar glyphs — instead of letting the screen draw its own heading in RN.
+   *
+   * TOPPER'S STANDARD, adopted here 2026-08-21. The three player editors drew
+   * an authored header row above their Form (`SheetFormIos`), and that
+   * arrangement cannot have genuine Liquid Glass: nothing ever scrolls behind
+   * an `HStack` that owns its own layout row, so its "glass" circles render
+   * flat. It also carried a FILLED PRIMARY DISC for ✓ — the nesting artifact
+   * Juan rejected on sight in Topper, recorded in `SheetFormIos`'s own
+   * docstring and in `docs/pending-upstream.md`.
+   *
+   * Titled sheets state their bar through `sheetCommitBarOptionsIos` (a
+   * commit-modal pair) or their own `Stack.Screen` slots, which override the
+   * close glyph this table's `titled` branch supplies by default.
+   */
+  titled?: boolean;
+  /** Translation key for the bar's title. Required when `titled`. */
+  titleKey?: string;
 }> = [
   { name: 'sound-info', detents: 'fitToContents' },
   // A native SwiftUI `Form` is a scroll container with no intrinsic height —
   // under `fitToContents` the sheet hugged the header and the form rendered
   // 0pt tall. A fractional detent gives it a definite box, and a large sheet
   // is the iOS idiom for an editor anyway.
-  { name: 'edit-sound', detents: [0.9] },
+  {
+    name: 'edit-sound',
+    detents: [0.9],
+    titled: true,
+    titleKey: 'app.songEdit',
+  },
   // Native `Form` — see the edit-sound note; a scroll container has no
   // intrinsic height, so no fitToContents.
-  { name: 'shaper', detents: [0.9] },
+  {
+    name: 'shaper',
+    detents: [0.9],
+    titled: true,
+    titleKey: 'player.shape.title',
+  },
   // Native `Form` — see the edit-sound note; a scroll container needs a
   // definite height, so no fitToContents.
-  { name: 'clips', detents: [0.6] },
+  {
+    name: 'clips',
+    detents: [0.6],
+    titled: true,
+    titleKey: 'player.clips.title',
+  },
   { name: 'trophy-detail', detents: 'fitToContents' },
 ];
 

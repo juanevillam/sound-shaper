@@ -18,7 +18,12 @@ import {
   pickerStyle,
   tag,
 } from '@expo/ui/swift-ui/modifiers';
-import { SheetFormDestructiveIos, SheetFormIos } from '@portfolio/mobile-ui';
+import {
+  sheetCommitBarOptionsIos,
+  SheetFormBodyIos,
+  SheetFormDestructiveIos,
+} from '@portfolio/mobile-ui';
+import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
@@ -143,11 +148,20 @@ function ShaperSheetScreen() {
     // shape confirms with a snackbar, and from inside a sheet that message drew
     // behind the presentation.
     <SheetScreen>
-      <SheetFormIos
-        title={t('player.shape.title')}
-        actionLabel={t('player.shapes.save')}
-        onAction={promptSaveShape}
-      >
+      {/* Real UIKit bar, Topper's standard — see `IOS_FORM_SHEETS`. The ✓ is
+          "save this as a named shape" rather than "apply": the EQ, speed and
+          pitch rows take effect as you move them, so closing keeps the sound
+          you are hearing and the ✓ only names it. */}
+      <Stack.Screen
+        options={sheetCommitBarOptionsIos({
+          title: t('player.shape.title'),
+          cancelLabel: t('common.done'),
+          onCancel: () => router.back(),
+          actionLabel: t('player.shapes.save'),
+          onAction: promptSaveShape,
+        })}
+      />
+      <SheetFormBodyIos>
         {/* One row that says which preset is on and opens the list to change it,
           rather than six capsules competing for the eye — the Settings idiom.
           A saved shape overrides the preset, so nothing is selected then. */}
@@ -269,7 +283,7 @@ function ShaperSheetScreen() {
             />
           </Section>
         ) : null}
-      </SheetFormIos>
+      </SheetFormBodyIos>
     </SheetScreen>
   );
 }

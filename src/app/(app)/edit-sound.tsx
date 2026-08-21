@@ -7,10 +7,11 @@ import {
   confirmDestructiveIos,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
-  SheetFormIos,
+  sheetCommitBarOptionsIos,
+  SheetFormBodyIos,
   SheetFormMediaIos,
 } from '@portfolio/mobile-ui';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { type PickedSongFile } from '@/components/songs/EditSongSheet';
 import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
@@ -200,13 +201,23 @@ function EditSoundSheetScreen() {
     // this editor's "Sound saved" / "Couldn't save" messages drew BEHIND it and
     // were never seen. See `SnackbarOutlet`.
     <SheetScreen>
-      <SheetFormIos
-        title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
-        actionLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
-        actionEnabled={!nameInvalid}
-        busy={isSaving}
-        onAction={save}
-      >
+      {/* The commit-modal pair lives in the sheet's REAL UIKit bar — Topper's
+          standard, and the only arrangement whose Liquid Glass is genuine (the
+          authored header this replaced drew its own flat "glass" circles and a
+          filled primary ✓ disc). The route table supplies the CREATE title;
+          this states the edit case and its own words. */}
+      <Stack.Screen
+        options={sheetCommitBarOptionsIos({
+          title: t(songId ? 'app.songEditExisting' : 'app.songEdit'),
+          cancelLabel: t('common.cancel'),
+          onCancel: () => router.back(),
+          actionLabel: t(songId ? 'songEdit.saveExisting' : 'songEdit.save'),
+          actionEnabled: !nameInvalid,
+          busy: isSaving,
+          onAction: save,
+        })}
+      />
+      <SheetFormBodyIos>
         {/* Cover art is a read-only preview: it comes from the file's ID3 tag,
           never hand-picked, so the disc is disabled rather than a picker.
           Same disc, same block, same caption slot as Topper's editor and as
@@ -269,7 +280,7 @@ function EditSoundSheetScreen() {
             />
           </Section>
         ) : null}
-      </SheetFormIos>
+      </SheetFormBodyIos>
     </SheetScreen>
   );
 }
