@@ -148,7 +148,7 @@ export default function ManageAccount() {
     setDeleting(true);
 
     try {
-      // Stop playback first — the engine would keep streaming a deleted song.
+      // Stop playback first — the engine would keep streaming a deleted sound.
       usePlayerStore.getState().reset();
       await deleteAccount();
       // Auth listener notices the signed-out state and resets the app.

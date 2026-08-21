@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-// The "this one is playing" mark for a song tile: hairline equalizer bars
+// The "this one is playing" mark for a sound tile: hairline equalizer bars
 // breathing inside a translucent disc on the artwork. Deliberately understated
 // — a filled, brand-colored badge reads like a sticker slapped on the cover,
 // so this is a soft scrim with white hairlines instead, and the motion is slow

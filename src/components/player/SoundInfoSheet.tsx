@@ -16,27 +16,27 @@ import {
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { type Song } from '@/services/firebase/songs';
+import { type Sound } from '@/services/firebase/sounds';
 
-// Read-only metadata card for the playing song — artist / album / release
+// Read-only metadata card for the playing sound — artist / album / release
 // year, reachable from the player's overflow menu.
 
-export type SongInfoSheetProps = {
-  song: Song;
+export type SoundInfoSheetProps = {
+  sound: Sound;
   onClose: () => void;
 };
 
-export function SongInfoSheet({ song, onClose }: SongInfoSheetProps) {
+export function SoundInfoSheet({ sound, onClose }: SoundInfoSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
 
   const rows = [
-    { label: t('player.info.artist'), value: song.artist },
-    { label: t('player.info.album'), value: song.album },
+    { label: t('player.info.artist'), value: sound.artist },
+    { label: t('player.info.album'), value: sound.album },
     {
       label: t('player.info.year'),
-      value: song.releaseYear != null ? String(song.releaseYear) : '',
+      value: sound.releaseYear != null ? String(sound.releaseYear) : '',
     },
   ].filter(row => row.value.length > 0);
 
@@ -56,7 +56,7 @@ export function SongInfoSheet({ song, onClose }: SongInfoSheetProps) {
             style={{ typography: 'titleMedium' }}
             maxLines={2}
           >
-            {song.name}
+            {sound.name}
           </Text>
 
           {rows.length === 0 ? (

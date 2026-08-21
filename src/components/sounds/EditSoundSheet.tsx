@@ -20,66 +20,71 @@ import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { type Id3Tags } from '@/lib/id3';
-import { createSong, deleteSong, updateSong } from '@/services/firebase/songs';
+import {
+  createSound,
+  deleteSound,
+  updateSound,
+} from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
-import { useSongsStore } from '@/store/songs';
+import { useSoundsStore } from '@/store/sounds';
 
 /** The picture fills the slot the package sized and clipped. */
 const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
 
 /** A freshly picked .mp3, parsed: the parent runs the document picker + ID3
  *  read BEFORE mounting this sheet, so the form opens already prefilled. */
-export type PickedSongFile = {
+export type PickedSoundFile = {
   uri: string;
   fileName: string;
   tags: Id3Tags;
 };
 
-export type EditSongSheetProps = {
+export type EditSoundSheetProps = {
   /** Create mode: the picked file (id3-prefilled). */
-  pickedFile?: PickedSongFile;
-  /** Edit mode: the song to edit (metadata only — the file never changes). */
-  songId?: string;
+  pickedFile?: PickedSoundFile;
+  /** Edit mode: the sound to edit (metadata only — the file never changes). */
+  soundId?: string;
   onClose: () => void;
 };
 
 // Strip the extension for the name prefill when the file had no ID3 title.
 const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
 
-// Create/edit a song inside a Compose ModalBottomSheet — the analog of
+// Create/edit a sound inside a Compose ModalBottomSheet — the analog of
 // Topper's EditItemSheet. Cover art sits at the TOP as a read-only preview:
 // it comes from the file's ID3 tag (or nothing), never hand-picked, so the
 // avatar doesn't open a chooser. Create-mode Save AWAITS the audio upload
 // behind the Save spinner (the one real network wait), then closes; edit-mode
 // metadata writes are latency-compensated, so they close immediately.
-export function EditSongSheet({
+export function EditSoundSheet({
   pickedFile,
-  songId,
+  soundId,
   onClose,
-}: EditSongSheetProps) {
+}: EditSoundSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
 
-  const songs = useSongsStore(s => s.songs);
-  const editingSong = songId
-    ? songs.find(entry => entry.id === songId)
+  const sounds = useSoundsStore(s => s.sounds);
+  const editingSound = soundId
+    ? sounds.find(entry => entry.id === soundId)
     : undefined;
 
   const tags = pickedFile?.tags;
   const initialName =
-    editingSong?.name ??
+    editingSound?.name ??
     tags?.title ??
     (pickedFile ? nameFromFile(pickedFile.fileName) : '');
-  const initialArtist = editingSong?.artist ?? tags?.artist ?? '';
-  const initialAlbum = editingSong?.album ?? tags?.album ?? '';
+  const initialArtist = editingSound?.artist ?? tags?.artist ?? '';
+  const initialAlbum = editingSound?.album ?? tags?.album ?? '';
   const initialYear =
-    editingSong?.releaseYear != null
-      ? String(editingSong.releaseYear)
+    editingSound?.releaseYear != null
+      ? String(editingSound.releaseYear)
       : (tags?.year ?? '');
 
   const sheetRef = useRef<ModalBottomSheetRef>(null);
@@ -96,13 +101,34 @@ export function EditSongSheet({
   const [album, setAlbum] = useState(initialAlbum);
   const [year, setYear] = useState(initialYear);
   const [isSaving, setIsSaving] = useState(false);
+  const { pickCover, uploadCover } = useCoverPicker();
   const [showNameError, setShowNameError] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
 
-  // Art preview: the ID3-embedded picture (create) or the uploaded art (edit).
-  const artPreviewUri = tags?.picture
-    ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
-    : editingSong?.artUrl || undefined;
+  /**
+   * A cover picked in this session outranks the file's ID3 art and the saved
+   * one — it is the most recent thing the person said. Same rule as the iOS
+   * editor; the picker itself is the shared `MediaPickerAvatar`.
+   */
+  const [pickedCover, setPickedCover] = useState<PickedCover | null>(null);
+
+  const onPickCover = () => {
+    if (isSaving) return;
+
+    void pickCover()
+      .then(picked => {
+        if (picked) setPickedCover(picked);
+      })
+      .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
+  };
+
+  // The preview: a picked cover, else the ID3-embedded picture (create) or the
+  // uploaded art (edit).
+  const artPreviewUri =
+    pickedCover?.uri ??
+    (tags?.picture
+      ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
+      : editingSound?.artUrl || undefined);
 
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
   const nameError = showNameError && nameInvalid;
@@ -140,18 +166,47 @@ export function EditSongSheet({
 
     savingRef.current = true;
 
-    if (songId) {
+    if (soundId) {
+      if (pickedCover) {
+        // A new cover makes this a real upload, so it can no longer be
+        // latency-compensated — hold the sheet behind the spinner the way the
+        // create path does. Metadata alone still closes immediately.
+        setIsSaving(true);
+
+        try {
+          const cover = await uploadCover(pickedCover);
+
+          await updateSound({
+            album: trimmedAlbum,
+            artist: trimmedArtist,
+            cover,
+            name: trimmedName,
+            releaseYear,
+            soundId,
+          });
+
+          showSnackbar(t('snackbar.sound-updated'));
+          onClose();
+        } catch {
+          showSnackbar(t('snackbar.sound-save-failed'));
+          setIsSaving(false);
+          savingRef.current = false;
+        }
+
+        return;
+      }
+
       // Metadata-only update: latency-compensated, so close immediately and
       // let a single trailing snackbar confirm success OR failure.
-      updateSong({
+      updateSound({
         album: trimmedAlbum,
         artist: trimmedArtist,
         name: trimmedName,
         releaseYear,
-        songId,
+        soundId,
       })
-        .then(() => showSnackbar(t('snackbar.song-updated')))
-        .catch(() => showSnackbar(t('snackbar.song-save-failed')));
+        .then(() => showSnackbar(t('snackbar.sound-updated')))
+        .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
 
       await sheetRef.current?.hide();
       onClose();
@@ -165,9 +220,12 @@ export function EditSongSheet({
     setIsSaving(true);
 
     try {
-      await createSong({
+      const picked = pickedCover ? await uploadCover(pickedCover) : null;
+
+      await createSound({
         album: trimmedAlbum,
         artist: trimmedArtist,
+        cover: picked,
         art: tags?.picture
           ? { base64: tags.picture.base64, mime: tags.picture.mime }
           : null,
@@ -176,29 +234,29 @@ export function EditSongSheet({
         releaseYear,
       });
 
-      showSnackbar(t('snackbar.song-created'));
+      showSnackbar(t('snackbar.sound-created'));
       await sheetRef.current?.hide();
       onClose();
     } catch {
-      showSnackbar(t('snackbar.song-save-failed'));
+      showSnackbar(t('snackbar.sound-save-failed'));
       setIsSaving(false);
       savingRef.current = false;
     }
   };
 
   const handleDelete = async () => {
-    if (!songId) return;
+    if (!soundId) return;
 
     haptics.medium();
     setDeleteVisible(false);
 
-    // Clear it from the player up front — a deleted song must not linger in
+    // Clear it from the player up front — a deleted sound must not linger in
     // the now-playing banner or stay playable.
-    usePlayerStore.getState().songDeleted(songId);
+    usePlayerStore.getState().soundDeleted(soundId);
 
-    deleteSong(songId)
-      .then(() => showSnackbar(t('snackbar.song-deleted')))
-      .catch(() => showSnackbar(t('snackbar.song-delete-failed')));
+    deleteSound(soundId)
+      .then(() => showSnackbar(t('snackbar.sound-deleted')))
+      .catch(() => showSnackbar(t('snackbar.sound-delete-failed')));
 
     await sheetRef.current?.hide();
     onClose();
@@ -221,8 +279,10 @@ export function EditSongSheet({
             modifiers={[padding(16, 0, 16, 16), fillMaxWidth()]}
           >
             <SheetBar
-              title={t(songId ? 'app.songEditExisting' : 'app.songEdit')}
-              saveLabel={t(songId ? 'songEdit.saveExisting' : 'songEdit.save')}
+              title={t(soundId ? 'app.soundEditExisting' : 'app.soundEdit')}
+              saveLabel={t(
+                soundId ? 'soundEdit.saveExisting' : 'soundEdit.save',
+              )}
               saving={isSaving}
               saveEnabled={!nameInvalid}
               onSave={save}
@@ -239,9 +299,9 @@ export function EditSongSheet({
             >
               <RNHostView matchContents>
                 <MediaPickerAvatar
-                  onPress={() => {}}
+                  onPress={onPickCover}
                   accessibilityLabel={t('common.pickMedia')}
-                  disabled
+                  disabled={isSaving}
                   surfaceColor={colors.surfaceVariant}
                   contentColor={colors.onSurfaceMuted}
                   emoji="🎵"
@@ -264,10 +324,10 @@ export function EditSongSheet({
               >
                 {t(
                   isSaving
-                    ? 'songEdit.uploading'
+                    ? 'soundEdit.uploading'
                     : artPreviewUri
-                      ? 'songEdit.art.embedded'
-                      : 'songEdit.art.none',
+                      ? 'soundEdit.art.change'
+                      : 'soundEdit.art.add',
                 )}
               </Text>
             </Column>
@@ -287,14 +347,14 @@ export function EditSongSheet({
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
-                <Text>{t('songEdit.name.label')}</Text>
+                <Text>{t('soundEdit.name.label')}</Text>
               </OutlinedTextField.Label>
               <OutlinedTextField.Placeholder>
-                <Text>{t('songEdit.name.placeholder')}</Text>
+                <Text>{t('soundEdit.name.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
               {nameError && (
                 <OutlinedTextField.SupportingText>
-                  <Text>{t('songEdit.name.error')}</Text>
+                  <Text>{t('soundEdit.name.error')}</Text>
                 </OutlinedTextField.SupportingText>
               )}
             </OutlinedTextField>
@@ -311,10 +371,10 @@ export function EditSongSheet({
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
-                <Text>{t('songEdit.artist.label')}</Text>
+                <Text>{t('soundEdit.artist.label')}</Text>
               </OutlinedTextField.Label>
               <OutlinedTextField.Placeholder>
-                <Text>{t('songEdit.artist.placeholder')}</Text>
+                <Text>{t('soundEdit.artist.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
             </OutlinedTextField>
 
@@ -329,10 +389,10 @@ export function EditSongSheet({
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
-                <Text>{t('songEdit.album.label')}</Text>
+                <Text>{t('soundEdit.album.label')}</Text>
               </OutlinedTextField.Label>
               <OutlinedTextField.Placeholder>
-                <Text>{t('songEdit.album.placeholder')}</Text>
+                <Text>{t('soundEdit.album.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
             </OutlinedTextField>
 
@@ -346,25 +406,25 @@ export function EditSongSheet({
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
-                <Text>{t('songEdit.year.label')}</Text>
+                <Text>{t('soundEdit.year.label')}</Text>
               </OutlinedTextField.Label>
               <OutlinedTextField.Placeholder>
-                <Text>{t('songEdit.year.placeholder')}</Text>
+                <Text>{t('soundEdit.year.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
               {yearInvalid && (
                 <OutlinedTextField.SupportingText>
-                  <Text>{t('songEdit.year.error')}</Text>
+                  <Text>{t('soundEdit.year.error')}</Text>
                 </OutlinedTextField.SupportingText>
               )}
             </OutlinedTextField>
 
-            {songId ? (
+            {soundId ? (
               <OutlinedButton
                 onClick={() => setDeleteVisible(true)}
                 enabled={!isSaving}
                 modifiers={[fillMaxWidth()]}
               >
-                <Text color={colors.danger}>{t('songEdit.delete')}</Text>
+                <Text color={colors.danger}>{t('soundEdit.delete')}</Text>
               </OutlinedButton>
             ) : null}
           </Column>
@@ -377,10 +437,10 @@ export function EditSongSheet({
         <ThemedHost matchContents>
           <DestructiveConfirmDialog
             dialog={{
-              title: t('songEdit.deleteConfirm.title'),
-              message: t('songEdit.deleteConfirm.message'),
-              confirm: t('songEdit.deleteConfirm.confirm'),
-              cancel: t('songEdit.deleteConfirm.cancel'),
+              title: t('soundEdit.deleteConfirm.title'),
+              message: t('soundEdit.deleteConfirm.message'),
+              confirm: t('soundEdit.deleteConfirm.confirm'),
+              cancel: t('soundEdit.deleteConfirm.cancel'),
             }}
             colors={{ danger: colors.danger }}
             onConfirm={handleDelete}

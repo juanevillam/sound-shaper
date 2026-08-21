@@ -23,6 +23,7 @@ const CLIP_LABEL_GAP = 8;
 // in plain RN below it. SwiftUI reports the drag end through
 // `onEditingChanged(false)`; Compose has a dedicated finished callback.
 export function PlayerScrubber({
+  copyInset = 0,
   position,
   duration,
   totalDuration,
@@ -52,7 +53,7 @@ export function PlayerScrubber({
           }}
         />
       </ThemedHost>
-      <View style={styles.labels}>
+      <View style={[styles.labels, { paddingHorizontal: copyInset }]}>
         <Text
           doNotTranslate
           muted

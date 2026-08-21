@@ -66,7 +66,7 @@ export function SheetScreen({
 
           THE APP'S TOAST, RENDERED HERE WHILE THIS SHEET IS ON TOP. A sheet is
           presented above the root view, so a toast left at the root draws
-          BEHIND it and is never seen — every message this family fires (a song
+          BEHIND it and is never seen — every message this family fires (a sound
           saved or deleted, a shape created, a clip removed, a failed account
           deletion) was invisible. `SnackbarOutlet` moves the same node into
           this tree, where the SwiftUI glass host works exactly as it does for

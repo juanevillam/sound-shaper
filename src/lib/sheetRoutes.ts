@@ -42,7 +42,7 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
     name: 'edit-sound',
     detents: [0.9],
     titled: true,
-    titleKey: 'app.songEdit',
+    titleKey: 'app.soundEdit',
   },
   // Native `Form` — see the edit-sound note; a scroll container has no
   // intrinsic height, so no fitToContents.

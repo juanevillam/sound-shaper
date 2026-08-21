@@ -15,12 +15,12 @@ import {
 
 import {
   CLIPS_SUBCOLLECTION,
-  SONGS_SUBCOLLECTION,
+  SOUNDS_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
 import { reported, reportedOnError } from '@/services/firebase/crashlytics';
 
-// A clip is a personal bookmark into a song: "the part I love, from here to
+// A clip is a personal bookmark into a sound: "the part I love, from here to
 // here". Purely for the owner's replay — nothing is shared.
 export type Clip = {
   createdAt: number | null;
@@ -34,19 +34,19 @@ export type Clip = {
 type CreateClipParams = {
   endMs: number;
   label: string;
-  songId: string;
+  soundId: string;
   startMs: number;
 };
 
 type DeleteClipParams = {
   clipId: string;
-  songId: string;
+  soundId: string;
 };
 
 type SubscribeToClipsParams = {
   onError: (error: Error) => void;
   onNext: (clips: Clip[]) => void;
-  songId: string;
+  soundId: string;
 };
 
 const requireUid = (): string => {
@@ -55,13 +55,13 @@ const requireUid = (): string => {
   return uid;
 };
 
-const clipsCollection = (songId: string) =>
+const clipsCollection = (soundId: string) =>
   collection(
     getFirestore(),
     USERS_COLLECTION,
     requireUid(),
-    SONGS_SUBCOLLECTION,
-    songId,
+    SOUNDS_SUBCOLLECTION,
+    soundId,
     CLIPS_SUBCOLLECTION,
   );
 
@@ -78,13 +78,13 @@ const clipToModel = (snapshot: QueryDocumentSnapshot): Clip => {
   };
 };
 
-/** Live clips of one song, ordered by where they start in the track. */
+/** Live clips of one sound, ordered by where they start in the track. */
 export const subscribeToClips = ({
   onError,
   onNext,
-  songId,
+  soundId,
 }: SubscribeToClipsParams): (() => void) => {
-  const clipsQuery = query(clipsCollection(songId), orderBy('startMs', 'asc'));
+  const clipsQuery = query(clipsCollection(soundId), orderBy('startMs', 'asc'));
 
   return onSnapshot(clipsQuery, {
     error: reportedOnError('clips.subscribeToClips', onError),
@@ -97,10 +97,10 @@ export const createClip = reported(
   async ({
     endMs,
     label,
-    songId,
+    soundId,
     startMs,
   }: CreateClipParams): Promise<string> => {
-    const docRef = await addDoc(clipsCollection(songId), {
+    const docRef = await addDoc(clipsCollection(soundId), {
       createdAt: serverTimestamp(),
       endMs,
       label,
@@ -113,14 +113,14 @@ export const createClip = reported(
 
 export const deleteClip = reported(
   'clips.deleteClip',
-  async ({ clipId, songId }: DeleteClipParams): Promise<void> => {
+  async ({ clipId, soundId }: DeleteClipParams): Promise<void> => {
     await deleteDoc(
       doc(
         getFirestore(),
         USERS_COLLECTION,
         requireUid(),
-        SONGS_SUBCOLLECTION,
-        songId,
+        SOUNDS_SUBCOLLECTION,
+        soundId,
         CLIPS_SUBCOLLECTION,
         clipId,
       ),

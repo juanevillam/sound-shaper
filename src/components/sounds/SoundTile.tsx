@@ -10,19 +10,19 @@ import {
   TEXT_VARIANTS,
 } from '@portfolio/mobile-ui';
 
-import { NowPlayingBars } from '@/components/songs/NowPlayingBars';
-import { SongArt } from '@/components/ui/SongArt';
+import { NowPlayingBars } from '@/components/sounds/NowPlayingBars';
+import { SoundArt } from '@/components/ui/SoundArt';
 import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { type Song } from '@/services/firebase/songs';
+import { type Sound } from '@/services/firebase/sounds';
 import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE, SHAPE_MD } from '@/styles/shape';
 
-// The home grid cell: a square artwork tile (the song's embedded cover, or the
+// The home grid cell: a square artwork tile (the sound's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
-// language, one song per tile. Tap = play, long-press = edit.
+// language, one sound per tile. Tap = play, long-press = edit.
 
 // The tile measures its own art box, so this only covers the very first frame
 // before `onLayout` reports — roughly a tile's width at the usual grid.
@@ -64,7 +64,7 @@ const GRID_CELL = 178;
  * (16 is `callout`, but 14 is nothing on the ladder — that pair was off it).
  *
  * WEIGHT STAYS REGULAR, and the split with the banner is deliberate. The same
- * song name is semibold in the collapsed banner (`miniTitle`) and bold in the
+ * sound name is semibold in the collapsed banner (`miniTitle`) and bold in the
  * expanded console, and one rule explains all three: WHERE THE ANCHOR IS. The
  * banner and the console have no artwork to carry the message, so the name IS
  * the message and takes the weight. Here the message is 178pt of cover and the
@@ -100,7 +100,7 @@ const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
  * THE TILE'S GEOMETRY, EXPORTED FOR ITS SKELETON — style objects, not a copy of
  * their numbers.
  *
- * `SongTileSkeleton` stood a hand-copied set that had rotted: a 26 radius
+ * `SoundTileSkeleton` stood a hand-copied set that had rotted: a 26 radius
  * against this file's 27, and a caption block of 16 + 6 + 12 = 34pt against the
  * real 22 + 1 + 20 = 43. Nine points of jump per row on settle, invisible in
  * the skeleton itself. Topper's rail hit the identical bug (its labels traced
@@ -108,7 +108,7 @@ const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
  * `Skeleton.tsx` records the rule this now follows: reserve the LINE BOX, draw
  * the bar thinner inside it.
  */
-export const SONG_TILE_METRICS = {
+export const SOUND_TILE_METRICS = {
   artRadius: ART_RADIUS,
   artToCaption: EMPTY_MEDIA_CAPTION_GAP,
   /**
@@ -135,9 +135,9 @@ export const SONG_TILE_METRICS = {
   }) as { title: number; subtitle: number },
 };
 
-type SongTileProps = {
-  song: Song;
-  /** Tinted primary while this song is the loaded one. */
+type SoundTileProps = {
+  sound: Sound;
+  /** Tinted primary while this sound is the loaded one. */
   isCurrent: boolean;
   /** Drives the now-playing bars: animating while playing, frozen paused. */
   isPlaying: boolean;
@@ -147,14 +147,14 @@ type SongTileProps = {
   onLongPress: () => void;
 };
 
-export function SongTile({
-  song,
+export function SoundTile({
+  sound,
   isCurrent,
   isPlaying,
   rate,
   onPress,
   onLongPress,
-}: SongTileProps) {
+}: SoundTileProps) {
   const { colors } = useAppTheme();
   // Measured so the glyph fallback scales with the tile (art is width-driven).
   const [artSize, setArtSize] = useState(0);
@@ -165,11 +165,11 @@ export function SongTile({
         style={styles.art}
         onLayout={event => setArtSize(event.nativeEvent.layout.width)}
       >
-        <SongArt
-          artUrl={song.artUrl || undefined}
+        <SoundArt
+          artUrl={sound.artUrl || undefined}
           displayWidth={artSize || undefined}
           size={artSize || ART_FALLBACK_SIZE}
-          title={song.name}
+          title={sound.name}
           style={[styles.artMedia, { borderRadius: ART_RADIUS }]}
         />
         {isCurrent ? (
@@ -185,7 +185,7 @@ export function SongTile({
           name that just fits would ellipsize the moment it started playing. */}
       <Text
         doNotTranslate
-        text={song.name}
+        text={sound.name}
         variant="bodyMedium"
         numberOfLines={1}
         style={[styles.name, isCurrent && { color: colors.primary }]}
@@ -193,7 +193,7 @@ export function SongTile({
       <Text
         doNotTranslate
         muted
-        text={song.artist || ' '}
+        text={sound.artist || ' '}
         variant="bodySmall"
         numberOfLines={1}
         style={styles.artist}
@@ -202,13 +202,13 @@ export function SongTile({
   );
 }
 
-/** The trailing "add a song" cell — a dashed square with a plus. */
-export function AddSongTile({ onPress }: { onPress: () => void }) {
+/** The trailing "add a sound" cell — a dashed square with a plus. */
+export function AddSoundTile({ onPress }: { onPress: () => void }) {
   const { colors } = useAppTheme();
   const { t } = useI18n();
 
   return (
-    <SquashPressable onPress={onPress} accessibilityLabel={t('home.addSong')}>
+    <SquashPressable onPress={onPress} accessibilityLabel={t('home.addSound')}>
       <View
         style={[
           styles.art,
@@ -236,12 +236,12 @@ export function AddSongTile({ onPress }: { onPress: () => void }) {
           filler. Sound Shaper's add tile goes STRAIGHT to the file picker
           (Topper's opens an editor, which is why its create tile needs no
           second line), so what belongs here is what the picker wants. That is
-          MP3 and only MP3: `uploadSongAudio` labels every upload `audio/mpeg`
+          MP3 and only MP3: `uploadSoundAudio` labels every upload `audio/mpeg`
           and `readId3Tags` reads ID3v2, so anything else arrives mislabelled
           and untagged. Saying so on the tile is cheaper than finding out after
           the upload. Muted, like the artist line it stands in for. */}
-      <Text text="home.addSong" variant="bodyMedium" style={styles.name} />
-      <Text muted text="home.addSongFormat" style={styles.artist} />
+      <Text text="home.addSound" variant="bodyMedium" style={styles.name} />
+      <Text muted text="home.addSoundFormat" style={styles.artist} />
     </SquashPressable>
   );
 }
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: CAPTION_TITLE,
         lineHeight: CAPTION_TITLE + 5,
-        paddingLeft: SONG_TILE_METRICS.captionInset,
+        paddingLeft: SOUND_TILE_METRICS.captionInset,
       },
     }),
   },
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
       ios: {
         fontSize: CAPTION_SUB,
         lineHeight: CAPTION_SUB + 5,
-        paddingLeft: SONG_TILE_METRICS.captionInset,
+        paddingLeft: SOUND_TILE_METRICS.captionInset,
       },
     }) ?? {},
 });

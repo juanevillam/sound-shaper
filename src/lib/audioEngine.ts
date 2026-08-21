@@ -8,7 +8,7 @@ import {
 } from 'react-native-audio-api';
 
 // ---------------------------------------------------------------------------
-// The sound-shaping engine: the ONE Web-Audio graph every song plays through.
+// The sound-shaping engine: the ONE Web-Audio graph every sound plays through.
 // The <AudioEngine> component owns the streaming <Audio> element and calls
 // `buildGraph` on load; this module holds the graph nodes and applies the
 // shaper settings (which live in the shaper store) to them live.
@@ -53,12 +53,12 @@ let context: AudioContext | null = null;
 let handle: AudioTagHandle | null = null;
 let graph: Graph | null = null;
 
-// The last-applied settings, so a freshly-built graph (new song) inherits the
+// The last-applied settings, so a freshly-built graph (new sound) inherits the
 // current shaping instead of resetting to flat.
 const settings = { gains: flatGains(), preamp: 0 };
 
 export const audioEngine = {
-  /** The shared context — created lazily, reused for every song's graph. */
+  /** The shared context — created lazily, reused for every sound's graph. */
   getContext(): AudioContext {
     if (!context) context = new AudioContext();
     return context;
@@ -102,7 +102,7 @@ export const audioEngine = {
     this.apply(settings.gains, settings.preamp);
   },
 
-  /** Drop the previous song's nodes so reloads don't accumulate orphans. */
+  /** Drop the previous sound's nodes so reloads don't accumulate orphans. */
   teardownGraph(): void {
     if (!graph) return;
     try {
@@ -115,7 +115,7 @@ export const audioEngine = {
     graph = null;
   },
 
-  /** Push a full settings snapshot onto the live graph (song change / reset). */
+  /** Push a full settings snapshot onto the live graph (sound change / reset). */
   apply(gains: number[], preamp: number): void {
     settings.gains = [...gains];
     settings.preamp = preamp;

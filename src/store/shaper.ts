@@ -4,7 +4,7 @@ import { EQ_BANDS, audioEngine } from '@/lib/audioEngine';
 
 // The user's sound-shaping settings — the UI's source of truth. Every setter
 // also pushes the change onto the live audio graph so it's heard immediately.
-// Settings are global (not per-song), so shaping carries across the queue.
+// Settings are global (not per-sound), so shaping carries across the queue.
 
 // Curated starting points. Gains are per-band dB in EQ_BANDS order
 // (80 · 250 · 1k · 4k · 12k). `i18nKey` names the preset in the UI.

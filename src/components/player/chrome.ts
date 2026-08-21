@@ -1,6 +1,6 @@
 import { type StyleProp, type ViewStyle, Platform } from 'react-native';
 
-import { type IconName } from '@portfolio/mobile-ui';
+import { artworkRadius, type IconName } from '@portfolio/mobile-ui';
 import {
   type ComposedGesture,
   type GestureType,
@@ -58,6 +58,8 @@ export const HANDLES_REGION_HEIGHT = Platform.select({
 }) as number;
 
 export type PlayerScrubberProps = {
+  /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
+  copyInset?: number;
   /** Displayed playhead — the drag-local value while the thumb is held. */
   position: number;
   /** Slider range max; always > 0 so the track is never degenerate. */
@@ -127,7 +129,7 @@ export type PlayerConsoleProps = {
   expanded: boolean;
 
   /* The sound. */
-  songId: string;
+  soundId: string;
   title: string;
   /** Artist, or a single space so the line never collapses. */
   subtitle: string;
@@ -234,3 +236,12 @@ const ART_TO_CONSOLE = Platform.select({ ios: 28, default: 36 }) as number;
 
 export const playerConsoleTop = (artTop: number, artSize: number): number =>
   artTop + artSize + ART_TO_CONSOLE;
+
+/**
+ * The cover's corner — a RATIO of the cover, never a container constant. The
+ * sheet places the artwork and the console captions it, so both need this and
+ * neither may derive it: `PlayerSheet` interpolates it as the shared element
+ * travels, and `PlayerConsole.ios` feeds it to `opticalTextInset`.
+ */
+export const playerArtRadius = (winW: number, androidStep: number): number =>
+  artworkRadius(playerArtSize(winW), androidStep);

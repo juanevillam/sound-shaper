@@ -28,6 +28,7 @@ import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
+import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
@@ -36,6 +37,7 @@ import {
   HANDLES_REGION_HEIGHT,
   PLAYER_BAR_TARGET,
   PLAYER_SIDE_PADDING,
+  playerArtRadius,
   playerArtSize,
   type PlayerCard,
   type PlayerConsoleProps,
@@ -79,7 +81,7 @@ import {
 //    because this surface has a bottom sheet's dismiss gesture but is not a
 //    sheet, and a grabber is UIKit's promise that it is one (Juan, on sight).
 //    Hanging the overflow off the TITLE was wrong because a "…" that acts on
-//    the screen does not belong inside the copy that names the song.
+//    the screen does not belong inside the copy that names the sound.
 //
 //    What must NOT come back is how the original row was built: on
 //    `IconButton`, which wraps a `matchContents` Host, so a re-render moved the
@@ -335,19 +337,36 @@ export function PlayerConsole({
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const contentWidth = playerArtSize(winW);
+  /**
+   * THE OPTICAL NUDGE UNDER THE COVER — the same correction the home tiles
+   * take, and the console was the one surface under a rounded cover that never
+   * took it.
+   *
+   * A corner curves the cover's edge inward exactly where this copy sits, so a
+   * title set flush to the true edge reads as hanging past it. Measured on
+   * device before the fix: a home tile's title ink sat 23 against its cover's
+   * 16, while this one sat 18 — the 2pt was the glyph's own side bearing, not a
+   * correction.
+   *
+   * It is BIGGER here than anywhere else in either app, and that follows from
+   * the term rather than from taste: the nudge is derived from the radius it
+   * compensates for, and this cover's radius is the largest in the portfolio
+   * (56 against a home tile's 27), so the correction doubles to 12.
+   */
+  const copyInset = opticalTextInset(playerArtRadius(winW, 0));
 
-  const copy = (song: { artist: string; name: string }) => (
+  const copy = (sound: { artist: string; name: string }) => (
     <>
       <AppText
         doNotTranslate
-        text={song.name}
+        text={sound.name}
         numberOfLines={1}
         style={styles.title}
       />
       <AppText
         doNotTranslate
         muted
-        text={song.artist || ' '}
+        text={sound.artist || ' '}
         numberOfLines={1}
         style={styles.artist}
       />
@@ -396,7 +415,13 @@ export function PlayerConsole({
       >
         <GestureDetector gesture={titleGesture}>
           <View style={styles.titleSlot}>
-            <Animated.View style={[styles.titleBlock, pagerStyle]}>
+            <Animated.View
+              style={[
+                styles.titleBlock,
+                { paddingLeft: copyInset },
+                pagerStyle,
+              ]}
+            >
               {copy({ artist: subtitle, name: title })}
             </Animated.View>
 
@@ -406,22 +431,22 @@ export function PlayerConsole({
             {expanded
               ? (
                   [
-                    { song: neighbours.previous, side: -1 },
-                    { song: neighbours.next, side: 1 },
+                    { sound: neighbours.previous, side: -1 },
+                    { sound: neighbours.next, side: 1 },
                   ] as const
-                ).map(({ song, side }) =>
-                  song ? (
+                ).map(({ sound, side }) =>
+                  sound ? (
                     <Animated.View
-                      key={`title:${side}:${song.id}`}
+                      key={`title:${side}:${sound.id}`}
                       pointerEvents="none"
                       style={[
                         styles.titleBlock,
                         styles.titleGhost,
-                        { left: side * winW },
+                        { left: side * winW, paddingLeft: copyInset },
                         pagerStyle,
                       ]}
                     >
-                      {copy(song)}
+                      {copy(sound)}
                     </Animated.View>
                   ) : null,
                 )
@@ -436,6 +461,7 @@ export function PlayerConsole({
           style={[styles.sliderBlock, clipMode && styles.sliderBlockFraming]}
         >
           <PlayerScrubber
+            copyInset={copyInset}
             position={position}
             duration={duration}
             totalDuration={totalDuration}

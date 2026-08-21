@@ -49,7 +49,7 @@ const bytesToBase64 = (bytes: Uint8Array): string => {
 };
 
 // Read a byte range straight from disk (base64), so we only pull the tag, not
-// the whole multi-MB song.
+// the whole multi-MB sound.
 const readRange = async (
   uri: string,
   position: number,

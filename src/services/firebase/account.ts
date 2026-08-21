@@ -10,17 +10,17 @@ import {
 import {
   CLIPS_SUBCOLLECTION,
   SHAPES_SUBCOLLECTION,
-  SONGS_SUBCOLLECTION,
+  SOUNDS_SUBCOLLECTION,
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
 import { reported } from '@/services/firebase/crashlytics';
 
 // Account deletion, personal-app scale: a client-side sweep of everything under
-// users/{uid} (each song's clips, the songs, the saved shapes, the trophies,
+// users/{uid} (each sound's clips, the sounds, the saved shapes, the trophies,
 // the profile doc), then the Auth user itself. Cloudinary media is orphaned —
 // deleting it needs a signed backend call this app deliberately doesn't have
-// (the same accepted gap as deleting a single song).
+// (the same accepted gap as deleting a single sound).
 //
 // Firebase requires a RECENT sign-in for user.delete(); when the session is too
 // old it throws `auth/requires-recent-login`. iOS re-authenticates first (see
@@ -37,14 +37,14 @@ const requireUser = () => {
  * EVERY FIRESTORE TRACE OF THE ACCOUNT.
  *
  * THE PATHS HERE ARE THE ONES THE APP ACTUALLY WRITES TO, which they were not:
- * the songs sweep built `users/{uid}/shapes/songs/trophies` and the clips sweep
- * built `users/{uid}/shapes/songs/trophies/{songId}/clips`, by passing all
+ * the sounds sweep built `users/{uid}/shapes/sounds/trophies` and the clips sweep
+ * built `users/{uid}/shapes/sounds/trophies/{soundId}/clips`, by passing all
  * three subcollection constants to one `collection()` call. Both are legal
  * odd-segment collection paths, so nothing threw — `getDocs` simply returned
- * empty and the sweep reported success. Every song and every clip therefore
+ * empty and the sweep reported success. Every sound and every clip therefore
  * SURVIVED account deletion, orphaned under a user document that was gone,
  * while the row's own copy promised "Your sounds and clips are deleted
- * permanently". Compare `songs.ts` / `clips.ts`, which are the reference for
+ * permanently". Compare `sounds.ts` / `clips.ts`, which are the reference for
  * what these collections are really called.
  */
 export const deleteAccountData = reported(
@@ -53,24 +53,24 @@ export const deleteAccountData = reported(
     const user = requireUser();
     const db = getFirestore();
 
-    const songs = await getDocs(
-      collection(db, USERS_COLLECTION, user.uid, SONGS_SUBCOLLECTION),
+    const sounds = await getDocs(
+      collection(db, USERS_COLLECTION, user.uid, SOUNDS_SUBCOLLECTION),
     );
 
-    for (const song of songs.docs) {
+    for (const sound of sounds.docs) {
       const clips = await getDocs(
         collection(
           db,
           USERS_COLLECTION,
           user.uid,
-          SONGS_SUBCOLLECTION,
-          song.id,
+          SOUNDS_SUBCOLLECTION,
+          sound.id,
           CLIPS_SUBCOLLECTION,
         ),
       );
 
       await Promise.all(clips.docs.map(clip => deleteDoc(clip.ref)));
-      await deleteDoc(song.ref);
+      await deleteDoc(sound.ref);
     }
 
     // Deleting the user doc does NOT remove its subcollections, so every one of

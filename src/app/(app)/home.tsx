@@ -17,15 +17,15 @@ import {
 } from '@/components/player/bannerMetrics';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
 import {
-  EditSongSheet,
-  type PickedSongFile,
-} from '@/components/songs/EditSongSheet';
-import { AddSongTile, SongTile } from '@/components/songs/SongTile';
+  EditSoundSheet,
+  type PickedSoundFile,
+} from '@/components/sounds/EditSoundSheet';
+import { AddSoundTile, SoundTile } from '@/components/sounds/SoundTile';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
 import { HeaderSettingsButton } from '@/components/ui/HeaderSettingsButton';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
-import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';
+import { SKELETON_DELAY_MS, SoundTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
@@ -33,20 +33,20 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import { readId3Tags } from '@/lib/id3';
-import { type Song } from '@/services/firebase/songs';
+import { type Sound } from '@/services/firebase/sounds';
 import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
-import { useSongsStore } from '@/store/songs';
+import { useSoundsStore } from '@/store/sounds';
 import { TILE_GAP, SCREEN_PADDING } from '@/styles/metrics';
 
-// The grid rows FlashList renders: the add tile plus the songs, pre-paired
+// The grid rows FlashList renders: the add tile plus the sounds, pre-paired
 // into 2-column rows (FlashList's numColumns + varying tile heights fight each
 // other; hand-pairing keeps rows aligned). The add tile leads so it stays
 // reachable no matter how long the library grows.
 type GridRow = {
   id: string;
-  left: Song | 'add';
-  right: Song | 'add' | null;
+  left: Sound | 'add';
+  right: Sound | 'add' | null;
 };
 
 const IS_IOS = Platform.OS === 'ios';
@@ -92,8 +92,8 @@ const GRID_TOP_GAP = IS_IOS ? 24 : 29.5;
  */
 export const SKELETON_ROWS = 3;
 
-const toGridRows = (songs: Song[]): GridRow[] => {
-  const cells: (Song | 'add')[] = ['add', ...songs];
+const toGridRows = (sounds: Sound[]): GridRow[] => {
+  const cells: (Sound | 'add')[] = ['add', ...sounds];
   const rows: GridRow[] = [];
 
   for (let index = 0; index < cells.length; index += 2) {
@@ -109,22 +109,22 @@ const toGridRows = (songs: Song[]): GridRow[] => {
 };
 
 // The whole library on one screen: the app's header (one Settings gear — the
-// same bar every app in the portfolio opens on) over a 2-column grid of song
+// same bar every app in the portfolio opens on) over a 2-column grid of sound
 // tiles — YT Music's album-tile
-// language, one song per tile. No playlists: you upload one and it's there.
+// language, one sound per tile. No playlists: you upload one and it's there.
 // Tap = play (and the player opens); long-press = edit/delete; the add tile
 // closes the grid.
 export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const songs = useSongsStore(s => s.songs);
-  const rawError = useSongsStore(s => s.error);
-  const retry = useSongsStore(s => s.retry);
-  const hasSettled = useSongsStore(s => s.hasSettled);
-  const playSong = usePlayerStore(s => s.playSong);
+  const sounds = useSoundsStore(s => s.sounds);
+  const rawError = useSoundsStore(s => s.error);
+  const retry = useSoundsStore(s => s.retry);
+  const hasSettled = useSoundsStore(s => s.hasSettled);
+  const playSound = usePlayerStore(s => s.playSound);
   const requestExpand = usePlayerStore(s => s.requestExpand);
-  const currentSongId = usePlayerStore(s => s.current?.id);
+  const currentSoundId = usePlayerStore(s => s.current?.id);
   const isPlaying = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
   const sheetExpanded = usePlayerStore(s => s.sheetExpanded);
@@ -137,14 +137,14 @@ export default function HomeScreen() {
   const labState = useUiStateLab(state => state.home);
   const lab = UI_STATE_LAB && labState !== 'live';
 
-  const [pickedFile, setPickedFile] = useState<PickedSongFile | null>(null);
-  const [editingSongId, setEditingSongId] = useState<string | null>(null);
+  const [pickedFile, setPickedFile] = useState<PickedSoundFile | null>(null);
+  const [editingSoundId, setEditingSoundId] = useState<string | null>(null);
 
-  const openAddSong = useCallback(async () => {
+  const openAddSound = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       /**
        * MP3, NOT `audio/*`. The picker used to offer every audio type while
-       * the pipeline behind it takes exactly one: `uploadSongAudio` labels
+       * the pipeline behind it takes exactly one: `uploadSoundAudio` labels
        * every upload `audio/mpeg` and `readId3Tags` reads ID3v2, so an .m4a
        * was accepted, uploaded mislabelled and arrived with no tags at all.
        * A picker that offers what the app cannot keep is the app lying to
@@ -173,51 +173,51 @@ export default function HomeScreen() {
     setPickedFile(picked);
   }, []);
 
-  const onPressSong = useCallback(
-    (song: Song) => {
-      playSong(song, songs);
+  const onPressSound = useCallback(
+    (sound: Sound) => {
+      playSound(sound, sounds);
       // Tapping a tile is "listen to this now" — open the full player on it.
       requestExpand();
     },
-    [playSong, requestExpand, songs],
+    [playSound, requestExpand, sounds],
   );
 
   const firstLoad = lab ? labState === 'skeleton' : !hasSettled;
   const error = lab ? labState === 'error' : rawError;
-  const rows = toGridRows(songs);
+  const rows = toGridRows(sounds);
 
   const renderCell = useCallback(
-    (cell: Song | 'add' | null) => {
+    (cell: Sound | 'add' | null) => {
       if (cell === null) return <View style={styles.cell} />;
 
       if (cell === 'add')
         return (
           <View style={styles.cell}>
-            <AddSongTile onPress={openAddSong} />
+            <AddSoundTile onPress={openAddSound} />
           </View>
         );
 
       return (
         <View style={styles.cell}>
-          <SongTile
-            song={cell}
-            isCurrent={cell.id === currentSongId}
-            isPlaying={cell.id === currentSongId && isPlaying}
+          <SoundTile
+            sound={cell}
+            isCurrent={cell.id === currentSoundId}
+            isPlaying={cell.id === currentSoundId && isPlaying}
             rate={rate}
-            onPress={() => onPressSong(cell)}
+            onPress={() => onPressSound(cell)}
             onLongPress={() =>
               Platform.OS === 'ios'
                 ? router.push({
                     pathname: '/edit-sound',
-                    params: { songId: cell.id },
+                    params: { soundId: cell.id },
                   })
-                : setEditingSongId(cell.id)
+                : setEditingSoundId(cell.id)
             }
           />
         </View>
       );
     },
-    [openAddSong, onPressSong, currentSongId, isPlaying, rate],
+    [openAddSound, onPressSound, currentSoundId, isPlaying, rate],
   );
 
   const renderRow = useCallback(
@@ -358,17 +358,17 @@ export default function HomeScreen() {
             // scroller; the inset behaviour is iOS's.)
             <StateWrap top>
               {/* WHOLE ROWS — three bones and an empty cell is the shape of a
-                  grid holding an ODD NUMBER of songs, a statement about the
+                  grid holding an ODD NUMBER of sounds, a statement about the
                   data a skeleton cannot know and has no business making. How
                   many rows, and why, is `SKELETON_ROWS`. */}
               <View style={styles.skeletonGrid}>
                 {Array.from({ length: SKELETON_ROWS }, (_, row) => (
                   <View key={row} style={styles.gridRow}>
                     <View style={styles.cell}>
-                      <SongTileSkeleton />
+                      <SoundTileSkeleton />
                     </View>
                     <View style={styles.cell}>
-                      <SongTileSkeleton />
+                      <SoundTileSkeleton />
                     </View>
                   </View>
                 ))}
@@ -408,15 +408,15 @@ export default function HomeScreen() {
         )}
 
         {pickedFile && (
-          <EditSongSheet
+          <EditSoundSheet
             pickedFile={pickedFile}
             onClose={() => setPickedFile(null)}
           />
         )}
-        {editingSongId && (
-          <EditSongSheet
-            songId={editingSongId}
-            onClose={() => setEditingSongId(null)}
+        {editingSoundId && (
+          <EditSoundSheet
+            soundId={editingSoundId}
+            onClose={() => setEditingSoundId(null)}
           />
         )}
       </SafeAreaView>
