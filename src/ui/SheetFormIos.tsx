@@ -16,21 +16,15 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
-  background,
   buttonStyle,
   controlSize,
   disabled as disabledModifier,
   font,
   foregroundStyle,
-  frame,
-  glassEffect,
   keyboardType as keyboardTypeModifier,
   lineLimit,
   listRowBackground,
   listRowSeparator,
-  padding,
-  scrollContentBackground,
-  shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -110,59 +104,28 @@ const styles = StyleSheet.create({
   bodyHost: { flex: 1, marginTop: -BODY_PULL_BACK },
 });
 
-type SheetFormProps = {
-  title: string;
-  actionLabel: string;
-  actionEnabled?: boolean;
-  busy?: boolean;
-  onAction: () => void;
-  /**
-   * Already-translated "Cancel". Renders the leading half of Apple's
-   * commit-modal pair — see the header note below. Omit only for a sheet that
-   * commits nothing.
-   */
-  cancelLabel?: string;
-  /** Dismiss without committing. Required whenever `cancelLabel` is given. */
-  onCancel?: () => void;
-  /** `Section`s — the form's rows. */
-  children: React.ReactNode;
-};
-
 /**
- * THE COMMIT-MODAL HEADER, iOS 26's grammar — measured, not remembered.
+ * THE AUTHORED COMMIT HEADER IS GONE, and what it recorded is worth keeping.
  *
- * iOS 26 replaced the Cancel/Done WORD pair on commit sheets with GLYPH
- * CIRCLES: a label-coloured ✕ in a Liquid Glass circle leading, and a ✓ in a
- * FILLED ACCENT circle trailing — grey while the form is invalid, the app's
- * accent once it can commit. Both New Contact (Contacts) and New Event
- * (Calendar) were band-scanned on iPhone 17 / iOS 26.5:
+ * It drew a Cancel/commit pair INSIDE the form's own Host: a label-coloured ✕
+ * in a glass circle leading, and a ✓ in a FILLED ACCENT circle trailing. That
+ * pair is Apple's real iOS 26 grammar — band-scanned from New Contact and New
+ * Event — and the measurements live in `docs/pending-upstream.md`, against
+ * RNScreens exposing prominent bar items.
  *
- *   circle          44 × 44, inset 16 from the sheet edge, top 16
- *   ✕ ink           17 × 17, label colour, on glass
- *   ✓ ink           ~18 × 18, white, on the fill
- *   disabled fill   (202,202,208) — light grey under a white check
- *   title           17pt SEMIBOLD, centred on the circles' axis
+ * It lost anyway, for a reason that had nothing to do with the design: an
+ * authored header cannot have genuine Liquid Glass. Its "glass" sits over a
+ * static sheet with nothing ever passing behind it, so the circles render
+ * flat. `SheetFormBodyIos` + `sheetCommitBarOptionsIos` put the same pair in
+ * the SYSTEM'S bar instead, where the material is real, and every editor in
+ * the portfolio moved across — Topper's two first, Sound Shaper's three on
+ * 2026-08-21. Nothing imported this component afterwards, so it went.
  *
- * The header this replaces was the PRE-26 imitation — "Cancel" and "Create"
- * as tinted words, with a `title2`-bold title no Apple commit sheet uses.
- * The word labels survive as ACCESSIBILITY labels on the glyphs, so the API
- * (and every translated call site) is unchanged.
- *
- * The disabled fill is `surfaceVariant` + `onSurfaceMuted` rather than
- * Apple's sampled grey-under-white: the palette rule is semantic tokens only,
- * and the token pair keeps the same "dimmed control" read in both modes.
- *
- * It stays a SwiftUI `HStack` in the SAME host as the form, so chrome and
- * rows cannot drift; `scrollContentBackground('hidden')` drops the Form's own
- * grouped backdrop (the sheet already paints one).
+ * The FILLED DISC does not survive the move, and that is a platform limit
+ * rather than a verdict on it: a bar item is one glass capsule UIKit draws
+ * itself, so a fill inside it is a nesting artifact (rejected on sight, in
+ * dark). `SheetCommitGlyphIos` tints the GLYPH instead.
  */
-const HEADER_CIRCLE = 44;
-/** TUNED TO THE INK, not to Apple's requested size (which is unknowable from a
- *  screenshot): SF symbols are sized by font metrics, so `xmark` at 22 rendered
- *  16.33pt of ink against Apple's measured 17.0 — 23 closes it. Re-measure the
- *  ink, not the constant, if the glyphs ever change. */
-const CLOSE_GLYPH_SIZE = 23;
-const COMMIT_GLYPH_SIZE = 23;
 
 /**
  * THE FORM FOR A TITLED SHEET ROUTE — the whole component, because a titled
@@ -195,85 +158,6 @@ export function SheetFormBodyIos({ children }: { children: React.ReactNode }) {
           fills — caught by eye in both modes. One titled sheet family, one
           Form recipe. */}
       <Form modifiers={[tint(colors.primary)]}>{children}</Form>
-    </Host>
-  );
-}
-
-export function SheetFormIos({
-  title,
-  actionLabel,
-  actionEnabled = true,
-  busy = false,
-  onAction,
-  cancelLabel,
-  onCancel,
-  children,
-}: SheetFormProps) {
-  const { colors } = useAppTheme();
-
-  return (
-    <Host style={styles.formHost}>
-      <VStack spacing={0}>
-        <HStack modifiers={[padding({ horizontal: 16, top: 16, bottom: 4 })]}>
-          {cancelLabel && onCancel ? (
-            <>
-              <Image
-                systemName="xmark"
-                size={CLOSE_GLYPH_SIZE}
-                color={colors.onSurface}
-                onPress={onCancel}
-                modifiers={[
-                  frame({ width: HEADER_CIRCLE, height: HEADER_CIRCLE }),
-                  glassEffect({
-                    shape: 'circle',
-                    glass: { variant: 'regular', interactive: true },
-                  }),
-                  accessibilityLabel(cancelLabel),
-                ]}
-              />
-              <Spacer />
-            </>
-          ) : null}
-          <SwiftUIText
-            modifiers={[
-              // Headline — 17/semibold, what New Contact / New Event set their
-              // titles in. `title2`-bold read as a screen title on a modal.
-              font({ size: 17, weight: 'semibold' }),
-              foregroundStyle(colors.onSurface),
-            ]}
-          >
-            {title}
-          </SwiftUIText>
-          <Spacer />
-          {busy ? (
-            // The spinner takes the ✓'s own circle, so nothing moves when the
-            // commit starts — same slot, same fill, the glyph swaps out.
-            <ProgressView
-              modifiers={[
-                frame({ width: HEADER_CIRCLE, height: HEADER_CIRCLE }),
-                background(colors.surfaceVariant, shapes.circle()),
-              ]}
-            />
-          ) : (
-            <Image
-              systemName="checkmark"
-              size={COMMIT_GLYPH_SIZE}
-              color={actionEnabled ? colors.onPrimary : colors.onSurfaceMuted}
-              onPress={onAction}
-              modifiers={[
-                frame({ width: HEADER_CIRCLE, height: HEADER_CIRCLE }),
-                background(
-                  actionEnabled ? colors.primary : colors.surfaceVariant,
-                  shapes.circle(),
-                ),
-                ...(actionEnabled ? [] : [disabledModifier(true)]),
-                accessibilityLabel(actionLabel),
-              ]}
-            />
-          )}
-        </HStack>
-        <Form modifiers={[scrollContentBackground('hidden')]}>{children}</Form>
-      </VStack>
     </Host>
   );
 }

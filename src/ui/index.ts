@@ -145,7 +145,6 @@ export {
   SheetFormBodyIos,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
-  SheetFormIos,
   SheetFormMediaIos,
 } from './SheetFormIos';
 export {
