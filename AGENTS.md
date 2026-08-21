@@ -58,37 +58,38 @@ that — not taste — is why it read at a different size and colour than Topper
 it mirrors iOS, but nothing Android is installed — see the root AGENTS.md.
 Re-check it on device when Android resumes.
 
-**THE ARTWORK WASH IS AT FULL STRENGTH, AND THE GLYPHS ARE PROTECTED
-SEPARATELY** (2026-08-21). The blurred cover used to be drawn at 0.62 opacity,
-which mixed 38% of the page colour into every wash — subtle by design, but that
-mix was also the only thing keeping the bar glyphs legible, since a dark cover
-could never pull the top band very dark. Only the first of those was wanted.
+**THE ARTWORK WASH IS ONE STEP UP FROM SUBTLE, AND 0.62 WAS A CEILING RATHER
+THAN A TASTE** (2026-08-21). The blurred cover is mixed into the page colour, so
+light mode drifts toward white and dark toward black. That mix is also what
+keeps the bar glyphs legible — a dark cover can never pull the top band very
+dark — and the old 0.62 sat almost exactly ON the limit: for a black cover in
+light mode it left 0.38 × 242 ≈ 92, against the ~89 a black glyph needs to clear
+3:1. So going past it AT ALL requires something else protecting the glyphs.
 
-The cover carries its own colour now (opacity 1) and the gradient's mid-range
-was pulled back so the colour survives further down. Readability is guaranteed
-by two things instead:
+It is 0.75 now, with a short scrim ramp held FLAT across the bar row and
+released just under it. The gradient's offsets are in the OVERSCANNED box, not
+the screen — screen y maps to `(OVERSCAN + y) / (OVERSCAN * 2 + screenH)`, so
+0.211 is the screen's top edge and 0.281 is the bar's bottom. A ramp that starts
+decaying at the top edge has already lost two thirds of itself by the glyphs'
+own centre; that was built first and measured 1.34:1. Holding it flat costs the
+wash almost nothing, because the cover is an OPAQUE layer above this one
+starting at y 119 — between the bar and there the wash shows only in two 16pt
+gutters.
 
-- **A scrim ramp held flat across the bar row, and only there.** The gradient's
-  offsets are in the OVERSCANNED box, not the screen — screen y maps to
-  `(OVERSCAN + y) / (OVERSCAN * 2 + screenH)`, so 0.211 is the screen's top and
-  0.281 is just under the bar. A ramp that starts decaying at the top edge has
-  already lost two thirds of itself by the glyphs' own centre; measured at
-  1.34:1 before that was corrected. Holding it flat costs the wash almost
-  nothing, because the cover is an opaque layer ABOVE this one starting at
-  y 119 — between the bar and there, the wash shows only in two 16pt gutters.
-- **The bar glyphs stand on `GlassSurfaceIos` discs**, the same floating
-  material the rest of the app uses. Glass alone is NOT sufficient and was
-  tried: over a near-black cover in light mode its floor only reached
-  (36,36,37), i.e. 1.35:1.
+Measured on iPhone 17 / iOS 26.5: a BARE chevron over a near-black cover in
+light mode reads **4.29:1**, comfortably past the 3:1 a UI glyph needs.
 
-Worst cases measured on iPhone 17 / iOS 26.5, both far above the 3:1 a UI glyph
-needs: light mode over a near-black cover, glyph (1,1,1) on a (190,190,191)
-disc — **11.24:1**; dark mode over a bright cover, glyph (253,253,253) on a
-(69,69,69) disc — **9.43:1**.
+**FULL STRENGTH WAS BUILT AND REJECTED** (Juan, on sight — "too much"). At
+opacity 1 the colour swamps the screen, and it also forces protection the design
+does not otherwise need: the bar glyphs had to stand on `GlassSurfaceIos` discs,
+which is added chrome on a bar that reads better bare. Both were reverted. Two
+dead ends worth not re-walking, since each looked right in the abstract:
 
-**Do not solve this with a scrim floor alone.** It was costed: a pure-black
-cover in light mode needs ~0.37 of page colour across the whole top to clear
-3:1, which flattens the wash for exactly the covers it should be strongest on.
+- **Glass discs alone do not fix it.** Over a near-black cover in light mode the
+  material's floor only reached (36,36,37) — 1.35:1.
+- **A scrim floor alone does not either.** Costed at ~0.37 of page colour across
+  the WHOLE top to clear 3:1, which flattens the wash for exactly the covers it
+  should be strongest on.
 
 **SHEET SIZES ARE MEASURED, not defaulted** (2026-08-21). The three player
 sheets shared one note — "a large sheet is the iOS idiom for an editor anyway" —

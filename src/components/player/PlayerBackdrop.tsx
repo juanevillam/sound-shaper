@@ -34,18 +34,22 @@ const BACKDROP_BLUR = 60;
 // swap that brings the new art here.
 const BACKDROP_FADE_MS = 420;
 /**
- * THE COVER CARRIES ITS OWN COLOUR NOW — it was 0.62, which meant the blurred
- * art was always mixed 38% into the page colour, so every wash in light mode
- * drifted toward white and every wash in dark drifted toward black. That mix
- * was doing double duty: it made the wash subtle AND it kept the bar glyphs
- * legible, because a dark cover could never pull the top band very dark.
+ * ONE STEP UP FROM 0.62, NOT ALL THE WAY — and the ceiling is a readability
+ * fact rather than taste.
  *
- * Only the first of those was wanted. The glyphs are protected structurally
- * now — they sit on `GlassSurfaceIos` circles, whose floor is what guarantees
- * separation over ANY artwork, the same way Photos puts its viewer controls on
- * glass over arbitrary photography. So the art gets to be its own colour.
+ * The blurred art is mixed this much into the page colour, so light mode drifts
+ * toward white and dark toward black. That mix is also what keeps the bar
+ * glyphs legible: a dark cover can never pull the top band very dark. 0.62 sat
+ * almost exactly ON the limit — for a black cover in light mode it left
+ * 0.38 × 242 ≈ 92, and a black glyph needs ~89 to clear 3:1. So the old value
+ * was not merely "subtle", it was the most the wash could be with nothing else
+ * protecting the glyphs.
+ *
+ * Full strength was built and rejected on sight — the colour swamped the
+ * screen. 0.75 reads as a stronger tint while the short bar-row scrim below
+ * covers the difference.
  */
-const BACKDROP_OPACITY = 1;
+const BACKDROP_OPACITY = 0.75;
 
 type PlayerBackdropProps = {
   artUrl?: string;
@@ -105,7 +109,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
                 `onSurface`. Worst case measured below. It reads as the wash
                 emerging from under the status bar, which is the same scrim
                 Apple lays over photography beneath a bar. */}
-            <Stop offset="0" stopColor={colors.background} stopOpacity="0.44" />
+            <Stop offset="0" stopColor={colors.background} stopOpacity="0.24" />
             {/* HELD FLAT ACROSS THE WHOLE BAR ROW (screen y 62–105, i.e. up to
                 offset 0.281) and only then released. A ramp that starts
                 decaying at the screen's top edge has already lost two thirds of
@@ -114,7 +118,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop
               offset="0.281"
               stopColor={colors.background}
-              stopOpacity="0.44"
+              stopOpacity="0.24"
             />
             {/* Clear by y ≈ 170. It costs the wash almost nothing to hold on
                 this long: the cover is an OPAQUE layer drawn above this one and
@@ -128,7 +132,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop
               offset="0.44"
               stopColor={colors.background}
-              stopOpacity="0.22"
+              stopOpacity="0.3"
             />
             {/* From here down it falls off HARDER than it used to, not softer.
                 The console needs a predictable surface whatever the cover is —
@@ -138,7 +142,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop
               offset="0.58"
               stopColor={colors.background}
-              stopOpacity="0.62"
+              stopOpacity="0.68"
             />
             <Stop
               offset="0.72"
