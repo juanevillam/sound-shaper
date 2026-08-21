@@ -13,6 +13,9 @@ import {
 
 import { withAlpha } from '@portfolio/core';
 import {
+  FLOATING_COPY_GAP,
+  FLOATING_RADIUS,
+  GLASS_FLOOR,
   ICON_PRESS_OPACITY,
   ICON_PRESS_SCALE,
   usePressSquash,
@@ -39,6 +42,11 @@ import {
 } from 'react-native-safe-area-context';
 
 import { BannerGlass } from '@/components/player/BannerGlass';
+import {
+  BANNER_SIDE_INSET,
+  bannerBottomOffset,
+  MINI_PLAYER_HEIGHT,
+} from '@/components/player/bannerMetrics';
 import {
   HANDLES_REGION_HEIGHT,
   type PlayerCard,
@@ -75,10 +83,8 @@ import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
 import { useSongsStore } from '@/store/songs';
-import { SCREEN_PADDING } from '@/styles/metrics';
 import {
   CONTINUOUS_CURVE,
-  FLOATING_RADIUS,
   HAIRLINE,
   SHAPE_SM,
   TILE_RADIUS,
@@ -106,59 +112,6 @@ import {
 // Shape and Clips — that open their own bottom sheets. Nothing scrolls, so
 // nothing can fight the drag-to-close gesture.
 // ---------------------------------------------------------------------------
-
-/**
- * CONTENT height of the collapsed banner (consumers add the bottom inset).
- * Everything else about the banner is derived from this and the artwork, so
- * resizing it is a matter of these two numbers — they were scaled together
- * (64/44) to give the whole thing more presence.
- */
-export const MINI_PLAYER_HEIGHT = 68;
-
-/**
- * Gap from the banner to each screen edge. It is the SCREEN GUTTER, not a
- * number of its own: the banner floats over the library grid, and an edge that
- * nearly lines up with the tiles above it is worse than either lining up or
- * clearly not.
- */
-export const BANNER_SIDE_INSET = SCREEN_PADDING;
-
-/**
- * Clearance UNDER the banner, from the screen's bottom edge — the safe area
- * plus a gap. Apple floats an accessory bar just clear of the home indicator;
- * Material holds a floating surface a full grid step off the navigation bar.
- *
- * REJECTED: ANCHORING IT TO TOPPER'S TAB BAR. The two look like the same
- * problem — a detached surface hanging off the bottom, over content — and the
- * two apps do sit differently: band-scanned on iPhone 17 / iOS 26.5, Topper's
- * bar spans 791.00–852.67 and stops 21.33pt off the screen edge, while this
- * banner spans 759.33–827.67 and stops 46.33pt off it. Aligning their TOPS was
- * tried, and it works as arithmetic — the tops came within 1.33pt.
- *
- * It is the wrong reference all the same, and Juan called it on sight (2026-08-20):
- * a tab bar is TERMINAL chrome that never moves, so iOS can tuck it against the
- * edge and let the home indicator draw over it. This banner is the collapsed
- * state of a surface that EXPANDS TO FULL SCREEN, and a thing that is about to
- * grow needs to read as floating with somewhere to go, not as furniture pinned
- * to the bottom. At the tab bar's placement it sat low enough to look stuck.
- *
- * So the number stays what it was, and the lesson is that "these two are both
- * floating bottom chrome" is a resemblance rather than a shared rule.
- */
-const BANNER_BOTTOM_GAP_IOS = 12;
-/**
- * ANDROID CLEARS ITS NAVIGATION BAR and must: the inset there is real chrome
- * the system draws opaquely, not an indicator that floats over content.
- */
-const BANNER_BOTTOM_GAP_ANDROID = 16;
-
-/**
- * Clearance under the banner, from the screen's bottom EDGE — a total, so
- * callers never add the inset to it a second time.
- */
-export const bannerBottomOffset = (bottomInset: number) =>
-  bottomInset +
-  (Platform.OS === 'ios' ? BANNER_BOTTOM_GAP_IOS : BANNER_BOTTOM_GAP_ANDROID);
 
 // A rounded RECTANGLE. Half the height would be a capsule, and a capsule at
 // this size stops reading as a piece of the app.
@@ -252,13 +205,12 @@ const MINI_BUTTON_HIT_SLOP = 8;
 const MINI_TRAILING_GLYPH_INSET = 18;
 
 /**
- * Gap between the title and the artist under it. 1pt was a hairline crack
- * rather than a relationship; 2 is the same title→supporting step the iOS
- * sheets use. With Body over Subheadline the two-line block measures 44pt
- * (22 + 2 + 20) against the 46pt artwork beside it — the copy fills its own
- * band instead of floating in it. Re-derive if either variant moves.
+ * Gap between the title and the artist under it — the PORTFOLIO'S, shared with
+ * the trophy banner, which stood 1 for no reason it could name. With Body over
+ * Subheadline the two-line block measures 44pt (22 + 2 + 20) against the 46pt
+ * artwork beside it, so the copy fills its own band instead of floating in it.
  */
-const MINI_COPY_GAP = 2;
+const MINI_COPY_GAP = FLOATING_COPY_GAP;
 // The row's own padding is then whatever gets the glyph there, so changing the
 // button box can't quietly move it.
 const MINI_ROW_PADDING_RIGHT =
@@ -278,18 +230,37 @@ const CLIP_FRAMING_GAP = Platform.select({ ios: 16, default: 8 }) as number;
 const BANNER_GLASS = Platform.OS === 'ios';
 const BANNER_GLASS_FADE = 0.12;
 /**
- * A tonal floor UNDER the glass. Pure glass over a bright cover leaves the
- * title fighting the artwork for contrast — worst in light mode, where both
- * the material and the text it carries are light. This is the app's own
- * surface colour at partial strength, so it darkens the banner in dark mode
- * and lightens it in light mode without either being special-cased.
+ * THE FLOOR IS THE PORTFOLIO'S, NOT THIS BANNER'S. `GLASS_FLOOR` is the one
+ * tonal floor every floating glass surface in every app stands on — the
+ * snackbar and the trophy unlock banner take it through `GlassSurfaceIos`, and
+ * the measurements that set it (and Apple's own number it is matched to) live
+ * with it in `@portfolio/mobile-ui`.
+ *
+ * This banner cannot use that component, and the reason is the expansion:
+ * `surfaceStyle` interpolates this exact colour to the opaque player background
+ * as the banner grows into a screen, so the floor here is an animated layer
+ * rather than a static one. It shares the TERM instead — which is the point,
+ * since the number is what a person sees.
  */
-const BANNER_GLASS_FLOOR = 0.45;
+const BANNER_GLASS_FLOOR = GLASS_FLOOR;
 
-// The pill's outline — iOS only. `styles/surfaces`: iOS separates surfaces by
-// EDGE, Android by TONE, and Android's raised pill already reads as its own
-// object through elevation and the tonal step.
-const IOS_ONLY_HAIRLINE = Platform.OS === 'ios' ? HAIRLINE : 0;
+/**
+ * The pill's outline — ANDROID ONLY now, and the change is the portfolio's one
+ * edge rule rather than this banner's own taste.
+ *
+ * iOS separates surfaces by EDGE and Android by TONE, and this used to read
+ * that as "so iOS draws a hairline". On Liquid Glass it does not: the material
+ * draws its OWN edge — a specular rim, plus the +15 luminance step into the
+ * gutter this file already measured when it deleted the iOS drop shadow for
+ * being twice UIKit's whole treatment. A hairline on top of that is the same
+ * mistake one layer over.
+ *
+ * Every floating glass surface in the portfolio therefore takes the material's
+ * own edge and nothing else — no border here, no SwiftUI shadow on the trophy
+ * banner, nothing on the snackbar. Android keeps its outline, and its tonal
+ * pill with it.
+ */
+const ANDROID_ONLY_HAIRLINE = Platform.OS === 'ios' ? 0 : HAIRLINE;
 
 // The wash starts appearing only this far into the expansion.
 const BACKDROP_FADE_START = 0.8;
@@ -764,7 +735,7 @@ export function PlayerSheet() {
             [colors.surfaceContainer, colors.background],
           ),
       borderRadius: BANNER_RADIUS * (1 - p),
-      borderWidth: IOS_ONLY_HAIRLINE * chrome,
+      borderWidth: ANDROID_ONLY_HAIRLINE * chrome,
       elevation: BANNER_ELEVATION * chrome,
       height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
       left: BANNER_SIDE_INSET * (1 - p),
@@ -1020,6 +991,25 @@ export function PlayerSheet() {
             its children, so a child anchored to its bottom edge lands at the
             top instead. Every layer below is therefore a sibling, positioned
             against the container, whose height never changes. */}
+        {/* THE TONAL FLOOR GOES UNDER THE GLASS, and the order is the whole
+            difference between this reading as glass and reading as a tinted
+            slab. Painted OVER the material — which is where it was — it veils
+            the specular rim and the refraction that make Liquid Glass look
+            like glass at all, while leaving the average fill untouched: the
+            banner measured L* 14.3 against the toast's 14.3 in dark and still
+            looked flatter beside it, which is exactly what an even veil over
+            the highlights does. Juan called it by eye before the numbers had
+            anything to say (2026-08-20).
+
+            Underneath, the same colour is something the material REFRACTS
+            rather than something drawn on top of it — which is what the
+            snackbar and the trophy banner do through `GlassSurfaceIos`, and
+            why those two read glassier. */}
+        <Animated.View
+          style={[styles.surface, surfaceStyle]}
+          pointerEvents="none"
+        />
+
         {BANNER_GLASS ? (
           <Animated.View
             style={[styles.bannerGlass, bannerGlassStyle]}
@@ -1032,11 +1022,6 @@ export function PlayerSheet() {
             />
           </Animated.View>
         ) : null}
-
-        <Animated.View
-          style={[styles.surface, { borderColor: colors.border }, surfaceStyle]}
-          pointerEvents="none"
-        />
 
         {/* The artwork wash tracks the drag directly, so it grows in with the
             surface instead of popping once the expanded chrome crosses its
@@ -1496,7 +1481,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           // The same floating island the loaded banner resolves to — parked,
           // so it needs none of the animation, only the shape.
           borderColor: colors.border,
-          borderWidth: IOS_ONLY_HAIRLINE,
+          borderWidth: ANDROID_ONLY_HAIRLINE,
           bottom: bannerBottomOffset(bottomInset),
         },
       ]}

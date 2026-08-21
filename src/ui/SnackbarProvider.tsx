@@ -14,9 +14,6 @@ import {
   View,
 } from 'react-native';
 
-import { HStack, Spacer } from '@expo/ui/swift-ui';
-import { frame, glassEffect } from '@expo/ui/swift-ui/modifiers';
-
 import { useAppTheme } from '@portfolio/core';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -29,21 +26,52 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  FLOATING_EDGE_GAP,
+  FLOATING_RADIUS,
+  GlassSurfaceIos,
+} from './GlassSurfaceIos';
 import { SnackbarContext, type SnackbarAction } from './snackbar';
 import { PRESSED_OPACITY } from './SquashPressable';
-import { SwiftUIHost } from './SwiftUIHost';
 
 type SnackbarProviderProps = {
   children: React.ReactNode;
   /**
-   * iOS gap between the toast and the bottom safe-area edge. Apps with a
-   * floating Liquid Glass tab bar pass 76 so the toast clears it; apps without
-   * one keep the default.
+   * iOS clearance between the toast and the bottom safe-area edge.
+   *
+   * ONLY A PRESENTED SURFACE PASSES THIS — see `SnackbarOutlet`, where a sheet
+   * states its own. An APP does not: the toast stands in the same place in
+   * every app, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
    */
   iosBottomInset?: number;
 };
 
+/**
+ * WHERE THE TOAST STANDS ON iOS, measured up from the bottom safe-area edge —
+ * and it is the PORTFOLIO'S number, not each app's.
+ *
+ * The apps used to pass their own, a flat 76 in both, which was right for
+ * neither: it left Topper's tab bar 27pt of air and overlapped Sound Shaper's
+ * now-playing banner by 3.33pt, the two surfaces fighting for one band. The
+ * obvious repair was to derive it per app from that app's own bottom chrome —
+ * and that is worse, because it puts the same toast in a different place in
+ * every app for a reason nobody using one app can see.
+ *
+ * So it is one place everywhere, and the number is the tallest bottom chrome in
+ * the portfolio clearing itself: Sound Shaper's now-playing banner is
+ * `FLOATING_EDGE_GAP` off the safe area plus `MINI_PLAYER_HEIGHT` (68) tall,
+ * and the toast clears that by `FLOATING_EDGE_GAP` again. Topper's tab bar is
+ * shorter, so its toast simply carries more air — the same surface in the same
+ * spot, which is the point.
+ *
+ * If the now-playing banner's box ever changes, this is the number that moves
+ * with it; the app cannot tell the package, so the check is manual.
+ */
+export const SNACKBAR_BOTTOM_CLEARANCE =
+  FLOATING_EDGE_GAP + 68 + FLOATING_EDGE_GAP;
+
 const AUTO_DISMISS_MS = 4000;
+
 // Gentle entrance / settle spring (stiffness 100, mass 1, damping 18 → ~0.9
 // damping ratio, so it eases in with barely any overshoot). All three are set
 // explicitly: passing only `damping` lets Reanimated fall back to ITS own
@@ -70,7 +98,7 @@ const SWIPE_ACTIVATION_OFFSET = 8;
  */
 const SnackbarProvider = ({
   children,
-  iosBottomInset = 16,
+  iosBottomInset = SNACKBAR_BOTTOM_CLEARANCE,
 }: SnackbarProviderProps) => {
   const [message, setMessage] = useState<string | null>(null);
   const [action, setAction] = useState<SnackbarAction | null>(null);
@@ -215,7 +243,18 @@ const SnackbarProvider = ({
               ? event.translationY
               : event.translationY * 0.1;
         })
-        .onEnd(event => {
+        /**
+         * CHECK `success`. RNGH calls `onEnd` for BOTH outcomes — a pan that
+         * ended while ACTIVE, and one that never activated and simply failed or
+         * was cancelled — and a failed gesture carries junk in `translationY` /
+         * `velocityY`, which the dismissal test below would read as a swipe.
+         * `activeOffsetY` means most touches that land here take that second
+         * path, so the window is real even though nothing has been seen to
+         * dismiss through it.
+         */
+        .onEnd((event, success) => {
+          if (!success) return;
+
           const dismissed =
             event.translationY > SWIPE_DISMISS_DISTANCE ||
             event.velocityY > SWIPE_DISMISS_VELOCITY;
@@ -323,26 +362,17 @@ const SnackbarProvider = ({
         >
           {/* The glass layer must cover the toast box exactly, so all
                   padding lives on the inner row (Yoga offsets absolute
-                  children by the parent's padding). */}
+                  children by the parent's padding). The MATERIAL is the
+                  portfolio's one floating-glass surface — the same floor the
+                  trophy banner and Sound Shaper's now-playing banner stand on.
+                  This used to be pure `glassEffect` with nothing behind it,
+                  which is where its readability problems came from. */}
           {Platform.OS === 'ios' && toastSize ? (
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-              {/* Without `ignoreSafeArea` the hosting controller insets
-                      its SwiftUI content for the home indicator, so the
-                      capsule renders half that inset above the toast box. */}
-              <SwiftUIHost ignoreSafeArea="all" style={StyleSheet.absoluteFill}>
-                <HStack
-                  modifiers={[
-                    frame({ width: toastSize.w, height: toastSize.h }),
-                    glassEffect({
-                      glass: { variant: 'regular' },
-                      shape: 'capsule',
-                    }),
-                  ]}
-                >
-                  <Spacer />
-                </HStack>
-              </SwiftUIHost>
-            </View>
+            <GlassSurfaceIos
+              width={toastSize.w}
+              height={toastSize.h}
+              shape="capsule"
+            />
           ) : null}
           <View style={styles.content}>
             <RNText
@@ -414,7 +444,10 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         alignSelf: 'center' as const,
-        borderRadius: 22,
+        // The shape is a CAPSULE (`GlassSurfaceIos` draws it as one), so this
+        // only has to clip the RN content to the same silhouette. It tracks the
+        // family's corner rather than a literal, which is what it was.
+        borderRadius: FLOATING_RADIUS,
         maxWidth: '92%' as const,
       },
       default: { borderRadius: 12, elevation: 4 },

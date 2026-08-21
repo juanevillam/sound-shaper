@@ -3,6 +3,7 @@ import { StateLab, type StateLabGroup } from '@portfolio/mobile-ui';
 import {
   ACCOUNT_STATES,
   HOME_STATES,
+  HOME_LAB_BOTTOM_OFFSET,
   TROPHIES_STATES,
   useUiStateLab,
   type AccountState,
@@ -26,14 +27,6 @@ import { useDevSettingsStore } from '@/store/devSettings';
 
 /** Surfaces whose picker sits on a form SHEET. */
 const SHEET_SCREENS = new Set<LabScreen>(['account', 'trophies']);
-
-/**
- * What floats at the bottom of HOME — the player banner, not a tab bar, so the
- * picker cannot take the package's default clearance. Its own constants rather
- * than a guessed number: the banner is a detached pill, so clearing it means
- * its bottom gap plus its height.
- */
-const HOME_BOTTOM_OFFSET = 68 + 12;
 
 export function UiStateLabBar({ screen }: { screen: LabScreen }) {
   const { colors } = useAppTheme();
@@ -82,7 +75,7 @@ export function UiStateLabBar({ screen }: { screen: LabScreen }) {
     <StateLab
       colors={colors}
       groups={[groups[screen]]}
-      bottomOffset={SHEET_SCREENS.has(screen) ? 0 : HOME_BOTTOM_OFFSET}
+      bottomOffset={SHEET_SCREENS.has(screen) ? 0 : HOME_LAB_BOTTOM_OFFSET}
     />
   );
 }

@@ -93,8 +93,21 @@ export {
   type SnackbarAction,
   type SnackbarContextValue,
 } from './snackbar';
+export {
+  FLOATING_COPY_GAP,
+  FLOATING_EDGE_GAP,
+  FLOATING_RADIUS,
+  GLASS_FLOOR,
+  GlassSurfaceIos,
+  glassFloorColor,
+  makeGlassUnderlay,
+  type GlassSurfaceIosProps,
+} from './GlassSurfaceIos';
 export { SnackbarOutlet } from './SnackbarOutlet';
-export { SnackbarProvider } from './SnackbarProvider';
+export {
+  SNACKBAR_BOTTOM_CLEARANCE,
+  SnackbarProvider,
+} from './SnackbarProvider';
 export {
   BRAND_PRESSED_OPACITY,
   ICON_PRESS_OPACITY,
