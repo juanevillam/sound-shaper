@@ -105,6 +105,47 @@ export type SettingsUsernameEditor = {
 };
 
 /**
+ * TURNS THE IDENTITY CARD ITSELF INTO THE ACCOUNT DESTINATION — avatar, name, a
+ * legend line saying what is behind it, and a disclosure chevron.
+ *
+ * This is Apple's own account banner: Settings' Apple Account row, and the App
+ * Store's Apple Account sheet, which is the closer twin because it is the same
+ * container (a grouped form in a sheet). The card is the tap target; nothing
+ * else on the sheet says "Account".
+ *
+ * IT EXISTS FOR THE APPS WITH NOWHERE ELSE TO PUT THE ENTRY. The portfolio has
+ * three cases and this is the third of them:
+ *
+ *  - a SHOWCASE app (expo-ui-starter) has no account surface at all — no
+ *    profile, no link, just the sign-out card;
+ *  - a SOCIAL app (Topper) already shows the person their own identity on a
+ *    Profile tab, so the account entry sits there and Settings shows no
+ *    identity card;
+ *  - a PERSONAL app (Sound Shaper) has neither, and its home bar must not grow
+ *    a second glyph to carry one — every app's home bar is the same single
+ *    gear. So the entry comes here, and the identity card does the work
+ *    instead of being decoration.
+ *
+ * iOS ONLY. Android renders the account entry as a `navRow` inside the account
+ * group (Material's own idiom, and frozen for release), so the Compose variant
+ * reads `profile` and ignores this — the prop is declared here because this is
+ * the file the shared prop type lives in.
+ *
+ * Mutually exclusive with `usernameEditor`: both claim the profile row's tap
+ * and its second line. No app wants both — an app with usernames is a social
+ * one, which is the case that keeps its identity elsewhere.
+ */
+export type SettingsAccountLink = {
+  /**
+   * Already-translated legend under the name, naming what is behind the row
+   * ("Account info and trophies") — Apple's construction, sentence case, no
+   * period. Not an instruction to tap: the chevron says that.
+   */
+  subtitle: string;
+  onPress: () => void;
+};
+
+/**
  * A row that navigates to an in-app sub-screen — leading icon + label, tappable
  * (no trailing chevron: navigation is implied by the tap, matching the screen's
  * other rows). Rendered inside the account group (e.g. a "Trash" entry); the
@@ -126,6 +167,11 @@ export type SettingsAccountSectionProps = {
   profile?: SettingsAccountProfile;
   /** When provided, renders an editable username row under the profile. */
   usernameEditor?: SettingsUsernameEditor;
+  /**
+   * When provided, the profile row BECOMES the account destination — see
+   * `SettingsAccountLink`. iOS only; the Compose variant ignores it.
+   */
+  profileLink?: SettingsAccountLink;
   /**
    * Optional navigation rows rendered between the profile and the sign-out row,
    * in the SAME grouped card (e.g. a "Trash" entry). The host owns the route.

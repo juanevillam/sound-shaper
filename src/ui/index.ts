@@ -148,6 +148,7 @@ export {
   SettingsSignOutSection,
   UsernameDialog,
   type SettingsAccountColors,
+  type SettingsAccountLink,
   type SettingsAccountProfile,
   type SettingsAccountSectionProps,
   type SettingsNavRow,
