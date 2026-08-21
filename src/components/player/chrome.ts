@@ -93,6 +93,12 @@ export type ClipActionsRowProps = {
   onCancel: () => void;
   onPreview: () => void;
   onSave: () => void;
+  /**
+   * Measured content-box width. iOS draws this row as the glass bar it stands
+   * in for, and `GlassSurfaceIos` takes a real box rather than a flex one.
+   * Android ignores it — its row is a plain Compose surface.
+   */
+  width?: number;
 };
 
 export type ClipHandlesProps = {
@@ -149,12 +155,15 @@ export type PlayerConsoleProps = {
   onNext: () => void;
   onPrevious: () => void;
 
-  /* Scrubber. */
-  position: number;
-  duration: number;
-  totalDuration: number;
-  onScrub: (value: number) => void;
-  onScrubEnd: () => void;
+  /* Scrubber.
+   *
+   * NO PLAYHEAD CROSSES THIS BOUNDARY. The transport ticks position ten times
+   * a second, and passing it through the console meant that tick re-rendered
+   * the sheet, the console and every one of their children to move a thumb.
+   * `PlayerScrubberLive` reads it from the store at the leaf that draws it and
+   * owns the drag-local value with it, so all the console owes is somewhere to
+   * commit a finished scrub. */
+  onSeek: (seconds: number) => void;
 
   /* Clip framing — the brackets and the action row that replaces the footer. */
   clipMode: boolean;
@@ -214,22 +223,31 @@ export const playerArtSize = (winW: number): number =>
 /**
  * Where the artwork's top edge sits, below the screen's top inset.
  *
- * iOS clears a BAR ROW — one glyph on each side, at the portfolio's 43pt bar
- * target. It briefly cleared a sheet grabber instead, and Juan rejected that on
- * sight for the right reason: this surface has a bottom sheet's dismiss GESTURE
- * but is not a sheet, and a grabber is UIKit's promise that it is one.
+ * iOS CLEARS NOTHING. It used to clear a 43pt BAR ROW — `chevron.down` leading,
+ * an overflow `Menu` trailing — and that row is gone (Juan, 2026-08-21): a
+ * personal player has no bar's worth of work to put in one, the drag already
+ * puts the player away, and the two glyphs floating over the wash were the
+ * busiest thing on an otherwise calm screen. Deleting it hands 43pt back to the
+ * column, which is where the transport and the footer wanted it.
  *
- * The gap under the row is deliberately tighter than the row's own height —
- * the glyphs' targets are 43 but their ink is 20, so the optical gap to the
- * cover is the 14 below PLUS the target's own bottom padding.
+ * The gap that remains is the cover's own breathing room under the notch, and
+ * it is bigger than the 14 that used to sit under the row because it is now
+ * doing that row's job as well: 14 under a 43pt target read as ~25 optically,
+ * since the target's ink is only 20 and the rest is padding.
+ *
+ * A grabber was tried in this slot before the bar row and rejected on sight:
+ * this surface has a bottom sheet's dismiss GESTURE but is not a sheet, and a
+ * grabber is UIKit's promise that it is one.
+ *
+ * `PLAYER_BAR_TARGET` (43, the portfolio's bar-glyph target) used to be
+ * exported from here for that row. Nothing states it any more — the row is
+ * gone and the console's only glyph-only control is a compartment of the glass
+ * bar, which takes the bar's geometry rather than a bar item's.
  */
-export const PLAYER_BAR_TARGET = 43;
-const IOS_ART_TOP_GAP = 14;
+const IOS_ART_TOP_GAP = 24;
 
 export const playerArtTop = (topInset: number): number =>
-  Platform.OS === 'ios'
-    ? topInset + PLAYER_BAR_TARGET + IOS_ART_TOP_GAP
-    : topInset + 60;
+  Platform.OS === 'ios' ? topInset + IOS_ART_TOP_GAP : topInset + 60;
 
 /** The gap between the artwork's bottom edge and the console's first line. */
 const ART_TO_CONSOLE = Platform.select({ ios: 28, default: 36 }) as number;

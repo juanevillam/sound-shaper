@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
 import {
   AppIcon,
@@ -16,8 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClipActionsRow } from '@/components/player/ClipActionsRow';
 import { ClipHandles } from '@/components/player/ClipHandles';
 import { GlyphButton } from '@/components/player/GlyphButton';
-import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
-import { PlayerScrubber } from '@/components/player/PlayerScrubber';
+import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
   NextGlyph,
   PauseGlyph,
@@ -33,9 +31,7 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
-  CLIP_FRAMING_GAP,
   HANDLES_REGION_HEIGHT,
-  PLAYER_BAR_TARGET,
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
@@ -73,21 +69,36 @@ import {
 //    system blue" is to delete the accent, not to extract one: the transport,
 //    the scrubber and the footer all take `onSurface` over the wash.
 //
-// 4. A BAR ROW, AND IT IS NOT A GRABBER. One glyph on each side at the
-//    portfolio's 43pt bar target: `chevron.down` to put the player away, the
-//    overflow `Menu` opposite it.
+// 4. NO BAR ROW. There is nothing above the artwork but the artwork.
 //
-//    Both alternatives were built and rejected. A sheet GRABBER was wrong
-//    because this surface has a bottom sheet's dismiss gesture but is not a
-//    sheet, and a grabber is UIKit's promise that it is one (Juan, on sight).
-//    Hanging the overflow off the TITLE was wrong because a "…" that acts on
-//    the screen does not belong inside the copy that names the sound.
+//    The row that stood here carried `chevron.down` leading and an overflow
+//    `Menu` trailing, at the portfolio's 43pt bar target. Juan removed it
+//    (2026-08-21): a personal player has no bar's worth of work to put in one,
+//    the drag already puts the player away, and two glyphs floating over the
+//    wash were the busiest thing on an otherwise calm screen. It also hands
+//    43pt back to the column below, which is where the transport and the
+//    footer wanted it.
 //
-//    What must NOT come back is how the original row was built: on
-//    `IconButton`, which wraps a `matchContents` Host, so a re-render moved the
-//    whole row 79pt (measured: chevron ink centre 87.67 on a fresh launch,
-//    166.67 after a live appearance change, with the artwork unmoved). Every
-//    host in this row states its box.
+//    Two earlier occupants of the same slot were built and rejected before it:
+//    a sheet GRABBER, because this surface has a bottom sheet's dismiss gesture
+//    but is not a sheet and a grabber is UIKit's promise that it is one; and
+//    the original row built on `IconButton`, which wraps a `matchContents`
+//    Host, so a re-render moved the whole row 79pt (measured: chevron ink
+//    centre 87.67 on a fresh launch, 166.67 after a live appearance change,
+//    with the artwork unmoved). That trap is the reason every host on this
+//    screen still states its box.
+//
+//    THE MENU'S TWO ENTRIES DID NOT SURVIVE IT IN THE SAME WAY. Edit is the
+//    glass bar's third compartment (see `GlassFooter`). Info had nowhere to go
+//    and nothing left to say: it listed artist, album and release year, and the
+//    app no longer handles the last two, so what remained was the title and
+//    artist already set two lines below the cover. The iOS route is gone.
+//
+//    WHAT THIS COSTS is the only dismiss control VoiceOver and Switch Control
+//    could reach — this is not a real UIKit sheet, so nothing publishes a
+//    dismiss action on its behalf. The drag zone above the artwork carries it
+//    now, as a labelled button, and the console answers the two-finger-Z
+//    escape gesture, which is Apple's own dismiss.
 // ---------------------------------------------------------------------------
 
 /* -------------------------------------------------------------------------- */
@@ -126,31 +137,46 @@ const TRANSPORT_PLAY_SIZE = 44;
 /** Between the boxes, so the three read as one group rather than a spread row. */
 const TRANSPORT_GAP = 30;
 
+/**
+ * THE TRANSPORT IS CENTRED OPTICALLY, NOT MATHEMATICALLY, and the difference is
+ * what the eye anchors on.
+ *
+ * Two equal spacers centre it between the slider BLOCK and the footer, and
+ * measured that way it already was: 51pt above the play glyph, 47 below. But
+ * the bottom of the slider block is the small grey elapsed label, and nobody
+ * reads that as the edge of anything — the eye takes the TRACK, the strong
+ * horizontal above it. Measured from there it is 68 above against 47 below, and
+ * the footer compounds it by being a solid 68pt slab whose mass starts
+ * abruptly where the label's does not.
+ *
+ * So the lower spacer carries more weight, which lifts the row until the two
+ * gaps that are actually LOOKED at come out even. Band-scanned after: see the
+ * numbers on `spacerLower`.
+ */
+const SPACER_LOWER_WEIGHT = 1.55;
+
 /* -------------------------------------------------------------------------- */
 /*  The bar row                                                               */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The bar glyphs' ink. `HEADER_CLOSE_GLYPH_SIZE`'s value and its reason: Apple
- * draws a dismiss glyph noticeably larger than an inline title's cap height so
- * it stays an easy target inside the fixed capsule. Restated rather than
- * imported because that constant belongs to a UIKit BAR ITEM — this row is not
- * one, and borrowing the name would claim a kinship the layout does not have.
+ * EDIT LIVES IN THE GLASS BAR, and it took two tries to get there.
+ *
+ * It was first hung beside the copy it edits — a `pencil` trailing the title
+ * and artist — on the argument that the button should name its OBJECT. That is
+ * sound reasoning and it still is; what it missed is that the console's whole
+ * case is ONE floating control surface, and a lone glyph in the middle of the
+ * screen is a second one. Juan called it: putting it in the bar leaves the UI
+ * cleaner because there is less floating.
+ *
+ * So it is the bar's third compartment. It is NOT a third card — it carries no
+ * label and no summary, because unlike Shape and Clips it has no live state to
+ * say, and three cards on a 370pt bar leaves none of them room. The narrow
+ * compartment is what makes it read as secondary; the INK stays `onSurface` at
+ * the bar's own icon size, because a hand-muted glyph in a row of full-strength
+ * ones reads as disabled, and `disabled(true)` is the only thing allowed to say
+ * that.
  */
-const BAR_GLYPH_SIZE = 20;
-
-/**
- * The collapse glyph. It is NOT in `TransportGlyphs.ios` — that module is the
- * four transport symbols and a chevron is not one of them — and it states its
- * box for the same reason everything else in this row does.
- */
-function CollapseGlyph({ color }: { color: string }) {
-  return (
-    <SwiftUIHost style={styles.barGlyphHost} ignoreSafeArea="all">
-      <Image systemName="chevron.down" size={BAR_GLYPH_SIZE} color={color} />
-    </SwiftUIHost>
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /*  The footer                                                                 */
@@ -174,7 +200,7 @@ function CollapseGlyph({ color }: { color: string }) {
  * studios in. The same object, in the same place, in both states.
  */
 const GLASS_FOOTER_HEIGHT = MINI_PLAYER_HEIGHT;
-const GLASS_FOOTER_ICON = 22;
+const GLASS_FOOTER_ICON = 24;
 /**
  * The glyph's host STATES ITS BOX; it never takes `matchContents`.
  *
@@ -193,8 +219,65 @@ const GLASS_FOOTER_ICON_BOX = Math.round(GLASS_FOOTER_ICON * 1.3);
 
 type FooterProps = {
   cards: readonly PlayerCard[];
+  /** Spoken name — the full phrase, not the bar's one word. */
+  editA11yLabel: string;
+  editLabel: string;
+  onEdit: () => void;
   width: number;
 };
+
+/**
+ * THE EDIT COMPARTMENT IS LABELLED, AND IT HUGS ITS CONTENT.
+ *
+ * It shipped as a bare `pencil` in a fixed 48pt slot, and Juan's objection was
+ * the one that matters: you cannot tell what it does. A glyph with no word is a
+ * guess, and this is the one control in the bar whose meaning is not carried by
+ * the thing beside it.
+ *
+ * THREE EQUAL CARDS ARE THE OBVIOUS FIX AND THEY DO NOT FIT — measured twice.
+ * Ink on iPhone 17 / iOS 26.5: "Shape" 46.33, "Flat · 1×" 50.67, "Clips" 35.67,
+ * "None" 34.33. Three equal compartments are 123.33 each, and after 32 of
+ * padding, the 31pt icon host and the 12pt gap that leaves 48.33 of copy — so
+ * the DEFAULT shape summary truncates, never mind "Bright · 1.5×" at ~73.
+ * Trimming the padding to 12 and the gap to 10 buys 61.33, which still loses
+ * every preset that is not Flat at 1×.
+ *
+ * So the compartment is sized to what it holds instead, which is what a toolbar
+ * does: icon, one word, and NO SUMMARY LINE. It has no live state to put there
+ * — that is precisely what separates it from Shape and Clips, both of which
+ * carry one ("Flat · 1×", "2 saved") — and a card that invents a second line to
+ * match its neighbours' shape is worse than one that admits it has nothing to
+ * say. Vertically centred, so a single line reads as deliberate beside two.
+ *
+ * It takes the same divider the two cards share. The bar had one divider and
+ * then none, which is the asymmetry Juan called next.
+ */
+const GLASS_ROW_PADDING = 16;
+
+/**
+ * THE EDIT GLYPH IS OPTICALLY SIZED, and it is the one place in this bar that
+ * states its own size rather than taking `GLASS_FOOTER_ICON`.
+ *
+ * A point size is a BOX, not an amount of ink, and SF Symbols fill their box by
+ * wildly different amounts. Band-scanned at an identical 24 on iPhone 17 /
+ * iOS 26.5:
+ *
+ *   tune      23.33 × 19.67   area 459
+ *   scissors  30.00 × 22.67   area 680
+ *   pencil    18.67 × 18.33   area 342
+ *
+ * `pencil` is a thin diagonal stroke with generous bearings, so at the same
+ * point size it reads visibly smaller than either sibling — Juan caught it by
+ * eye before this was measured. 28 brings its area to within a few percent of
+ * `tune`'s (√(459/342) = 1.158 → 27.8), which is the nearer of the two; the
+ * scissors are the outlier at the other end and matching THOSE would make the
+ * pencil the biggest thing in the bar.
+ *
+ * SF Symbols' own guidance allows exactly this — optical adjustment so symbols
+ * of different shapes read at equal weight. The host box stays
+ * `GLASS_FOOTER_ICON_BOX`, so nothing about the layout moves.
+ */
+const GLASS_EDIT_ICON = 28;
 
 /**
  * ONE MERGED LIQUID GLASS BAR — the same object as the banner this console
@@ -220,7 +303,13 @@ type FooterProps = {
  * The material is decorative and pointer-transparent, so both halves are
  * ordinary `Pressable`s above it. They are CARDS by container, so they squash.
  */
-function GlassFooter({ cards, width }: FooterProps) {
+function GlassFooter({
+  cards,
+  editA11yLabel,
+  editLabel,
+  onEdit,
+  width,
+}: FooterProps) {
   const { colors } = useAppTheme();
 
   return (
@@ -244,8 +333,67 @@ function GlassFooter({ cards, width }: FooterProps) {
             <GlassHalf card={card} />
           </View>
         ))}
+
+        <View style={styles.glassEditSlot}>
+          <View
+            style={[
+              styles.glassDivider,
+              { backgroundColor: withAlpha(colors.onSurface, 0.12) },
+            ]}
+          />
+          <GlassEdit
+            a11yLabel={editA11yLabel}
+            label={editLabel}
+            onPress={onEdit}
+          />
+        </View>
       </View>
     </View>
+  );
+}
+
+function GlassEdit({
+  a11yLabel,
+  label,
+  onPress,
+}: {
+  a11yLabel: string;
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+  // THE CARD SQUASH, because this is a card now. It briefly took the ICON pair
+  // (`ICON_PRESS_SCALE` / `ICON_PRESS_OPACITY`) and had to: as a lone 24pt
+  // glyph the card's 3% is under a pixel and a half of travel and reads as no
+  // feedback at all, which is how it first shipped. With a label beside it the
+  // compartment is the same object as the two halves and takes their feedback,
+  // or one press in the bar would dim and shrink while the others barely move.
+  const squash = usePressSquash();
+
+  return (
+    <Animated.View style={[styles.glassHalf, squash.style]}>
+      <Pressable
+        accessibilityLabel={a11yLabel}
+        accessibilityRole="button"
+        onPress={onPress}
+        onPressIn={squash.onPressIn}
+        onPressOut={squash.onPressOut}
+        style={styles.glassEditPress}
+      >
+        {/* `AppIcon`, not a bare `Image` — the two cards beside it render
+            through the shared icon component and this did not, which is how it
+            ended up as the only glyph in the bar outside the portfolio's icon
+            set. `edit` maps to `pencil` in `SF_SYMBOLS` already. */}
+        <SwiftUIHost
+          ignoreSafeArea="all"
+          pointerEvents="none"
+          style={styles.glassIconHost}
+        >
+          <AppIcon name="edit" size={GLASS_EDIT_ICON} tint={colors.onSurface} />
+        </SwiftUIHost>
+        <AppText doNotTranslate text={label} variant="bodyLarge" />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -280,10 +428,38 @@ function GlassHalf({ card }: { card: PlayerCard }) {
           />
         </SwiftUIHost>
         <View style={styles.glassCopy}>
+          {/* BODY OVER FOOTNOTE (17 / 13) — THE TWO LINES ANSWER TO DIFFERENT
+              CONSTRAINTS, so they do not step together.
+          
+              All three pairings were rendered on device. Body/Subheadline
+              (17 / 15) read TIGHT once the bar gained a third cell — Juan's
+              iPhone 15 is 393pt against the simulator's 402, so his content box
+              is 361 and each card is ~4.5pt narrower than anything measured
+              here. Subheadline/Footnote (15 / 13) fixed the width and read too
+              SMALL. There is no rung between them: the ladder is Body 17,
+              Subheadline 15, Footnote 13, and 16 / 14 was already rendered and
+              rejected in this app for being off it (16 is `callout`; 14 is
+              nothing).
+          
+              So the pair splits. The LABEL is short — "Shape" is 46.33 of ink
+              against a copy box driven entirely by the summary — so keeping it
+              at Body costs the cards nothing and is what gives the cell its
+              presence. The SUMMARY is the long string, so it takes Footnote and
+              buys the width. Body over Footnote is Apple's own list-row pair.
+              The icons stay at 24 with the label they sit beside.
+          
+              STEPPED, NEVER SCALED: these are named rungs Dynamic Type moves as
+              a unit, and deriving a point size from the bar's width would ship
+              one Apple never draws and break the moment somebody raises their
+              text size.
+          
+              Headline (17 SEMIBOLD) over Subheadline was tried when the bar had
+              two items and is too much: a size step and a weight step at once,
+              and the bar started shouting over the console above it. */}
           <AppText
             doNotTranslate
             text={card.label}
-            variant="bodyMedium"
+            variant="bodyLarge"
             numberOfLines={1}
           />
           <AppText
@@ -307,7 +483,6 @@ export function PlayerConsole({
   clipRange,
   consoleStyle,
   contentTop,
-  duration,
   expanded,
   neighbours,
   onClipCancel,
@@ -316,20 +491,16 @@ export function PlayerConsole({
   onClipSave,
   onCollapse,
   onEdit,
-  onInfo,
   onNext,
   onPrevious,
-  onScrub,
-  onScrubEnd,
+  onSeek,
   onToggle,
   pagerStyle,
   playing,
-  position,
   subtitle,
   title,
   titleGesture,
   topGesture,
-  totalDuration,
   trimmerDuration,
   winW,
 }: PlayerConsoleProps) {
@@ -375,31 +546,26 @@ export function PlayerConsole({
 
   return (
     <Animated.View
+      onAccessibilityEscape={onCollapse}
       style={[styles.console, consoleStyle]}
       pointerEvents={expanded ? 'auto' : 'none'}
     >
-      {/* One full-width drag-to-close zone spanning everything above the
-          console — the bar row and the gutters beside the art. The art and
-          the bar glyphs render above it and keep their own touches. */}
-      <GestureDetector gesture={topGesture}>
-        <View style={[styles.dragZone, { height: contentTop }]} />
-      </GestureDetector>
+      {/* The drag-to-close zone — everything above the console, which is now
+          the gutters beside the artwork and the air over it.
 
-      {/* The bar row. `chevron.down` puts the player away — the same job the
-          drag does, said as a button, which is also the only thing VoiceOver
-          and Switch Control can reach (this is not a real UIKit sheet, so
-          nothing publishes a dismiss action on its behalf). */}
-      <View style={[styles.barRow, { paddingTop: insets.top }]}>
-        <GlyphButton
+          IT IS ALSO THE DISMISS CONTROL. With the bar row gone there is no
+          `chevron.down` for VoiceOver or Switch Control to reach, and this is
+          not a real UIKit sheet, so nothing publishes a dismiss action on its
+          behalf. Labelling the zone gives both a target; the console's own
+          `onAccessibilityEscape` gives VoiceOver the two-finger-Z it expects. */}
+      <GestureDetector gesture={topGesture}>
+        <View
           accessibilityLabel={t('common.back')}
-          hitSlop={0}
-          onPress={onCollapse}
-          style={styles.barSlot}
-        >
-          <CollapseGlyph color={colors.onSurface} />
-        </GlyphButton>
-        <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
-      </View>
+          accessibilityRole="button"
+          onAccessibilityTap={onCollapse}
+          style={[styles.dragZone, { height: contentTop }]}
+        />
+      </GestureDetector>
 
       <View
         style={[
@@ -458,20 +624,20 @@ export function PlayerConsole({
             colour rather than the accent. While framing, the trim brackets
             ride on top: edges resize, the tinted middle slides the clip. */}
         <View
-          style={[styles.sliderBlock, clipMode && styles.sliderBlockFraming]}
+          // NO FRAMING-ONLY MARGIN. `CLIP_FRAMING_GAP` made room for a third
+          // line under the scrubber that iOS no longer draws — the range rides
+          // inside the elapsed/total row now — so applying it here would move
+          // the transport on entering framing for nothing.
+          style={styles.sliderBlock}
         >
-          <PlayerScrubber
+          <PlayerScrubberLive
             copyInset={copyInset}
-            position={position}
-            duration={duration}
-            totalDuration={totalDuration}
             clipLabel={
               clipMode
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
-            onDrag={onScrub}
-            onDragEnd={onScrubEnd}
+            onSeek={onSeek}
           />
           {clipMode ? (
             <View style={styles.handlesRegion} pointerEvents="box-none">
@@ -518,7 +684,7 @@ export function PlayerConsole({
           </GlyphButton>
         </View>
 
-        <View style={styles.spacer} />
+        <View style={styles.spacerLower} />
 
         {/* While framing a clip, the action row takes the footer's place —
             whichever footer that is. */}
@@ -527,9 +693,16 @@ export function PlayerConsole({
             onCancel={onClipCancel}
             onPreview={onClipPreview}
             onSave={onClipSave}
+            width={contentWidth}
           />
         ) : (
-          <GlassFooter cards={cards} width={contentWidth} />
+          <GlassFooter
+            cards={cards}
+            editA11yLabel={t('player.menu.edit')}
+            editLabel={t('player.menu.editShort')}
+            onEdit={onEdit}
+            width={contentWidth}
+          />
         )}
       </View>
     </Animated.View>
@@ -552,22 +725,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  barRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    left: 0,
-    paddingHorizontal: PLAYER_SIDE_PADDING,
-    position: 'absolute',
-    right: 0,
-  },
-  barGlyphHost: { height: PLAYER_BAR_TARGET, width: PLAYER_BAR_TARGET },
-  barSlot: {
-    alignItems: 'center',
-    height: PLAYER_BAR_TARGET,
-    justifyContent: 'center',
-    width: PLAYER_BAR_TARGET,
-  },
   // A flex column from the artwork's bottom edge to the bottom inset, so the
   // spacers can distribute what used to be dead screen.
   body: {
@@ -578,8 +735,11 @@ const styles = StyleSheet.create({
     right: 0,
   },
   spacer: { flex: 1 },
+  /** See `SPACER_LOWER_WEIGHT` — heavier, so the row lifts off the glass bar. */
+  spacerLower: { flex: SPACER_LOWER_WEIGHT },
   titleSlot: { width: '100%' },
   titleBlock: { paddingBottom: 20, width: '100%' },
+  // Overlays the real title block, so a neighbour's copy costs no layout.
   titleGhost: { position: 'absolute', top: 0 },
   title: {
     fontSize: TITLE_SIZE,
@@ -588,7 +748,6 @@ const styles = StyleSheet.create({
   },
   artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
   sliderBlock: { position: 'relative', width: '100%' },
-  sliderBlockFraming: { marginBottom: CLIP_FRAMING_GAP },
   handlesRegion: {
     height: HANDLES_REGION_HEIGHT,
     left: 0,
@@ -615,16 +774,97 @@ const styles = StyleSheet.create({
     width: HAIRLINE,
   },
   glassHalf: { height: '100%', width: '100%' },
+  // EACH HALF IS A ROW, and that is why its content leads rather than centres.
+  //
+  // Centring was tried and made the bar look BIGGER than it needed to be: it
+  // split the slack into four pockets, two of them at the bar's outer ends,
+  // which is exactly what reads as an oversized container. Left-aligned the
+  // slack sits where a list row's always does — trailing the content — and
+  // nobody reads a row's trailing space as emptiness, because the content
+  // starts at a consistent inset.
+  //
+  // The bar keeps the collapsed banner's full width regardless. That width is
+  // not decoration: it IS the banner's box, which is what makes expanding read
+  // as the same object staying put. Hugging the content would also make the bar
+  // resize whenever a summary did — "No Clips Yet" against "3 Clips".
   glassHalfPress: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     height: '100%',
-    paddingHorizontal: 14,
+    paddingHorizontal: GLASS_ROW_PADDING,
   },
   glassIconHost: {
     height: GLASS_FOOTER_ICON_BOX,
     width: GLASS_FOOTER_ICON_BOX,
   },
   glassCopy: { flex: 1, gap: 1 },
+  glassEditSlot: { flexShrink: 0 },
+  /**
+   * TRAILING, NOT CENTRED, and it is the same `GLASS_ROW_PADDING` the leading
+   * half takes — so the bar's first ink and its last ink sit at equal depth.
+   *
+   * Centred in its own slot the glyph sat 24.00 off the bar's right edge
+   * against the Shape icon's 19.50 off the left, which is the kind of 4.5pt
+   * asymmetry nobody can name and everybody sees. Flush against the padding,
+   * with the same 31pt icon host the halves use, both come to 19.50 by
+   * construction rather than by arithmetic.
+   */
+  /**
+   * STACKED, so the cell occupies BOTH of the bar's rows.
+   *
+   * Beside it the two cards run label 781.33 → 796.67 over summary
+   * 804.00 → 815.00. Laid out as a ROW this cell put its one word at
+   * 791.67 → 804.33 — centred on the two-line block to within 0.17pt, and
+   * therefore level with neither row: its top 10.3 below the labels, its bottom
+   * exactly where the summaries start. Mathematically centred, optically
+   * homeless, and Juan read it as a break in the bar's vertical flow.
+   *
+   * A SUMMARY WOULD HAVE BEEN THE OTHER FIX AND THERE IS NO ROOM FOR ONE. The
+   * compartment hugs its content, so every point of summary comes off the two
+   * cards: "Details" (~44 of ink) drops them to 125.5 and their copy box to
+   * 50.5 against "Flat · 1×"'s 50.67 — truncating the DEFAULT state. Live text
+   * is worse than tight: the sound's own name would re-divide the bar on every
+   * swipe.
+   *
+   * So the icon takes the labels' band and the caption takes the summaries',
+   * and the cell reads as a trailing toolbar action rather than a card that
+   * lost its second line.
+   */
+  /**
+   * A ROW, exactly like the two cards — icon, gap, one line of copy, and
+   * `GLASS_ROW_PADDING` at both ends, so the bar's last ink sits at the same
+   * depth as its first (measured: 19.67 leading, 19.00 trailing).
+   *
+   * ITS SINGLE LINE IS VERTICALLY CENTRED. A STACKED version was built first —
+   * icon in the cards' label band at 789.00, word in their summary band at
+   * 809.50, aligned to within half a point — on the argument that a one-line
+   * cell centred beside two-line ones is level with neither row. That argument
+   * is true and it is not the one that decides: the stack makes this cell a
+   * different KIND of thing, and the bar's three items should read as one kind.
+   * Juan chose the row after seeing both.
+   *
+   * THE TRAILING PADDING CARRIES THE ICON HOST'S SLACK, and this is why the
+   * right end read tighter than the left at identical padding. The bar's first
+   * ink is a glyph inside a 31pt HOST that is 7 wider than the 24pt symbol it
+   * holds, so the leading ink starts `GLASS_ROW_PADDING` plus 3.5 of host slack
+   * plus the glyph's own bearing inside the bar — measured, 19.67. The bar's
+   * last ink is text, whose box has almost no bearing at all: 16.34, a genuine
+   * 3.3pt tighter. So the trailing side adds the host's half-slack back, which
+   * is derived from the two constants rather than nudged by eye.
+   *
+   * The `opticalTextInset` this briefly took is NOT the same correction and
+   * does not belong here. It was earned by the STACKED layout, where the word
+   * sat low enough for the 22pt corner to have started pulling in; with the
+   * word back at the bar's vertical middle the edge is at its full 385.67.
+   */
+  glassEditPress: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    height: '100%',
+    paddingLeft: GLASS_ROW_PADDING,
+    paddingRight:
+      GLASS_ROW_PADDING + (GLASS_FOOTER_ICON_BOX - GLASS_FOOTER_ICON) / 2,
+  },
 });

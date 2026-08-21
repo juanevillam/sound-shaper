@@ -9,7 +9,7 @@ import { ClipHandles } from '@/components/player/ClipHandles';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerCards } from '@/components/player/PlayerCards';
 import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
-import { PlayerScrubber } from '@/components/player/PlayerScrubber';
+import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
   NextGlyph,
   PauseGlyph,
@@ -55,7 +55,6 @@ export function PlayerConsole({
   clipRange,
   consoleStyle,
   contentTop,
-  duration,
   expanded,
   neighbours,
   onClipCancel,
@@ -67,17 +66,14 @@ export function PlayerConsole({
   onInfo,
   onNext,
   onPrevious,
-  onScrub,
-  onScrubEnd,
+  onSeek,
   onToggle,
   pagerStyle,
   playing,
-  position,
   subtitle,
   title,
   titleGesture,
   topGesture,
-  totalDuration,
   trimmerDuration,
   winW,
 }: PlayerConsoleProps) {
@@ -179,17 +175,13 @@ export function PlayerConsole({
         <View
           style={[styles.sliderBlock, clipMode && styles.sliderBlockFraming]}
         >
-          <PlayerScrubber
-            position={position}
-            duration={duration}
-            totalDuration={totalDuration}
+          <PlayerScrubberLive
             clipLabel={
               clipMode
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
-            onDrag={onScrub}
-            onDragEnd={onScrubEnd}
+            onSeek={onSeek}
           />
           {clipMode ? (
             <View style={styles.handlesRegion} pointerEvents="box-none">

@@ -25,6 +25,7 @@ import Animated, {
   interpolate,
   interpolateColor,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -51,7 +52,10 @@ import {
 } from '@/components/player/chrome';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
 import { GlyphButton } from '@/components/player/GlyphButton';
-import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
+import {
+  PlayerBackdrop,
+  prefetchPlayerBackdrop,
+} from '@/components/player/PlayerBackdrop';
 import { PlayerConsole } from '@/components/player/PlayerConsole';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SoundInfoSheet } from '@/components/player/SoundInfoSheet';
@@ -302,6 +306,30 @@ const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 // useSyncExternalStore into "maximum update depth exceeded").
 const NO_CLIPS: never[] = [];
 
+/**
+ * The banner's played portion — the ONLY thing in the collapsed state that
+ * changes with the playhead, so it is the only thing that subscribes to it.
+ *
+ * A leaf for the same reason `PlayerScrubberLive` is one: the transport ticks
+ * ten times a second, and reading `position` on the sheet made all of
+ * `PlayerSheet` re-render at that rate to move a 3pt line. This has no
+ * children, so the tick stops here.
+ */
+function BannerProgressFill({ color }: { color: string }) {
+  const position = usePlayerStore(s => s.position);
+  const duration = usePlayerStore(s => s.duration);
+  const ratio = duration > 0 ? Math.min(position / duration, 1) : 0;
+
+  return (
+    <View
+      style={[
+        styles.progressFill,
+        { backgroundColor: color, width: `${ratio * 100}%` },
+      ]}
+    />
+  );
+}
+
 export function PlayerSheet() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -334,7 +362,20 @@ export function PlayerSheet() {
   const playClip = usePlayerStore(s => s.playClip);
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
-  const storePosition = usePlayerStore(s => s.position);
+  /**
+   * `position` IS DELIBERATELY NOT READ HERE — see `BannerProgressFill` and
+   * `PlayerScrubberLive`, the two leaves that draw it. The transport ticks it
+   * ten times a second; subscribing on this component made the entire sheet
+   * (both neighbour covers, every gesture recipe, the whole console tree)
+   * re-render at that rate, whether the player was open or a 46pt pill.
+   *
+   * The handful of places here that genuinely need a playhead READ IT ONCE, at
+   * the moment of the action, via `usePlayerStore.getState()` — clip framing
+   * and the swipe's restart test both already did.
+   *
+   * `duration` stays a subscription: it lands once per sound, and the clip
+   * trimmer needs it in layout.
+   */
   const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
   const clipFramingNonce = usePlayerStore(s => s.clipFramingNonce);
@@ -389,6 +430,48 @@ export function PlayerSheet() {
   const expand = useCallback(() => springTo(1), [springTo]);
 
   const collapse = useCallback(() => springTo(0), [springTo]);
+
+  /**
+   * IS THE FULL PLAYER ON SCREEN AT ALL — the mount gate for everything that
+   * belongs to the expanded console rather than to the banner.
+   *
+   * Until this existed, the wash, the console and the clips listener were
+   * mounted from the moment ANY sound started and merely faded by `progress`.
+   * A 46pt pill was therefore paying for a w_640 cover blurred at radius 60
+   * across an overscanned full-screen layer, a SwiftUI slider host, the clip
+   * handles, the cards, and a Firestore query per sound played — none of it
+   * visible, all of it recomposited every frame.
+   *
+   * IT CANNOT BE `expanded` ALONE, and both failures are real:
+   *
+   *  - `expanded` flips at the START of the collapse spring, so gating on it
+   *    would UNMOUNT the console on frame 0 of closing — it would vanish
+   *    instead of fading out under `expandedStyle`.
+   *  - A drag up from the banner moves `progress` without touching `expanded`
+   *    at all (it is only set on release), so a drag would reveal an empty
+   *    sheet and populate it at the end.
+   *
+   * So the gate is `expanded` OR "progress has left 0", the second half read
+   * off the UI thread. `expanded` is what makes a TAP open with the console
+   * already mounted (it is set synchronously by `springTo`); the reaction is
+   * what keeps it mounted through a drag and through the whole way back down.
+   */
+  const [offRest, setOffRest] = useState(false);
+  useAnimatedReaction(
+    () => progress.value > 0,
+    (isOff, wasOff) => {
+      if (isOff !== wasOff) runOnJS(setOffRest)(isOff);
+    },
+    [],
+  );
+  const playerMounted = expanded || offRest;
+
+  // Warm the wash for whatever is loaded, so opening the player is a decode
+  // rather than a fetch. See `prefetchPlayerBackdrop`.
+  const currentArtUrl = current?.artUrl;
+  useEffect(() => {
+    prefetchPlayerBackdrop(currentArtUrl || undefined);
+  }, [currentArtUrl]);
 
   /**
    * A surface asked for the full player (tapping a sound tile).
@@ -820,10 +903,6 @@ export function PlayerSheet() {
   }));
   // -------------------------------------------------------------------------
 
-  // Scrubber drag-local value (the 250ms status stream would fight the thumb).
-  const [dragValue, setDragValue] = useState<number | null>(null);
-  const lastDragRef = useRef(0);
-
   // The bottom sheets + the title overflow menu.
   const [shaperVisible, setShaperVisible] = useState(false);
 
@@ -854,7 +933,20 @@ export function PlayerSheet() {
   const [infoVisible, setInfoVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
-  useClipsSubscription(current?.id);
+  /**
+   * THE CLIPS LISTENER FOLLOWS THE CONSOLE, NOT THE SOUND.
+   *
+   * It used to take `current?.id` outright, so a Firestore query attached the
+   * moment ANY sound started — skip through twenty tracks and that is twenty
+   * listener attaches for a subcollection nothing on screen was reading. Clips
+   * are drawn in exactly two places, and both live inside the expanded
+   * console: the Clips card's count, and the trim brackets while framing.
+   *
+   * The store deliberately keeps what it has fetched (see the hook), so
+   * re-opening a sound you have already looked at still shows its clips on the
+   * first frame — the cache is what makes gating cost nothing.
+   */
+  useClipsSubscription(playerMounted ? current?.id : undefined);
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
@@ -873,7 +965,13 @@ export function PlayerSheet() {
   // From the Clips sheet: close it, drop the brackets around the playhead.
   const onStartFraming = () => {
     setClipsVisible(false);
-    const start = Math.max(0, Math.round(storePosition - 7));
+    // Read once, at the moment of the action — the sheet no longer holds a
+    // live playhead, and a clip framed "around here" only ever meant the
+    // instant the button was pressed anyway.
+    const start = Math.max(
+      0,
+      Math.round(usePlayerStore.getState().position - 7),
+    );
     const end = Math.min(trimmerDuration || 15, start + 15);
     setClipRange({ startS: start, endS: Math.max(end, start + 1) });
     setClipMode(true);
@@ -901,10 +999,6 @@ export function PlayerSheet() {
       .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
   };
 
-  const duration = storeDuration > 0 ? storeDuration : 1;
-  const position = dragValue ?? storePosition;
-  const progressRatio =
-    storeDuration > 0 ? Math.min(storePosition / storeDuration, 1) : 0;
   const subtitle = current.artist || ' ';
 
   // Card summaries: live settings at a glance. A saved shape names itself.
@@ -928,12 +1022,38 @@ export function PlayerSheet() {
         return t('player.shape.custom');
     }
   })();
-  const shapeSummary = `${presetSummary} · ${rateLabel(rate)}${
-    keepPitch ? '' : ` · ${t('player.shape.pitchOff')}`
-  }`;
+  /**
+   * IT STATES WHAT IS NOT DEFAULT, AND NOTHING ELSE.
+   *
+   * It used to state everything — "Flat · 1×" on a sound nobody had touched,
+   * which is a sentence saying "nothing is applied" the long way round. Apple
+   * writes the exception and leaves the default silent; Settings shows
+   * "Ringtone: None", not "Ringtone: Default, Vibration: Default".
+   *
+   * It also has to FIT. The bar gained a third cell, so each card's copy box
+   * came down to ~65 and a two-attribute summary overruns it. Dropping the
+   * defaults makes the long form rare rather than constant — and when
+   * everything IS default the summary is "None", the same word the Clips card
+   * uses for the same idea.
+   *
+   * A SAVED SHAPE'S NAME is a person's own string and can be any length; it
+   * truncates, which is what `numberOfLines={1}` is for.
+   */
+  const shapeSummary =
+    [
+      activeShape
+        ? activeShape.name
+        : activePreset === 'flat'
+          ? null
+          : presetSummary,
+      rate === 1 ? null : rateLabel(rate),
+      keepPitch ? null : t('player.shape.pitchOff'),
+    ]
+      .filter(Boolean)
+      .join(' · ') || t('player.shape.none');
   const clipsSummary =
     clips.length === 0
-      ? t('player.clips.none')
+      ? t('player.clips.noneSummary')
       : t('player.clips.count').replace('{n}', String(clips.length));
 
   const cards: readonly PlayerCard[] = [
@@ -1013,12 +1133,21 @@ export function PlayerSheet() {
         {/* The artwork wash tracks the drag directly, so it grows in with the
             surface instead of popping once the expanded chrome crosses its
             fade threshold. */}
-        <Animated.View
-          style={[styles.backdropLayer, backdropStyle]}
-          pointerEvents="none"
-        >
-          <PlayerBackdrop artUrl={current.artUrl || undefined} />
-        </Animated.View>
+        {/* MOUNTED ONLY WHILE THE PLAYER IS ON SCREEN — see `playerMounted`.
+            It still grows in with the drag rather than waiting for the sheet
+            to land, which is the whole point of the comment above; what
+            changes is that a COLLAPSED banner no longer pays for it. The
+            bytes are already local either way, because `usePlayerStore`'s
+            current sound prefetches this exact transform (below), so mounting
+            it at the first frame of a drag is a decode, not a fetch. */}
+        {playerMounted ? (
+          <Animated.View
+            style={[styles.backdropLayer, backdropStyle]}
+            pointerEvents="none"
+          >
+            <PlayerBackdrop artUrl={current.artUrl || undefined} />
+          </Animated.View>
+        ) : null}
 
         {/* Collapsed progress, attached to the banner's bottom edge and cut by
             its corner — the card's own bottom rule, not a line floating inside
@@ -1050,16 +1179,8 @@ export function PlayerSheet() {
                 `onSurface`; now the fill is the full-strength version of the
                 same ink, which is exactly the relationship the expanded
                 scrubber has. */}
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: BANNER_GLASS
-                    ? colors.onSurface
-                    : colors.primary,
-                  width: `${progressRatio * 100}%`,
-                },
-              ]}
+            <BannerProgressFill
+              color={BANNER_GLASS ? colors.onSurface : colors.primary}
             />
           </View>
         </Animated.View>
@@ -1132,57 +1253,59 @@ export function PlayerSheet() {
           </Animated.View>
         </GestureDetector>
 
-        <PlayerConsole
-          cards={cards}
-          clipMode={clipMode}
-          clipRange={clipRange}
-          consoleStyle={expandedStyle}
-          contentTop={contentTop}
-          duration={duration}
-          expanded={expanded}
-          neighbours={neighbours}
-          onClipCancel={() => setClipMode(false)}
-          onClipPreview={onPreviewClip}
-          onClipRangeChange={(startS, endS) => setClipRange({ startS, endS })}
-          onClipSave={onSaveClip}
-          onCollapse={collapse}
-          onEdit={() =>
-            Platform.OS === 'ios'
-              ? router.push({
-                  pathname: '/edit-sound',
-                  params: { soundId: current.id },
-                })
-              : setEditVisible(true)
-          }
-          onInfo={() =>
-            Platform.OS === 'ios'
-              ? router.push('/sound-info')
-              : setInfoVisible(true)
-          }
-          onNext={onNext}
-          onPrevious={onPrevious}
-          onScrub={value => {
-            lastDragRef.current = value;
-            setDragValue(value);
-          }}
-          onScrubEnd={() => {
-            // seek() also ends any clip replay.
-            seek(lastDragRef.current);
-            setDragValue(null);
-          }}
-          onToggle={onToggle}
-          pagerStyle={pagerStyle}
-          playing={playing}
-          position={position}
-          soundId={current.id}
-          subtitle={subtitle}
-          title={current.name}
-          titleGesture={titleGesture}
-          topGesture={topGesture}
-          totalDuration={storeDuration}
-          trimmerDuration={trimmerDuration}
-          winW={winW}
-        />
+        {/* MOUNTED ONLY WHILE THE PLAYER IS ON SCREEN — see `playerMounted`.
+            This is the whole expanded screen: the title, the SwiftUI slider
+            host, the clip handles, the transport and the cards. It used to be
+            mounted from the moment any sound started and merely faded to zero
+            opacity, so a 46pt banner kept a second full screen alive behind
+            it. `expandedStyle` still owns the fade — the gate only decides
+            whether there is anything to fade. */}
+        {playerMounted ? (
+          <PlayerConsole
+            cards={cards}
+            clipMode={clipMode}
+            clipRange={clipRange}
+            consoleStyle={expandedStyle}
+            contentTop={contentTop}
+            expanded={expanded}
+            neighbours={neighbours}
+            onClipCancel={() => setClipMode(false)}
+            onClipPreview={onPreviewClip}
+            onClipRangeChange={(startS, endS) => setClipRange({ startS, endS })}
+            onClipSave={onSaveClip}
+            onCollapse={collapse}
+            onEdit={() =>
+              Platform.OS === 'ios'
+                ? router.push({
+                    pathname: '/edit-sound',
+                    params: { soundId: current.id },
+                  })
+                : setEditVisible(true)
+            }
+            // ANDROID ONLY. iOS's console dropped its overflow menu with the
+            // bar row it hung off (see `PlayerConsole.ios`), and the info sheet
+            // went with it — with album and release year no longer handled, all
+            // it listed was the title and artist already set under the cover.
+            onInfo={() => setInfoVisible(true)}
+            onNext={onNext}
+            onPrevious={onPrevious}
+            // The playhead and the drag-local value both live in
+            // `PlayerScrubberLive` now; the console needs no time-varying prop
+            // at all, only somewhere to commit a scrub to. seek() also ends
+            // any clip replay.
+            onSeek={seek}
+            onToggle={onToggle}
+            pagerStyle={pagerStyle}
+            playing={playing}
+            soundId={current.id}
+            subtitle={subtitle}
+            title={current.name}
+            titleGesture={titleGesture}
+            topGesture={topGesture}
+            trimmerDuration={trimmerDuration}
+            winW={winW}
+          />
+        ) : null}
 
         {/* THE shared artwork — one element across both states, so the
             transition can't pop or resize discontinuously. Drag it down to
@@ -1217,6 +1340,7 @@ export function PlayerSheet() {
                   <SoundArt
                     artUrl={sound.artUrl || undefined}
                     size={artFull}
+                    displayWidth={artFull}
                     title={sound.name}
                     fadeMs={0}
                     style={styles.artMedia}
@@ -1254,6 +1378,12 @@ export function PlayerSheet() {
             <SoundArt
               artUrl={current.artUrl || undefined}
               size={artFull}
+              // A DISPLAY-SIZED VARIANT, not the stored original. Three covers
+              // at this size are live while the player is open — the hero and
+              // both parked neighbours — and each was fetching and decoding the
+              // full asset. `thumbUrl` doubles for density, so this is still
+              // sharper than the panel it fills.
+              displayWidth={artFull}
               title={current.name}
               // The skip swipe fades this element itself; an inner dissolve on
               // top of it just delays the new cover by its own duration.
