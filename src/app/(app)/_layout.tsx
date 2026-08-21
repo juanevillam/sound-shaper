@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { makeGlassUnderlay } from '@portfolio/mobile-ui';
 import { TrophyOverlay } from '@portfolio/trophies';
 import { Redirect, Stack } from 'expo-router';
 
@@ -19,7 +20,12 @@ import { type TranslationKey, useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { IOS_FORM_SHEETS, IOS_SHEET_SCREENS } from '@/lib/sheetRoutes';
 import { useAuthStore } from '@/store/auth';
-import { TILE_RADIUS } from '@/styles/shape';
+
+// iOS: the banner's surface is the portfolio's one floating-glass surface,
+// the same material Topper's unlock banner and this app's now-playing banner
+// stand on. It was a solid card here while Topper's twin was glass — one
+// surface, two answers. Android keeps the solid elevated card.
+const glassUnderlay = Platform.OS === 'ios' ? makeGlassUnderlay() : undefined;
 
 function AuthenticatedSubscriptions() {
   // Session-wide Firestore listeners (own profile + the flat song library).
@@ -112,8 +118,9 @@ export default function AppLayout() {
             settings gear are set by the screen itself. */}
         <Stack.Screen name="home" options={{ title: t('app.title') }} />
         {/* Settings and everything it drills into. On iOS these are STACKED
-            SHEETS (Settings and Account open from the home bar; Trophies
-            presents over Account and dismisses back to it) — the
+            SHEETS (Settings opens from the home bar, Account presents over
+            Settings from its identity banner, Trophies over Account, each
+            dismissing back to the one below) — the
             portfolio-wide placement, matching Topper and expo-ui-starter, with
             the children stacked rather than pushed because RNScreens gives a
             screen pushed on a `formSheet` root no back button at all. The
@@ -159,7 +166,7 @@ export default function AppLayout() {
           onSurfaceMuted: colors.onSurfaceMuted,
           primary: colors.primary,
         }}
-        radius={TILE_RADIUS}
+        underlay={glassUnderlay}
         strings={overlayStrings}
         onPress={() => router.push('/trophies')}
         onShow={trophy =>

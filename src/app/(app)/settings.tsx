@@ -72,7 +72,9 @@ export default function Settings() {
   const devStateLabBar = useDevSettingsStore(s => s.stateLabBar);
   const setDevStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
 
-  // Identity display only — personal app, so no username line or editor.
+  // Identity display only — personal app, so no username line or editor. On
+  // iOS this same object is what the account banner draws, so the second line
+  // there is the legend rather than a username.
   const profile: SettingsAccountProfile | undefined = user
     ? {
         displayName: user.displayName ?? t('settings.account.noName'),
@@ -96,13 +98,26 @@ export default function Settings() {
         // identical across the portfolio: General, About, Legal, Sign Out.
         // Everything else account-shaped sits behind the Account entry.
         //
-        // Only the sign-out fields on iOS: with no `profile` and no `navRows`,
-        // the account SECTION renders nothing and only its trailing sign-out
-        // card appears.
+        // THE ACCOUNT ENTRY IS THIS SHEET'S OWN IDENTITY BANNER ON iOS —
+        // avatar, name, legend, chevron, leading the form — and that is the
+        // whole reason home's bar carries one glyph. A personal app has no
+        // Profile tab to hang the account on the way Topper does, and growing
+        // the home bar a second glyph to carry it made the app's first screen
+        // read as busy where every other app's opens on a single gear. Apple's
+        // answer to the same problem is the Apple Account banner at the top of
+        // Settings, which is what this is (see `SettingsAccountLink`).
+        //
+        // Android is frozen and keeps its `navRows` entry — Material's own
+        // idiom — so the two twins reach the same sheet in their own language.
         {...(Platform.OS === 'ios'
           ? {
               account: {
                 title: t('settings.account.title'),
+                profile,
+                profileLink: {
+                  subtitle: t('settings.account.summary'),
+                  onPress: () => router.push('/manage-account'),
+                },
                 signOutLabel: t('settings.signOut'),
                 signOutDialog: {
                   title: t('settings.signOutDialog.title'),

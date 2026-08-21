@@ -107,8 +107,9 @@ const toGridRows = (songs: Song[]): GridRow[] => {
   return rows;
 };
 
-// The whole library on one screen: the app's header (Account + Settings) over a
-// 2-column grid of song tiles — YT Music's album-tile
+// The whole library on one screen: the app's header (one Settings gear — the
+// same bar every app in the portfolio opens on) over a 2-column grid of song
+// tiles — YT Music's album-tile
 // language, one song per tile. No playlists: you upload one and it's there.
 // Tap = play (and the player opens); long-press = edit/delete; the add tile
 // closes the grid.
@@ -310,7 +311,7 @@ export default function HomeScreen() {
                 headerTitle: sheetExpanded ? '' : t('app.title'),
                 headerRight: sheetExpanded
                   ? () => null
-                  : () => <HomeBarGlyphsIos />,
+                  : () => <HeaderSettingsButton />,
               }
             : { headerShown: false }
         }

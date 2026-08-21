@@ -58,10 +58,12 @@ export const IOS_SHEET_SCREENS: ReadonlyArray<{
   { name: 'settings', detents: [1], titleKey: 'app.settings' },
   {
     name: 'manage-account',
-    // "Account", not "Manage account": on iOS this IS the account surface,
-    // opened straight from the home bar, rather than a sub-screen of Settings.
-    // Android keeps the longer title, because there it really is one row inside
-    // Settings.
+    // "Account", not "Manage account": on iOS this IS the account surface —
+    // everything account-shaped lives on it, and it is reached by tapping the
+    // person themselves on Settings' identity banner, so a title telling them
+    // they are about to "manage" something is the longer word for where they
+    // already are. Android keeps the longer title, because there it really is
+    // one row labelled "Manage Account" inside Settings.
     detents: [1],
     titleKey: 'settings.account.sheetTitle',
   },
