@@ -4,7 +4,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { Section } from '@expo/ui/swift-ui';
 import {
+  artworkRadius,
   confirmDestructiveIos,
+  emptyMediaColor,
   SheetFormDestructiveIos,
   SheetFormFieldIos,
   sheetCommitBarOptionsIos,
@@ -14,7 +16,11 @@ import {
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { type PickedSongFile } from '@/components/songs/EditSongSheet';
-import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
+import { ArtImage } from '@/components/ui/ArtImage';
+import {
+  MEDIA_PICKER_SIZE,
+  MediaPickerAvatar,
+} from '@/components/ui/MediaPickerAvatar';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
@@ -44,7 +50,7 @@ const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
 function EditSoundSheetScreen() {
   const { songId } = useLocalSearchParams<{ songId?: string }>();
   const { t } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { showSnackbar } = useSnackbar();
 
   const songs = useSongsStore(s => s.songs);
@@ -235,11 +241,31 @@ function EditSoundSheetScreen() {
             <View style={styles.mediaSlot}>
               <MediaPickerAvatar
                 onPress={noop}
+                accessibilityLabel={t('common.pickMedia')}
                 disabled
-                surfaceColor={colors.surfaceVariant}
-                contentColor={colors.onSurfaceMuted}
+                // THE EMPTY-MEDIA MATERIAL, not a hand-picked pair. This drew
+                // `surfaceVariant` / `onSurfaceMuted` — precisely the bug
+                // Topper's editor records having fixed, and the token the
+                // portfolio's one placeholder material replaces. `sheet`
+                // because this sits on a form sheet, where dark steps every
+                // grouped colour up one (see `emptyMediaColor`).
+                surfaceColor={emptyMediaColor({
+                  colors,
+                  container: 'sheet',
+                  scheme,
+                })}
+                contentColor={colors.onSurface}
                 emoji={SONG_EMOJI}
-                imageUrl={artPreviewUri}
+                // THE ART'S REAL CROP, not a circle. The slot defaults to the
+                // full circle the frozen Android sheet draws; every cover in
+                // this app renders as a rounded square, so previewing one as a
+                // disc showed a shape the app never draws.
+                radius={artworkRadius(MEDIA_PICKER_SIZE, 0)}
+                preview={
+                  artPreviewUri ? (
+                    <ArtImage uri={artPreviewUri} style={styles.mediaPreview} />
+                  ) : null
+                }
               />
             </View>
           </SheetFormMediaIos>
@@ -291,4 +317,6 @@ const styles = StyleSheet.create({
   // Full width so the disc centres in the form row; RNHostView measures the
   // RN child and gives it no size of its own.
   mediaSlot: { alignItems: 'center', width: '100%' },
+  // The picture fills the slot the package sized and clipped.
+  mediaPreview: { height: '100%', width: '100%' },
 });

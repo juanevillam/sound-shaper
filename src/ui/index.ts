@@ -29,6 +29,11 @@ export {
   emptyMediaPlusStyle,
 } from './emptyMedia';
 export {
+  MediaPickerAvatar,
+  MEDIA_PICKER_SIZE,
+  type MediaPickerAvatarProps,
+} from './MediaPickerAvatar';
+export {
   ErrorScreen,
   type ErrorScreenColors,
   type ErrorScreenProps,
