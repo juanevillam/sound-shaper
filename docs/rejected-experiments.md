@@ -320,3 +320,63 @@ Apple's answer. On a surface that is already a SwiftUI `List`, prefer `redacted`
 The pulse it replaced is the thing not to rebuild: a per-bone opacity fade, every
 bone sharing one phase, so the screen throbbed as a single object and the page
 changed contrast instead of something moving across it.
+
+## THREE EQUAL CARDS in Sound Shaper's expanded-player glass bar — REJECTED 2026-08-21, measured twice
+
+The bar gained a third item (Edit) beside Shape and Clips, and the obvious fix
+for the format break is to make all three the same card. It does not fit, and
+the arithmetic is not close. Ink on iPhone 17 / iOS 26.5: "Shape" 46.33,
+"Flat · 1×" 50.67, "Clips" 35.67, "None" 34.33. Three equal compartments are
+123.33pt each, and after 32 of padding, the 31pt icon host and the 12pt gap that
+leaves **48.33 of copy — so the DEFAULT shape summary truncates**. Trimming the
+padding to 12 and the gap to 10 buys 61.33, which still loses every preset that
+is not Flat at 1×.
+
+Worse, the third item has **no live state** to put on the second line — that is
+what separates it from Shape ("Flat · 1×") and Clips ("2 saved") — so matching
+the format means inventing text or shipping an empty line.
+
+Shipped instead: the cell is sized to what it holds — icon, one word, no summary
+— with a divider on both sides, and the two cards keep their summaries.
+
+## The STACKED edit cell (icon over word) in that same bar — REJECTED 2026-08-21, on feel
+
+Built and measured after the row version was called out for breaking the bar's
+vertical flow, which it genuinely does: laid out as a row, its one word sits at
+791.67 → 804.33 against the cards' label 781.33 → 796.67 and summary
+804.00 → 815.00 — centred on the two-line block to within 0.17pt and therefore
+level with **neither** row.
+
+The stack fixes exactly that. Solved backwards from the cards, the icon lands in
+the label band (789.17 against 789.00) and the word in the summary band (809.00
+against 809.50). It still reads worse, and Juan chose the row after seeing both:
+**the stack makes that cell a different KIND of thing, and a bar's items should
+read as one kind.** Alignment lost to consistency.
+
+## A SCRIM outside the clip selection in Sound Shaper's trimmer — REJECTED 2026-08-21, on sight
+
+Photos dims the film either side of a trim, and this was built to match: the
+elapsed track measurably lifted from near-black to (122,122,125) outside the
+selection and kept full contrast inside, in both appearances. Two heights were
+tried — the full 32pt band, and 8pt hugging the track.
+
+The size was never the problem. **Photos dims an opaque FILMSTRIP; this sits on
+a 5.67pt slider track**, so the dimming reads as a mask laid over the player
+recolouring the track, with a hole in it exactly where the frame is. A trim
+frame on a slider is already unambiguous without repainting everything it is
+not.
+
+Shipped instead: no scrim. Two 14 × 32 caps that OVERHANG the box they bracket,
+joined by 2pt accent rails.
+
+## `PRESS_SCALE` at 0.95 — TOO DEEP, 2026-08-21
+
+The portfolio's card squash was 0.97, which is 5.3pt of travel on a 178pt home
+tile and 3.9 on a 131pt glass-bar cell — close to invisible on the small
+surfaces. 0.95 was shipped and rendered, and read as too much on the large ones.
+**0.96** is the value: 7.1 and 5.2, half a step deeper.
+
+A third named scale for "small card", between this and `ICON_PRESS_SCALE`, was
+also rejected — the glass bar's compartments would be its only caller, and a
+press that differs between a tile and a card for no reason a person can see is
+what one shared spring exists to prevent.
