@@ -1039,11 +1039,24 @@ export function PlayerSheet() {
               },
             ]}
           >
+            {/* MONOCHROME ON iOS, ACCENTED ON ANDROID — and the split is the
+                portfolio's platform rule, not a hedge. Material's progress
+                indicator IS accent-coloured; that is what a Material surface
+                should draw, and Android's banner is a Material surface.
+                iOS's is not: the console this banner expands into carries no
+                accent anywhere, and the fill was the last thing in the player
+                family still tinted, which made a two-frame transition run
+                blue-then-monochrome. The track was already a tint of
+                `onSurface`; now the fill is the full-strength version of the
+                same ink, which is exactly the relationship the expanded
+                scrubber has. */}
             <View
               style={[
                 styles.progressFill,
                 {
-                  backgroundColor: colors.primary,
+                  backgroundColor: BANNER_GLASS
+                    ? colors.onSurface
+                    : colors.primary,
                   width: `${progressRatio * 100}%`,
                 },
               ]}
