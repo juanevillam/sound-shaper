@@ -104,9 +104,9 @@ const InfoRow = ({
  * rendered as a native inset-grouped `Form`, the standard Apple Settings
  * layout. Each single-choice section maps to a menu `Picker` row (label on the
  * left, current value plus chevron on the right) grouped under the
- * `sectionsTitle` header; the account block maps to a trailing titled section
- * with a red destructive sign-out row, mirroring the Android "General" /
- * "Account" grouping. Rows stay icon-free — Apple Settings rows either carry
+ * `sectionsTitle` header; the account block LEADS the form (see below) and its
+ * red destructive sign-out row closes it, where Android renders one "Account"
+ * group under "General". Rows stay icon-free — Apple Settings rows either carry
  * colored tile icons or none at all, and bare SF symbols read as neither.
  * The `Form` scrolls and insets itself natively, so the RN
  * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.
@@ -132,6 +132,19 @@ export const SettingsScreen = ({
           where the strip reads as the flat sheet colour above the elevated
           one. The Form's own section spacing is the breathing room. */}
       <Form modifiers={[tint(colors.primary)]}>
+        {/* THE ACCOUNT BLOCK LEADS THE SHEET — Apple puts the person first.
+            Settings opens on the Apple Account banner above every other group,
+            and the App Store's Apple Account sheet does the same; nothing of
+            Apple's puts an identity card below a preferences group.
+
+            It renders NOTHING for an app that passes only the sign-out fields
+            (Topper, whose account entry is on its Profile tab, and the
+            starter, which has no account surface), so for those this is the
+            same sheet it always was, starting at General. */}
+        {account ? (
+          <SettingsAccountSection {...account} colors={colors} />
+        ) : null}
+
         <Section title={sectionsTitle}>
           {sections.map(section => (
             <Picker
@@ -149,10 +162,6 @@ export const SettingsScreen = ({
             </Picker>
           ))}
         </Section>
-
-        {account ? (
-          <SettingsAccountSection {...account} colors={colors} />
-        ) : null}
 
         {/* DEV-ONLY — the host passes this under `__DEV__` alone, so a release
             build never renders the section.
