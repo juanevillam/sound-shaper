@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { SkeletonBone as Skeleton } from '@portfolio/mobile-ui';
 
-import { SONG_TILE_METRICS } from '@/components/songs/SongTile';
+import { SOUND_TILE_METRICS } from '@/components/sounds/SoundTile';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -26,10 +26,10 @@ export const SKELETON_DELAY_MS = 400;
 export { Skeleton };
 
 /**
- * Stand-in for `SongTile` — the home grid: artwork square + two text lines
+ * Stand-in for `SoundTile` — the home grid: artwork square + two text lines
  * under it, so the grid doesn't reflow on settle.
  *
- * EVERY TERM COMES FROM THE TILE (`SONG_TILE_METRICS`), because every one of
+ * EVERY TERM COMES FROM THE TILE (`SOUND_TILE_METRICS`), because every one of
  * them had rotted as a copy: a 26 radius against the tile's 27, and a caption
  * block of 16 + 6 + 12 = 34pt against the real 22 + 1 + 20 = 43. Nine points of
  * jump per row on settle, and invisible in the skeleton itself.
@@ -39,13 +39,13 @@ export { Skeleton };
  * inside it. Topper's rail carries the same rule after the same bug — see its
  * `Skeleton.tsx`.
  */
-export function SongTileSkeleton() {
+export function SoundTileSkeleton() {
   return (
     <View>
       {/* Yoga ignores aspectRatio once width AND height are both set, so the
           square comes from a wrapper and the block just fills it. */}
       <View style={styles.tileArt}>
-        <Skeleton radius={SONG_TILE_METRICS.artRadius} style={styles.fill} />
+        <Skeleton radius={SOUND_TILE_METRICS.artRadius} style={styles.fill} />
       </View>
       <View style={styles.tileNameLine}>
         <Skeleton width="75%" height={TITLE_BAR} />
@@ -63,13 +63,13 @@ export function SongTileSkeleton() {
  * the text's own ink would be, which is what makes a bone read as a placeholder
  * rather than as a redacted word.
  */
-const TITLE_BAR = Math.round(SONG_TILE_METRICS.lines.title * 0.73);
-const SUBTITLE_BAR = Math.round(SONG_TILE_METRICS.lines.subtitle * 0.73);
+const TITLE_BAR = Math.round(SOUND_TILE_METRICS.lines.title * 0.73);
+const SUBTITLE_BAR = Math.round(SOUND_TILE_METRICS.lines.subtitle * 0.73);
 
 const styles = StyleSheet.create({
   tileArt: {
     aspectRatio: 1,
-    marginBottom: SONG_TILE_METRICS.artToCaption,
+    marginBottom: SOUND_TILE_METRICS.artToCaption,
     width: '100%',
   },
   fill: { height: '100%', width: '100%' },
@@ -77,14 +77,14 @@ const styles = StyleSheet.create({
   // left inset is the tile's too: its captions clear the artwork's rounded
   // corner, and bones flush to the edge slid 6pt right on settle.
   tileNameLine: {
-    height: SONG_TILE_METRICS.lines.title,
+    height: SOUND_TILE_METRICS.lines.title,
     justifyContent: 'center',
-    marginBottom: SONG_TILE_METRICS.titleGap,
-    paddingLeft: SONG_TILE_METRICS.captionInset,
+    marginBottom: SOUND_TILE_METRICS.titleGap,
+    paddingLeft: SOUND_TILE_METRICS.captionInset,
   },
   tileArtistLine: {
-    height: SONG_TILE_METRICS.lines.subtitle,
+    height: SOUND_TILE_METRICS.lines.subtitle,
     justifyContent: 'center',
-    paddingLeft: SONG_TILE_METRICS.captionInset,
+    paddingLeft: SOUND_TILE_METRICS.captionInset,
   },
 });

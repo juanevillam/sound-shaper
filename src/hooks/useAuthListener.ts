@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
-import { useSongsStore } from '@/store/songs';
+import { useSoundsStore } from '@/store/sounds';
 
 /**
  * Bridge Firebase auth into the zustand store. Mounted once in the root layout;
@@ -30,9 +30,9 @@ export const useAuthListener = () => {
         const wasManual = consumeManualSignOutFlag();
 
         // Wipe every user-scoped store so the next account starts clean —
-        // including live playback (the songs belong to the signed-out account).
+        // including live playback (the sounds belong to the signed-out account).
         usePlayerStore.getState().reset();
-        useSongsStore.getState().clear();
+        useSoundsStore.getState().clear();
         useClipsStore.getState().clear();
         useProfileStore.getState().clear();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });

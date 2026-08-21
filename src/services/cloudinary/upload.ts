@@ -64,15 +64,25 @@ const uploadFile = async (
 };
 
 /** Upload the picked .mp3; resolves to its Cloudinary asset (url + public id). */
-export const uploadSongAudio = (uri: string): Promise<CloudinaryAsset> =>
+export const uploadSoundAudio = (uri: string): Promise<CloudinaryAsset> =>
   uploadFile(uri, 'video', 'audio/mpeg');
+
+/**
+ * Upload a cover picked from the photo library — already a file on disk, so it
+ * goes straight up. The ID3 path below has to write a temp file first because
+ * it starts from bytes; this one does not.
+ */
+export const uploadCoverImage = (
+  uri: string,
+  mimeType: string,
+): Promise<CloudinaryAsset> => uploadFile(uri, 'image', mimeType);
 
 /**
  * Upload the ID3-embedded cover art (base64 bytes). Cloudinary's multipart
  * upload wants a file, so the bytes are written to a temp file first, uploaded,
  * then cleaned up.
  */
-export const uploadSongArt = async (
+export const uploadSoundArt = async (
   base64: string,
   mime: string,
 ): Promise<CloudinaryAsset> => {

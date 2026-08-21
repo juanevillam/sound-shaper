@@ -4,7 +4,7 @@ import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 
 // The transport reports position roughly every frame it changes. Anything
-// bigger than this between two reports is a seek, a clip jump or a song change
+// bigger than this between two reports is a seek, a clip jump or a sound change
 // — not time someone sat and listened to — so it is dropped rather than banked.
 const MAX_STEP_S = 2;
 
@@ -19,7 +19,7 @@ export const useListeningTime = () => {
   const currentId = usePlayerStore(state => state.current?.id);
   const add = useListeningStore(state => state.add);
 
-  // Last position seen while playing THIS song; null whenever a comparison
+  // Last position seen while playing THIS sound; null whenever a comparison
   // would be meaningless (paused, stopped, or a different sound loaded).
   const lastRef = useRef<number | null>(null);
 

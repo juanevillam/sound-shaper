@@ -8,8 +8,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Settings',
-      songEdit: 'New Sound',
-      songEditExisting: 'Edit Sound',
+      soundEdit: 'New Sound',
+      soundEditExisting: 'Edit Sound',
     },
     common: {
       back: 'Back',
@@ -52,8 +52,8 @@ export const translations = {
       },
     },
     home: {
-      addSong: 'Add Sound',
-      addSongFormat: 'MP3 files only',
+      addSound: 'Add Sound',
+      addSoundFormat: 'MP3 files only',
       error: {
         title: "Couldn't Load Your Sounds",
         subtitle: 'Check your connection and try again.',
@@ -118,7 +118,7 @@ export const translations = {
         delete: 'Delete Clip',
       },
     },
-    songEdit: {
+    soundEdit: {
       name: {
         label: 'Title',
         placeholder: 'Nightcall',
@@ -138,8 +138,8 @@ export const translations = {
         error: 'Enter a valid year.',
       },
       art: {
-        embedded: 'Artwork from the file',
-        none: 'This file has no artwork',
+        add: 'Add Artwork',
+        change: 'Change Artwork',
       },
       uploading: 'Uploading sound…',
       save: 'Add',
@@ -259,11 +259,11 @@ export const translations = {
       'apple-sign-in-failed': "Couldn't sign in with Apple. Try again.",
       'sign-out-failed': "Couldn't sign out. Try again.",
       'session-expired': 'Your session expired. Sign in again.',
-      'song-created': 'Sound added',
-      'song-updated': 'Sound updated',
-      'song-save-failed': "Couldn't save the sound. Try again.",
-      'song-deleted': 'Sound deleted',
-      'song-delete-failed': "Couldn't delete the sound. Try again.",
+      'sound-created': 'Sound added',
+      'sound-updated': 'Sound updated',
+      'sound-save-failed': "Couldn't save the sound. Try again.",
+      'sound-deleted': 'Sound deleted',
+      'sound-delete-failed': "Couldn't delete the sound. Try again.",
       'clip-created': 'Clip saved',
       'clip-save-failed': "Couldn't save the clip. Try again.",
       'clip-deleted': 'Clip deleted',
@@ -286,8 +286,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: 'Ajustes',
-      songEdit: 'Nuevo sonido',
-      songEditExisting: 'Editar sonido',
+      soundEdit: 'Nuevo sonido',
+      soundEditExisting: 'Editar sonido',
     },
     common: {
       back: 'Atrás',
@@ -331,8 +331,8 @@ export const translations = {
       },
     },
     home: {
-      addSong: 'Añadir sonido',
-      addSongFormat: 'Solo archivos MP3',
+      addSound: 'Añadir sonido',
+      addSoundFormat: 'Solo archivos MP3',
       error: {
         title: 'No se pudieron cargar tus sonidos',
         subtitle: 'Comprueba tu conexión y vuelve a intentarlo.',
@@ -397,7 +397,7 @@ export const translations = {
         delete: 'Eliminar clip',
       },
     },
-    songEdit: {
+    soundEdit: {
       name: {
         label: 'Título',
         placeholder: 'Nightcall',
@@ -417,8 +417,8 @@ export const translations = {
         error: 'Introduce un año válido.',
       },
       art: {
-        embedded: 'Ilustración tomada del archivo',
-        none: 'Este archivo no tiene ilustración',
+        add: 'Añadir ilustración',
+        change: 'Cambiar ilustración',
       },
       uploading: 'Subiendo el sonido…',
       save: 'Añadir',
@@ -537,11 +537,11 @@ export const translations = {
         'No se pudo iniciar sesión con Apple. Vuelve a intentarlo.',
       'sign-out-failed': 'No se pudo cerrar sesión. Vuelve a intentarlo.',
       'session-expired': 'Tu sesión expiró. Inicia sesión de nuevo.',
-      'song-created': 'Sonido añadido',
-      'song-updated': 'Sonido actualizado',
-      'song-save-failed': 'No se pudo guardar el sonido. Vuelve a intentarlo.',
-      'song-deleted': 'Sonido eliminado',
-      'song-delete-failed':
+      'sound-created': 'Sonido añadido',
+      'sound-updated': 'Sonido actualizado',
+      'sound-save-failed': 'No se pudo guardar el sonido. Vuelve a intentarlo.',
+      'sound-deleted': 'Sonido eliminado',
+      'sound-delete-failed':
         'No se pudo eliminar el sonido. Vuelve a intentarlo.',
       'clip-created': 'Clip guardado',
       'clip-save-failed': 'No se pudo guardar el clip. Vuelve a intentarlo.',
@@ -567,8 +567,8 @@ export const translations = {
     app: {
       title: 'Sound Shaper',
       settings: '设置',
-      songEdit: '新建音频',
-      songEditExisting: '编辑音频',
+      soundEdit: '新建音频',
+      soundEditExisting: '编辑音频',
     },
     common: {
       back: '返回',
@@ -610,8 +610,8 @@ export const translations = {
       },
     },
     home: {
-      addSong: '添加音频',
-      addSongFormat: '仅限 MP3 文件',
+      addSound: '添加音频',
+      addSoundFormat: '仅限 MP3 文件',
       error: {
         title: '无法载入你的音频',
         subtitle: '请检查网络连接后重试。',
@@ -676,7 +676,7 @@ export const translations = {
         delete: '删除片段',
       },
     },
-    songEdit: {
+    soundEdit: {
       name: {
         label: '标题',
         placeholder: 'Nightcall',
@@ -696,8 +696,8 @@ export const translations = {
         error: '请输入有效的年份。',
       },
       art: {
-        embedded: '来自文件的插图',
-        none: '此文件没有插图',
+        add: '添加插图',
+        change: '更换插图',
       },
       uploading: '正在上传音频…',
       save: '添加',
@@ -809,11 +809,11 @@ export const translations = {
       'apple-sign-in-failed': '无法通过 Apple 登录。请再试一次。',
       'sign-out-failed': '无法退出登录。请再试一次。',
       'session-expired': '你的会话已过期。请重新登录。',
-      'song-created': '音频已添加',
-      'song-updated': '音频已更新',
-      'song-save-failed': '无法存储音频。请再试一次。',
-      'song-deleted': '音频已删除',
-      'song-delete-failed': '无法删除音频。请再试一次。',
+      'sound-created': '音频已添加',
+      'sound-updated': '音频已更新',
+      'sound-save-failed': '无法存储音频。请再试一次。',
+      'sound-deleted': '音频已删除',
+      'sound-delete-failed': '无法删除音频。请再试一次。',
       'clip-created': '片段已存储',
       'clip-save-failed': '无法存储片段。请再试一次。',
       'clip-deleted': '片段已删除',

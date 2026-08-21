@@ -60,14 +60,14 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
   const activeClip = usePlayerStore(s => s.activeClip);
 
   const clips = useClipsStore(s =>
-    current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
+    current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
   if (!current) return null;
 
   const onDelete = (clipId: string) => {
     haptics.medium();
-    deleteClip({ clipId, songId: current.id })
+    deleteClip({ clipId, soundId: current.id })
       .then(() => showSnackbar(t('snackbar.clip-deleted')))
       .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
   };

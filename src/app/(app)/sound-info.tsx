@@ -8,24 +8,24 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { usePlayerStore } from '@/store/player';
 
-// iOS-only route: read-only metadata for the PLAYING song as a content-hugging
-// native form sheet (Android presents the Compose `SongInfoSheet` in place).
+// iOS-only route: read-only metadata for the PLAYING sound as a content-hugging
+// native form sheet (Android presents the Compose `SoundInfoSheet` in place).
 // Reads the player store directly — the sheet is only reachable from the
-// player's overflow, so "the song" is always the current one.
+// player's overflow, so "the sound" is always the current one.
 function SoundInfoSheetScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { bottom } = useSafeAreaInsets();
-  const song = usePlayerStore(s => s.current);
+  const sound = usePlayerStore(s => s.current);
 
-  if (!song) return <View style={{ backgroundColor: colors.sheet }} />;
+  if (!sound) return <View style={{ backgroundColor: colors.sheet }} />;
 
   const rows = [
-    { label: t('player.info.artist'), value: song.artist },
-    { label: t('player.info.album'), value: song.album },
+    { label: t('player.info.artist'), value: sound.artist },
+    { label: t('player.info.album'), value: sound.album },
     {
       label: t('player.info.year'),
-      value: song.releaseYear != null ? String(song.releaseYear) : '',
+      value: sound.releaseYear != null ? String(sound.releaseYear) : '',
     },
   ].filter(row => row.value.length > 0);
 
@@ -44,7 +44,7 @@ function SoundInfoSheetScreen() {
         },
       ]}
     >
-      <Text doNotTranslate text={song.name} variant="titleMedium" />
+      <Text doNotTranslate text={sound.name} variant="titleMedium" />
 
       {rows.length === 0 ? (
         <Text muted text="player.info.none" variant="bodySmall" />

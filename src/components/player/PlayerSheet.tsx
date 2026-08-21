@@ -11,7 +11,6 @@ import {
 
 import { withAlpha } from '@portfolio/core';
 import {
-  artworkRadius,
   FLOATING_COPY_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
@@ -44,6 +43,7 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import {
+  playerArtRadius,
   playerArtSize,
   playerArtTop,
   playerConsoleTop,
@@ -54,15 +54,15 @@ import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { PlayerConsole } from '@/components/player/PlayerConsole';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
-import { SongInfoSheet } from '@/components/player/SongInfoSheet';
+import { SoundInfoSheet } from '@/components/player/SoundInfoSheet';
 import {
   NextGlyph,
   PauseGlyph,
   PlayGlyph,
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
-import { EditSongSheet } from '@/components/songs/EditSongSheet';
-import { SongArt } from '@/components/ui/SongArt';
+import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
+import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { TROPHY_IDS } from '@/constants/trophies';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -76,7 +76,7 @@ import { useClipsStore } from '@/store/clips';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
-import { useSongsStore } from '@/store/songs';
+import { useSoundsStore } from '@/store/sounds';
 import {
   CONTINUOUS_CURVE,
   HAIRLINE,
@@ -102,7 +102,7 @@ import {
 // by any of it.
 //
 // The expanded surface is a FIXED console: art, title (with an overflow menu
-// for song info / editing), the native scrubber, transport, and two cards —
+// for sound info / editing), the native scrubber, transport, and two cards —
 // Shape and Clips — that open their own bottom sheets. Nothing scrolls, so
 // nothing can fight the drag-to-close gesture.
 // ---------------------------------------------------------------------------
@@ -269,7 +269,7 @@ const BACKDROP_FADE_START = 0.8;
  * not be a flourish, it would be a frame of broken geometry. `dampingRatio: 1`
  * approaches the target monotonically and can never exceed it.
  *
- * The house already had this instinct for the song pager (`SETTLE_SPRING`,
+ * The house already had this instinct for the sound pager (`SETTLE_SPRING`,
  * "settles without overshoot"); this states it as the reason rather than the
  * preference.
  */
@@ -295,7 +295,7 @@ const PAGE_MS = 240;
 // the finger is really heading down (that is the collapse gesture).
 const SKIP_ACTIVATE_X = 14;
 const SKIP_FAIL_Y = 28;
-// Settles without overshoot — a bouncy song swap looks like a glitch.
+// Settles without overshoot — a bouncy sound swap looks like a glitch.
 const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 
 // Stable fallback for the clips selector (an inline `?? []` loops
@@ -327,7 +327,7 @@ export function PlayerSheet() {
   const current = usePlayerStore(s => s.current);
   const queue = usePlayerStore(s => s.queue);
   const toggle = usePlayerStore(s => s.toggle);
-  const nextSong = usePlayerStore(s => s.next);
+  const nextSound = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
   const rate = usePlayerStore(s => s.rate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
@@ -361,7 +361,7 @@ export function PlayerSheet() {
    * 0.070 of it, against the term's 0.15. `artworkRadius` exists for exactly
    * this drift and the player was the one caller that never adopted it.
    */
-  const artFullRadius = artworkRadius(artFull, TILE_RADIUS);
+  const artFullRadius = playerArtRadius(winW, TILE_RADIUS);
   const artExpandedX = (winW - artFull) / 2;
   const artExpandedY = playerArtTop(insets.top);
   const artScaleMin = MINI_ART_SIZE / artFull;
@@ -391,7 +391,7 @@ export function PlayerSheet() {
   const collapse = useCallback(() => springTo(0), [springTo]);
 
   /**
-   * A surface asked for the full player (tapping a song tile).
+   * A surface asked for the full player (tapping a sound tile).
    *
    * ONE MOTION, ALWAYS: `progress` 0 → 1, which `containerStyle` turns into a
    * rise from the banner's resting place to the full window. It does not matter
@@ -495,9 +495,9 @@ export function PlayerSheet() {
   const dragDownTop = makeDragDown();
   const dragDownTitle = makeDragDown();
 
-  // Swipe the art or the title sideways to change song — the idiom every music
+  // Swipe the art or the title sideways to change sound — the idiom every music
   // app uses, so the expanded player stops depending on the two small transport
-  // buttons. Left goes forward, matching a carousel: the next song comes in from
+  // buttons. Left goes forward, matching a carousel: the next sound comes in from
   // the right. Skipping wraps, so both directions always lead somewhere.
   const swipeX = useSharedValue(0);
 
@@ -506,25 +506,25 @@ export function PlayerSheet() {
   // transform on an image that is ALREADY decoded, so it appears immediately
   // instead of after the store swap and a fresh decode.
   const readNeighbours = useCallback(() => {
-    const { current: playing, queue: songs } = usePlayerStore.getState();
-    if (!playing || songs.length < 2) return { previous: null, next: null };
+    const { current: playing, queue: sounds } = usePlayerStore.getState();
+    if (!playing || sounds.length < 2) return { previous: null, next: null };
 
-    const index = songs.findIndex(song => song.id === playing.id);
+    const index = sounds.findIndex(sound => sound.id === playing.id);
     if (index < 0) return { previous: null, next: null };
 
     return {
-      previous: songs[(index - 1 + songs.length) % songs.length] ?? null,
-      next: songs[(index + 1) % songs.length] ?? null,
+      previous: sounds[(index - 1 + sounds.length) % sounds.length] ?? null,
+      next: sounds[(index + 1) % sounds.length] ?? null,
     };
   }, []);
 
   // Held in state, NOT derived per render: the frame that commits a skip must
   // still show the pair we paged with. Refreshing them in that same frame drops
-  // the NEW next-song into the centre slot (the pager is still offset by a
-  // screen width), which flashes a third song's title for a frame or two.
+  // the NEW next-sound into the centre slot (the pager is still offset by a
+  // screen width), which flashes a third sound's title for a frame or two.
   const [neighbours, setNeighbours] = useState(readNeighbours);
 
-  // Snaps the pager back to centre. Called once the song has actually changed:
+  // Snaps the pager back to centre. Called once the sound has actually changed:
   // the incoming cover is already sitting in the artwork slot, and the real
   // artwork element now holds the same image, so this handoff is invisible.
   const recentre = useCallback(() => {
@@ -535,13 +535,13 @@ export function PlayerSheet() {
     swipeX.value = withSpring(0, SETTLE_SPRING);
   }, [swipeX]);
 
-  // Set while a page is in flight and waiting on the song to change.
+  // Set while a page is in flight and waiting on the sound to change.
   const pendingRecentreRef = useRef(false);
 
   const skip = useCallback(
     (direction: 1 | -1) => {
       const before = usePlayerStore.getState().current?.id;
-      if (direction === -1) nextSong();
+      if (direction === -1) nextSound();
       else previous();
 
       if (usePlayerStore.getState().current?.id === before) {
@@ -552,7 +552,7 @@ export function PlayerSheet() {
 
       pendingRecentreRef.current = true;
     },
-    [nextSong, previous, recentre],
+    [nextSound, previous, recentre],
   );
 
   // Decided on the JS thread because it reads live transport state.
@@ -564,7 +564,7 @@ export function PlayerSheet() {
       }
 
       const { position } = usePlayerStore.getState();
-      // `previous()` restarts the song when deep into it, and a lone song wraps
+      // `previous()` restarts the sound when deep into it, and a lone sound wraps
       // to itself — in both cases no neighbour arrives, so paging one in would
       // be a lie. Settle back and let the action speak.
       const staysPut =
@@ -572,7 +572,7 @@ export function PlayerSheet() {
 
       if (staysPut) {
         settleBack();
-        if (direction === -1) nextSong();
+        if (direction === -1) nextSound();
         else previous();
         return;
       }
@@ -587,7 +587,7 @@ export function PlayerSheet() {
         },
       );
     },
-    [nextSong, previous, queue.length, settleBack, skip, swipeX, winW],
+    [nextSound, previous, queue.length, settleBack, skip, swipeX, winW],
   );
 
   useEffect(() => {
@@ -601,7 +601,7 @@ export function PlayerSheet() {
 
     // `recentre` writes a SHARED VALUE, which lands on the next UI frame, but
     // this render commits right away. Swapping the pair now would mount the
-    // song AFTER the one just swiped to at the pager's still-offset centre —
+    // sound AFTER the one just swiped to at the pager's still-offset centre —
     // the ghost title. Let the recentre reach the screen first.
     let inner = 0;
     const outer = requestAnimationFrame(() => {
@@ -856,7 +856,7 @@ export function PlayerSheet() {
 
   useClipsSubscription(current?.id);
   const clips = useClipsStore(s =>
-    current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
+    current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
   // Nothing loaded yet: the banner still holds its place (YT Music keeps it
@@ -865,7 +865,7 @@ export function PlayerSheet() {
 
   // Icon buttons signal presses with their RIPPLE, never vibration.
   const onToggle = toggle;
-  const onNext = nextSong;
+  const onNext = nextSound;
   const onPrevious = previous;
 
   const trimmerDuration = Math.floor(storeDuration);
@@ -887,14 +887,14 @@ export function PlayerSheet() {
     haptics.selection();
     setClipMode(false);
     createClip({
-      songId: current.id,
+      soundId: current.id,
       startMs: clipRange.startS * 1000,
       endMs: clipRange.endS * 1000,
       label: '',
     })
       .then(() => {
         // Awarded here rather than from a store: the clips cache only holds
-        // songs you have opened, so it can't answer "have you ever saved one".
+        // sounds you have opened, so it can't answer "have you ever saved one".
         awardTrophy(TROPHY_IDS.firstClip);
         showSnackbar(t('snackbar.clip-created'));
       })
@@ -959,7 +959,7 @@ export function PlayerSheet() {
     <>
       <Animated.View
         /**
-         * The slide-in is for a banner ARRIVING — a song started and the pill
+         * The slide-in is for a banner ARRIVING — a sound started and the pill
          * rises into place. A mount that is already opening skips it, because
          * `progress` is doing that motion itself and two animations on one
          * translateY is what produced the first-open flick (see
@@ -1137,7 +1137,7 @@ export function PlayerSheet() {
             Platform.OS === 'ios'
               ? router.push({
                   pathname: '/edit-sound',
-                  params: { songId: current.id },
+                  params: { soundId: current.id },
                 })
               : setEditVisible(true)
           }
@@ -1161,7 +1161,7 @@ export function PlayerSheet() {
           pagerStyle={pagerStyle}
           playing={playing}
           position={position}
-          songId={current.id}
+          soundId={current.id}
           subtitle={subtitle}
           title={current.name}
           titleGesture={titleGesture}
@@ -1180,13 +1180,13 @@ export function PlayerSheet() {
         {expanded
           ? (
               [
-                { song: neighbours.previous, side: -1 },
-                { song: neighbours.next, side: 1 },
+                { sound: neighbours.previous, side: -1 },
+                { sound: neighbours.next, side: 1 },
               ] as const
-            ).map(({ song, side }) =>
-              song ? (
+            ).map(({ sound, side }) =>
+              sound ? (
                 <Animated.View
-                  key={`${side}:${song.id}`}
+                  key={`${side}:${sound.id}`}
                   pointerEvents="none"
                   style={[
                     styles.art,
@@ -1201,10 +1201,10 @@ export function PlayerSheet() {
                     pagerStyle,
                   ]}
                 >
-                  <SongArt
-                    artUrl={song.artUrl || undefined}
+                  <SoundArt
+                    artUrl={sound.artUrl || undefined}
                     size={artFull}
-                    title={song.name}
+                    title={sound.name}
                     fadeMs={0}
                     style={styles.artMedia}
                   />
@@ -1238,7 +1238,7 @@ export function PlayerSheet() {
               artStyle,
             ]}
           >
-            <SongArt
+            <SoundArt
               artUrl={current.artUrl || undefined}
               size={artFull}
               title={current.name}
@@ -1259,11 +1259,11 @@ export function PlayerSheet() {
         />
       )}
       {infoVisible && (
-        <SongInfoSheet song={current} onClose={() => setInfoVisible(false)} />
+        <SoundInfoSheet sound={current} onClose={() => setInfoVisible(false)} />
       )}
       {editVisible && (
-        <EditSongSheet
-          songId={current.id}
+        <EditSoundSheet
+          soundId={current.id}
           onClose={() => setEditVisible(false)}
         />
       )}
@@ -1286,21 +1286,21 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { width: winW } = useWindowDimensions();
-  const songs = useSongsStore(s => s.songs);
-  const playSong = usePlayerStore(s => s.playSong);
+  const sounds = useSoundsStore(s => s.sounds);
+  const playSound = usePlayerStore(s => s.playSound);
   const requestExpand = usePlayerStore(s => s.requestExpand);
 
   // Same order the home grid shows, so "the first one" means what it looks
   // like it means.
-  const ordered = songs;
+  const ordered = sounds;
   const first = ordered[0] ?? null;
 
   // Parked on the first sound, so skipping behaves exactly as it would once
   // something is loaded: next steps forward, previous wraps to the last.
-  const startAt = (song: (typeof ordered)[number] | undefined) => {
-    if (!song) return;
+  const startAt = (sound: (typeof ordered)[number] | undefined) => {
+    if (!sound) return;
 
-    playSong(song, ordered);
+    playSound(sound, ordered);
     requestExpand();
   };
   const start = () => startAt(first);
@@ -1339,7 +1339,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         accessibilityLabel={first ? first.name : t('player.empty')}
       >
         <View style={styles.idleArt}>
-          <SongArt
+          <SoundArt
             artUrl={first?.artUrl || undefined}
             size={MINI_ART_SIZE}
             title={first?.name}

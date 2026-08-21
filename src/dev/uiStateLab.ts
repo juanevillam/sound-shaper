@@ -40,10 +40,10 @@ export const HOME_LAB_BOTTOM_OFFSET =
   MINI_PLAYER_HEIGHT + BANNER_BOTTOM_GAP_IOS;
 
 /**
- * HOME — the song grid.
+ * HOME — the sound grid.
  *
  * NO EMPTY STATE to pin: the Add Sound tile is the grid's first cell whether or
- * not there are songs, so "no songs" is simply the grid with one tile in it and
+ * not there are sounds, so "no sounds" is simply the grid with one tile in it and
  * needs no branch.
  */
 export type HomeState = 'live' | 'skeleton' | 'error';
@@ -104,7 +104,7 @@ export const HOME_STATES: Labelled<HomeState>[] = [
   {
     value: 'error',
     label: 'Library error',
-    note: 'The songs subscription failed. ContentUnavailableView, centred, with retry.',
+    note: 'The sounds subscription failed. ContentUnavailableView, centred, with retry.',
   },
 ];
 

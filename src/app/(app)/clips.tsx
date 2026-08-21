@@ -39,14 +39,14 @@ function ClipsSheetScreen() {
   const requestClipFraming = usePlayerStore(s => s.requestClipFraming);
 
   const clips = useClipsStore(s =>
-    current ? (s.bySongId[current.id] ?? NO_CLIPS) : NO_CLIPS,
+    current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
 
   if (!current) return <View style={{ backgroundColor: colors.sheet }} />;
 
   const onDelete = (clipId: string) => {
     haptics.medium();
-    deleteClip({ clipId, songId: current.id })
+    deleteClip({ clipId, soundId: current.id })
       .then(() => showSnackbar(t('snackbar.clip-deleted')))
       .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
   };

@@ -11,22 +11,22 @@ import {
 import { useListeningStore } from '@/store/listening';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
-import { useSongsStore } from '@/store/songs';
+import { useSoundsStore } from '@/store/sounds';
 
 /**
  * Awards every store-derived trophy straight from the live caches, rather than
  * instrumenting each call site. The engine is idempotent, so re-evaluating on
  * every snapshot is safe — already-earned trophies no-op. Waits for the engine
- * to hydrate AND the songs subscription to settle, so a cold start never awards
+ * to hydrate AND the sounds subscription to settle, so a cold start never awards
  * off an empty list. Mount once, app-wide.
  *
  * (`first-clip` isn't derivable from a store — the clips cache only holds the
- * songs you have opened — so it is awarded where a clip is saved.)
+ * sounds you have opened — so it is awarded where a clip is saved.)
  */
 export const useTrophyTriggers = () => {
   const hydrated = useTrophyStore(state => state.hydrated);
-  const songs = useSongsStore(state => state.songs);
-  const hasSettled = useSongsStore(state => state.hasSettled);
+  const sounds = useSoundsStore(state => state.sounds);
+  const hasSettled = useSoundsStore(state => state.hasSettled);
   const shapes = useShapesStore(state => state.shapes);
   const listened = useListeningStore(state => state.seconds);
 
@@ -39,8 +39,8 @@ export const useTrophyTriggers = () => {
   useEffect(() => {
     if (!hydrated || !hasSettled) return;
 
-    if (songs.length >= 1) awardTrophy(TROPHY_IDS.firstSound);
-    if (songs.length >= LIBRARY_SOUND_COUNT) awardTrophy(TROPHY_IDS.library);
+    if (sounds.length >= 1) awardTrophy(TROPHY_IDS.firstSound);
+    if (sounds.length >= LIBRARY_SOUND_COUNT) awardTrophy(TROPHY_IDS.library);
     if (shapes.length >= SAVED_SHAPE_COUNT) awardTrophy(TROPHY_IDS.savedShapes);
     if (listened >= LISTENING_MINUTES * 60) awardTrophy(TROPHY_IDS.listening);
 
@@ -55,6 +55,6 @@ export const useTrophyTriggers = () => {
     listened,
     preamp,
     shapes.length,
-    songs.length,
+    sounds.length,
   ]);
 };

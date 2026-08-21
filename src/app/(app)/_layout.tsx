@@ -12,7 +12,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
 import { useOwnProfileSync } from '@/hooks/useOwnProfileSync';
-import { useSongsSubscription } from '@/hooks/useSongsSubscription';
+import { useSoundsSubscription } from '@/hooks/useSoundsSubscription';
 import { useTrophiesSync } from '@/hooks/useTrophiesSync';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useTrophyTriggers } from '@/hooks/useTrophyTriggers';
@@ -28,11 +28,11 @@ import { useAuthStore } from '@/store/auth';
 const glassUnderlay = Platform.OS === 'ios' ? makeGlassUnderlay() : undefined;
 
 function AuthenticatedSubscriptions() {
-  // Session-wide Firestore listeners (own profile + the flat song library).
+  // Session-wide Firestore listeners (own profile + the flat sound library).
   // Mounted once here so every screen reads from the store instead of
   // re-subscribing.
   useOwnProfileSync();
-  useSongsSubscription();
+  useSoundsSubscription();
   // Trophies: point the engine at this user, bank listening time, and let the
   // store-derived objectives re-evaluate on every snapshot.
   useTrophiesSync();

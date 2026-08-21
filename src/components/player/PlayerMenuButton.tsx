@@ -25,7 +25,7 @@ import { type PlayerMenuButtonProps } from './chrome';
 
 const MENU_ICON_SIZE = 24;
 
-// Song overflow: metadata + the same edit/delete sheet the library's
+// Sound overflow: metadata + the same edit/delete sheet the library's
 // long-press opens. The press target sits ON TOP of the Compose trigger (whose
 // own state layer is invisible on this surface); the DropdownMenu still
 // anchors to the icon underneath it. Feedback is the app's squash — same as

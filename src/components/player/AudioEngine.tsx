@@ -10,7 +10,7 @@ import { audioEngine } from '@/lib/audioEngine';
 import { usePlayerStore } from '@/store/player';
 
 // ---------------------------------------------------------------------------
-// The playback engine. Mounts ONE streaming <Audio> element (keyed by song so
+// The playback engine. Mounts ONE streaming <Audio> element (keyed by sound so
 // each track loads fresh) and routes it through the shaping graph on load.
 // Transport state flows back into the player store; all control goes the other
 // way through the store's actions. Rate/pitch ride the declarative props (the

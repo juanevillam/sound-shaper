@@ -21,7 +21,7 @@ import { reported, reportedOnError } from '@/services/firebase/crashlytics';
 
 // A saved shape is the whole sound config under a name — the EQ curve plus
 // speed and keep-pitch — so "my late-night warm" is one tap away. Global to
-// the account (shaping isn't per-song), and personal like everything else.
+// the account (shaping isn't per-sound), and personal like everything else.
 export type Shape = {
   createdAt: number | null;
   /** Per-band dB in EQ_BANDS order (80 · 250 · 1k · 4k · 12k). */

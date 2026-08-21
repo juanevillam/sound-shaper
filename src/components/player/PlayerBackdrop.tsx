@@ -56,7 +56,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
         // NO recyclingKey: this is one long-lived view, not a recycled row, and
         // a changing recyclingKey CLEARS the old image instead of letting
         // expo-image cross-dissolve into the new one — which is exactly what
-        // made the wash snap from one song's colour to the next.
+        // made the wash snap from one sound's colour to the next.
         transition={BACKDROP_FADE_MS}
         cachePolicy="memory-disk"
       />

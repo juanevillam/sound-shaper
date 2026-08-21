@@ -1,29 +1,29 @@
 import { create } from 'zustand';
 
 import { audioEngine } from '@/lib/audioEngine';
-import { type Song } from '@/services/firebase/songs';
+import { type Sound } from '@/services/firebase/sounds';
 
-// Restart-vs-previous threshold: past this many seconds into a song, the
+// Restart-vs-previous threshold: past this many seconds into a sound, the
 // "previous" control restarts it instead (the universal music-app idiom).
 export const RESTART_THRESHOLD_S = 3;
 
-// Global playback state. WHAT is playing (song + its playlist queue), the
+// Global playback state. WHAT is playing (sound + its playlist queue), the
 // user's shaping choices (rate, pitch), and the live transport (position /
 // duration / playing) — the last three are fed in by the <AudioEngine> from
 // the streaming <Audio> element; every control goes back out through these
 // actions, which drive the shared audio graph.
 //
 // `loadNonce` is bumped whenever a track should (re)load — the <AudioEngine>
-// keys its <Audio> on `${song.id}#${loadNonce}`, so a bump remounts the
-// element. This is how a finished song replays: a plain play() on an ended
+// keys its <Audio> on `${sound.id}#${loadNonce}`, so a bump remounts the
+// element. This is how a finished sound replays: a plain play() on an ended
 // <Audio> does nothing, but a remount streams it fresh.
 type PlayerState = {
-  current: Song | null;
-  queue: Song[];
+  current: Sound | null;
+  queue: Sound[];
   loadNonce: number;
   /** A (re)load is in flight; ignore the old stream's parting position. */
   pendingStart: boolean;
-  // Bumped when a surface wants the full player OPENED (tapping a song tile
+  // Bumped when a surface wants the full player OPENED (tapping a sound tile
   // plays it and expands the sheet, YT-Music style). The PlayerSheet watches it.
   expandNonce: number;
   // Bumped by the iOS Clips form-sheet's "New clip": the sheet is a separate
@@ -47,10 +47,10 @@ type PlayerState = {
   sheetExpanded: boolean;
   setSheetExpanded: (sheetExpanded: boolean) => void;
 
-  playSong: (song: Song, queue: Song[]) => void;
+  playSound: (sound: Sound, queue: Sound[]) => void;
   requestExpand: () => void;
   requestClipFraming: () => void;
-  /** Jump-play a saved range of the CURRENT song. */
+  /** Jump-play a saved range of the CURRENT sound. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
   toggle: () => void;
@@ -59,8 +59,8 @@ type PlayerState = {
   seek: (seconds: number) => void;
   setRate: (rate: number) => void;
   setKeepPitch: (keepPitch: boolean) => void;
-  /** A song was deleted: drop it from the queue, and if it's loaded, stop. */
-  songDeleted: (songId: string) => void;
+  /** A sound was deleted: drop it from the queue, and if it's loaded, stop. */
+  soundDeleted: (soundId: string) => void;
   /** Stop and forget everything (sign-out, account wipe). */
   reset: () => void;
 
@@ -101,11 +101,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   sheetExpanded: false,
   setSheetExpanded: sheetExpanded => set({ sheetExpanded }),
 
-  // Selecting a song always (re)loads and plays it from the start — the
+  // Selecting a sound always (re)loads and plays it from the start — the
   // <AudioEngine> plays on load because `playing` is true.
-  playSong: (song, queue) =>
+  playSound: (sound, queue) =>
     set(state => ({
-      current: song,
+      current: sound,
       queue,
       playing: true,
       ...loadReset(state.loadNonce),
@@ -131,7 +131,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (get().activeClip) set({ activeClip: null });
   },
 
-  // Pause/resume the loaded song in place (no reload).
+  // Pause/resume the loaded sound in place (no reload).
   toggle: () => {
     if (!get().current) return;
 
@@ -151,14 +151,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const { current, queue } = get();
     if (!current) return;
 
-    const index = queue.findIndex(song => song.id === current.id);
-    const nextSong =
+    const index = queue.findIndex(sound => sound.id === current.id);
+    const nextSound =
       queue.length > 0 ? queue[(index + 1) % queue.length] : undefined;
 
-    if (!nextSong) return;
+    if (!nextSound) return;
 
     set(state => ({
-      current: nextSong,
+      current: nextSound,
       playing: true,
       ...loadReset(state.loadNonce),
     }));
@@ -174,19 +174,19 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
 
-    const index = queue.findIndex(song => song.id === current.id);
-    const previousSong =
+    const index = queue.findIndex(sound => sound.id === current.id);
+    const previousSound =
       queue.length > 0
         ? queue[(index - 1 + queue.length) % queue.length]
         : undefined;
 
-    if (!previousSong) {
+    if (!previousSound) {
       set(state => ({ playing: true, ...loadReset(state.loadNonce) }));
       return;
     }
 
     set(state => ({
-      current: previousSong,
+      current: previousSound,
       playing: true,
       ...loadReset(state.loadNonce),
     }));
@@ -202,18 +202,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   setKeepPitch: keepPitch => set({ keepPitch }),
 
-  songDeleted: songId => {
+  soundDeleted: soundId => {
     const { current, queue } = get();
-    const nextQueue = queue.filter(song => song.id !== songId);
+    const nextQueue = queue.filter(sound => sound.id !== soundId);
 
-    // A queued-but-not-loaded song vanished: just keep the queue honest.
-    if (current?.id !== songId) {
+    // A queued-but-not-loaded sound vanished: just keep the queue honest.
+    if (current?.id !== soundId) {
       set({ queue: nextQueue });
       return;
     }
 
-    // The loaded song was deleted — stop playback and clear the player so the
-    // banner disappears (a deleted song must not stay playable).
+    // The loaded sound was deleted — stop playback and clear the player so the
+    // banner disappears (a deleted sound must not stay playable).
     audioEngine.pause();
     set(state => ({
       queue: nextQueue,
@@ -277,7 +277,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const { current, queue } = get();
     if (!current) return;
 
-    const index = queue.findIndex(song => song.id === current.id);
+    const index = queue.findIndex(sound => sound.id === current.id);
     const isLast = index === -1 || index === queue.length - 1;
 
     if (isLast) {

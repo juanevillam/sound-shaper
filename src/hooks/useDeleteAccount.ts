@@ -30,7 +30,7 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *
  * CLOUDINARY MEDIA IS NOT TOUCHED and that is the known, accepted gap: deleting
  * it needs a signed backend call this app deliberately doesn't have (the same
- * gap as deleting a single song). The audio and artwork orphan.
+ * gap as deleting a single sound). The audio and artwork orphan.
  *
  * Throws on any non-best-effort failure so the sheet can surface it; a partial
  * run is safe to retry, since every step no-ops on what is already gone.
