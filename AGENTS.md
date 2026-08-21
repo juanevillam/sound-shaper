@@ -58,6 +58,38 @@ that — not taste — is why it read at a different size and colour than Topper
 it mirrors iOS, but nothing Android is installed — see the root AGENTS.md.
 Re-check it on device when Android resumes.
 
+**THE ARTWORK WASH IS AT FULL STRENGTH, AND THE GLYPHS ARE PROTECTED
+SEPARATELY** (2026-08-21). The blurred cover used to be drawn at 0.62 opacity,
+which mixed 38% of the page colour into every wash — subtle by design, but that
+mix was also the only thing keeping the bar glyphs legible, since a dark cover
+could never pull the top band very dark. Only the first of those was wanted.
+
+The cover carries its own colour now (opacity 1) and the gradient's mid-range
+was pulled back so the colour survives further down. Readability is guaranteed
+by two things instead:
+
+- **A scrim ramp held flat across the bar row, and only there.** The gradient's
+  offsets are in the OVERSCANNED box, not the screen — screen y maps to
+  `(OVERSCAN + y) / (OVERSCAN * 2 + screenH)`, so 0.211 is the screen's top and
+  0.281 is just under the bar. A ramp that starts decaying at the top edge has
+  already lost two thirds of itself by the glyphs' own centre; measured at
+  1.34:1 before that was corrected. Holding it flat costs the wash almost
+  nothing, because the cover is an opaque layer ABOVE this one starting at
+  y 119 — between the bar and there, the wash shows only in two 16pt gutters.
+- **The bar glyphs stand on `GlassSurfaceIos` discs**, the same floating
+  material the rest of the app uses. Glass alone is NOT sufficient and was
+  tried: over a near-black cover in light mode its floor only reached
+  (36,36,37), i.e. 1.35:1.
+
+Worst cases measured on iPhone 17 / iOS 26.5, both far above the 3:1 a UI glyph
+needs: light mode over a near-black cover, glyph (1,1,1) on a (190,190,191)
+disc — **11.24:1**; dark mode over a bright cover, glyph (253,253,253) on a
+(69,69,69) disc — **9.43:1**.
+
+**Do not solve this with a scrim floor alone.** It was costed: a pure-black
+cover in light mode needs ~0.37 of page colour across the whole top to clear
+3:1, which flattens the wash for exactly the covers it should be strongest on.
+
 **SHEET SIZES ARE MEASURED, not defaulted** (2026-08-21). The three player
 sheets shared one note — "a large sheet is the iOS idiom for an editor anyway" —
 which is a default, while Topper's two editors were content-measured. Audited on

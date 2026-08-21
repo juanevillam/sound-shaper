@@ -33,9 +33,19 @@ const BACKDROP_BLUR = 60;
 // player. Also covers the gap between a skip's page animation and the store
 // swap that brings the new art here.
 const BACKDROP_FADE_MS = 420;
-// Strong enough to feel like the sound is tinting the screen, short of
-// wallpaper.
-const BACKDROP_OPACITY = 0.62;
+/**
+ * THE COVER CARRIES ITS OWN COLOUR NOW — it was 0.62, which meant the blurred
+ * art was always mixed 38% into the page colour, so every wash in light mode
+ * drifted toward white and every wash in dark drifted toward black. That mix
+ * was doing double duty: it made the wash subtle AND it kept the bar glyphs
+ * legible, because a dark cover could never pull the top band very dark.
+ *
+ * Only the first of those was wanted. The glyphs are protected structurally
+ * now — they sit on `GlassSurfaceIos` circles, whose floor is what guarantees
+ * separation over ANY artwork, the same way Photos puts its viewer controls on
+ * glass over arbitrary photography. So the art gets to be its own colour.
+ */
+const BACKDROP_OPACITY = 1;
 
 type PlayerBackdropProps = {
   artUrl?: string;
@@ -82,28 +92,60 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
                 especially the Shape / Clips cards sit on a settled surface
                 whatever colour the cover is — while the bottom still keeps a
                 trace of tint rather than cutting to flat black. */}
-            <Stop offset="0" stopColor={colors.background} stopOpacity="0" />
+            {/* THE BAR BAND IS PROTECTED, AND ONLY THE BAR BAND.
+                These offsets are in the OVERSCANNED box, not the screen: the
+                bleed runs `OVERSCAN` past both edges, so screen y maps to
+                `(OVERSCAN + y) / (OVERSCAN * 2 + screenH)` — 0.211 is the top
+                of the screen and 0.29 is just under the bar row.
+
+                Across that 105pt the wash fades toward the PAGE colour, which
+                is what makes the glyphs safe by construction rather than by
+                luck: in light mode it lifts a black cover, in dark it darkens a
+                white one, and either way it pulls the ground away from
+                `onSurface`. Worst case measured below. It reads as the wash
+                emerging from under the status bar, which is the same scrim
+                Apple lays over photography beneath a bar. */}
+            <Stop offset="0" stopColor={colors.background} stopOpacity="0.44" />
+            {/* HELD FLAT ACROSS THE WHOLE BAR ROW (screen y 62–105, i.e. up to
+                offset 0.281) and only then released. A ramp that starts
+                decaying at the screen's top edge has already lost two thirds of
+                itself by the glyphs' own centre — measured at 1.34:1 before
+                this was corrected. */}
             <Stop
-              offset="0.2"
+              offset="0.281"
               stopColor={colors.background}
-              stopOpacity="0.1"
+              stopOpacity="0.44"
+            />
+            {/* Clear by y ≈ 170. It costs the wash almost nothing to hold on
+                this long: the cover is an OPAQUE layer drawn above this one and
+                starts at y 119, so between the bar and there the wash is only
+                visible in the two 16pt side gutters. */}
+            <Stop
+              offset="0.323"
+              stopColor={colors.background}
+              stopOpacity="0.03"
             />
             <Stop
-              offset="0.36"
+              offset="0.44"
               stopColor={colors.background}
-              stopOpacity="0.34"
+              stopOpacity="0.22"
+            />
+            {/* From here down it falls off HARDER than it used to, not softer.
+                The console needs a predictable surface whatever the cover is —
+                the title, the scrubber's labels and the footer all read against
+                this — so the colour is spent where it shows and withdrawn where
+                it would cost legibility. */}
+            <Stop
+              offset="0.58"
+              stopColor={colors.background}
+              stopOpacity="0.62"
             />
             <Stop
-              offset="0.5"
+              offset="0.72"
               stopColor={colors.background}
-              stopOpacity="0.68"
+              stopOpacity="0.84"
             />
-            <Stop
-              offset="0.66"
-              stopColor={colors.background}
-              stopOpacity="0.82"
-            />
-            <Stop offset="1" stopColor={colors.background} stopOpacity="0.86" />
+            <Stop offset="1" stopColor={colors.background} stopOpacity="0.9" />
           </SvgLinearGradient>
         </Defs>
         <Rect
