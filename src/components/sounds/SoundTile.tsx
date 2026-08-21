@@ -178,17 +178,30 @@ export function SoundTile({
           </View>
         ) : null}
       </View>
-      {/* ACTIVE IS COLOUR ONLY, and stays that way. The state is already
-          carried non-chromatically by the bars over the artwork, so the tint is
-          never the sole signal. Weight would also re-truncate: "Nightmare"
-          measures 77.00pt regular against 82.00pt semibold — 6.5% wider — so a
-          name that just fits would ellipsize the moment it started playing. */}
+      {/* ACTIVE IS NOT TINTED ON iOS, and the reason is in the sentence this
+          comment used to end with: the state is ALREADY carried
+          non-chromatically by the bars over the artwork. That made the tint a
+          second encoding of one fact, and redundant chroma is exactly what the
+          portfolio's monochrome rule removes — the bars are white hairlines on
+          a scrim precisely because a brand-coloured badge "reads like a sticker
+          slapped on the cover", and a brand-coloured TITLE is the same
+          instinct one line down.
+
+          ANDROID KEEPS THE TINT: Material marks an active list item with the
+          accent, and that is what a Material surface should draw.
+
+          Weight is not the alternative — it re-truncates. "Nightmare" measures
+          77.00pt regular against 82.00pt semibold, 6.5% wider, so a name that
+          just fits would ellipsize the moment it started playing. */}
       <Text
         doNotTranslate
         text={sound.name}
         variant="bodyMedium"
         numberOfLines={1}
-        style={[styles.name, isCurrent && { color: colors.primary }]}
+        style={[
+          styles.name,
+          isCurrent && Platform.OS !== 'ios' && { color: colors.primary },
+        ]}
       />
       <Text
         doNotTranslate
