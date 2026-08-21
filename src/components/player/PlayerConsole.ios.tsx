@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
 import {
   AppIcon,
@@ -33,7 +34,7 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 import {
   CLIP_FRAMING_GAP,
   HANDLES_REGION_HEIGHT,
-  PLAYER_GRABBER_HEIGHT,
+  PLAYER_BAR_TARGET,
   PLAYER_SIDE_PADDING,
   playerArtSize,
   type PlayerCard,
@@ -70,15 +71,21 @@ import {
 //    system blue" is to delete the accent, not to extract one: the transport,
 //    the scrubber and the footer all take `onSurface` over the wash.
 //
-// 4. NO TOP BAR. The chevron row is gone. Its job — say this can be dismissed
-//    — is the GRABBER's, which is the iOS sheet's own affordance and advertises
-//    the drag-to-collapse gesture that until now had nothing to announce it.
-//    The overflow moved down to the title, where the thing it acts on is.
-//    Deleting that row also deletes a real defect: it was built from
-//    `IconButton`, which wraps a `matchContents` Host, and a re-render moved
-//    the row 79pt (measured: chevron ink centre 87.67 on a fresh launch, 166.67
-//    after a live appearance change, artwork unmoved). That is the async-answer
-//    -on-the-layout-path family AGENTS.md names.
+// 4. A BAR ROW, AND IT IS NOT A GRABBER. One glyph on each side at the
+//    portfolio's 43pt bar target: `chevron.down` to put the player away, the
+//    overflow `Menu` opposite it.
+//
+//    Both alternatives were built and rejected. A sheet GRABBER was wrong
+//    because this surface has a bottom sheet's dismiss gesture but is not a
+//    sheet, and a grabber is UIKit's promise that it is one (Juan, on sight).
+//    Hanging the overflow off the TITLE was wrong because a "…" that acts on
+//    the screen does not belong inside the copy that names the song.
+//
+//    What must NOT come back is how the original row was built: on
+//    `IconButton`, which wraps a `matchContents` Host, so a re-render moved the
+//    whole row 79pt (measured: chevron ink centre 87.67 on a fresh launch,
+//    166.67 after a live appearance change, with the artwork unmoved). Every
+//    host in this row states its box.
 // ---------------------------------------------------------------------------
 
 /* -------------------------------------------------------------------------- */
@@ -118,13 +125,30 @@ const TRANSPORT_PLAY_SIZE = 44;
 const TRANSPORT_GAP = 30;
 
 /* -------------------------------------------------------------------------- */
-/*  The grabber                                                               */
+/*  The bar row                                                               */
 /* -------------------------------------------------------------------------- */
 
-/** Apple's sheet grabber: a 36 × 5 capsule, centred. */
-const GRABBER_WIDTH = 36;
-/** UIKit draws it as a tint of the content colour, not as a solid rule. */
-const GRABBER_ALPHA = 0.3;
+/**
+ * The bar glyphs' ink. `HEADER_CLOSE_GLYPH_SIZE`'s value and its reason: Apple
+ * draws a dismiss glyph noticeably larger than an inline title's cap height so
+ * it stays an easy target inside the fixed capsule. Restated rather than
+ * imported because that constant belongs to a UIKit BAR ITEM — this row is not
+ * one, and borrowing the name would claim a kinship the layout does not have.
+ */
+const BAR_GLYPH_SIZE = 20;
+
+/**
+ * The collapse glyph. It is NOT in `TransportGlyphs.ios` — that module is the
+ * four transport symbols and a chevron is not one of them — and it states its
+ * box for the same reason everything else in this row does.
+ */
+function CollapseGlyph({ color }: { color: string }) {
+  return (
+    <SwiftUIHost style={styles.barGlyphHost} ignoreSafeArea="all">
+      <Image systemName="chevron.down" size={BAR_GLYPH_SIZE} color={color} />
+    </SwiftUIHost>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /*  The footer                                                                 */
@@ -320,29 +344,26 @@ export function PlayerConsole({
       pointerEvents={expanded ? 'auto' : 'none'}
     >
       {/* One full-width drag-to-close zone spanning everything above the
-          console — the grabber and the gutters beside the art. The art
-          renders above it and keeps its own touches. */}
+          console — the bar row and the gutters beside the art. The art and
+          the bar glyphs render above it and keep their own touches. */}
       <GestureDetector gesture={topGesture}>
         <View style={[styles.dragZone, { height: contentTop }]} />
       </GestureDetector>
 
-      {/* The grabber. The drag it announces is `topGesture` underneath, which
-          spans the whole band rather than this 36pt pill — but the pill is
-          TAPPABLE too, and that is not decoration. Apple's grabber can be inert
-          because a real UIKit sheet publishes an accessibility dismiss action of
-          its own; this surface is not one, so drag-only would leave VoiceOver
-          and Switch Control with no way out at all. */}
-      <View style={[styles.grabberRow, { paddingTop: insets.top + 8 }]}>
-        <Pressable
+      {/* The bar row. `chevron.down` puts the player away — the same job the
+          drag does, said as a button, which is also the only thing VoiceOver
+          and Switch Control can reach (this is not a real UIKit sheet, so
+          nothing publishes a dismiss action on its behalf). */}
+      <View style={[styles.barRow, { paddingTop: insets.top }]}>
+        <GlyphButton
           accessibilityLabel={t('common.back')}
-          accessibilityRole="button"
-          hitSlop={16}
+          hitSlop={0}
           onPress={onCollapse}
-          style={[
-            styles.grabber,
-            { backgroundColor: withAlpha(colors.onSurface, GRABBER_ALPHA) },
-          ]}
-        />
+          style={styles.barSlot}
+        >
+          <CollapseGlyph color={colors.onSurface} />
+        </GlyphButton>
+        <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
       </View>
 
       <View
@@ -383,15 +404,6 @@ export function PlayerConsole({
                   ) : null,
                 )
               : null}
-
-            {/* The overflow belongs to the SCREEN, not to the song, so it sits
-                outside the pager and does not travel with a swipe. It is here
-                rather than in a top bar because what it acts on is the title
-                beside it — and because the row it used to live in was the
-                console's only piece of chrome. */}
-            <View style={styles.menuSlot}>
-              <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
-            </View>
           </View>
         </GestureDetector>
 
@@ -485,18 +497,28 @@ const styles = StyleSheet.create({
     top: 0,
   },
   // The invisible drag-to-close surface behind the whole region above the
-  // console — the grabber band and the gutters beside the artwork.
+  // console — the bar row and the gutters beside the artwork.
   dragZone: {
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
-  grabberRow: { alignItems: 'center', left: 0, position: 'absolute', right: 0 },
-  grabber: {
-    borderRadius: PLAYER_GRABBER_HEIGHT / 2,
-    height: PLAYER_GRABBER_HEIGHT,
-    width: GRABBER_WIDTH,
+  barRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    left: 0,
+    paddingHorizontal: PLAYER_SIDE_PADDING,
+    position: 'absolute',
+    right: 0,
+  },
+  barGlyphHost: { height: PLAYER_BAR_TARGET, width: PLAYER_BAR_TARGET },
+  barSlot: {
+    alignItems: 'center',
+    height: PLAYER_BAR_TARGET,
+    justifyContent: 'center',
+    width: PLAYER_BAR_TARGET,
   },
   // A flex column from the artwork's bottom edge to the bottom inset, so the
   // spacers can distribute what used to be dead screen.
@@ -509,13 +531,7 @@ const styles = StyleSheet.create({
   },
   spacer: { flex: 1 },
   titleSlot: { width: '100%' },
-  titleBlock: {
-    // Clears the overflow, so a long name truncates before it rather than
-    // running underneath.
-    paddingRight: 44,
-    paddingBottom: 20,
-    width: '100%',
-  },
+  titleBlock: { paddingBottom: 20, width: '100%' },
   titleGhost: { position: 'absolute', top: 0 },
   title: {
     fontSize: TITLE_SIZE,
@@ -523,7 +539,6 @@ const styles = StyleSheet.create({
     lineHeight: TITLE_LEADING,
   },
   artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
-  menuSlot: { position: 'absolute', right: -8, top: -2 },
   sliderBlock: { position: 'relative', width: '100%' },
   sliderBlockFraming: { marginBottom: CLIP_FRAMING_GAP },
   handlesRegion: {
