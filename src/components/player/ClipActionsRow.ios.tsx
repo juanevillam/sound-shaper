@@ -1,95 +1,150 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BRAND_PRESSED_OPACITY, PRESSED_OPACITY } from '@portfolio/mobile-ui';
+import { Image } from '@expo/ui/swift-ui';
+import {
+  BRAND_PRESSED_OPACITY,
+  FLOATING_RADIUS,
+  GlassSurfaceIos,
+  MINI_PLAYER_HEIGHT,
+  PRESSED_OPACITY,
+  SwiftUIHost,
+} from '@portfolio/mobile-ui';
 
-import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { PILL_RADIUS } from '@/styles/shape';
+import { CONTINUOUS_CURVE, PILL_RADIUS } from '@/styles/shape';
 
-import { CLIP_ACTIONS_HEIGHT, type ClipActionsRowProps } from './chrome';
+import { type ClipActionsRowProps } from './chrome';
 
-// iOS counterpart of `ClipActionsRow`. Material's outlined/filled button pair
-// becomes the iOS capsule pair: a plain tinted text button for the secondary
-// action and a filled capsule for the primary one.
-//
-// TWO DIFFERENT DIMS, both the package's. Press feedback here is a FADE rather
-// than the card squash — these are inline actions in a row — and the portfolio
-// has exactly two fade values: `PRESSED_OPACITY` for text and rows, and the
-// gentler `BRAND_PRESSED_OPACITY` for a large FILLED surface, where half alpha
-// reads far heavier than the same fraction on a line of text. This file had one
-// locally-declared 0.55 doing both jobs.
+/**
+ * IT IS THE SAME BAR IT REPLACES.
+ *
+ * Framing swaps this in where the Shape/Clips glass bar sits, and it used to
+ * arrive as a bare 56pt row of loose parts — a grey ✕, a muted "New Clip"
+ * caption that read as disabled text, a tinted word, and a filled capsule —
+ * floating over the wash with no container at all. So the console's bottom
+ * edge changed material, height and shape the moment you started framing,
+ * which is the opposite of what a mode switch should feel like.
+ *
+ * Now it is the same box: `MINI_PLAYER_HEIGHT` tall, `FLOATING_RADIUS`
+ * cornered, on the portfolio's floating material — which is also the collapsed
+ * banner's box (see `nowPlayingBanner`). The bar stays put and only its
+ * contents change, exactly as it does between the console and the banner.
+ *
+ * The ACCENT stays here, deliberately, and is the one place the iOS console
+ * keeps it: framing is a distinct MODE rather than the resting player, Save is
+ * a filled brand action, and Preview is a text button whose tint is what says
+ * it is tappable at all.
+ */
+
+/** The ✕'s ink, matching the console's bar glyphs rather than a Material 20. */
+const CANCEL_GLYPH = 17;
+const CANCEL_TARGET = 44;
+
 export function ClipActionsRow({
   onCancel,
   onPreview,
   onSave,
+  width = 0,
 }: ClipActionsRowProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
 
   return (
-    <View style={styles.row}>
-      <IconButton
-        name="close"
-        onPress={onCancel}
-        size={20}
-        tint={colors.onSurfaceMuted}
-        accessibilityLabel={t('common.cancel')}
+    <View style={[styles.bar, { height: MINI_PLAYER_HEIGHT, width }]}>
+      <GlassSurfaceIos
+        width={width}
+        height={MINI_PLAYER_HEIGHT}
+        cornerRadius={FLOATING_RADIUS}
       />
-      <View style={styles.label}>
-        <Text muted text="player.clips.new" variant="labelLarge" />
+      <View style={styles.row}>
+        <Pressable
+          accessibilityLabel={t('common.cancel')}
+          accessibilityRole="button"
+          onPress={onCancel}
+          style={({ pressed }) => [
+            styles.cancel,
+            { opacity: pressed ? PRESSED_OPACITY : 1 },
+          ]}
+        >
+          <SwiftUIHost style={styles.cancelHost} ignoreSafeArea="all">
+            <Image
+              systemName="xmark"
+              size={CANCEL_GLYPH}
+              color={colors.onSurfaceMuted}
+            />
+          </SwiftUIHost>
+        </Pressable>
+
+        {/* The mode's name, not an action — so it sits with the ✕ that leaves
+            the mode rather than with the two that act on it. */}
+        <View style={styles.title}>
+          <Text muted text="player.clips.new" variant="bodyMedium" />
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={onPreview}
+          style={({ pressed }) => [
+            styles.preview,
+            { opacity: pressed ? PRESSED_OPACITY : 1 },
+          ]}
+        >
+          <Text
+            text="player.clips.preview"
+            variant="bodyLarge"
+            numberOfLines={1}
+            style={{ color: colors.primary }}
+          />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={onSave}
+          style={({ pressed }) => [
+            styles.save,
+            {
+              backgroundColor: colors.primary,
+              opacity: pressed ? BRAND_PRESSED_OPACITY : 1,
+            },
+          ]}
+        >
+          <Text
+            text="player.clips.saveClip"
+            variant="bodyLarge"
+            numberOfLines={1}
+            style={{ color: colors.onPrimary }}
+          />
+        </Pressable>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPreview}
-        style={({ pressed }) => [
-          styles.secondary,
-          { opacity: pressed ? PRESSED_OPACITY : 1 },
-        ]}
-      >
-        <Text
-          text="player.clips.preview"
-          variant="labelLarge"
-          numberOfLines={1}
-          style={{ color: colors.primary }}
-        />
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onSave}
-        style={({ pressed }) => [
-          styles.primary,
-          {
-            backgroundColor: colors.primary,
-            opacity: pressed ? BRAND_PRESSED_OPACITY : 1,
-          },
-        ]}
-      >
-        <Text
-          text="player.clips.saveClip"
-          variant="labelLarge"
-          numberOfLines={1}
-          style={{ color: colors.onPrimary }}
-        />
-      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { flex: 1 },
-  primary: {
-    borderRadius: PILL_RADIUS,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
+  bar: { ...CONTINUOUS_CURVE, borderRadius: FLOATING_RADIUS },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
-    height: CLIP_ACTIONS_HEIGHT,
+    height: '100%',
+    paddingLeft: 6,
+    paddingRight: 10,
     width: '100%',
   },
-  secondary: { paddingHorizontal: 10, paddingVertical: 8 },
+  cancel: {
+    alignItems: 'center',
+    height: CANCEL_TARGET,
+    justifyContent: 'center',
+    width: CANCEL_TARGET,
+  },
+  cancelHost: { height: CANCEL_TARGET, width: CANCEL_TARGET },
+  title: { flex: 1 },
+  preview: { paddingHorizontal: 12, paddingVertical: 8 },
+  save: {
+    borderRadius: PILL_RADIUS,
+    marginLeft: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
 });
