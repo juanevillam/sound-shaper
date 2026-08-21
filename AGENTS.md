@@ -58,6 +58,33 @@ that — not taste — is why it read at a different size and colour than Topper
 it mirrors iOS, but nothing Android is installed — see the root AGENTS.md.
 Re-check it on device when Android resumes.
 
+**SHEET SIZES ARE MEASURED, not defaulted** (2026-08-21). The three player
+sheets shared one note — "a large sheet is the iOS idiom for an editor anyway" —
+which is a default, while Topper's two editors were content-measured. Audited on
+iPhone 17 / iOS 26.5 and each now states its own reason in `IOS_FORM_SHEETS`:
+
+- `shaper` **[1]** — a PRIMARY surface, like Settings and Account. It scrolls at
+  any size, and [1] also drops the fractional-detent dimming (below the large
+  detent iOS renders the sheet's SwiftUI in the inactive appearance, so its
+  sliders and picker value were desaturated).
+- `clips` **[1]** — it is a LIST, and every list sheet in the portfolio is [1]
+  (Topper's follow-list, people, trash, blocked-users). At 0.6 an empty list left
+  361pt — three quarters of the sheet — empty. A size that fits an empty list is
+  wrong the moment it fills.
+- `edit-sound` **[0.8]** — content-sized. Content is 566pt; 0.9 left 144pt of
+  slack, 0.8 leaves the home-indicator clearance and a little air. Re-measure if
+  the form gains or loses a row.
+- `sound-info`, `trophy-detail` — `fitToContents`, and they must stay RN: a
+  native `Form` is a scroll container with no intrinsic height and renders 0pt
+  tall under that detent.
+
+**A FULL-HEIGHT LIST SHEET NEEDS A REAL EMPTY STATE.** Clips rendered its empty
+branch as a grouped ROW pinned to the top, which was tolerable at 0.6 and plainly
+wrong at [1] — a stray row above 600pt of nothing. It takes `EmptyState` inside
+`StateWrap` now, REPLACING the form rather than sitting in one; placed inside,
+the `Form` wraps it in a section row and it renders as an empty white capsule.
+That is Topper's `trash` pattern.
+
 **The player's CONSOLE has a platform twin; everything else about it does not
 (iOS, 2026-08-20).** `PlayerSheet` owns what the two platforms genuinely share —
 one `progress` shared value and its springs, the drag/skip gesture graph, the

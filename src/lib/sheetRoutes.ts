@@ -34,29 +34,72 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   titleKey?: string;
 }> = [
   { name: 'sound-info', detents: 'fitToContents' },
-  // A native SwiftUI `Form` is a scroll container with no intrinsic height —
-  // under `fitToContents` the sheet hugged the header and the form rendered
-  // 0pt tall. A fractional detent gives it a definite box, and a large sheet
-  // is the iOS idiom for an editor anyway.
+  /**
+   * CONTENT-SIZED, the way Topper's two editors are — measured, not defaulted.
+   *
+   * A native SwiftUI `Form` is a scroll container with no intrinsic height, so
+   * `fitToContents` hugs the header and renders the form 0pt tall; a fractional
+   * detent is the only way to give it a definite box. It sat at a flat 0.9 with
+   * the note "a large sheet is the iOS idiom for an editor anyway", which is a
+   * default rather than a size.
+   *
+   * Band-scanned on iPhone 17 / iOS 26.5: the sheet spanned 164 → 874 and the
+   * last ink (Delete Sound's bottom edge) landed at 730, leaving 144pt of empty
+   * sheet. Content is 566pt; 0.8 leaves the home-indicator clearance and a
+   * little air instead.
+   *
+   * Re-measure if the form gains or loses a row — it is four fields, a media
+   * slot and a destructive section today.
+   *
+   * KNOWN, ACCEPTED TRADE — the fractional-detent DIMMING, exactly as Topper's
+   * table records it: below the large detent iOS keeps the presenting window
+   * primary and renders the sheet's SwiftUI in the inactive appearance. The
+   * shaper is at [1] BECAUSE it is a primary surface; an editor is not.
+   */
   {
     name: 'edit-sound',
-    detents: [0.9],
+    detents: [0.8],
     titled: true,
     titleKey: 'app.soundEdit',
   },
-  // Native `Form` — see the edit-sound note; a scroll container has no
-  // intrinsic height, so no fitToContents.
+  /**
+   * FULL HEIGHT, like Settings and Account — this is a PRIMARY surface, not a
+   * quick edit. It holds a preset picker, the saved-shapes section, five EQ
+   * sliders, a speed slider and a pitch toggle, each with its own footnote;
+   * it scrolled at 0.9 and it will scroll at anything less than the screen.
+   *
+   * A fractional detent also costs it the OS's sheet dimming (see Topper's
+   * table): below the large detent iOS keeps the presenting window primary and
+   * renders the sheet's SwiftUI in the inactive appearance, so the picker's
+   * value greys and the grouped fills desaturate. That is an acceptable trade
+   * for a small content-sized editor. It is the wrong trade for the surface a
+   * person comes here to USE.
+   */
   {
     name: 'shaper',
-    detents: [0.9],
+    detents: [1],
     titled: true,
     titleKey: 'player.shape.title',
   },
-  // Native `Form` — see the edit-sound note; a scroll container needs a
-  // definite height, so no fitToContents.
+  /**
+   * FULL HEIGHT, because it is a LIST — and every list sheet in the portfolio
+   * is [1]: Topper's follow-list, people, trash and blocked-users all are, and
+   * blocked-users stands empty more often than this one does.
+   *
+   * It sat at 0.6, which was sized to nothing in particular. Band-scanned on
+   * iPhone 17 / iOS 26.5 with an empty list: the sheet spanned 389 → 874 and
+   * its single row ended at 513, so 361pt — about three quarters of the sheet —
+   * was empty. A size chosen to fit an empty list is wrong the moment the list
+   * fills, and a clips list grows without a bound anyone can predict.
+   *
+   * The cost is honest: with no clips it is a full screen holding one line. The
+   * portfolio already accepted that for blocked-users, and it buys a sheet that
+   * is still right at ten clips. It also drops the fractional-detent dimming,
+   * so the rows render in the active appearance.
+   */
   {
     name: 'clips',
-    detents: [0.6],
+    detents: [1],
     titled: true,
     titleKey: 'player.clips.title',
   },
