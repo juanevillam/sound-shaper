@@ -29,10 +29,16 @@ import {
 } from './chrome';
 
 // ---------------------------------------------------------------------------
-// ANDROID'S EXPANDED CONSOLE — feature-complete and FROZEN (AGENTS.md), moved
-// here verbatim from `PlayerSheet` when the iOS twin was written. Nothing in
-// this file changed in the move; if it reads as Material, that is because it
-// is Material and is meant to be. The iOS surface is `PlayerConsole.ios.tsx`.
+// ANDROID'S EXPANDED CONSOLE — moved here verbatim from `PlayerSheet` when the
+// iOS twin was written. Nothing in this file changed in the move; if it reads
+// as Material, that is because it is Material and is meant to be. The iOS
+// surface is `PlayerConsole.ios.tsx`.
+//
+// ANDROID IS NOT BEING VERIFIED. The portfolio is iOS-only until iOS is done —
+// nothing Android is installed or run — so this file is effectively frozen
+// whatever the release-freeze's exact wording covers. Edit it only when a
+// feature genuinely spans both twins, and expect to re-check it on device when
+// Android comes back.
 //
 // A fixed column, nothing scrolls, so nothing can fight the drag-to-close
 // gesture: art (owned by the sheet, above), title with an overflow menu, the
@@ -97,7 +103,7 @@ export function PlayerConsole({
           onPress={onCollapse}
           accessibilityLabel={t('common.back')}
         />
-        {/* Song overflow: metadata + the same edit/delete sheet the
+        {/* Sound overflow: metadata + the same edit/delete sheet the
             library's long-press opens. Compose anchors a dropdown to the
             trigger. Both twins size their own touch target, so there is no
             wrapper here — one would only decentre the smaller of the two. */}
@@ -131,13 +137,13 @@ export function PlayerConsole({
             {expanded
               ? (
                   [
-                    { song: neighbours.previous, side: -1 },
-                    { song: neighbours.next, side: 1 },
+                    { sound: neighbours.previous, side: -1 },
+                    { sound: neighbours.next, side: 1 },
                   ] as const
-                ).map(({ song, side }) =>
-                  song ? (
+                ).map(({ sound, side }) =>
+                  sound ? (
                     <Animated.View
-                      key={`title:${side}:${song.id}`}
+                      key={`title:${side}:${sound.id}`}
                       pointerEvents="none"
                       style={[
                         styles.titleBlock,
@@ -148,7 +154,7 @@ export function PlayerConsole({
                     >
                       <AppText
                         doNotTranslate
-                        text={song.name}
+                        text={sound.name}
                         variant="titleLarge"
                         numberOfLines={1}
                         style={styles.titleText}
@@ -156,7 +162,7 @@ export function PlayerConsole({
                       <AppText
                         doNotTranslate
                         muted
-                        text={song.artist || ' '}
+                        text={sound.artist || ' '}
                         variant="bodyMedium"
                         numberOfLines={1}
                       />

@@ -25,20 +25,65 @@ Profile header is in Topper — a personal app has no profile tab for it to hang
 off. ANDROID IS UNCHANGED: there these are ordinary pushed Material screens and
 Trophies stays a row in Settings.
 
+**EVERYTHING A PERSON READS SAYS "SOUND", AND SO DOES THE CODE** (2026-08-21).
+The copy was already all "sound"; the app underneath still said "song"
+everywhere — keys, types, components, stores, services, params. It is renamed
+(`SoundTile`, `useSoundsStore`, `soundId`, `soundEdit.*`), because a library
+that takes any MP3 holds ringtones and voice memos as readily as tracks, and
+calling those "songs" makes a claim about the product nobody wants to make.
+
+**One string deliberately still says `songs`:** the Firestore subcollection in
+`services/firebase/collections.ts`. Nobody reads a wire path, and renaming it
+would migrate every existing document and re-point both `firestore.rules` and
+the account-deletion sweep — the sweep that once silently deleted nothing
+because of a wrong-but-legal path. `soundId` was safe to rename because it is
+only ever a path PARAMETER, never a stored field.
+
+**Cover art is the person's to choose** (2026-08-21). It came from the file's
+ID3 tag and nowhere else, so a sound without one showed a permanent placeholder
+— wrong for a library that takes any MP3. `expo-image-picker` (native: needs a
+prebuild) plus `hooks/useCoverPicker` give the editor a real picker, in Topper's
+two-step deferred shape: picking is cheap and reversible, the upload waits for
+save, so cancelling never orphans a Cloudinary asset this app has no signed call
+to delete. Replacing a cover DOES orphan the old one — the same accepted gap
+deleting a sound has.
+
+The disc presses now, so its caption became an ACTION inside the press target in
+the accent ("Add Artwork" / "Change Artwork"), which is exactly Topper's
+arrangement. It had been a muted `Button` in `SheetFormMediaIos`'s own slot, and
+that — not taste — is why it read at a different size and colour than Topper's
+"Change Photo".
+
+**The Android half of the picker is written and UNVERIFIED.** It typechecks and
+it mirrors iOS, but nothing Android is installed — see the root AGENTS.md.
+Re-check it on device when Android resumes.
+
 **The player's CONSOLE has a platform twin; everything else about it does not
 (iOS, 2026-08-20).** `PlayerSheet` owns what the two platforms genuinely share —
 one `progress` shared value and its springs, the drag/skip gesture graph, the
 neighbour paging, the collapsed banner, and the ONE artwork element that travels
 between the two states. Only the console below the artwork is split:
-`PlayerConsole.tsx` is Android's (Material, frozen, moved there verbatim) and
+`PlayerConsole.tsx` is Android's (Material, moved there verbatim) and
 `PlayerConsole.ios.tsx` is iOS's. The contract and the geometry both halves
 share live in `chrome.ts`.
 
 A full `PlayerSheet.ios.tsx` was the obvious alternative and is the wrong shape:
 only SEVEN of that file's 1751 lines were platform branches, so a twin would
 copy ~700 lines of frame-verified animation and gesture code that has nothing to
-do with either platform's look — and with Android frozen, the copy rots
-silently.
+do with either platform's look, and a copy of it rots the moment one side is
+touched.
+
+**ANDROID IS NOT BEING VERIFIED, AND THAT IS THE CONSTRAINT THAT MATTERS.**
+The root AGENTS.md's July 2026 RELEASE freeze names Topper and Expo UI Starter,
+and this app came after it — so a reading of the letter says Sound Shaper's
+Android is not release-frozen. That reading is useless in practice and was
+briefly acted on here. The working rule (Juan, 2026-08-21) is that the whole
+portfolio is iOS-only until iOS is completely done: no Android app is installed,
+no Android change is run, and nothing Android can be verified at all.
+
+So Android code may still be EDITED where a feature genuinely spans both twins
+— but anything written there ships UNVERIFIED and has to be re-checked when
+Android comes back. Do not treat an Android edit as done because it typechecks.
 
 **The iOS console is a designed surface, not Android's with parts swapped.**
 What it replaced was a Material now-playing screen — a 64pt filled `primary`
