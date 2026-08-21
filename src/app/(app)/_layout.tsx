@@ -141,11 +141,14 @@ export default function AppLayout() {
             Compose ModalBottomSheets mounted in-place; nothing navigates to
             these routes there). The route list + detents live in
             IOS_FORM_SHEETS, shared with useIosSheetPresented. */}
-        {IOS_FORM_SHEETS.map(({ name, detents }) => (
+        {IOS_FORM_SHEETS.map(({ name, detents, titled, titleKey }) => (
           <Stack.Screen
             key={name}
             name={name}
-            options={sheetOptions(detents)}
+            options={{
+              ...sheetOptions(detents, titled),
+              ...(titleKey ? { title: t(titleKey as TranslationKey) } : {}),
+            }}
           />
         ))}
       </Stack>
