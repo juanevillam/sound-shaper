@@ -20,9 +20,9 @@ import { UiStateLabBar } from '@/dev/UiStateLabBar';
  * `Screen` with NO backgroundColor for exactly this reason, letting the sheet's
  * own colour through.
  *
- * The `fitToContents` sheets (`sound-info`, `trophy-detail`) are NOT this: they
- * hug their content, paint `colors.sheet` themselves because nothing else fills
- * the box, and carry their own centred padding.
+ * The `fitToContents` sheet (`trophy-detail`) is NOT this: it hugs its
+ * content, paints `colors.sheet` itself because nothing else fills the box, and
+ * carries its own centred padding.
  */
 
 /**

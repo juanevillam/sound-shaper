@@ -33,7 +33,6 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   /** Translation key for the bar's title. Required when `titled`. */
   titleKey?: string;
 }> = [
-  { name: 'sound-info', detents: 'fitToContents' },
   /**
    * CONTENT-SIZED, the way Topper's two editors are — measured, not defaulted.
    *
@@ -43,13 +42,26 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    * the note "a large sheet is the iOS idiom for an editor anyway", which is a
    * default rather than a size.
    *
-   * Band-scanned on iPhone 17 / iOS 26.5: the sheet spanned 164 → 874 and the
-   * last ink (Delete Sound's bottom edge) landed at 730, leaving 144pt of empty
-   * sheet. Content is 566pt; 0.8 leaves the home-indicator clearance and a
-   * little air instead.
+   * RE-MEASURED 2026-08-21, when the form lost two of its four fields (Album
+   * and Release Year went with the info sheet — the app does not handle
+   * either). At 0.8 the sheet then spanned 235.67 → 874 against content ending
+   * at 709.33: 164.67pt of empty sheet, which is worse than the 144 that got
+   * the size measured the first time.
    *
-   * Re-measure if the form gains or loses a row — it is four fields, a media
-   * slot and a destructive section today.
+   * Content is 474.00pt from the sheet's own top edge.
+   *
+   * A DETENT FRACTION IS NOT A FRACTION OF THE SCREEN, which is what makes this
+   * worth solving rather than guessing. Two measured points on this device —
+   * 0.8 → 638.33pt tall, 0.6 → 489.00 — give `height ≈ 746.67 × f + 41`, so a
+   * fraction read as "0.6 of 874" overshoots by 35pt and 0.6 landed the
+   * destructive row 15pt off the screen edge, under the home indicator. 0.65
+   * gives 526.3: last ink at 821.7, and what remains below is the 34pt
+   * indicator plus ~18 of air.
+   *
+   * Re-measure again if the form gains or loses a row — it is two fields, a
+   * media slot and a destructive section today. The first measurement is worth
+   * keeping as a worked example: at a flat 0.9 the sheet spanned 164 → 874 with
+   * the last ink at 730.
    *
    * KNOWN, ACCEPTED TRADE — the fractional-detent DIMMING, exactly as Topper's
    * table records it: below the large detent iOS keeps the presenting window
@@ -58,7 +70,7 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    */
   {
     name: 'edit-sound',
-    detents: [0.8],
+    detents: [0.65],
     titled: true,
     titleKey: 'app.soundEdit',
   },

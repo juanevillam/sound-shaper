@@ -15,8 +15,20 @@ import { type PlayerScrubberProps } from './chrome';
 // layout, and a scrubber that jumps is worse than one told its own height.
 const SLIDER_HEIGHT = 32;
 
-// Drop below the elapsed/total row, so the range reads as its own line.
-const CLIP_LABEL_GAP = 8;
+// THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
+// row, which is already there and already the right width.
+//
+// It used to be its own line under that row, appearing only while framing, and
+// entering framing therefore pushed the transport and the footer down by the
+// line plus `CLIP_FRAMING_GAP` — a shift on the exact frame a mode changes,
+// which is the one kind of CLS this player must not have. Reserving the line
+// permanently was the obvious alternative and is worse: it buys the fix with
+// ~25pt of blank on the resting player, and clawing dead space back out of this
+// console is most of why it was rebuilt.
+//
+// The row is 370pt wide against ~30pt of elapsed, ~30 of total and ~75 of
+// range, so the three do not crowd; the range is not muted, because while
+// framing it is the number that matters.
 
 // iOS counterpart of `PlayerScrubber` — SwiftUI's own Slider (so it drags,
 // tracks and feels exactly like the system one) with the elapsed/total labels
@@ -68,16 +80,12 @@ export function PlayerScrubber({
           text={formatTime(totalDuration)}
           variant="labelMedium"
         />
+        {clipLabel ? (
+          <View pointerEvents="none" style={styles.clipLabelSlot}>
+            <Text doNotTranslate text={clipLabel} variant="labelMedium" />
+          </View>
+        ) : null}
       </View>
-      {/* The clip range gets its OWN line under the playhead/total pair, never
-          their baseline: it belongs to the brackets above, not to the track's
-          own readout, and sharing a row made the three read as one crowded
-          strip. */}
-      {clipLabel ? (
-        <View style={styles.clipLabelRow}>
-          <Text doNotTranslate text={clipLabel} variant="labelMedium" />
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -98,9 +106,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
   },
-  clipLabelRow: {
+  clipLabelSlot: {
     alignItems: 'center',
-    paddingTop: CLIP_LABEL_GAP,
-    width: '100%',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
 });

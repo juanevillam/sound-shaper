@@ -9,6 +9,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 
 // The immersive top of the expanded player: the sound's own artwork, blown up
 // and blurred behind everything, fading into the sheet's background so the
@@ -28,6 +29,31 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 const OVERSCAN = 320;
 
 const BACKDROP_BLUR = 60;
+
+/**
+ * THE SOURCE IS FETCHED SMALL, because a 60pt blur makes its resolution
+ * irrelevant — and paying for resolution you then destroy is pure cost.
+ *
+ * This was the raw `artUrl`: a Cloudinary cover is commonly 1500–3000px, and it
+ * was being decoded at that size and blurred across a 402 × 1514pt overscanned
+ * box, every frame the layer composites — which includes the whole expand,
+ * since the wash fades in over it. `ArtImage` already solved exactly this for
+ * its own letterbox blur (`BACKDROP_SOURCE_WIDTH` there is 64); the full-screen
+ * wash simply never adopted it, which is the same term-added-after-the-surface
+ * miss this player kept producing.
+ *
+ * 320 rather than that 64: this one is stretched across the whole screen, not a
+ * tile, so it needs enough gradient structure to land on the same tone.
+ * `thumbUrl` doubles it for density, so the fetch is w_640.
+ *
+ * MEASURED against the full-size source on one unchanged frame (the cover
+ * itself byte-identical, so only the wash could differ): at w_320 the wash
+ * shifted 16.67/255 above the cover and 13.74 in the side gutter — small, but
+ * visible as a flatter tone. At w_640 that falls to 10.94 and 2.59, i.e. the
+ * gutter is within 1%. Still a 5–20x reduction in pixels to decode and blur,
+ * since a stored cover is commonly 1500–3000px.
+ */
+const BACKDROP_SOURCE_WIDTH = 320;
 // Long enough to read as the wash CHANGING rather than being replaced — the
 // whole screen is tinted by it, so a hard cut is the most violent thing in the
 // player. Also covers the gap between a skip's page animation and the store
@@ -55,6 +81,29 @@ type PlayerBackdropProps = {
   artUrl?: string;
 };
 
+/**
+ * Warm the wash's own Cloudinary variant into expo-image's disk cache.
+ *
+ * FETCH EARLY, RENDER LATE — the two halves of "don't pay for the player from
+ * the banner" pull in opposite directions on their own, and this is what lets
+ * both be true. The layer itself is not mounted until the player is actually
+ * on screen (see `playerMounted`), which means the first frame of an expand
+ * would otherwise be a cold network fetch behind a 60pt blur. Prefetching on
+ * the SOUND CHANGE instead moves that cost to a moment with nothing animating,
+ * and costs one small image per sound played — the wash is fetched at w_640,
+ * not at the cover's stored 1500–3000px.
+ *
+ * It is deliberately the same call `<Image>` will make: `thumbUrl` is
+ * deterministic, so the prefetched URL IS the cache key the layer then hits.
+ */
+export const prefetchPlayerBackdrop = (artUrl?: string): void => {
+  if (!artUrl) return;
+  // Fire-and-forget: a failed warm-up just means the layer fetches normally.
+  Image.prefetch(thumbUrl(artUrl, BACKDROP_SOURCE_WIDTH), 'memory-disk').catch(
+    () => {},
+  );
+};
+
 export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
 
@@ -63,7 +112,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
   return (
     <View style={styles.bleed} pointerEvents="none">
       <Image
-        source={{ uri: artUrl }}
+        source={{ uri: thumbUrl(artUrl, BACKDROP_SOURCE_WIDTH) }}
         style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
         contentFit="cover"
         blurRadius={BACKDROP_BLUR}
