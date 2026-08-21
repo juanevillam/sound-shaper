@@ -4,7 +4,6 @@ import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
 import {
   AppIcon,
-  FLOATING_EDGE_GAP,
   FLOATING_RADIUS,
   GlassSurfaceIos,
   SwiftUIHost,
@@ -31,6 +30,7 @@ import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
+import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
   CLIP_FRAMING_GAP,
   HANDLES_REGION_HEIGHT,
@@ -154,8 +154,24 @@ function CollapseGlyph({ color }: { color: string }) {
 /*  The footer                                                                 */
 /* -------------------------------------------------------------------------- */
 
-/** The glass bar's box — one merged capsule, like Home's trailing pill. */
-const GLASS_FOOTER_HEIGHT = 64;
+/**
+ * THE FOOTER IS THE COLLAPSED BANNER'S BOX, EXACTLY — same width, same height,
+ * same corner, same place on the screen.
+ *
+ * It very nearly was already, by accident: both are `SCREEN_PADDING` off each
+ * edge and both take `FLOATING_RADIUS`, so width and corner agreed by
+ * construction — and the two TOP edges happened to land on the same 764,
+ * because `874 − 42 − 68` and `874 − 46 − 64` are two unrelated sums that
+ * coincide. Juan spotted the near-match and asked whether it was deliberate. It
+ * was not, and a coincidence that a change to any of those four numbers would
+ * silently break is not a detail, it is a trap.
+ *
+ * So it is stated instead: the bar takes `MINI_PLAYER_HEIGHT` and the banner's
+ * own bottom clearance, which makes expanding read as the glass bar staying
+ * put while its contents change — the banner's title and transport out, the two
+ * studios in. The same object, in the same place, in both states.
+ */
+const GLASS_FOOTER_HEIGHT = MINI_PLAYER_HEIGHT;
 const GLASS_FOOTER_ICON = 22;
 /**
  * The glyph's host STATES ITS BOX; it never takes `matchContents`.
@@ -369,7 +385,13 @@ export function PlayerConsole({
       <View
         style={[
           styles.body,
-          { paddingBottom: insets.bottom + FLOATING_EDGE_GAP, top: contentTop },
+          {
+            // The BANNER's clearance, not the generic floating gap — see
+            // `GLASS_FOOTER_HEIGHT`. The two bars have to stand on the same
+            // line or none of the rest of it is true.
+            paddingBottom: bannerBottomOffset(insets.bottom),
+            top: contentTop,
+          },
         ]}
       >
         <GestureDetector gesture={titleGesture}>
