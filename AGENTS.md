@@ -104,12 +104,20 @@ iPhone 17 / iOS 26.5 and each now states its own reason in `IOS_FORM_SHEETS`:
   (Topper's follow-list, people, trash, blocked-users). At 0.6 an empty list left
   361pt — three quarters of the sheet — empty. A size that fits an empty list is
   wrong the moment it fills.
-- `edit-sound` **[0.8]** — content-sized. Content is 566pt; 0.9 left 144pt of
-  slack, 0.8 leaves the home-indicator clearance and a little air. Re-measure if
-  the form gains or loses a row.
-- `sound-info`, `trophy-detail` — `fitToContents`, and they must stay RN: a
-  native `Form` is a scroll container with no intrinsic height and renders 0pt
-  tall under that detent.
+- `edit-sound` **[0.65]** — content-sized, and RE-MEASURED when the form lost
+  two of its four fields (below). Content is 474.00pt from the sheet's own top
+  edge; the sheet comes to 526.3, the last ink lands at 821.67 and what remains
+  is the 34pt home indicator plus ~18 of air.
+
+  **A DETENT FRACTION IS NOT A FRACTION OF THE SCREEN.** Reading 0.6 as "0.6 of
+  874" overshoots by 35pt, and it put the destructive row 15pt off the screen
+  edge, under the indicator. Two measured points on this device — 0.8 → 638.33pt
+  tall, 0.6 → 489.00 — give `height ≈ 746.67 × f + 41`. Solve, then verify;
+  don't guess the fraction.
+
+- `trophy-detail` — `fitToContents`, and it must stay RN: a native `Form` is a
+  scroll container with no intrinsic height and renders 0pt tall under that
+  detent. (`sound-info` was the other one, and it is gone — see below.)
 
 **A FULL-HEIGHT LIST SHEET NEEDS A REAL EMPTY STATE.** Clips rendered its empty
 branch as a grouped ROW pinned to the top, which was tolerable at 0.6 and plainly
@@ -173,6 +181,51 @@ in the file's header; the ones worth knowing before touching it:
 - **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
   expand ramp so it exists only on the open console. 0.94 read as a rendering
   wobble, 0.82 opened a gap under the bar row.
+- **FRAMING IS A TRIM FRAME, NOT TWO SWITCHES** (2026-08-21). The iOS trimmer
+  drew a translucent accent box with two 14 × 28 rounded pills floating outside
+  it, each with a white grip bar down its middle — which at this control's real
+  size read as a pair of toggle switches sitting on the scrubber, and Juan
+  called it cheap on sight. Two faults, both structural: there was no FRAME, so
+  two caps with nothing joining them read as two objects; and the white grip is
+  what a SWITCH has. It is two 14 × 32 caps joined by 2pt accent RAILS around a
+  20pt washed box now, and there is no white left in it — so the slider's own
+  thumb stays unambiguously the playhead.
+
+  **THE CAPS OVERHANG THE FRAME on all four sides.** They are what you grab, so
+  they are the part that has to look grabbable; a cap flush with its own frame
+  reads as the frame's edge rather than as a handle. The box is the band's 32
+  less 6 at each end, and the caps take the whole band.
+
+  **NO SCRIM OUTSIDE THE SELECTION.** Photos dims the film either side of a
+  trim, and that was built here, measured (the elapsed track lifted from
+  near-black to (122,122,125) outside the selection) and rejected on sight. The
+  reason it fails is the thing underneath: Photos dims an opaque FILMSTRIP,
+  while this sits on a 5.67pt slider track, so the dimming reads as a mask laid
+  over the player RECOLOURING the track — with a hole in it exactly where the
+  frame is. A trim frame on a slider is already unambiguous without repainting
+  everything it is not. Two sizes were tried before that conclusion (a full 32pt
+  band, which is a pale plate over 26pt of pure artwork wash, and 8pt hugging
+  the track); the size was never the problem.
+
+  **ENTERING FRAMING MOVES NOTHING.** The range readout used to be its own line
+  under the elapsed/total row, appearing only while framing, so the transport
+  and the footer dropped by that line plus `CLIP_FRAMING_GAP` on the exact frame
+  the mode changed. It is absolutely centred INSIDE the elapsed/total row now —
+  a row that already exists and is already the right width — and iOS no longer
+  applies `CLIP_FRAMING_GAP` at all. Reserving the line permanently was the
+  obvious alternative and is worse: it buys the fix with ~25pt of blank on the
+  resting player, and clawing dead space back out of this console is most of why
+  it was rebuilt. Verified by band-scanning a 6-frame burst across the mode
+  change with no interaction — play glyph ink 680.00 → 703.67 and footer top
+  764.00, identical resting and framing, in both appearances.
+
+  **What no restyling can fix is the SCALE.** Rendered at 0:24 – 0:39 on a 3:02
+  track the frame is 30.67pt wide. The mapping is correct (the overlay's origin
+  is the track's, both at the content box's 16pt edge — checked, 48.67 / 369 =
+  24 / 182), but a fifteen-second clip will always be ~30pt of the full track,
+  so fine trimming is not possible here at any styling. The real answer is a
+  dedicated trim track that zooms around the selection; that is a feature, not a
+  repaint, and it is unbuilt.
 
 Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst with no
 interaction: bar glyph ink 79.00, artwork 119.00 (inset 62 + target 43 + gap
@@ -187,8 +240,216 @@ through `sheetCommitBarOptionsIos` (or, for `clips`, their own slots — it
 commits nothing, so its trailing glyph is `plus`, not a ✓). They drew an
 authored header above their Form before, which cannot have genuine Liquid Glass
 and carried the filled-primary-disc ✓ that Topper already rejected.
-`sound-info` stays untitled and stays RN on purpose: a `fitToContents` sheet is
-too short for a bar, and a native `Form` renders 0pt tall inside one.
+There were five, and `sound-info` was the fifth — untitled and RN on purpose,
+because a `fitToContents` sheet is too short for a bar and a native `Form`
+renders 0pt tall inside one. It is deleted; see the header rule below.
+
+**THE EXPANDED PLAYER HAS NO BAR ROW, AND EDIT SITS WITH THE COPY IT EDITS**
+(2026-08-21). Above the artwork there is now the artwork and nothing else.
+
+The row that stood there carried `chevron.down` leading and an overflow `Menu`
+trailing, at the portfolio's 43pt bar target, and Juan removed it: a personal
+player has no bar's worth of work to put in one, the drag already puts the
+player away, and two glyphs floating over the wash were the busiest thing on an
+otherwise calm screen. It also hands **43pt** back to the column below —
+`playerArtTop` clears a 24pt gap instead of `PLAYER_BAR_TARGET + 14` — which is
+where the transport and the footer wanted it.
+
+**EDIT IS THE GLASS BAR'S THIRD COMPARTMENT, and it took two tries.** It was
+first hung beside the copy it edits — a `pencil` trailing the title and artist —
+on the argument that a button should name its OBJECT, unlike the "…" that acts
+on the screen. That reasoning is sound and still is; what it missed is that this
+console's whole case is ONE floating control surface, and a lone glyph in the
+middle of the screen is a second one. Juan called it: in the bar there is less
+floating, so the screen reads cleaner.
+
+**IT IS A LABELLED CARD THAT HUGS ITS CONTENT, AND IT TOOK THREE TRIES.** It
+shipped as a bare `pencil` in a fixed slot, and Juan's objection is the one that
+matters: you cannot tell what it does. A glyph with no word is a guess, and this
+is the one control in the bar whose meaning nothing beside it carries.
+
+**THREE EQUAL CARDS ARE THE OBVIOUS FIX AND THEY DO NOT FIT — measured twice.**
+Ink on iPhone 17 / iOS 26.5: "Shape" 46.33, "Flat · 1×" 50.67, "Clips" 35.67,
+"None" 34.33. Three equal compartments are 123.33 each, and after 32 of padding,
+the 31pt icon host and the 12pt gap that leaves **48.33** of copy — so the
+DEFAULT shape summary truncates. Trimming padding to 12 and the gap to 10 buys
+61.33, which still loses every preset that is not Flat at 1×.
+
+So the compartment is sized to what it HOLDS, which is what a toolbar does, and
+its two pieces are STACKED — the icon in the cards' label band, the word in
+their summary band — so the cell fills the bar's vertical rhythm instead of
+sitting between its two rows.
+
+**IT WAS A ROW FIRST, AND THAT IS THE INSTRUCTIVE FAILURE.** Laid out
+horizontally, its one word landed at 791.67 → 804.33 against the cards' label
+781.33 → 796.67 and summary 804.00 → 815.00. Centred on the two-line block to
+within 0.17pt — mathematically correct, optically homeless: 10.3 below the
+labels, and its baseline exactly where the summaries begin. Juan read it as a
+break in the bar's vertical flow before any of it was measured, and he was
+right. **Centring a one-line cell beside two-line ones is not alignment.**
+
+**THE BANDS ARE SOLVED BACKWARDS FROM THE CARDS, not centred and hoped for.**
+The label band's ink centre is 789.00 and the summary band's is 809.50, in a bar
+whose content starts at 764. The icon's host is 31 and the glyph centres in it,
+so the host's top is 789.00 − 15.5 = **773.50**, i.e. `GLASS_EDIT_ICON_TOP` 9.5
+below the bar's top. The caption is the summaries' own `bodyMedium`, whose 20pt
+line box wants its top at 809.50 − 10 = 799.50 — **5 above** the icon host's
+bottom of 804.50, hence `GLASS_EDIT_CAPTION_LIFT` −5. Rendered: icon ink centre
+789.17 against the label's 789.00, caption centre 809.00 against the summary's
+809.50. A 12pt `caption1` was tried for the word first (the tab-bar treatment)
+and read undersized beside "None" and "1 saved"; matching the band's type fixes
+that and the alignment together.
+
+**THE TRAILING SIDE TAKES `opticalTextInset`; THE LEADING SIDE DOES NOT — so the
+two ends are deliberately UNEQUAL in metric to be equal to the eye.**
+Band-scanned, they were already equal in metric: the leading icon's ink starts
+19.67 inside the bar and the word ended 19.00 from it, 0.67pt apart. Juan still
+read the right as tighter, and both reasons are real. The bar's FIRST ink is a
+sparse glyph at the bar's vertical middle, where the edge is at its full 385.67.
+Its LAST ink is a dense letterform down in the summary band, where the 22pt
+corner has begun pulling in — 385.67 at the word's top, 385.00 at its baseline,
+383.33 eight points lower.
+
+That is precisely the case `opticalTextInset` names ("text set flush to the
+shape's true edge reads as hanging past it even though the two are
+mathematically aligned"), so the word takes the nudge derived from
+`FLOATING_RADIUS` — round(22 × 0.215) = 5 — and the icon, which sits nowhere
+near a corner, does not. Rendered: leading 19.67, trailing 24.00. The cards give
+up 2.5 each for it, leaving a 55.5 copy box against "Flat · 1×"'s 50.67.
+
+**THE WORD IS FULL-STRENGTH, not muted like the summaries it sits beside.** It
+is the cell's LABEL — the only one it has, with the icon as its partner — and a
+muted button label reads as disabled.
+
+**A SUMMARY WAS THE OTHER FIX AND THERE IS NO ROOM FOR ONE.** The compartment
+hugs its content, so every point of summary comes off the two cards: "Details"
+(~44 of ink) drops them to 125.5 and their copy box to 50.5 against
+"Flat · 1×"'s 50.67 — truncating the DEFAULT state. Live text is worse than
+tight: the sound's own name would re-divide the bar on every swipe between
+sounds.
+
+**BODY OVER FOOTNOTE (17 / 13) — THE TWO LINES ANSWER TO DIFFERENT CONSTRAINTS,
+so they do not step together.** All three pairings were rendered on device once
+the bar gained a third cell. Body/Subheadline (17 / 15) read TIGHT — Juan's
+iPhone 15 is 393pt against the simulator's 402, so his content box is 361 and
+each card is ~4.5pt narrower than anything measured here.
+Subheadline/Footnote (15 / 13) fixed the width and read too SMALL. **There is no
+rung between them**: the ladder is Body 17, Subheadline 15, Footnote 13, and
+16 / 14 was already rendered and rejected in this app for being off it (16 is
+`callout`, 14 is nothing).
+
+So the pair SPLITS. The label is short — "Shape" is 46.33 of ink against a copy
+box driven entirely by the summary — so keeping it at Body costs the cards
+nothing and is what gives the cell its presence; the summary is the long string,
+so it takes Footnote and buys the width. Body over Footnote is Apple's own
+list-row pair. The icons stay at 24 with the label they sit beside. Band-scanned
+after: dividers at 147.00 and 278.33, cards 131.00, copy box 56.00, and both
+ends of the bar at 19.67.
+
+**STEPPED, NEVER SCALED.** `bodyLarge`/`bodyMedium`/`bodySmall` are named rungs
+Dynamic Type moves as a unit; deriving a point size from the bar's width ships
+one Apple never draws and breaks the moment somebody raises their text size.
+
+**THE SHAPE SUMMARY STATES WHAT IS NOT DEFAULT, AND NOTHING ELSE.** It used to
+read "Flat · 1×" on a sound nobody had touched — a sentence saying "nothing is
+applied" the long way round — and at 65.33 of copy the two-attribute form
+overran the box ("Bright · 1…", rendered). Apple writes the exception and leaves
+the default silent, so the preset is dropped when it is Flat, the rate when it
+is 1×, the pitch note when pitch is preserved, and an untouched sound reads
+**"None"** — the same word the Clips card uses for the same idea.
+
+**The long form still truncates and that is accepted.** "Bright · 1.5×" needs
+more than 65.33, and a SAVED SHAPE's name is a person's own string of any
+length. Truncation is what `numberOfLines={1}` is for, the label above carries
+the meaning, and the state now occurs only when someone has set BOTH a non-flat
+shape and a non-default speed.
+
+**THE LABEL IS ONE WORD; THE SPOKEN NAME IS NOT.** `player.menu.editShort`
+("Edit") is a card title beside "Shape" and "Clips" and has to read as one of
+them; `player.menu.edit` ("Edit Sound") stays the accessibility label, where the
+extra word is worth having.
+
+**IT TAKES THE CARD SQUASH, because it is a card.** As a lone glyph it needed
+the ICON pair — `usePressSquash()`'s 3% is 4.8pt on a 161pt card and under a
+pixel and a half on a 24pt glyph, so it shipped with what read as NO FEEDBACK AT
+ALL, copied straight from `GlassHalf` beside it. `SquashPressable` names that
+case in its own docstring. With a label beside it the compartment is the same
+object as the two halves and takes their feedback, or one press in the bar would
+dim and shrink while the others barely moved. The icon-pair version was verified
+by bursting screenshots across a 900ms hold: ink 21.67 wide at rest, 18.67
+pressed (0.862 ≈ 0.86), luminance 3.0 → 111.3 (3·0.55 + 242·0.45 = 110.6).
+
+**A POINT SIZE IS A BOX, NOT AN AMOUNT OF INK.** At an identical 24,
+band-scanned: `tune` 23.33 × 19.67 (area 459), `scissors` 30.00 × 22.67 (680),
+`pencil` 18.67 × 18.33 (342). `pencil` is a thin diagonal with generous bearings
+and read visibly smaller than both siblings, which Juan caught by eye. It is
+optically sized to **28** — √(459/342) = 1.158 — landing at 469.6 against
+`tune`'s 458.9, within 2.3%. The scissors are the outlier at the other end;
+matching THOSE would make the pencil the biggest thing in the bar. SF Symbols'
+own guidance allows this.
+
+**It renders through `AppIcon`, like its siblings** — it shipped as a bare
+`Image systemName="pencil"`, the only glyph in the bar outside the portfolio's
+icon set, when `edit` already maps to `pencil` in `SF_SYMBOLS`.
+
+**Every compartment has a divider.** The bar went one divider → none → two: with
+a divider on a 48pt slot it read 161 / 161 / 48, a runt whose separator crowded
+the rounded corner; without one, the last boundary simply went missing. Both
+were called on sight.
+
+**THE CLIPS SUMMARY IS A VALUE, NOT AN EMPTY-STATE TITLE.** It read "No Clips
+Yet" — `player.clips.none`, the clips SHEET's empty title — in a slot whose
+sibling says "2 saved". Under a label reading "Clips" Apple writes one word, the
+way Settings writes "Ringtone: None", and the long string did not fit either:
+79.40pt of ink in an 86pt box. `player.clips.noneSummary` is "None" / "Ninguno"
+/ "无"; the sheet's empty title is untouched.
+
+**INFO had nowhere to go and nothing left to say** — it listed artist, album and
+release year, and the app no longer handles the last two, so what remained was
+the title and artist already set two lines under the cover. The route,
+`SoundInfoSheet`'s iOS presentation and `PlayerMenuButton.ios.tsx` are all gone.
+Android keeps its overflow, its info sheet and its Material bar untouched.
+
+**What it costs is the only dismiss control VoiceOver and Switch Control could
+reach** — this is not a real UIKit sheet, so nothing publishes a dismiss action
+on its behalf. The drag zone above the artwork carries it now as a labelled
+button, and the console answers `onAccessibilityEscape`, which is Apple's own
+two-finger-Z.
+
+**One trap worth keeping from the discarded placement**, because it applies to
+any absolutely-positioned use of it: `GlyphButton` puts the caller's `style` on
+its inner `Pressable` and keeps the squash on an outer `Animated.View`, so an
+absolute style handed to it positions the Pressable inside a wrapper that is
+still an ordinary flex child. The pencil laid out under the copy, beside the
+scrubber. The positioning goes on a WRAPPER.
+
+`PLAYER_BAR_TARGET` (43) went with the row — nothing states it any more, since
+the console's only glyph-only control is now a compartment of the bar and takes
+the bar's geometry rather than a bar item's.
+
+**THE EDITOR IS A TITLE AND A SUBTITLE** (2026-08-21). It carried four fields
+read off the ID3 tag — Title, Artist, Album, Release Year — and the last two are
+gone with the info sheet that displayed them: a library that takes any MP3 holds
+ringtones and voice memos, and asking those for an album is asking a question
+the app has no use for.
+
+"Artist" became "Subtitle" for the same reason "song" became "sound" — the
+second line under a cover is whatever the person wants written there. **The
+stored FIELD stays `artist`**, exactly as the Firestore subcollection stays
+`songs`: nobody reads a wire path, and renaming it would migrate every existing
+document.
+
+`album` and `releaseYear` are **optional** on `createSound`/`updateSound` rather
+than deleted, and the write omits the key entirely when they are undefined —
+so an existing document keeps what it has instead of being cleared, which is
+what "not handled" should mean. `Sound` still READS both; nothing renders them
+on iOS. Delete the params when there is a reason to migrate.
+
+**Android's editor took the same change and is UNVERIFIED** — the feature spans
+both twins and leaving one saying "Artist / Album / Release Year" would be the
+drift this repo hates, but nothing Android is installed or run. Re-check
+`EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
+was deliberately NOT touched: it displays stored data and its screen is frozen.
 
 **Home's iOS header is the SYSTEM large title**, not the shared
 `CollapsingHeaderBar` (Android still uses that). The one thing it costs is

@@ -345,3 +345,45 @@ union (or a `replace` member on `SymbolEffect`). On the day it lands:
 `TransportGlyphs.ios` gains a single `PlayPauseGlyph` holding ONE `Image` whose
 `systemName` is driven by `playing`, carrying the modifier — the two-component
 split exists only because the swap is inert today.
+
+---
+
+## A BUFFERED-AHEAD track on the player's scrubber — blocked on `react-native-audio-api`
+
+**What we want.** Sound Shaper's scrubber should show how much of the sound has
+actually arrived, the way YouTube Music and every streaming player draw a paler
+fill ahead of the playhead. It is the one honest answer to "why is the thumb not
+moving" on a slow connection, and this app streams from a CDN, so the question
+is real.
+
+**It matters because playback here IS chunked**, which surprised nobody more
+than the audit that checked it. `react-native-audio-api`'s `<Audio>` hands the
+raw URL to native and streams by HTTP byte range whenever two conditions hold —
+the build includes FFmpeg (`disableFFmpeg` defaults to false and this app does
+not override it) and the origin advertises ranges. Cloudinary does: probed
+2026-08-21, `accept-ranges: bytes`, and a `Range: bytes=0-0` returns `206`. When
+either condition fails the library silently falls back to
+`response.arrayBuffer()` — the WHOLE file into memory before the first note —
+so this is also the thing that would tell us the fallback had kicked in.
+
+**Why it isn't built.** No accessor. `react-native-audio-api` 0.13.2 exports a
+`TimeRanges` interface from `Audio/types` (`length`, `start(i)`, `end(i)` —
+HTML5's shape exactly) and then never surfaces one:
+`AudioComponentContextType` carries `currentTime`, `duration`, `playbackState`,
+`ready`, `volume`, `muted` and the transport methods, and no `buffered`. Nothing
+in `AudioTagHandle` returns one either. The type is declared and orphaned.
+
+**What unlocks it.** A `buffered: TimeRanges` on `useAudioTagContext()`'s value
+(or on `AudioTagHandle`). On the day it lands, `PlayerScrubberLive` reads it
+beside `position` — it already owns the only subscription to the playhead — and
+the iOS scrubber draws the range under SwiftUI's `Slider` as a second track.
+
+**A second, smaller thing on the same package.** Every remote load runs
+`detectHttpByteRanges` first — a `HEAD`, or a `Range: bytes=0-0` GET where HEAD
+is blocked — before it can decide to stream. It is not cached, so the probe is
+re-paid for the same host on every track, and it sits directly in front of
+time-to-first-sound. The app-side half is already fixed: restarting the loaded
+sound now seeks instead of remounting the element (`restartLoaded` in
+`store/player.ts`), which is what made "previous" pay for a fresh probe on a
+track that was already playing. The rest needs a per-origin memo inside the
+library.
