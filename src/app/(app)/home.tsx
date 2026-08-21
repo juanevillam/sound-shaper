@@ -14,15 +14,14 @@ import {
 import {
   bannerBottomOffset,
   MINI_PLAYER_HEIGHT,
-  PlayerSheet,
-} from '@/components/player/PlayerSheet';
+} from '@/components/player/bannerMetrics';
+import { PlayerSheet } from '@/components/player/PlayerSheet';
 import {
   EditSongSheet,
   type PickedSongFile,
 } from '@/components/songs/EditSongSheet';
 import { AddSongTile, SongTile } from '@/components/songs/SongTile';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
-import { HomeBarGlyphsIos } from '@/components/ui/HomeBarGlyphsIos';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SongTileSkeleton } from '@/components/ui/Skeleton';

@@ -8,13 +8,20 @@ import {
 
 import {
   AccessibilityInfo,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { usePressSquash } from '@portfolio/mobile-ui';
+import { SCREEN_PADDING } from '@portfolio/core';
+import {
+  FLOATING_COPY_GAP,
+  FLOATING_EDGE_GAP,
+  FLOATING_RADIUS,
+  usePressSquash,
+} from '@portfolio/mobile-ui';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -68,8 +75,11 @@ export type TrophyOverlayProps = {
   copy: Record<string, TrophyCopy>;
   colors: TrophyOverlayColors;
   strings: TrophyOverlayStrings;
-  /** Banner corner radius — pass the app's card-container radius so the
-   *  banner reads in family with its cards (defaults to the legacy 18). */
+  /**
+   * Banner corner radius. Defaults to the portfolio's FLOATING corner, which is
+   * what this is — apps stopped passing their CARD radius (`TILE_RADIUS`, 26),
+   * which made this the only floating surface in either app not at 22.
+   */
   radius?: number;
   /**
    * Optional surface layer rendered UNDER the banner content at its measured
@@ -611,7 +621,7 @@ export const TrophyOverlay = ({
   copy,
   colors,
   strings,
-  radius = 18,
+  radius = FLOATING_RADIUS,
   underlay,
   onPress,
   onShow,
@@ -662,7 +672,9 @@ export const TrophyOverlay = ({
 const styles = StyleSheet.create({
   host: {
     left: 0,
-    paddingHorizontal: 12,
+    // iOS: the screen gutter, so this banner hangs off the side edges by what
+    // the now-playing banner and the toast do. Android is frozen at 12.
+    paddingHorizontal: Platform.select({ ios: SCREEN_PADDING, default: 12 }),
     position: 'absolute',
     right: 0,
     top: 0,
@@ -670,9 +682,14 @@ const styles = StyleSheet.create({
   banner: {
     alignItems: 'center',
     flexDirection: 'row',
-    // A little breathing room below the status bar so the banner doesn't hug
-    // the very top edge.
-    marginTop: 18,
+    /**
+     * iOS: the SHARED floating-surface gap, so this banner stands off the top
+     * safe area by exactly what the now-playing banner stands off the bottom
+     * one — same object, opposite ends. Android is frozen and keeps the 18 it
+     * shipped with ("a little breathing room below the status bar", which was
+     * never a measured number).
+     */
+    marginTop: Platform.select({ ios: FLOATING_EDGE_GAP, default: 18 }),
     // NO `overflow: 'hidden'` — it would clip the injected surface's shadow off
     // the box. The one thing that needed clipping (the shine) clips itself, in
     // SVG, against the same radius.
@@ -695,11 +712,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     flex: 1,
-    gap: 14,
+    /**
+     * 12, so the TEXT COLUMN starts where the now-playing banner's does:
+     * 16 + `ICON_SIZE` 40 + 12 = 68, against that banner's 11 + 46 + 11 = 68.
+     * The two floating banners then hang their copy off the same line, which is
+     * the thing a person actually sees — the media in front of it is a glyph in
+     * one and artwork in the other, and those are sized by their own boxes.
+     * It was 14, which landed at 70: two points off by accident.
+     */
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  textColumn: { flex: 1, gap: 1 },
+  // iOS: the shared title→supporting step. Android is frozen at 1.
+  textColumn: {
+    flex: 1,
+    gap: Platform.select({ ios: FLOATING_COPY_GAP, default: 1 }),
+  },
   // iOS TYPE STEPS, not invented sizes — the same correction the snackbar took
   // ("the 14 both platforms shared was Material's body-medium; iOS has no 14pt
   // step at all"). This banner had a 16pt title, and iOS has no 16pt step

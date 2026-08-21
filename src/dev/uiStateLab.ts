@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 
 import { SKELETON_ROWS } from '@/app/(app)/home';
+import {
+  BANNER_BOTTOM_GAP_IOS,
+  MINI_PLAYER_HEIGHT,
+} from '@/components/player/bannerMetrics';
 import { STATE_LAB } from '@/dev/flags';
 
 /**
@@ -24,6 +28,16 @@ import { STATE_LAB } from '@/dev/flags';
  * duplicates a surface's own resting state is noise in the picker.
  */
 export const UI_STATE_LAB = __DEV__ && STATE_LAB;
+
+/**
+ * What floats at the bottom of HOME — the player banner, not a tab bar, so the
+ * dev controls cannot take the shared picker's default clearance. Its own
+ * constants rather than a guessed number: the banner is a detached pill, so
+ * clearing it means its bottom gap plus its height. It lives here rather than
+ * in either bar because BOTH dev controls on this screen stack on it.
+ */
+export const HOME_LAB_BOTTOM_OFFSET =
+  MINI_PLAYER_HEIGHT + BANNER_BOTTOM_GAP_IOS;
 
 /**
  * HOME — the song grid.
