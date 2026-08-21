@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { FLOATING_EDGE_GAP } from '@portfolio/mobile-ui';
+import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@portfolio/mobile-ui';
 
 import { SCREEN_PADDING } from '@/styles/metrics';
 
@@ -16,17 +16,27 @@ import { SCREEN_PADDING } from '@/styles/metrics';
  * and got a PARTIALLY INITIALISED module: the constants read `undefined` and a
  * dev bar positioned at `bottom: NaN` rendered at the top of the screen.
  *
- * Nothing here may import anything but styles. Anything that needs the banner's
- * box imports it from HERE, `PlayerSheet` included.
+ * Nothing here may import anything that could reach back into the player.
+ * Styles and `@portfolio/mobile-ui` are safe — a package never imports an app,
+ * so neither can close the cycle. Anything that needs the banner's box imports
+ * it from HERE, `PlayerSheet` included.
  */
 
 /**
- * CONTENT height of the collapsed banner (consumers add the bottom inset).
- * Everything else about the banner is derived from this and the artwork, so
- * resizing it is a matter of these two numbers — they were scaled together
- * (64/44) to give the whole thing more presence.
+ * The banner's HEIGHT and its iOS bottom gap are the PORTFOLIO'S, not this
+ * app's — `SNACKBAR_BOTTOM_CLEARANCE` in `@portfolio/mobile-ui` is derived from
+ * them, so the toast in EVERY app is positioned by this banner. The package
+ * restated them as `8 + 68` while they lived here, with a comment admitting a
+ * drift would go unnoticed; they moved the day a third surface (the expanded
+ * console's glass footer) needed them too.
+ *
+ * Re-exported under the names this app already uses, so its import paths do not
+ * churn — the shim pattern `SHEET_CONTENT_TOP` and `GROUPED_ROW` both took.
  */
-export const MINI_PLAYER_HEIGHT = 68;
+export {
+  MINI_PLAYER_HEIGHT,
+  NOW_PLAYING_BOTTOM_GAP_IOS as BANNER_BOTTOM_GAP_IOS,
+} from '@portfolio/mobile-ui';
 
 /**
  * Gap from the banner to each screen edge. It is the SCREEN GUTTER, not a
@@ -36,29 +46,6 @@ export const MINI_PLAYER_HEIGHT = 68;
  */
 export const BANNER_SIDE_INSET = SCREEN_PADDING;
 
-/**
- * Clearance UNDER the banner, from the screen's bottom edge — the safe area
- * plus a gap. Apple floats an accessory bar just clear of the home indicator;
- * Material holds a floating surface a full grid step off the navigation bar.
- *
- * REJECTED: ANCHORING IT TO TOPPER'S TAB BAR. The two look like the same
- * problem — a detached surface hanging off the bottom, over content — and the
- * two apps do sit differently: band-scanned on iPhone 17 / iOS 26.5, Topper's
- * bar spans 791.00–852.67 and stops 21.33pt off the screen edge, while this
- * banner spans 759.33–827.67 and stops 46.33pt off it. Aligning their TOPS was
- * tried, and it works as arithmetic — the tops came within 1.33pt.
- *
- * It is the wrong reference all the same, and Juan called it on sight (2026-08-20):
- * a tab bar is TERMINAL chrome that never moves, so iOS can tuck it against the
- * edge and let the home indicator draw over it. This banner is the collapsed
- * state of a surface that EXPANDS TO FULL SCREEN, and a thing that is about to
- * grow needs to read as floating with somewhere to go, not as furniture pinned
- * to the bottom. At the tab bar's placement it sat low enough to look stuck.
- *
- * So the number stays what it was, and the lesson is that "these two are both
- * floating bottom chrome" is a resemblance rather than a shared rule.
- */
-export const BANNER_BOTTOM_GAP_IOS = FLOATING_EDGE_GAP;
 /**
  * ANDROID CLEARS ITS NAVIGATION BAR and must: the inset there is real chrome
  * the system draws opaquely, not an indicator that floats over content.
@@ -71,4 +58,6 @@ const BANNER_BOTTOM_GAP_ANDROID = 16;
  */
 export const bannerBottomOffset = (bottomInset: number) =>
   bottomInset +
-  (Platform.OS === 'ios' ? BANNER_BOTTOM_GAP_IOS : BANNER_BOTTOM_GAP_ANDROID);
+  (Platform.OS === 'ios'
+    ? NOW_PLAYING_BOTTOM_GAP_IOS
+    : BANNER_BOTTOM_GAP_ANDROID);

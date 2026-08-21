@@ -34,6 +34,11 @@ export {
   type MediaPickerAvatarProps,
 } from './MediaPickerAvatar';
 export {
+  MINI_PLAYER_HEIGHT,
+  NOW_PLAYING_BANNER_BOX,
+  NOW_PLAYING_BOTTOM_GAP_IOS,
+} from './nowPlayingBanner';
+export {
   ErrorScreen,
   type ErrorScreenColors,
   type ErrorScreenProps,
