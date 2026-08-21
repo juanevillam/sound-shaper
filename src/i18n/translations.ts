@@ -72,6 +72,7 @@ export const translations = {
       shape: {
         title: 'Shape',
         custom: 'Custom',
+        none: 'None',
         pitchOff: 'pitch off',
       },
       shapes: {
@@ -86,6 +87,11 @@ export const translations = {
         label: 'Sound Options',
         info: 'Get Info',
         edit: 'Edit Sound',
+        // THE BAR'S LABEL, one word. `edit` above is the full phrase and stays
+        // the compartment's accessibility label, where the extra word is worth
+        // having; on the bar it is a card title beside "Shape" and "Clips" and
+        // has to read as one of them.
+        editShort: 'Edit',
       },
       info: {
         artist: 'Artist',
@@ -114,6 +120,12 @@ export const translations = {
         saveClip: 'Save',
         empty: 'Frame your favorite part above and save it.',
         none: 'No Clips Yet',
+        // THE BAR'S SUMMARY, not the sheet's empty title. `none` above is an
+        // empty-STATE title and was being used as a VALUE under the label
+        // "Clips", where Apple writes one word — Settings says "Ringtone:
+        // None". It also did not fit: 79.4pt of ink in an 86pt box, which
+        // crowded the bar's trailing glyph.
+        noneSummary: 'None',
         count: '{n} saved',
         delete: 'Delete Clip',
       },
@@ -124,18 +136,9 @@ export const translations = {
         placeholder: 'Nightcall',
         error: 'Use at least 2 characters.',
       },
-      artist: {
-        label: 'Artist (Optional)',
+      subtitle: {
+        label: 'Subtitle (Optional)',
         placeholder: 'Kavinsky',
-      },
-      album: {
-        label: 'Album (Optional)',
-        placeholder: 'OutRun',
-      },
-      year: {
-        label: 'Release Year (Optional)',
-        placeholder: '2010',
-        error: 'Enter a valid year.',
       },
       art: {
         add: 'Add Artwork',
@@ -351,6 +354,7 @@ export const translations = {
       shape: {
         title: 'Moldear',
         custom: 'Personalizado',
+        none: 'Ninguno',
         pitchOff: 'tono libre',
       },
       shapes: {
@@ -365,6 +369,7 @@ export const translations = {
         label: 'Opciones del sonido',
         info: 'Obtener información',
         edit: 'Editar sonido',
+        editShort: 'Editar',
       },
       info: {
         artist: 'Artista',
@@ -393,6 +398,7 @@ export const translations = {
         saveClip: 'Guardar',
         empty: 'Encuadra tu parte favorita arriba y guárdala.',
         none: 'Aún no hay clips',
+        noneSummary: 'Ninguno',
         count: '{n} guardados',
         delete: 'Eliminar clip',
       },
@@ -403,18 +409,9 @@ export const translations = {
         placeholder: 'Nightcall',
         error: 'Usa al menos 2 caracteres.',
       },
-      artist: {
-        label: 'Artista (opcional)',
+      subtitle: {
+        label: 'Subtítulo (opcional)',
         placeholder: 'Kavinsky',
-      },
-      album: {
-        label: 'Álbum (opcional)',
-        placeholder: 'OutRun',
-      },
-      year: {
-        label: 'Año de lanzamiento (opcional)',
-        placeholder: '2010',
-        error: 'Introduce un año válido.',
       },
       art: {
         add: 'Añadir ilustración',
@@ -630,6 +627,7 @@ export const translations = {
       shape: {
         title: '塑形',
         custom: '自定',
+        none: '无',
         pitchOff: '不保持音高',
       },
       shapes: {
@@ -644,6 +642,7 @@ export const translations = {
         label: '音频选项',
         info: '显示简介',
         edit: '编辑音频',
+        editShort: '编辑',
       },
       info: {
         artist: '艺人',
@@ -672,6 +671,7 @@ export const translations = {
         saveClip: '存储',
         empty: '在上方框选你最喜欢的部分并存储。',
         none: '还没有片段',
+        noneSummary: '无',
         count: '已存储 {n} 个',
         delete: '删除片段',
       },
@@ -682,18 +682,9 @@ export const translations = {
         placeholder: 'Nightcall',
         error: '请至少输入 2 个字符。',
       },
-      artist: {
-        label: '艺人（可选）',
+      subtitle: {
+        label: '副标题（可选）',
         placeholder: 'Kavinsky',
-      },
-      album: {
-        label: '专辑（可选）',
-        placeholder: 'OutRun',
-      },
-      year: {
-        label: '发行年份（可选）',
-        placeholder: '2010',
-        error: '请输入有效的年份。',
       },
       art: {
         add: '添加插图',
