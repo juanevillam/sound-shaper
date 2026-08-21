@@ -31,6 +31,7 @@ import {
   FLOATING_RADIUS,
   GlassSurfaceIos,
 } from './GlassSurfaceIos';
+import { NOW_PLAYING_BANNER_BOX } from './nowPlayingBanner';
 import { SnackbarContext, type SnackbarAction } from './snackbar';
 import { PRESSED_OPACITY } from './SquashPressable';
 
@@ -58,17 +59,19 @@ type SnackbarProviderProps = {
  * every app for a reason nobody using one app can see.
  *
  * So it is one place everywhere, and the number is the tallest bottom chrome in
- * the portfolio clearing itself: Sound Shaper's now-playing banner is
- * `FLOATING_EDGE_GAP` off the safe area plus `MINI_PLAYER_HEIGHT` (68) tall,
- * and the toast clears that by `FLOATING_EDGE_GAP` again. Topper's tab bar is
- * shorter, so its toast simply carries more air — the same surface in the same
- * spot, which is the point.
+ * the portfolio clearing itself. Topper's tab bar is shorter, so its toast
+ * simply carries more air — the same surface in the same spot, which is the
+ * point.
  *
- * If the now-playing banner's box ever changes, this is the number that moves
- * with it; the app cannot tell the package, so the check is manual.
+ * IT USED TO BE THE ONE MANUAL LINK IN THIS FAMILY — the banner's box restated
+ * here as `8 + 68`, with a comment admitting that if either number moved in
+ * Sound Shaper, nothing would tell you. It is not restated any more: the box
+ * lives in `nowPlayingBanner` and the app re-exports it, so the three surfaces
+ * that depend on it (the banner, the expanded console's glass footer, and this
+ * toast) all read the same term.
  */
 export const SNACKBAR_BOTTOM_CLEARANCE =
-  FLOATING_EDGE_GAP + 68 + FLOATING_EDGE_GAP;
+  NOW_PLAYING_BANNER_BOX + FLOATING_EDGE_GAP;
 
 const AUTO_DISMISS_MS = 4000;
 
