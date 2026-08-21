@@ -7,7 +7,12 @@ import {
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
 import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
-import { HeaderGlyphButtonIos, SheetFormBodyIos } from '@portfolio/mobile-ui';
+import {
+  EmptyState,
+  HeaderGlyphButtonIos,
+  SheetFormBodyIos,
+  StateWrapIos as StateWrap,
+} from '@portfolio/mobile-ui';
 import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
@@ -84,14 +89,33 @@ function ClipsSheetScreen() {
           ),
         }}
       />
-      <SheetFormBodyIos>
-        {clips.length === 0 ? (
-          <Section>
-            <SwiftUIText modifiers={[foregroundStyle(colors.onSurfaceMuted)]}>
-              {t('player.clips.empty')}
-            </SwiftUIText>
-          </Section>
-        ) : (
+      {/**
+       * THE EMPTY BRANCH REPLACES THE FORM, it does not sit inside one —
+       * Topper's `trash` pattern, and what makes a full-height list sheet read
+       * as a screen rather than as emptiness.
+       *
+       * It was a grouped ROW holding one instructional line, pinned to the top.
+       * That was tolerable while the sheet was 0.6 of the screen and plainly
+       * wrong once it went to [1]: the surface grew and the empty branch did
+       * not, so a stray row sat above 600pt of nothing. `EmptyState` is the
+       * portfolio's answer and has fourteen call sites; this was not one of
+       * them — the same term-added-after-the-surface miss the player kept
+       * producing.
+       *
+       * IT MUST SIT OUTSIDE `SheetFormBodyIos`. Placed inside, the Form wraps
+       * it in a section row and it renders as an empty white capsule with the
+       * glyph clipped — built that way first and caught on screen.
+       */}
+      {clips.length === 0 ? (
+        <StateWrap>
+          <EmptyState
+            systemImage="scissors"
+            title={t('player.clips.none')}
+            subtitle={t('player.clips.empty')}
+          />
+        </StateWrap>
+      ) : (
+        <SheetFormBodyIos>
           <Section>
             {clips.map(clip => {
               const isActive = activeClip?.clipId === clip.id;
@@ -136,8 +160,8 @@ function ClipsSheetScreen() {
               );
             })}
           </Section>
-        )}
-      </SheetFormBodyIos>
+        </SheetFormBodyIos>
+      )}
     </SheetScreen>
   );
 }
