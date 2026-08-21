@@ -212,18 +212,21 @@ export const playerArtSize = (winW: number): number =>
 /**
  * Where the artwork's top edge sits, below the screen's top inset.
  *
- * iOS clears the GRABBER rather than a header row: the console has no top bar
- * — the overflow moved to the title, where the thing it acts on is — so the
- * only chrome above the artwork is the sheet grabber, and this is the gap
- * under it.
+ * iOS clears a BAR ROW — one glyph on each side, at the portfolio's 43pt bar
+ * target. It briefly cleared a sheet grabber instead, and Juan rejected that on
+ * sight for the right reason: this surface has a bottom sheet's dismiss GESTURE
+ * but is not a sheet, and a grabber is UIKit's promise that it is one.
+ *
+ * The gap under the row is deliberately tighter than the row's own height —
+ * the glyphs' targets are 43 but their ink is 20, so the optical gap to the
+ * cover is the 14 below PLUS the target's own bottom padding.
  */
-export const PLAYER_GRABBER_HEIGHT = 5;
-const IOS_GRABBER_TOP = 8;
-const IOS_ART_TOP_GAP = 20;
+export const PLAYER_BAR_TARGET = 43;
+const IOS_ART_TOP_GAP = 14;
 
 export const playerArtTop = (topInset: number): number =>
   Platform.OS === 'ios'
-    ? topInset + IOS_GRABBER_TOP + PLAYER_GRABBER_HEIGHT + IOS_ART_TOP_GAP
+    ? topInset + PLAYER_BAR_TARGET + IOS_ART_TOP_GAP
     : topInset + 60;
 
 /** The gap between the artwork's bottom edge and the console's first line. */
