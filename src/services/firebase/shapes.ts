@@ -66,7 +66,7 @@ const shapeToModel = (snapshot: QueryDocumentSnapshot): Shape => {
     createdAt: createdAt ? createdAt.toMillis() : null,
     gains: (data.gains as number[]) ?? [],
     id: snapshot.id,
-    keepPitch: (data.keepPitch as boolean) ?? true,
+    keepPitch: (data.keepPitch as boolean) ?? false,
     name: (data.name as string) ?? '',
     rate: (data.rate as number) ?? 1,
   };
