@@ -19,12 +19,10 @@ export const EQ_PRESETS: { i18nKey: string; gains: number[] }[] = [
 
 type ShaperState = {
   gains: number[]; // per-band, dB
-  preamp: number; // dB
   activePreset: string | null; // i18nKey while gains match a preset, else null
   /** Id of the user's saved shape currently applied, if any. */
   activeShapeId: string | null;
   setBandGain: (index: number, db: number) => void;
-  setPreamp: (db: number) => void;
   applyPreset: (i18nKey: string) => void;
   /** Apply one of the user's saved shapes (its EQ curve). */
   applyShape: (shapeId: string, gains: number[]) => void;
@@ -40,7 +38,6 @@ const matchPreset = (gains: number[]): string | null =>
 
 export const useShaperStore = create<ShaperState>()((set, get) => ({
   gains: flat(),
-  preamp: 0,
   activePreset: 'flat',
   activeShapeId: null,
 
@@ -52,34 +49,26 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     audioEngine.setBandGain(index, db);
   },
 
-  setPreamp: db => {
-    set({ preamp: db });
-    audioEngine.setPreamp(db);
-  },
-
   applyPreset: i18nKey => {
     const preset = EQ_PRESETS.find(entry => entry.i18nKey === i18nKey);
     if (!preset) return;
     const gains = [...preset.gains];
     set({ gains, activePreset: i18nKey, activeShapeId: null });
-    audioEngine.apply(gains, get().preamp);
+    audioEngine.apply(gains);
   },
 
   applyShape: (shapeId, shapeGains) => {
     // A saved curve may predate a band change — pad/trim to today's bands.
     const gains = EQ_BANDS.map((_, index) => shapeGains[index] ?? 0);
     set({ gains, activePreset: matchPreset(gains), activeShapeId: shapeId });
-    audioEngine.apply(gains, get().preamp);
+    audioEngine.apply(gains);
   },
 
   reset: () => {
     const gains = flat();
-    set({ gains, preamp: 0, activePreset: 'flat', activeShapeId: null });
-    audioEngine.apply(gains, 0);
+    set({ gains, activePreset: 'flat', activeShapeId: null });
+    audioEngine.apply(gains);
   },
 
-  isFlat: () => {
-    const { gains, preamp } = get();
-    return preamp === 0 && gains.every(db => db === 0);
-  },
+  isFlat: () => get().gains.every(db => db === 0),
 }));
