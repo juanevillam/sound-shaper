@@ -401,12 +401,16 @@ iPhone the same day**, across several tracks, several presets and the whole
 0.5–1.5× range — the listening test is what actually closes this, the numbers
 below only found it. The two workarounds retired with it: `keepPitch` defaults
 to **on** again, and the shape summary's pitch chip inverted back to
-"pitch off". What remains upstream-bound
-is getting the fix (or any music-grade path) into the library so the patch can
-be deleted: the issue text is ready in
-[`upstream-issue-wsola-draft.md`](upstream-issue-wsola-draft.md) and needs
-filing (no GitHub credential on this machine). Checked before patching:
-0.13.3 and the 2026-08-22 nightly both still carry the identical stretcher.
+"pitch off". Checked before patching: 0.13.3 and the 2026-08-22 nightly both
+still carry the identical stretcher.
+
+**NOTHING IS BEING FILED UPSTREAM, AND THAT IS A DECISION, NOT AN OMISSION**
+(Juan, 2026-08-22). An issue was drafted and deleted unfiled: the patch already
+solves our problem, and carrying a report — answering maintainers, re-running
+repros against their branches — is work this repo is not taking on. So this
+entry stays only as the RECORD: why the patch exists, what was measured, and
+when it can go. Do not re-draft it; if a future session wants the argument,
+everything needed is below.
 
 **What was established, so nobody re-litigates it.** The library time-stretches
 with its own WSOLA (`common/cpp/audioapi/dsp/WsolaTimeStretcher.h`, 0.13.2:
@@ -427,5 +431,8 @@ measures 32/32 clicks at both rates, ≤0.02 ms timing error, echo floor
 transition latency vs WSOLA's ~30 (irrelevant during continuous playback).
 
 **On a version bump** `scripts/apply-patches.mjs` fails the install until the
-overlay is re-verified — and if upstream ever ships a music-grade stretcher,
-the right move is deleting `patches/react-native-audio-api/`, not rebasing it.
+overlay is re-verified — and since nobody upstream has been told, assume the
+WSOLA is still there and check: diff the new version's
+`WsolaTimeStretcher.{h,cpp}` against 0.13.2's. If it has grown a music-grade
+path on its own, the right move is deleting `patches/react-native-audio-api/`,
+not rebasing it.

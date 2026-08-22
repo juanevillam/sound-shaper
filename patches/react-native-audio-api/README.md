@@ -30,8 +30,9 @@ made every variant worse or equal: doubling/dropping transients is what WSOLA
 _is_ when the rate moves away from 1. Hence the algorithm swap, not a tuning.
 
 Full brief and history: `docs/pending-upstream.md` § "Preserve Pitch that
-doesn't sound grainy". The upstream issue (with repro) is drafted in
-`docs/upstream-issue-wsola-draft.md`, awaiting filing.
+doesn't sound grainy". **Nothing was filed upstream and nothing should be** —
+that is a deliberate call (2026-08-22), not a to-do; the reasoning is in that
+entry.
 
 ## What changed
 

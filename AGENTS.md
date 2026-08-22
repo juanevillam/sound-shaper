@@ -470,15 +470,15 @@ or dropped transients), so **`patches/react-native-audio-api/` replaces the
 stretcher's internals with a phase vocoder** (vendored Signalsmith Stretch,
 same class, same API — read that README before touching it, and
 [`../../docs/pending-upstream.md`](../../docs/pending-upstream.md) for the
-measurements and the upstream issue). The patch is applied by the root
+measurements). The patch is applied by the root
 postinstall (`scripts/apply-patches.mjs`), so it survives `npm ci` and
 `prebuild --clean`; it is C++ in the pod, so changing it needs a native
 rebuild, not a Metro reload. If the patch is ever retired without an upstream
 fix, the off default and the inverted chip come back with it.
 
 **IT WAS SIGNED OFF ON HARDWARE, NOT ON THE NUMBERS.** The click-train
-measurements are what proved WSOLA unfixable and what the upstream issue
-carries, but they could only ever say "the transients are where they belong" —
+measurements are what proved WSOLA unfixable, but they could only ever say
+"the transients are where they belong" —
 whether music SOUNDS right is a listening test, and this one passed on a real
 iPhone (2026-08-22, several tracks × several presets × the full 0.5–1.5×
 range). Keep that order for any future DSP change here: measure to find the
