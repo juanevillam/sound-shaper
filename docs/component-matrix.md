@@ -5,14 +5,20 @@ Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
-**Source of truth:** the installed `@expo/ui` **57.0.3** type exports —
-`node_modules/@expo/ui/build/jetpack-compose/` and `.../swift-ui/` — _not_ the
-published docs (per [`apps/expo-ui-starter/AGENTS.md`](../apps/expo-ui-starter/AGENTS.md),
-docs can lead the package). The Android column lists what the expo-ui-starter
-showcase actually demos today; the iOS SwiftUI showcase code exists but is
-device-unverified, so the iOS column is still the **target** mapping. The 57
-bump added `LoadingIndicator` (showcased) and changed no other
-showcase-relevant export surface.
+**Source of truth:** the installed `@expo/ui` **57.0.7** type exports — read the
+`index.d.ts` re-exports, NOT the build directory's file names: `BasicTextField`
+and `OutlinedTextField` ship out of `TextField`, and the two segmented rows out
+of `SegmentedButton`, so a listing of files under-reports and over-reports at
+once. `node_modules/@expo/ui/build/jetpack-compose/index.d.ts` and
+`.../swift-ui/index.d.ts` — _not_ the published docs (per
+[`apps/expo-ui-starter/AGENTS.md`](../apps/expo-ui-starter/AGENTS.md), docs can
+lead the package).
+
+The Android column lists what the expo-ui-starter showcase actually demos today.
+The iOS column was authored as a **target** mapping from types and docs, and its
+showcase has since been **simulator-verified** (2026-07-31, iPhone 17 / iOS 26.5,
+all 47 components; the library-level Toggle tap bug is the one exception).
+Physical-device verification is still pending.
 
 ## Legend
 
@@ -27,72 +33,77 @@ showcase-relevant export surface.
 
 | Status                               | Count       | Share    |
 | ------------------------------------ | ----------- | -------- |
-| ✅ direct                            | 14          | 29%      |
-| 🟢 equivalent                        | 15          | 31%      |
+| ✅ direct                            | 15          | 27%      |
+| 🟢 equivalent                        | 19          | 35%      |
 | 🟡 partial                           | 1           | 2%       |
-| 🔴 none                              | 19          | 39%      |
-| **Portable (direct + equivalent)**   | **29 / 49** | **~59%** |
-| **Custom iOS work (partial + none)** | **20 / 49** | **~41%** |
+| 🔴 none                              | 20          | 36%      |
+| **Portable (direct + equivalent)**   | **34 / 55** | **~62%** |
+| **Custom iOS work (partial + none)** | **21 / 55** | **~38%** |
 
-About **59%** of the Android showcase maps onto a SwiftUI export with little to no
-rework. The other **~41%** is Material-specific (chips, badges, cards, FAB,
+About **62%** of the Android showcase maps onto a SwiftUI export with little to no
+rework. The other **~38%** is Material-specific (chips, badges, cards, FAB,
 snackbar, tooltips, search bars, pull-to-refresh, radio/checkbox, etc.) and needs
 a custom SwiftUI implementation.
 
 ## Matrix
 
-| Component                   | Android (`jetpack-compose`) | iOS (`swift-ui`)     | iOS | Porting note                                                                 |
-| --------------------------- | --------------------------- | -------------------- | :-: | ---------------------------------------------------------------------------- |
-| Alert dialog                | `AlertDialog`               | `Alert`              | 🟢  | Both modal title/message/actions; `isPresented` vs callback pattern differs. |
-| Badge                       | `Badge`                     | —                    | 🔴  | Material pill badge; build with `Label` or a custom overlay shape.           |
-| Badged box                  | `BadgedBox`                 | —                    | 🔴  | Overlay-badge primitive; build with `ZStack` + badge overlay.                |
-| Basic alert dialog          | `BasicAlertDialog`          | `ConfirmationDialog` | 🟢  | `ConfirmationDialog` covers basic modal confirmation.                        |
-| Basic text field            | `BasicTextField`            | `TextField`          | ✅  | Bare, unstyled text input; iOS `TextField` is the closest primitive.         |
-| Box                         | `Box`                       | `Group`              | 🟢  | Lightweight layout/grouping container on both.                               |
-| Button                      | `Button`                    | `Button`             | ✅  | Same role/API: label + action + appearance modifiers.                        |
-| Card                        | `Card`                      | —                    | 🔴  | No iOS `Card`; `Group` + `shadow`/`cornerRadius`/`background` modifiers.     |
-| Carousel                    | `Carousel`                  | —                    | 🔴  | No iOS carousel; `TabView` page style or custom horizontal scroll.           |
-| Checkbox                    | `Checkbox`                  | —                    | 🔴  | No iOS checkbox; `Toggle` or a custom control.                               |
-| Chip                        | `Chip`                      | —                    | 🔴  | No iOS chip; styled `Button` or `Label`.                                     |
-| Column                      | `Column`                    | `VStack`             | ✅  | Vertical stack on both.                                                      |
-| Date/time picker            | `DatePicker`                | `DatePicker`         | ✅  | Both export `DatePicker`.                                                    |
-| Divider                     | `Divider`                   | `Divider`            | ✅  | Same purpose/API.                                                            |
-| Docked search bar           | `DockedSearchBar`           | —                    | 🔴  | No iOS search bar; `TextField` + custom layout.                              |
-| Dropdown menu               | `DropdownMenu`              | `Menu`               | 🟢  | `Menu` presents a selection menu on tap.                                     |
-| Exposed dropdown menu box   | `ExposedDropdownMenuBox`    | `Picker`             | 🟢  | `Picker` handles the field + selection.                                      |
-| Floating action button      | `FloatingActionButton`      | —                    | 🔴  | No iOS FAB; positioned `Button` via overlay.                                 |
-| Flow row                    | `FlowRow`                   | —                    | 🔴  | No iOS wrapping row; `Grid` or custom arrangement.                           |
-| Horizontal floating toolbar | `HorizontalFloatingToolbar` | —                    | 🔴  | Material 3 toolbar; custom floating `HStack` + overlay.                      |
-| Horizontal pager            | `HorizontalPager`           | `TabView`            | 🟢  | `TabView` page style for horizontal paging.                                  |
-| Host                        | `Host`                      | `Host`               | ✅  | Embed point for expo-ui views; both platforms.                               |
-| Icon                        | `Icon`                      | `Image`              | 🟢  | Android Material icons; iOS `Image` (SF Symbols / assets).                   |
-| Icon button                 | `IconButton`                | —                    | 🔴  | No iOS icon-button; `Button` with image content.                             |
-| Lazy column                 | `LazyColumn`                | `List`               | 🟢  | `List` gives virtualized vertical rendering.                                 |
-| Lazy row                    | `LazyRow`                   | `LazyHStack`         | ✅  | Lazy horizontal stack on both.                                               |
-| List item                   | `ListItem`                  | —                    | 🔴  | No iOS `ListItem`; `HStack` + `Label`/`Text`.                                |
-| Loading indicator           | `LoadingIndicator`          | `ProgressView`       | 🟢  | New in 57 — M3 morphing-shape loader; iOS spinner via `ProgressView`.        |
-| Material colors             | `getMaterialColors`         | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                |
-| Modal bottom sheet          | `ModalBottomSheet`          | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                  |
-| Modifiers                   | `…/modifiers`               | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                    |
-| Navigation bar              | `NavigationBar`             | `TabView`            | 🟢  | M3 bottom nav bar; iOS `TabView` fills the tab-bar role.                     |
-| Progress                    | `Progress`                  | `ProgressView`       | 🟢  | Both show progress; APIs differ.                                             |
-| Pull-to-refresh box         | `PullToRefreshBox`          | —                    | 🔴  | No iOS export; scroll view + custom refresh.                                 |
-| Radio button                | `RadioButton`               | —                    | 🔴  | No iOS radio; `Picker` or custom toggle group.                               |
-| RN host view                | `RNHostView`                | `RNHostView`         | ✅  | Embed RN inside expo-ui; both platforms.                                     |
-| Row                         | `Row`                       | `HStack`             | ✅  | Horizontal stack on both.                                                    |
-| Search bar                  | `SearchBar`                 | —                    | 🔴  | No iOS search bar; `TextField` + styling.                                    |
-| Segmented button            | `SegmentedButton`           | `Picker`             | 🟢  | `Picker` with segmented style.                                               |
-| Shape                       | `Shape`                     | `Shapes`             | 🟡  | iOS `Shapes` is limited (`ConcentricRectangle`); use shape modifiers.        |
-| Slider                      | `Slider`                    | `Slider`             | ✅  | Same role/API.                                                               |
-| Snackbar                    | `Snackbar`                  | —                    | 🔴  | No iOS snackbar; custom overlay + animation.                                 |
-| Spacer                      | `Spacer`                    | `Spacer`             | ✅  | Flexible spacing on both.                                                    |
-| Surface                     | `Surface`                   | `Group`              | 🟢  | `Surface` adds Material elevation; `Group` is lighter.                       |
-| Switch                      | `Switch`                    | `Toggle`             | 🟢  | On/off state; different native look.                                         |
-| Text                        | `Text`                      | `Text`               | ✅  | Same role/API.                                                               |
-| Text field                  | `TextField`                 | `TextField`          | ✅  | Text input on both.                                                          |
-| Toggle button               | `ToggleButton`              | —                    | 🔴  | No iOS toggle-button; `Button` with custom state.                            |
-| Tooltip                     | `Tooltip`                   | —                    | 🔴  | No iOS tooltip; custom overlay or `Popover`.                                 |
-| Use native state            | `useNativeState`            | `useNativeState`     | ✅  | Cross-platform hook to sync state with the native view.                      |
+| Component                   | Android (`jetpack-compose`)      | iOS (`swift-ui`)     | iOS | Porting note                                                                    |
+| --------------------------- | -------------------------------- | -------------------- | :-: | ------------------------------------------------------------------------------- |
+| Alert dialog                | `AlertDialog`                    | `Alert`              | 🟢  | Both modal title/message/actions; `isPresented` vs callback pattern differs.    |
+| Animated visibility         | `AnimatedVisibility`             | `withAnimation`      | 🟢  | Compose animates a child in/out; SwiftUI drives the same from the transaction.  |
+| Badge                       | `Badge`                          | —                    | 🔴  | Material pill badge; build with `Label` or a custom overlay shape.              |
+| Badged box                  | `BadgedBox`                      | —                    | 🔴  | Overlay-badge primitive; build with `ZStack` + badge overlay.                   |
+| Basic alert dialog          | `BasicAlertDialog`               | `ConfirmationDialog` | 🟢  | `ConfirmationDialog` covers basic modal confirmation.                           |
+| Basic text field            | `BasicTextField`                 | `TextField`          | ✅  | Bare, unstyled text input; iOS `TextField` is the closest primitive.            |
+| Box                         | `Box`                            | `Group`              | 🟢  | Lightweight layout/grouping container on both.                                  |
+| Button                      | `Button`                         | `Button`             | ✅  | Same role/API: label + action + appearance modifiers.                           |
+| Card                        | `Card`                           | —                    | 🔴  | No iOS `Card`; `Group` + `shadow`/`cornerRadius`/`background` modifiers.        |
+| Carousel                    | `Carousel`                       | —                    | 🔴  | No iOS carousel; `TabView` page style or custom horizontal scroll.              |
+| Checkbox                    | `Checkbox`                       | —                    | 🔴  | No iOS checkbox; `Toggle` or a custom control.                                  |
+| Chip                        | `Chip`                           | —                    | 🔴  | No iOS chip; styled `Button` or `Label`.                                        |
+| Column                      | `Column`                         | `VStack`             | ✅  | Vertical stack on both.                                                         |
+| Date/time picker            | `DatePicker`                     | `DatePicker`         | ✅  | Both export `DatePicker`.                                                       |
+| Divider                     | `Divider`                        | `Divider`            | ✅  | Same purpose/API.                                                               |
+| Docked search bar           | `DockedSearchBar`                | —                    | 🔴  | No iOS search bar; `TextField` + custom layout.                                 |
+| Dropdown menu               | `DropdownMenu`                   | `Menu`               | 🟢  | `Menu` presents a selection menu on tap.                                        |
+| Exposed dropdown menu box   | `ExposedDropdownMenuBox`         | `Picker`             | 🟢  | `Picker` handles the field + selection.                                         |
+| Floating action button      | `FloatingActionButton`           | —                    | 🔴  | No iOS FAB; positioned `Button` via overlay.                                    |
+| Flow row                    | `FlowRow`                        | —                    | 🔴  | No iOS wrapping row; `Grid` or custom arrangement.                              |
+| Horizontal floating toolbar | `HorizontalFloatingToolbar`      | —                    | 🔴  | Material 3 toolbar; custom floating `HStack` + overlay.                         |
+| Horizontal pager            | `HorizontalPager`                | `TabView`            | 🟢  | `TabView` page style for horizontal paging.                                     |
+| Host                        | `Host`                           | `Host`               | ✅  | Embed point for expo-ui views; both platforms.                                  |
+| Icon                        | `Icon`                           | `Image`              | 🟢  | Android Material icons; iOS `Image` (SF Symbols / assets).                      |
+| Icon button                 | `IconButton`                     | —                    | 🔴  | No iOS icon-button; `Button` with image content.                                |
+| Lazy column                 | `LazyColumn`                     | `List`               | 🟢  | `List` gives virtualized vertical rendering.                                    |
+| Lazy row                    | `LazyRow`                        | `LazyHStack`         | ✅  | Lazy horizontal stack on both.                                                  |
+| List item                   | `ListItem`                       | —                    | 🔴  | No iOS `ListItem`; `HStack` + `Label`/`Text`.                                   |
+| Loading indicator           | `LoadingIndicator`               | `ProgressView`       | 🟢  | New in 57 — M3 morphing-shape loader; iOS spinner via `ProgressView`.           |
+| Material colors             | `getMaterialColors`              | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                   |
+| Modal bottom sheet          | `ModalBottomSheet`               | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                     |
+| Modifiers                   | `…/modifiers`                    | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                       |
+| Navigation bar              | `NavigationBar`                  | `TabView`            | 🟢  | M3 bottom nav bar; iOS `TabView` fills the tab-bar role.                        |
+| Progress                    | `Progress`                       | `ProgressView`       | 🟢  | Both show progress; APIs differ.                                                |
+| Pull-to-refresh box         | `PullToRefreshBox`               | —                    | 🔴  | No iOS export; scroll view + custom refresh.                                    |
+| Radio button                | `RadioButton`                    | —                    | 🔴  | No iOS radio; `Picker` or custom toggle group.                                  |
+| RN host view                | `RNHostView`                     | `RNHostView`         | ✅  | Embed RN inside expo-ui; both platforms.                                        |
+| Row                         | `Row`                            | `HStack`             | ✅  | Horizontal stack on both.                                                       |
+| Search bar                  | `SearchBar`                      | —                    | 🔴  | No iOS search bar; `TextField` + styling.                                       |
+| Segmented button            | `SegmentedButton`                | `Picker`             | 🟢  | `Picker` with segmented style.                                                  |
+| Segmented row, single       | `SingleChoiceSegmentedButtonRow` | `Picker`             | 🟢  | The container Compose needs; `Picker` IS the container on iOS.                  |
+| Segmented row, multi        | `MultiChoiceSegmentedButtonRow`  | —                    | 🔴  | No multi-select segmented control on iOS; a row of `Toggle`s in a `Group`.      |
+| Shape                       | `Shape`                          | `Shapes`             | 🟡  | iOS `Shapes` is limited (`ConcentricRectangle`); use shape modifiers.           |
+| Slider                      | `Slider`                         | `Slider`             | ✅  | Same role/API.                                                                  |
+| Snackbar                    | `Snackbar`                       | —                    | 🔴  | No iOS snackbar; custom overlay + animation.                                    |
+| Spacer                      | `Spacer`                         | `Spacer`             | ✅  | Flexible spacing on both.                                                       |
+| Surface                     | `Surface`                        | `Group`              | 🟢  | `Surface` adds Material elevation; `Group` is lighter.                          |
+| Switch                      | `Switch`                         | `Toggle`             | 🟢  | On/off state; different native look.                                            |
+| Switch, worklet-driven      | `SyncSwitch`                     | `SyncToggle`         | ✅  | The same control driven off the UI thread; exact twins.                         |
+| Text                        | `Text`                           | `Text`               | ✅  | Same role/API.                                                                  |
+| Text field                  | `TextField`                      | `TextField`          | ✅  | Text input on both.                                                             |
+| Text field, outlined        | `OutlinedTextField`              | `TextField`          | 🟢  | Material's outlined variant; iOS gets it from `textFieldStyle(.roundedBorder)`. |
+| Toggle button               | `ToggleButton`                   | —                    | 🔴  | No iOS toggle-button; `Button` with custom state.                               |
+| Tooltip                     | `Tooltip`                        | —                    | 🔴  | No iOS tooltip; custom overlay or `Popover`.                                    |
+| Use native state            | `useNativeState`                 | `useNativeState`     | ✅  | Cross-platform hook to sync state with the native view.                         |
 
 ## SwiftUI-only exports (no Android showcase yet)
 
@@ -101,53 +112,73 @@ candidates for an iOS-only showcase section: `Chart`, `Gauge`, `ColorPicker`,
 `Stepper`, `Form`, `Section`, `DisclosureGroup`, `Label`, `LabeledContent`,
 `Link`, `ShareLink`, `Menu`, `ContextMenu`, `ControlGroup`, `Popover`,
 `SwipeActions`, `ContentUnavailableView`, `Grid`, `SecureField`,
-`GlassEffectContainer`, `AccessoryWidgetBackground`.
+`GlassEffectContainer`, `AccessoryWidgetBackground`, `Mask`, `Overlay`,
+`Namespace`.
+
+Plus one that is not a component: `withAnimation`, SwiftUI's transaction
+wrapper. Compose's `AnimatedVisibility` is the nearest thing on the other side
+and is in the matrix above.
 
 ## How to keep this current
 
-Refresh after an `@expo/ui` bump by re-listing both export dirs and re-diffing
-against this table (added/removed components since last sync):
+Refresh after an `@expo/ui` bump by re-reading both `index.d.ts` re-export lists
+and diffing them against this table (added/removed components since last sync).
+**Read the index, not the directory** — `ls` misses `BasicTextField`,
+`OutlinedTextField` and the two segmented rows, which are re-exported from
+sibling modules, and it lists internals (`ExpoUIModule`, `SlotView`,
+`layout-types`) that are not components:
 
 ```bash
-ls node_modules/@expo/ui/build/jetpack-compose
-ls node_modules/@expo/ui/build/swift-ui
+grep -o "export [^;]*" node_modules/@expo/ui/build/jetpack-compose/index.d.ts
+grep -o "export [^;]*" node_modules/@expo/ui/build/swift-ui/index.d.ts
 ```
 
 Then update the rows and the summary counts. Pair this with the upgrade checklist
 in [`expo-ui-customizations.md`](expo-ui-customizations.md).
 
-## Native-first inventory (iOS) — updated 2026-08-17
+## Native-first inventory (iOS) — updated 2026-08-22
 
 Standing rule in `AGENTS.md` → "Native primitive first". This is the running
 ledger of iOS surfaces that were authored in RN, what happened to each, and —
 where they stayed RN — the reason, so nobody re-litigates it from scratch.
 
+Two portfolio-wide passes landed on top of it and are NOT re-listed row by row,
+because they changed how surfaces are painted rather than what they are built
+from — both are stated in full in `AGENTS.md`: the **monochrome tint audit**
+(2026-08-21 — an accent stays only where the colour IS the information; Topper
+needed nothing, the trophies ring and Sound Shaper's player took the rest) and
+the **floating-glass family** (snackbar, trophy banner, now-playing banner all
+on `GlassSurfaceIos` over `GLASS_FLOOR`).
+
 ### Converted to the system control
 
-| surface                                              | was                                                                                                             | now                                                                                                                                                                                                                                 |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SheetFormIos` chrome (all editor sheets, both apps) | RN header `Pressable`, styled `TextInput`s, `ActivityIndicator`                                                 | SwiftUI `Form` + `Section` + `TextField` + `Button` + `ProgressView`                                                                                                                                                                |
-| Topper edit-item / edit-top, Sound Shaper edit-sound | RN `ScrollView` of hand-drawn rows                                                                              | grouped native `Form`                                                                                                                                                                                                               |
-| Delete item / top / sound                            | RN outlined pill (Material's `OutlinedButton` in disguise)                                                      | `Button(role: .destructive)` as a `Section` row — full width by construction                                                                                                                                                        |
-| Topper item-detail "Edit item"                       | RN bordered pill                                                                                                | `ActionButtonIos` (`.bordered`)                                                                                                                                                                                                     |
-| `EmptyState.ios` CTA (both apps)                     | filled RN pill                                                                                                  | `ActionButtonIos` (`.borderedProminent`)                                                                                                                                                                                            |
-| `InlineFollowButton.ios`                             | RN capsule, two hand-picked fills                                                                               | `ActionButtonIos`, prominent = Follow / bordered = Following                                                                                                                                                                        |
-| Topper blocked-users "Unblock"                       | RN tonal pill                                                                                                   | `ActionButtonIos`                                                                                                                                                                                                                   |
-| Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                                                                           | `Form` rows + native `SwipeActions` delete                                                                                                                                                                                          |
-| `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                                                                     | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                                                                                                               |
-| Explore "See All" people (`(app)/people.tsx`)        | did not exist — the shelf's action was unwired                                                                  | form sheet over an `insetGrouped` `List` of `PersonListRowIos`, the same native row the search results use                                                                                                                          |
-| Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                                                                         | one `Host`: SwiftUI `TextField` (`plain`) + the ⬆ `arrow.up.circle.fill` glyph — Messages' grammar. `roundedBorder` was tried first and drew a legacy border in dark.                                                               |
-| Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`                                                  | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row                                                                                          |
-| Topper top-detail item list                          | RN cards imitating a grouped list + `react-native-sortables` drag                                               | a real SwiftUI `List`: `SwipeActions` (leading Edit, trailing Delete), `List.ForEach` `onMove` reorder in the DEFAULT mode, system row highlight                                                                                    |
-| Topper trash (`trash.ios`)                           | Material cards, a hand-drawn `PILL_RADIUS` Recover capsule, a squashing red text action                         | `insetGrouped` `List` with `SwipeActions` — leading Recover, trailing Delete Permanently; Empty Trash stays in the bar's ⋯                                                                                                          |
-| Topper follow-list / See All / blocked-users         | three separate implementations (RN `Pressable`s, RN cards)                                                      | ONE `PeopleSheetListIos` over an `insetGrouped` `List` of `PersonListRowIos`; only the trailing verb differs                                                                                                                        |
-| Topper editors' bar (edit-top / edit-item)           | an authored header row whose "glass" circles rendered flat                                                      | the REAL UIKit bar via `sheetCommitBarOptionsIos` — title inline, ✕/✓ in the header slots, genuine Liquid Glass                                                                                                                     |
-| Topper reaction row                                  | three hand-drawn RN capsules                                                                                    | SwiftUI `Button` `.glass` / `.glassProminent`, floating over the list's bottom edge                                                                                                                                                 |
-| Topper browse-tile menu                              | no menu (an `ActionSheetIOS` on long-press was the Android shape)                                               | a real `ContextMenu` with a `TopCard` preview (`BrowseCellIos`)                                                                                                                                                                     |
-| Skeleton placeholder (both apps)                     | a per-bone opacity pulse, every bone in unison                                                                  | one shared `SkeletonBone` with an app-wide diagonal sweep; reduce-motion falls back to the static shape                                                                                                                             |
-| Topper trophies progress summary                     | an RN block ABOVE the `Form` — pinned chrome, so the sheet needed an OPAQUE bar and lost the scroll-edge effect | the trophy `Section`'s own `header` view (`headerProminence('increased')` keeps it title-case) with a real `ProgressView` in place of a hand-painted track + fill; the sheet is one scroller and takes the family's transparent bar |
-| Topper account-sheet fact rows                       | `LabeledContent`, which STACKS a long value under its label                                                     | an `HStack` (`FormValueRowIos`), one line, middle-truncated — the stack was a text line of layout shift against the redacted state                                                                                                  |
-| Account sheet / trophies / trash loading states      | nothing (account), a false all-locked state (trophies), a hand-built RN bone (trash)                            | `redacted('placeholder')` on the real `Form` / `List` — Apple's own skeleton, and the only way the placeholder and the content can share a container                                                                                |
+| surface                                              | was                                                                                                             | now                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SheetFormIos` chrome (all editor sheets, both apps) | RN header `Pressable`, styled `TextInput`s, `ActivityIndicator`                                                 | SwiftUI `Form` + `Section` + `TextField` + `Button` + `ProgressView`                                                                                                                                                                                                                     |
+| Topper edit-item / edit-top, Sound Shaper edit-sound | RN `ScrollView` of hand-drawn rows                                                                              | grouped native `Form`                                                                                                                                                                                                                                                                    |
+| Delete item / top / sound                            | RN outlined pill (Material's `OutlinedButton` in disguise)                                                      | `Button(role: .destructive)` as a `Section` row — full width by construction                                                                                                                                                                                                             |
+| Topper item-detail "Edit item"                       | RN bordered pill                                                                                                | `ActionButtonIos` (`.bordered`)                                                                                                                                                                                                                                                          |
+| `EmptyState.ios` CTA (both apps)                     | filled RN pill                                                                                                  | `ActionButtonIos` (`.borderedProminent`)                                                                                                                                                                                                                                                 |
+| `InlineFollowButton.ios`                             | RN capsule, two hand-picked fills                                                                               | `ActionButtonIos`, prominent = Follow / bordered = Following                                                                                                                                                                                                                             |
+| Topper blocked-users "Unblock"                       | RN tonal pill                                                                                                   | `ActionButtonIos`                                                                                                                                                                                                                                                                        |
+| Sound Shaper clips sheet                             | RN rows + trailing trash `IconButton`                                                                           | `Form` rows + native `SwipeActions` delete                                                                                                                                                                                                                                               |
+| `RecentSearches.ios`                                 | RN rows + trailing ✕ `Pressable`, RN header                                                                     | `insetGrouped` `List` + `Section` header slot + `SwipeActions` remove                                                                                                                                                                                                                    |
+| Explore "See All" people (`(app)/people.tsx`)        | did not exist — the shelf's action was unwired                                                                  | form sheet over an `insetGrouped` `List` of `PersonListRowIos`, the same native row the search results use                                                                                                                                                                               |
+| Topper comments composer                             | styled `TextInput` + `Pressable` "Post"                                                                         | one `Host`: SwiftUI `TextField` (`plain`) + the ⬆ `arrow.up.circle.fill` glyph — Messages' grammar. `roundedBorder` was tried first and drew a legacy border in dark.                                                                                                                    |
+| Sound Shaper `shaper.tsx`                            | RN sheet, `Pressable` chips, hand-typeset headers, RN `Switch`                                                  | grouped `Form`: `Picker` (menu) for presets, checkmark `Section` rows for saved shapes, `Slider` rows, `Toggle`, destructive `Section` row                                                                                                                                               |
+| Sound Shaper saved shapes                            | no delete affordance on a row                                                                                   | trailing `SwipeActions` with a LABELLED `trash` action, matching the clips list one sheet over (2026-08-21)                                                                                                                                                                              |
+| Sound Shaper `edit-sound`                            | four ID3 fields (title / artist / album / year) in the sheet                                                    | two: a `name` and a `subtitle` `TextField` row. The app stopped handling album and release year rather than drawing dead metadata — "Subtitle" is `UIListContentConfiguration.subtitleCell()`'s own word (2026-08-21)                                                                    |
+| Sound Shaper home bar                                | TWO bar glyphs — Account beside Settings                                                                        | ONE: `HeaderSettingsButton`, the same gear every app's home now carries. The account entry moved into Settings' identity banner (`SettingsAccountLink`), which is the App Store's Apple Account row (2026-08-21)                                                                         |
+| Topper top-detail item list                          | RN cards imitating a grouped list + `react-native-sortables` drag                                               | a real SwiftUI `List`: `SwipeActions` (leading Edit, trailing Delete), `List.ForEach` `onMove` reorder in the DEFAULT mode, system row highlight                                                                                                                                         |
+| Topper trash (`trash.ios`)                           | Material cards, a hand-drawn `PILL_RADIUS` Recover capsule, a squashing red text action                         | `insetGrouped` `List` with `SwipeActions` — leading Recover, trailing Delete Permanently; Empty Trash stays in the bar's ⋯                                                                                                                                                               |
+| Topper follow-list / See All / blocked-users         | three separate implementations (RN `Pressable`s, RN cards)                                                      | ONE `PeopleSheetListIos` over an `insetGrouped` `List` of `PersonListRowIos`; only the trailing verb differs                                                                                                                                                                             |
+| Topper editors' bar (edit-top / edit-item)           | an authored header row whose "glass" circles rendered flat                                                      | the REAL UIKit bar via `sheetCommitBarOptionsIos` — title inline, ✕/✓ in the header slots, genuine Liquid Glass                                                                                                                                                                          |
+| Topper reaction row                                  | three hand-drawn RN capsules                                                                                    | SwiftUI `Button` `.glass` / `.glassProminent`, floating over the list's bottom edge                                                                                                                                                                                                      |
+| Topper browse-tile menu                              | no menu (an `ActionSheetIOS` on long-press was the Android shape)                                               | a real `ContextMenu` with a `TopCard` preview (`BrowseCellIos`)                                                                                                                                                                                                                          |
+| Skeleton placeholder (both apps)                     | a per-bone opacity pulse, every bone in unison                                                                  | one shared `SkeletonBone` with an app-wide diagonal sweep; reduce-motion falls back to the static shape                                                                                                                                                                                  |
+| Topper trophies progress summary                     | an RN block ABOVE the `Form` — pinned chrome, so the sheet needed an OPAQUE bar and lost the scroll-edge effect | the trophy `Section`'s own `header` view (`headerProminence('increased')` keeps it title-case) with a real `ProgressView` in place of a hand-painted track + fill; the sheet is one scroller and takes the family's transparent bar                                                      |
+| Topper account-sheet fact rows                       | `LabeledContent`, which STACKS a long value under its label                                                     | an `HStack` (`FormValueRowIos`), one line, middle-truncated — the stack was a text line of layout shift against the redacted state                                                                                                                                                       |
+| Account sheet / trophies / trash loading states      | nothing (account), a false all-locked state (trophies), a hand-built RN bone (trash)                            | the shared `SkeletonBone` bridged INTO the real `Form` / `List` row, one `RNHostView` per row. `redacted('placeholder')` was reached for first and rejected — it is static where every other bone in the app sweeps, and it blanks the label with the value (see `FormDisclosureRowIos`) |
 
 ### Staying RN, with the reason
 
@@ -175,8 +206,15 @@ Other standing exceptions:
 
 - **`emoji-picker` cells** — a `Host` per emoji in a large grid is a perf
   non-starter; the whole picker would have to become a SwiftUI `LazyVGrid`.
-- **`PlayerCards.ios`** — custom composed cards (icon + title + subtitle), not
-  an imitation of any system control, so there is nothing to inherit.
+- **Sound Shaper's expanded player** (`PlayerConsole.ios`, `ClipHandles.ios`,
+  `ClipActionsRow.ios`, `PlayerScrubber.ios`) — the 2026-08-21 rewrite dropped
+  the card stack this entry used to name (`PlayerCards.ios`, gone; the plain
+  `PlayerCards.tsx` is the Android side). What replaced it is a transport over
+  a live scrubber on `GlassSurfaceIos`, with the clip trimmer as a TRIM FRAME
+  drawn in RN. None of it imitates a system control — SwiftUI has no
+  now-playing console to inherit — and the parts that DO map to one already
+  take it: the `Slider` is `@expo/ui`'s, the glyphs are SF Symbols, the
+  material is the shared glass.
 - **`GoogleSignInButton.ios`** — Google's brand guidelines dictate the button.
 - **`SnackbarProvider`** — no SwiftUI equivalent; it's an app-level overlay.
 - **RN `Switch`** — already renders a real `UISwitch` on iOS.
@@ -269,10 +307,12 @@ Other standing exceptions:
   top-detail item row leads with the rank NUMERAL, and its separator measured
   26.33 from the card edge, nowhere near the artwork. Measure it per row shape;
   do not derive it.
-- **`redacted(.placeholder)` IS exposed** by @expo/ui 57 (`modifiers/index.d.ts`)
-  and is the right skeleton for a surface that is already a SwiftUI `List`. It is
-  static by design — Apple ships no shimmer. It cannot reach an RN scroller,
-  which is why `SkeletonBone` exists for everything else.
+- **`redacted(.placeholder)` IS exposed** by @expo/ui 57 (`modifiers/index.d.ts`),
+  and this repo does NOT use it. It is static by design — Apple ships no shimmer
+  — so on a surface sitting beside twenty sweeping bones it reads as the odd one
+  out, and it blanks a row's label along with its value. The shipped answer is
+  `SkeletonBone` bridged into the native row. Reach for `redacted` only if the
+  whole portfolio ever drops the sweep.
 
 ### Simulator gotcha while verifying these
 
