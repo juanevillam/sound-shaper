@@ -35,25 +35,26 @@ type PlayerState = {
    * Keep the original pitch while the rate changes (time-stretch). Off =
    * vinyl-style: slower also means deeper.
    *
-   * IT DEFAULTS TO OFF, AND THAT IS ABOUT HOW THE TWO SOUND. The three paths
-   * are `chooseFillMode()` in react-native-audio-api's `AudioFileSourceNode`:
-   * on at 1× is a PASSTHROUGH (nothing is processed), off is a RESAMPLE
-   * (varispeed — clean, the way a record played fast is clean), and on at any
-   * other rate is WSOLA, the library's own grain-splicing time-stretcher.
-   * That last one is voice-grade here — a 20ms grain with its similarity
-   * search decimated 12× (`OLA_WINDOW_MS`, `SEARCH_DECIMATION` in
-   * `dsp/WsolaTimeStretcher.h`) — so on dense music the splices land mid
-   * transient and every grain is audible as a separate stone.
+   * IT DEFAULTS TO ON, the way every Apple speed control works (Podcasts,
+   * Music, Voice Memos): a constant key is what changing the speed is expected
+   * to sound like, and turning pitch preservation OFF is the deliberate
+   * varispeed choice. The three engine paths are `chooseFillMode()` in
+   * react-native-audio-api's `AudioFileSourceNode`: on at 1× is a PASSTHROUGH
+   * (nothing is processed), off is a RESAMPLE (varispeed), and on at any other
+   * rate is the time-stretcher.
    *
-   * So the FIRST speed change anybody makes has to sound clean, and preserving
-   * pitch is the opt-in for someone who wants a constant key and accepts the
-   * texture. Flipping the switch AUTOMATICALLY at rate ≠ 1 was the other
-   * proposal and is worse three ways: it turns the setting off exactly where it
-   * is the only thing that does anything, so the control becomes decoration;
-   * the value is SAVED into a shape (`createShape`), so a shape would store a
-   * choice nobody made; and the way back is ambiguous — restoring it at 1×
-   * makes the switch flicker as the speed slider is dragged, and not restoring
-   * it destroys the setting silently.
+   * The default was OFF from 2026-08-21 to 2026-08-22 because the library's
+   * stretcher was its own WSOLA, voice-grade, and on music every grain splice
+   * was audible ("rocky, as in stones"). `patches/react-native-audio-api/`
+   * replaces that stretcher with a phase vocoder (Signalsmith Stretch), which
+   * is what made this default supportable — if that patch is ever retired
+   * without an upstream fix, this default goes back with it.
+   *
+   * Flipping the switch AUTOMATICALLY at rate ≠ 1 was proposed while the
+   * stretcher was broken and stays rejected
+   * (`docs/rejected-experiments.md`): it turns the setting off exactly where
+   * it is the only thing that does anything, a shape would store a choice
+   * nobody made, and the way back is ambiguous.
    */
   keepPitch: boolean;
   // Live transport, mirrored from the <Audio> element.
@@ -139,7 +140,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   expandNonce: 0,
   clipFramingNonce: 0,
   rate: 1,
-  keepPitch: false,
+  keepPitch: true,
   position: 0,
   duration: 0,
   playing: false,
@@ -278,7 +279,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       current: null,
       queue: [],
       rate: 1,
-      keepPitch: false,
+      keepPitch: true,
       position: 0,
       duration: 0,
       playing: false,

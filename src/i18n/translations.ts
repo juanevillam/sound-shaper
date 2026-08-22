@@ -73,7 +73,7 @@ export const translations = {
         title: 'Shape',
         custom: 'Custom',
         none: 'None',
-        pitchKept: 'pitch kept',
+        pitchOff: 'pitch off',
       },
       shapes: {
         save: 'Save',
@@ -354,7 +354,7 @@ export const translations = {
         title: 'Moldear',
         custom: 'Personalizado',
         none: 'Ninguno',
-        pitchKept: 'tono fijo',
+        pitchOff: 'tono libre',
       },
       shapes: {
         save: 'Guardar',
@@ -626,7 +626,7 @@ export const translations = {
         title: '塑形',
         custom: '自定',
         none: '无',
-        pitchKept: '保持音高',
+        pitchOff: '不保持音高',
       },
       shapes: {
         save: '存储',
