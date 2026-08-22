@@ -380,3 +380,34 @@ A third named scale for "small card", between this and `ICON_PRESS_SCALE`, was
 also rejected — the glass bar's compartments would be its only caller, and a
 press that differs between a tile and a card for no reason a person can see is
 what one shared spring exists to prevent.
+
+## Turning Preserve Pitch OFF automatically at any speed ≠ 1× — REJECTED 2026-08-21, reasoned down (not built)
+
+The one entry here that was never rendered: it was proposed by Juan, argued
+against, and dropped in the same conversation. It is listed because it is the
+obvious idea, and the next session to hear "preserve pitch sounds grainy" will
+propose it again.
+
+**What it was.** Sound Shaper's `keepPitch` switch, flipped off by the app the
+moment the playback rate leaves 1×, so nobody's first speed change ever hits the
+grainy time-stretcher (`Wsola` — see `apps/sound-shaper/AGENTS.md`).
+
+**Why it dies, in the order the reasons matter:**
+
+- **It turns the setting off exactly where it is the only thing that does
+  anything.** Preserving pitch at 1× is a `Passthrough` — the engine touches
+  nothing — so the switch has meaning only at rate ≠ 1×. Auto-off there means
+  off always, and the control becomes decoration.
+- **The value is SAVED.** `createShape({ gains, keepPitch, name, rate })` writes
+  it into a shape, so a shape would store a choice nobody made.
+- **The way back is ambiguous.** Restore it at 1× and the switch flickers as the
+  speed slider is dragged; don't, and the setting is destroyed silently.
+
+**Shipped instead: the DEFAULT flipped to off.** Same outcome for the thing that
+actually mattered — the first speed change anybody makes sounds clean — with no
+control ever moving on its own, and preserving pitch left reachable as the
+deliberate choice it should be. "Auto-off the first time only" is this, with a
+moving switch and extra steps.
+
+**What would retire this entry** is fixing the stretcher rather than routing
+around it; that is logged in [`pending-upstream.md`](pending-upstream.md).

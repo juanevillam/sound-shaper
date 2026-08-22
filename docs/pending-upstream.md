@@ -387,3 +387,58 @@ sound now seeks instead of remounting the element (`restartLoaded` in
 `store/player.ts`), which is what made "previous" pay for a fresh probe on a
 track that was already playing. The rest needs a per-origin memo inside the
 library.
+
+---
+
+## Preserve Pitch that doesn't sound grainy — blocked on `react-native-audio-api`
+
+**What we want.** Sound Shaper's Preserve Pitch to be usable at any speed on
+music. Today it is usable only in the sense that it works: Juan's description of
+0.5× / 1.5× / 2× with it on is "rocky, as in rocks, stones", and that is why
+`keepPitch` ships defaulting to **off** (see `apps/sound-shaper/AGENTS.md`, and
+the auto-off idea that was rejected in
+[`rejected-experiments.md`](rejected-experiments.md)). The default is a
+workaround; this is the fix.
+
+**Why it isn't built.** The library time-stretches with its own WSOLA, and its
+tuning is hardcoded C++ with nothing exposed to JS. In
+`common/cpp/audioapi/dsp/WsolaTimeStretcher.h` (0.13.2):
+
+```cpp
+static constexpr float OLA_WINDOW_MS = 20.0f;
+static constexpr float SEARCH_INTERVAL_MS = 30.0f;
+static constexpr size_t SEARCH_DECIMATION = 12;
+```
+
+A 20ms grain whose similarity search is decimated 12× is voice-grade. On dense
+polyphonic music the splice lands mid-transient and each grain is audible
+separately. `chooseFillMode()` in
+`common/cpp/audioapi/core/sources/AudioFileSourceNode.cpp` is what selects it:
+`Passthrough` at rate 1×, `Resample` (varispeed, clean) with pitch preservation
+off, `Wsola` for the case in question.
+
+**What unlocks it, in preference order.**
+
+1. **The library's stretcher getting a music-grade path** — a larger window with
+   a finer search, or a different algorithm (a phase vocoder, or vendoring
+   something like signalsmith-stretch). This is the version worth shipping, and
+   it is the one to open the upstream issue for, with a repro.
+2. **Those constants reachable from JS**, so the app can ask for a music profile
+   per sound. Weaker: it makes a DSP tuning knob a product decision.
+3. **A local patch as an experiment** — the constants compile into the pod, so a
+   `patches/` entry plus `patch-package` (neither exists in this repo yet) would
+   let us find out whether the artifact is tunable at all before asking upstream
+   for anything. That is the first move, and it has a real cost: a native
+   rebuild per iteration under this app's specific `buildFromSource` /
+   `useFrameworks` pairing, and the patch has to survive `npm ci` and
+   `npx expo prebuild --clean`.
+
+**How to judge any of them.** A listening test on real music at 0.5× / 1.5× / 2×
+is the one that decides it, but do not stop there — render a transient-heavy
+signal through the stretcher and compare spectrograms before and after, so the
+verdict carries a number. If the artifact turns out to be inherent to WSOLA at
+this quality bar, say so and move to option 1 rather than shipping a tuning that
+is merely less bad.
+
+**When it lands, two workarounds retire with it:** `keepPitch`'s off default,
+and the shape summary's "pitch kept" chip, which inverted to match that default.

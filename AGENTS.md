@@ -451,6 +451,42 @@ drift this repo hates, but nothing Android is installed or run. Re-check
 `EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
 was deliberately NOT touched: it displays stored data and its screen is frozen.
 
+**PRESERVING PITCH IS THE OPT-IN, BECAUSE THE STRETCHER IS GRAINY** (2026-08-21).
+`keepPitch` defaults to **off**. Changing the speed with it on sounded gritty —
+Juan's word was "rocky, as in stones" — and the reason is which of three paths
+the engine takes, in `chooseFillMode()` in react-native-audio-api's
+`AudioFileSourceNode`:
+
+| state                  | path          | sound                                   |
+| ---------------------- | ------------- | --------------------------------------- |
+| preserve on, rate 1×   | `Passthrough` | untouched — why normal playback is fine |
+| preserve off           | `Resample`    | varispeed, clean, a record played fast  |
+| preserve on, rate ≠ 1× | `Wsola`       | the grainy one                          |
+
+WSOLA splices grains and overlap-adds them, and the library's is voice-grade:
+`OLA_WINDOW_MS = 20` with its similarity search decimated 12× (`SEARCH_DECIMATION`
+in `dsp/WsolaTimeStretcher.h`). On dense music the splice lands mid-transient and
+every grain is audible as a separate stone. So the FIRST speed change anybody
+makes has to sound clean, and a constant key is the choice you go and make.
+
+**Flipping the switch AUTOMATICALLY at rate ≠ 1 was the proposal and is worse** —
+see [`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
+The short version: it turns the setting off exactly where it is the only thing
+that does anything.
+
+**THE SHAPE SUMMARY'S PITCH NOTE INVERTED WITH THE DEFAULT**, because that
+summary states what is NOT default and nothing else (below). It read "pitch off";
+it reads **"pitch kept"** now. It is also silent at 1× at EITHER setting — the
+engine passes the audio through untouched there, so the switch describes nothing
+that is happening, and a note on a sound nobody has sped up is the "Flat · 1×"
+noise the summary was rebuilt to stop.
+
+**The grain itself is a separate job** and is logged in
+[`../../docs/pending-upstream.md`](../../docs/pending-upstream.md): those
+constants are hardcoded C++ in the library, so tuning them needs a patch plus a
+listening test. If it is ever fixed, revisit this default and that chip — both
+are workarounds and neither should outlive the bug.
+
 **Home's iOS header is the SYSTEM large title**, not the shared
 `CollapsingHeaderBar` (Android still uses that). The one thing it costs is
 spelled out in `home.tsx`: the bar EMPTIES while the player is expanded rather
@@ -488,9 +524,9 @@ Playback runs on **react-native-audio-api** (expo-audio is gone from the
 player): a streaming `<Audio>` element routed through a Web-Audio shaping
 graph — preamp + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
 `src/components/player/AudioEngine.tsx`, shaper settings in
-`src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch, clips
-(personal replay bookmarks), and background playback via the plugin's media
-foreground service.
+`src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch (an opt-in,
+defaulting OFF — see the stretcher note above), clips (personal replay
+bookmarks), and background playback via the plugin's media foreground service.
 
 Deliberate gaps, in build order: lock-screen now-playing metadata, and
 Cloudinary media on account deletion (the audio and artwork orphan — deleting
