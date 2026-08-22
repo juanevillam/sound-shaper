@@ -77,6 +77,36 @@ const BACKDROP_FADE_MS = 420;
  */
 const BACKDROP_OPACITY = 0.75;
 
+/**
+ * THE ART-LESS PLAYER GETS A WASH TOO — a sound with no cover was dropping this
+ * whole layer and landing on flat page colour, so the one screen the app builds
+ * an atmosphere for was the plainest thing in it.
+ *
+ * IT IS THE INK, NOT A COLOUR. `onSurface` is already appearance-inverted by
+ * definition — black in light, white in dark — so a ramp of it at low alpha is
+ * dark under a light page and light under a dark one, with no second palette to
+ * keep in sync and nothing hand-picked to drift. It also keeps the house's
+ * monochrome rule: a cover's wash carries the cover's colour because that
+ * colour IS information about the sound; an invented hue for a sound that has
+ * no artwork would carry none.
+ *
+ * DIAGONAL, not vertical, and that is the whole reason it reads as a gradient
+ * rather than a panel: the fade below already runs top-to-bottom, so a second
+ * vertical ramp would just deepen it. Running corner to corner leaves a
+ * brighter and a darker side, which is the shape a real blurred cover makes.
+ *
+ * The alphas are bounded by the STATUS BAR GLYPHS, the same constraint
+ * `BACKDROP_OPACITY` documents — and the top stop is where the ramp is
+ * strongest, so that band is the worst case by construction. Band-scanned on
+ * iPhone 17 / iOS 26.5, worst pixel across the whole band: light 128 under a
+ * black glyph, **5.33:1**; dark 121 under a white one, **4.35:1**. Both clear
+ * of the 3:1 a UI glyph needs, and neither has the headroom to go much further
+ * — treat 0.55 as a ceiling rather than a starting point.
+ */
+const STANDIN_ALPHA_NEAR = 0.55;
+const STANDIN_ALPHA_MID = 0.3;
+const STANDIN_ALPHA_FAR = 0.1;
+
 type PlayerBackdropProps = {
   artUrl?: string;
 };
@@ -107,24 +137,56 @@ export const prefetchPlayerBackdrop = (artUrl?: string): void => {
 export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
 
-  if (!artUrl) return null;
-
   return (
     <View style={styles.bleed} pointerEvents="none">
-      <Image
-        source={{ uri: thumbUrl(artUrl, BACKDROP_SOURCE_WIDTH) }}
-        style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
-        contentFit="cover"
-        blurRadius={BACKDROP_BLUR}
-        // NO recyclingKey: this is one long-lived view, not a recycled row, and
-        // a changing recyclingKey CLEARS the old image instead of letting
-        // expo-image cross-dissolve into the new one — which is exactly what
-        // made the wash snap from one sound's colour to the next.
-        transition={BACKDROP_FADE_MS}
-        cachePolicy="memory-disk"
-      />
+      {artUrl ? (
+        <Image
+          source={{ uri: thumbUrl(artUrl, BACKDROP_SOURCE_WIDTH) }}
+          style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
+          contentFit="cover"
+          blurRadius={BACKDROP_BLUR}
+          // NO recyclingKey: this is one long-lived view, not a recycled row,
+          // and a changing recyclingKey CLEARS the old image instead of letting
+          // expo-image cross-dissolve into the new one — which is exactly what
+          // made the wash snap from one sound's colour to the next.
+          transition={BACKDROP_FADE_MS}
+          cachePolicy="memory-disk"
+        />
+      ) : null}
       <Svg style={StyleSheet.absoluteFill}>
         <Defs>
+          {/* THE STAND-IN, declared whether or not it is drawn — a `Defs` entry
+              costs nothing unused, and keeping both ramps side by side is what
+              makes it obvious they are one layer with two sources. */}
+          <SvgLinearGradient
+            id="playerBackdropStandIn"
+            x1="0"
+            y1="0.18"
+            x2="1"
+            y2="0.78"
+          >
+            {/* `stopOpacity`, NOT an alpha baked into `stopColor` —
+                react-native-svg parses the colour and DROPS its alpha channel,
+                so an `rgba()` stop renders fully opaque. Measured: the top band
+                came out at (58,58,59) in LIGHT mode, i.e. exactly the fade's own
+                0.24 × 242, with black status-bar glyphs on it. The fade stops
+                below split the two for the same reason. */}
+            <Stop
+              offset="0"
+              stopColor={colors.onSurface}
+              stopOpacity={STANDIN_ALPHA_NEAR}
+            />
+            <Stop
+              offset="0.5"
+              stopColor={colors.onSurface}
+              stopOpacity={STANDIN_ALPHA_MID}
+            />
+            <Stop
+              offset="1"
+              stopColor={colors.onSurface}
+              stopOpacity={STANDIN_ALPHA_FAR}
+            />
+          </SvgLinearGradient>
           <SvgLinearGradient
             id="playerBackdropFade"
             x1="0"
@@ -201,6 +263,18 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop offset="1" stopColor={colors.background} stopOpacity="0.9" />
           </SvgLinearGradient>
         </Defs>
+        {artUrl ? null : (
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#playerBackdropStandIn)"
+          />
+        )}
+        {/* The fade runs over BOTH sources — the stand-in gets the same bar-band
+            protection and the same fall-off under the console, so an art-less
+            player differs from a covered one only in what is being washed. */}
         <Rect
           x="0"
           y="0"
