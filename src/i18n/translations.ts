@@ -103,7 +103,6 @@ export const translations = {
         title: 'Equalizer',
         hint: 'Bass on the left, treble on the right',
         reset: 'Flat',
-        preamp: 'Preamp',
         presets: {
           flat: 'Flat',
           bass: 'Bass',
@@ -174,7 +173,7 @@ export const translations = {
           description: 'Add your first sound.',
         },
         'first-shape': {
-          description: 'Shape a sound — bend a band, the preamp or the speed.',
+          description: 'Shape a sound — bend a band or change the speed.',
         },
         'first-clip': {
           description: 'Save your first clip.',
@@ -381,7 +380,6 @@ export const translations = {
         title: 'Ecualizador',
         hint: 'Graves a la izquierda, agudos a la derecha',
         reset: 'Plano',
-        preamp: 'Preamplificador',
         presets: {
           flat: 'Plano',
           bass: 'Graves',
@@ -448,7 +446,7 @@ export const translations = {
         },
         'first-shape': {
           description:
-            'Moldea un sonido: ajusta una banda, el preamplificador o la velocidad.',
+            'Moldea un sonido: ajusta una banda o cambia la velocidad.',
         },
         'first-clip': {
           description: 'Guarda tu primer clip.',
@@ -654,7 +652,6 @@ export const translations = {
         title: '均衡器',
         hint: '左侧低音，右侧高音',
         reset: '平坦',
-        preamp: '前置放大',
         presets: {
           flat: '平坦',
           bass: '低音',
@@ -718,7 +715,7 @@ export const translations = {
           description: '添加你的第一个音频。',
         },
         'first-shape': {
-          description: '塑造一个音频：调整频段、前置放大或速度。',
+          description: '塑造一个音频：调整频段或速度。',
         },
         'first-clip': {
           description: '存储你的第一个片段。',

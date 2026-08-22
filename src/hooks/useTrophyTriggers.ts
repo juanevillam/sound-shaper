@@ -31,9 +31,8 @@ export const useTrophyTriggers = () => {
   const listened = useListeningStore(state => state.seconds);
 
   // Shaping is "not flat any more", whichever way you got there: a preset, a
-  // dragged band, the preamp, speed, or a saved shape applied.
+  // dragged band, or a saved shape applied.
   const gains = useShaperStore(state => state.gains);
-  const preamp = useShaperStore(state => state.preamp);
   const activeShapeId = useShaperStore(state => state.activeShapeId);
 
   useEffect(() => {
@@ -44,8 +43,7 @@ export const useTrophyTriggers = () => {
     if (shapes.length >= SAVED_SHAPE_COUNT) awardTrophy(TROPHY_IDS.savedShapes);
     if (listened >= LISTENING_MINUTES * 60) awardTrophy(TROPHY_IDS.listening);
 
-    const shaped =
-      activeShapeId !== null || preamp !== 0 || gains.some(gain => gain !== 0);
+    const shaped = activeShapeId !== null || gains.some(gain => gain !== 0);
     if (shaped) awardTrophy(TROPHY_IDS.firstShape);
   }, [
     activeShapeId,
@@ -53,7 +51,6 @@ export const useTrophyTriggers = () => {
     hasSettled,
     hydrated,
     listened,
-    preamp,
     shapes.length,
     sounds.length,
   ]);
