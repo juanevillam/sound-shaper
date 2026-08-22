@@ -536,6 +536,15 @@ while saying the same thing tonally. The five shaped presets now sit within
 clips. Flat stays at 0 and is deliberately NOT pulled down to join them:
 attenuating a sound nobody has touched would be its own defect.
 
+**AND THEY WERE LISTENED TO, WHICH THE RE-TUNE ITSELF COULD NOT DO** (Juan,
+2026-08-22). Every number above came out of an offline model and a device peak
+meter; the curves were rewritten without anybody hearing them, and a tilt that
+measures well can still fail the only test that matters — whether a preset
+sounds like its own name. Played through on device: each of the five reads as
+what it is called, and the set is audibly different curve to curve rather than
+audibly louder. The tilt is not a compromise the measurements forced, and
+nothing here is waiting on a listening check.
+
 **A LOW SHELF IS THE EXPENSIVE BAND.** It costs its full boost in headroom and
 buys almost no loudness back, because K-weighting discounts everything under
 ~100 Hz. That is why `bass` is +3 and not +9 — the tilt does the work, not the
