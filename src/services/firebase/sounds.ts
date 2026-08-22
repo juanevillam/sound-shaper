@@ -75,16 +75,20 @@ type UpdateSoundParams = {
   releaseYear?: number | null;
   soundId: string;
   /**
-   * A NEWLY PICKED cover, already uploaded. Omit to leave the existing artwork
-   * alone — this is not a "clear the art" channel, and passing `null` would
-   * read like one.
+   * A NEWLY PICKED cover, already uploaded — or `null` to CLEAR the artwork.
+   * Omit to leave the existing one alone.
    *
-   * The old Cloudinary asset ORPHANS when a cover is replaced. That is the same
-   * accepted gap deleting a sound has: removing an asset needs a signed backend
-   * call this app does not have (no Blaze plan, no Functions). Recorded rather
-   * than hidden — see the app's AGENTS.md.
+   * Artwork is OPTIONAL (this library takes any MP3, and a ringtone or a voice
+   * memo carries none), so a person who has one must be able to take it back
+   * off; `null` is that channel. `SoundArt` already draws an art-less sound
+   * everywhere it renders, so a cleared cover needs nothing downstream.
+   *
+   * The old Cloudinary asset ORPHANS when a cover is replaced or cleared. That
+   * is the same accepted gap deleting a sound has: removing an asset needs a
+   * signed backend call this app does not have (no Blaze plan, no Functions).
+   * Recorded rather than hidden — see the app's AGENTS.md.
    */
-  cover?: { publicId: string; url: string };
+  cover?: { publicId: string; url: string } | null;
 };
 
 type SubscribeToSoundsParams = {
@@ -222,7 +226,11 @@ export const updateSound = reported(
       name,
       ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
-      ...(cover ? { artPublicId: cover.publicId, artUrl: cover.url } : {}),
+      ...(cover === undefined
+        ? {}
+        : cover
+          ? { artPublicId: cover.publicId, artUrl: cover.url }
+          : { artPublicId: '', artUrl: '' }),
     });
   },
 );
