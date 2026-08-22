@@ -23,9 +23,15 @@ import { TEXT_VARIANTS } from './createText';
  * come) every bottom sheet.
  *
  * IT RENDERS NOTHING IN A RELEASE BUILD. The bar returns null unless `__DEV__`,
- * so the guard cannot be forgotten at a call site. Each app still gates its own
- * MOCK DATA separately (its `dev/flags.ts`), because fixtures are app data and
- * this component knows nothing about them.
+ * so the guard cannot be forgotten at a call site.
+ *
+ * IT NEEDS NO FIXTURES, AND THERE ARE NONE. A `MOCK_DATA` flag once sat beside
+ * each app's `STATE_LAB` and swapped invented rows into the live screens; it
+ * and all five fixture files were deleted 2026-08-19. This picker pins the
+ * BRANCH a screen renders, not the data underneath, so a skeleton, an empty
+ * state or an error is as reachable against a live query as against a fixture.
+ * A content state that can only exist by supplying rows is not a state worth
+ * pinning — reach it by producing the content.
  *
  * DATA-DRIVEN ON PURPOSE. The first version hardcoded Topper's two screens and
  * their state enums, so a third surface meant editing the picker. A caller now

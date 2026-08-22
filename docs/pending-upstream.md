@@ -390,7 +390,7 @@ library.
 
 ---
 
-## Preserve Pitch that doesn't sound grainy — PATCHED LOCALLY 2026-08-22, issue drafted for `react-native-audio-api`
+## Preserve Pitch that doesn't sound grainy — PATCHED LOCALLY 2026-08-22, nothing filed upstream
 
 **Where this stands.** Sound Shaper's Preserve Pitch is usable at any speed on
 music now, via `patches/react-native-audio-api/` (see its README): the
