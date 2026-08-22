@@ -1047,17 +1047,16 @@ export function PlayerSheet() {
           ? null
           : presetSummary,
       rate === 1 ? null : rateLabel(rate, locale),
-      // THE PITCH NOTE FOLLOWS THE RULE ABOVE, so it inverted when the default
-      // did. It used to read "pitch off", because keeping pitch was the
-      // default; keeping it is the deliberate choice now (see `keepPitch` in
-      // the store — the stretcher is what sounds grainy), so "pitch kept" is
-      // the exception worth printing.
+      // THE PITCH NOTE FOLLOWS THE RULE ABOVE — state what is not default —
+      // so it inverts whenever the default does (it has twice now; see
+      // `keepPitch` in the store). Keeping pitch is the default again, so
+      // varispeed is the exception worth printing: "pitch off".
       //
       // AND IT IS SILENT AT 1×, at either setting: there the engine passes the
       // audio through untouched, so the switch describes nothing that is
       // happening. A note that appears on a sound nobody has sped up is exactly
       // the "Flat · 1×" noise this summary was rebuilt to stop.
-      rate === 1 || !keepPitch ? null : t('player.shape.pitchKept'),
+      rate === 1 || keepPitch ? null : t('player.shape.pitchOff'),
     ]
       .filter(Boolean)
       .join(' · ') || t('player.shape.none');
