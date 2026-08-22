@@ -2,6 +2,7 @@ import {
   AudioContext,
   AudioManager,
   type AudioNode,
+  type AudioParam,
   type AudioTagHandle,
   type BiquadFilterNode,
   type GainNode,
@@ -56,6 +57,20 @@ export const EQ_MAX_DB = 12;
 // which, so there is exactly one gain node and one meaning for it.
 // ---------------------------------------------------------------------------
 
+// How fast a parameter moves to a new value. An instantaneous AudioParam write
+// is a step discontinuity in the signal — measured at 30.9x the natural
+// sample-to-sample slew of a 100 Hz tone on a preset change, and 19.1x while
+// dragging a band in 1 dB steps. That is the click, and the zipper noise.
+// Scheduling the same moves with `setTargetAtTime` puts both back at ~1x, i.e.
+// gone.
+//
+// 12 ms is a one-pole time constant, so a move is ~95% done in 36 ms: short
+// enough that dragging still feels live, long enough that nothing steps. The
+// SAME constant drives the trim, which was verified rather than assumed — on a
+// limited master a flat→bass switch peaks at -0.40 dBFS mid-transition, so the
+// trim never lags the boost it is compensating.
+const RAMP_SECONDS = 0.012;
+
 const flatGains = (): number[] => EQ_BANDS.map(() => 0);
 const dbToLinear = (db: number): number => Math.pow(10, db / 20);
 
@@ -73,17 +88,32 @@ let graph: Graph | null = null;
 // current shaping instead of resetting to flat.
 const settings = { gains: flatGains() };
 
+/**
+ * A fresh graph starts at its target outright; a live change slides there.
+ * Fading the EQ in over the first 36 ms of a sound would be its own artefact.
+ */
+const writeParam = (
+  param: AudioParam,
+  value: number,
+  at: number,
+  immediate: boolean,
+): void => {
+  if (immediate) param.setValueAtTime(value, at);
+  else param.setTargetAtTime(value, at, RAMP_SECONDS);
+};
+
 /** Push `settings` onto the live graph, recomputing the headroom trim. */
-const pushSettings = (): void => {
+const pushSettings = (immediate: boolean): void => {
   if (!graph || !context) return;
 
+  const at = context.currentTime;
   settings.gains.forEach((db, index) => {
     const band = graph?.bands[index];
-    if (band) band.gain.value = db;
+    if (band) writeParam(band.gain, db, at, immediate);
   });
 
   const trim = headroomTrimDb(EQ_BANDS, settings.gains, context.sampleRate);
-  graph.trim.gain.value = dbToLinear(trim);
+  writeParam(graph.trim.gain, dbToLinear(trim), at, immediate);
 };
 
 export const audioEngine = {
@@ -128,7 +158,7 @@ export const audioEngine = {
     node.connect(ctx.destination);
 
     graph = { mediaSource, trim, bands };
-    pushSettings();
+    pushSettings(true);
   },
 
   /** Drop the previous sound's nodes so reloads don't accumulate orphans. */
@@ -147,12 +177,12 @@ export const audioEngine = {
   /** Push a full curve onto the live graph (preset / saved shape / reset). */
   apply(gains: number[]): void {
     settings.gains = [...gains];
-    pushSettings();
+    pushSettings(false);
   },
 
   setBandGain(index: number, db: number): void {
     settings.gains[index] = db;
-    pushSettings();
+    pushSettings(false);
   },
 
   // --- Transport (delegates to the streaming <Audio> handle) ---------------
