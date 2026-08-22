@@ -1047,7 +1047,17 @@ export function PlayerSheet() {
           ? null
           : presetSummary,
       rate === 1 ? null : rateLabel(rate),
-      keepPitch ? null : t('player.shape.pitchOff'),
+      // THE PITCH NOTE FOLLOWS THE RULE ABOVE, so it inverted when the default
+      // did. It used to read "pitch off", because keeping pitch was the
+      // default; keeping it is the deliberate choice now (see `keepPitch` in
+      // the store — the stretcher is what sounds grainy), so "pitch kept" is
+      // the exception worth printing.
+      //
+      // AND IT IS SILENT AT 1×, at either setting: there the engine passes the
+      // audio through untouched, so the switch describes nothing that is
+      // happening. A note that appears on a sound nobody has sped up is exactly
+      // the "Flat · 1×" noise this summary was rebuilt to stop.
+      rate === 1 || !keepPitch ? null : t('player.shape.pitchKept'),
     ]
       .filter(Boolean)
       .join(' · ') || t('player.shape.none');
