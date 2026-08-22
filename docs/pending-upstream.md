@@ -396,9 +396,12 @@ library.
 music now, via `patches/react-native-audio-api/` (see its README): the
 library's `WsolaTimeStretcher` internals are replaced with a phase vocoder —
 vendored [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch),
-MIT — behind the class's unchanged public surface. The two workarounds retired
-with it the same day: `keepPitch` defaults to **on** again, and the shape
-summary's pitch chip inverted back to "pitch off". What remains upstream-bound
+MIT — behind the class's unchanged public surface. **Device-verified on a real
+iPhone the same day**, across several tracks, several presets and the whole
+0.5–1.5× range — the listening test is what actually closes this, the numbers
+below only found it. The two workarounds retired with it: `keepPitch` defaults
+to **on** again, and the shape summary's pitch chip inverted back to
+"pitch off". What remains upstream-bound
 is getting the fix (or any music-grade path) into the library so the patch can
 be deleted: the issue text is ready in
 [`upstream-issue-wsola-draft.md`](upstream-issue-wsola-draft.md) and needs

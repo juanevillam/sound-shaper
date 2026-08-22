@@ -476,6 +476,14 @@ postinstall (`scripts/apply-patches.mjs`), so it survives `npm ci` and
 rebuild, not a Metro reload. If the patch is ever retired without an upstream
 fix, the off default and the inverted chip come back with it.
 
+**IT WAS SIGNED OFF ON HARDWARE, NOT ON THE NUMBERS.** The click-train
+measurements are what proved WSOLA unfixable and what the upstream issue
+carries, but they could only ever say "the transients are where they belong" —
+whether music SOUNDS right is a listening test, and this one passed on a real
+iPhone (2026-08-22, several tracks × several presets × the full 0.5–1.5×
+range). Keep that order for any future DSP change here: measure to find the
+defect, listen to close it.
+
 **Flipping the switch AUTOMATICALLY at rate ≠ 1 was proposed while the
 stretcher was broken and stays rejected** —
 see [`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
