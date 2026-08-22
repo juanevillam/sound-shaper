@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, StyleSheet, View } from 'react-native';
 
 import { Section } from '@expo/ui/swift-ui';
 import {
@@ -85,20 +85,60 @@ function EditSoundSheetScreen() {
    * one already saved — it is the most recent thing the person said.
    */
   const [pickedCover, setPickedCover] = useState<PickedCover | null>(null);
-  const artPreviewUri =
-    pickedCover?.uri ??
-    (tags?.picture
-      ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
-      : editingSound?.artUrl || undefined);
+  /**
+   * ARTWORK IS OPTIONAL, AND SAYING SO OUTRANKS BOTH OF THE ABOVE. A library
+   * that takes any MP3 holds ringtones and voice memos; a person may also want
+   * the file's own baked-in picture GONE rather than swapped. Neither was
+   * expressible — art arrived from the ID3 tag or the picker and could only
+   * ever be replaced.
+   */
+  const [artCleared, setArtCleared] = useState(false);
+  const artPreviewUri = artCleared
+    ? undefined
+    : (pickedCover?.uri ??
+      (tags?.picture
+        ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
+        : editingSound?.artUrl || undefined));
 
   const onPickCover = () => {
-    if (isSaving) return;
-
     void pickCover()
       .then(picked => {
-        if (picked) setPickedCover(picked);
+        if (picked) {
+          setPickedCover(picked);
+          setArtCleared(false);
+        }
       })
       .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
+  };
+
+  // One answer with no artwork, two with it — Topper's item editor makes the
+  // same split for the same reason, and this is the same job.
+  const openMediaChooser = () => {
+    if (isSaving) return;
+
+    if (!artPreviewUri) {
+      onPickCover();
+      return;
+    }
+
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [
+          t('soundEdit.art.change'),
+          t('soundEdit.art.remove'),
+          t('common.cancel'),
+        ],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
+      },
+      index => {
+        if (index === 0) onPickCover();
+        else if (index === 1) {
+          setPickedCover(null);
+          setArtCleared(true);
+        }
+      },
+    );
   };
 
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
@@ -151,6 +191,10 @@ function EditSoundSheetScreen() {
         artist: trimmedArtist,
         name: trimmedName,
         soundId,
+        // `null` CLEARS the artwork; omitted, it leaves it alone. Clearing is
+        // a plain field write with no upload in front of it, so it keeps the
+        // metadata path's instant close and trailing snackbar.
+        ...(artCleared ? { cover: null } : {}),
       })
         .then(() => showSnackbar(t('snackbar.sound-updated')))
         .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
@@ -173,9 +217,13 @@ function EditSoundSheetScreen() {
       await createSound({
         artist: trimmedArtist,
         cover: picked,
-        art: tags?.picture
-          ? { base64: tags.picture.base64, mime: tags.picture.mime }
-          : null,
+        // The file's own picture is a DEFAULT, not a fact: removing it in the
+        // sheet has to stop it being uploaded at all, not upload it and hide
+        // it.
+        art:
+          tags?.picture && !artCleared
+            ? { base64: tags.picture.base64, mime: tags.picture.mime }
+            : null,
         localAudioUri: pickedFile.uri,
         name: trimmedName,
       });
@@ -262,7 +310,7 @@ function EditSoundSheetScreen() {
           <SheetFormMediaIos>
             <View style={styles.mediaSlot}>
               <MediaPickerAvatar
-                onPress={onPickCover}
+                onPress={openMediaChooser}
                 accessibilityLabel={t('common.pickMedia')}
                 disabled={isSaving}
                 // THE EMPTY-MEDIA MATERIAL, not a hand-picked pair. This drew

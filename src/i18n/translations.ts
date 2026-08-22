@@ -142,6 +142,9 @@ export const translations = {
       art: {
         add: 'Add Artwork',
         change: 'Change Artwork',
+        // Artwork is optional — a ringtone or a voice memo has none, and the
+        // picture a file was shipped with is not one the person has to keep.
+        remove: 'Remove Artwork',
       },
       uploading: 'Uploading sound…',
       save: 'Add',
@@ -414,6 +417,7 @@ export const translations = {
       art: {
         add: 'Añadir ilustración',
         change: 'Cambiar ilustración',
+        remove: 'Quitar ilustración',
       },
       uploading: 'Subiendo el sonido…',
       save: 'Añadir',
@@ -686,6 +690,7 @@ export const translations = {
       art: {
         add: '添加插图',
         change: '更换插图',
+        remove: '移除插图',
       },
       uploading: '正在上传音频…',
       save: '添加',
