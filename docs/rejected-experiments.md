@@ -409,5 +409,9 @@ control ever moving on its own, and preserving pitch left reachable as the
 deliberate choice it should be. "Auto-off the first time only" is this, with a
 moving switch and extra steps.
 
-**What would retire this entry** is fixing the stretcher rather than routing
-around it; that is logged in [`pending-upstream.md`](pending-upstream.md).
+**The stretcher was fixed the next day** (2026-08-22:
+`patches/react-native-audio-api/` swaps the WSOLA for a phase vocoder — see
+`pending-upstream.md`), and the off default retired with it: `keepPitch`
+defaults to on again. The auto-off idea above stays rejected — every reason it
+died is about a control moving on its own and a saved value lying, none of
+which the stretcher's quality ever changed.
