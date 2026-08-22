@@ -451,41 +451,44 @@ drift this repo hates, but nothing Android is installed or run. Re-check
 `EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
 was deliberately NOT touched: it displays stored data and its screen is frozen.
 
-**PRESERVING PITCH IS THE OPT-IN, BECAUSE THE STRETCHER IS GRAINY** (2026-08-21).
-`keepPitch` defaults to **off**. Changing the speed with it on sounded gritty —
-Juan's word was "rocky, as in stones" — and the reason is which of three paths
-the engine takes, in `chooseFillMode()` in react-native-audio-api's
-`AudioFileSourceNode`:
+**PRESERVING PITCH IS THE DEFAULT AGAIN, BECAUSE THE STRETCHER IS FIXED**
+(2026-08-22). `keepPitch` defaults to **on**, the way every Apple speed control
+works. The engine takes one of three paths, in `chooseFillMode()` in
+react-native-audio-api's `AudioFileSourceNode`:
 
 | state                  | path          | sound                                   |
 | ---------------------- | ------------- | --------------------------------------- |
 | preserve on, rate 1×   | `Passthrough` | untouched — why normal playback is fine |
 | preserve off           | `Resample`    | varispeed, clean, a record played fast  |
-| preserve on, rate ≠ 1× | `Wsola`       | the grainy one                          |
+| preserve on, rate ≠ 1× | `Wsola`       | the time-stretcher                      |
 
-WSOLA splices grains and overlap-adds them, and the library's is voice-grade:
-`OLA_WINDOW_MS = 20` with its similarity search decimated 12× (`SEARCH_DECIMATION`
-in `dsp/WsolaTimeStretcher.h`). On dense music the splice lands mid-transient and
-every grain is audible as a separate stone. So the FIRST speed change anybody
-makes has to sound clean, and a constant key is the choice you go and make.
+That third path was the library's own WSOLA, voice-grade, and on music every
+grain splice was audible ("rocky, as in stones") — which is why `keepPitch`
+spent 2026-08-21→22 defaulting to off. The artifact was measured to be
+inherent to WSOLA, not tunable (every window/search/decimation variant doubled
+or dropped transients), so **`patches/react-native-audio-api/` replaces the
+stretcher's internals with a phase vocoder** (vendored Signalsmith Stretch,
+same class, same API — read that README before touching it, and
+[`../../docs/pending-upstream.md`](../../docs/pending-upstream.md) for the
+measurements and the upstream issue). The patch is applied by the root
+postinstall (`scripts/apply-patches.mjs`), so it survives `npm ci` and
+`prebuild --clean`; it is C++ in the pod, so changing it needs a native
+rebuild, not a Metro reload. If the patch is ever retired without an upstream
+fix, the off default and the inverted chip come back with it.
 
-**Flipping the switch AUTOMATICALLY at rate ≠ 1 was the proposal and is worse** —
+**Flipping the switch AUTOMATICALLY at rate ≠ 1 was proposed while the
+stretcher was broken and stays rejected** —
 see [`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
-The short version: it turns the setting off exactly where it is the only thing
-that does anything.
+The short version: a control that moves on its own, and a shape that stores a
+choice nobody made.
 
-**THE SHAPE SUMMARY'S PITCH NOTE INVERTED WITH THE DEFAULT**, because that
-summary states what is NOT default and nothing else (below). It read "pitch off";
-it reads **"pitch kept"** now. It is also silent at 1× at EITHER setting — the
-engine passes the audio through untouched there, so the switch describes nothing
-that is happening, and a note on a sound nobody has sped up is the "Flat · 1×"
-noise the summary was rebuilt to stop.
-
-**The grain itself is a separate job** and is logged in
-[`../../docs/pending-upstream.md`](../../docs/pending-upstream.md): those
-constants are hardcoded C++ in the library, so tuning them needs a patch plus a
-listening test. If it is ever fixed, revisit this default and that chip — both
-are workarounds and neither should outlive the bug.
+**THE SHAPE SUMMARY'S PITCH NOTE INVERTS WITH THE DEFAULT**, because that
+summary states what is NOT default and nothing else (below). It has now
+inverted twice and reads **"pitch off"** (varispeed is the exception worth
+printing). It is also silent at 1× at EITHER setting — the engine passes the
+audio through untouched there, so the switch describes nothing that is
+happening, and a note on a sound nobody has sped up is the "Flat · 1×" noise
+the summary was rebuilt to stop.
 
 **THE HEADROOM TRIM IS AUTOMATIC, AND THERE IS NO MANUAL PREAMP** (2026-08-22).
 The graph is `mediaSource → trim(gain) → 5 biquads → destination`, and the trim
