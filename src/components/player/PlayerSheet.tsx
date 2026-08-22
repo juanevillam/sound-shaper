@@ -331,7 +331,7 @@ function BannerProgressFill({ color }: { color: string }) {
 }
 
 export function PlayerSheet() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   // Android hands back a bottom inset of 0 on some cold starts, resumes and
@@ -1046,7 +1046,7 @@ export function PlayerSheet() {
         : activePreset === 'flat'
           ? null
           : presetSummary,
-      rate === 1 ? null : rateLabel(rate),
+      rate === 1 ? null : rateLabel(rate, locale),
       // THE PITCH NOTE FOLLOWS THE RULE ABOVE, so it inverted when the default
       // did. It used to read "pitch off", because keeping pitch was the
       // default; keeping it is the deliberate choice now (see `keepPitch` in

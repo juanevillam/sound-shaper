@@ -67,7 +67,7 @@ export type ShaperSheetProps = {
 };
 
 export function ShaperSheet({ onClose }: ShaperSheetProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useAppTheme();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
 
@@ -309,7 +309,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               {t('player.speed')}
             </Text>
             <Text color={colors.onSurface} style={{ typography: 'labelLarge' }}>
-              {rateLabel(rate)}
+              {rateLabel(rate, locale)}
             </Text>
           </Row>
           <Slider

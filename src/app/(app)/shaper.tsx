@@ -71,7 +71,7 @@ const SHAPE_NAME_MAX = 24;
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 function ShaperSheetScreen() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
 
@@ -320,7 +320,7 @@ function ShaperSheetScreen() {
             <HStack>
               <SwiftUIText>{t('player.speed')}</SwiftUIText>
               <Spacer />
-              <SwiftUIText>{rateLabel(rate)}</SwiftUIText>
+              <SwiftUIText>{rateLabel(rate, locale)}</SwiftUIText>
             </HStack>
           }
         >
