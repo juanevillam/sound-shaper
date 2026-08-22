@@ -56,6 +56,33 @@ tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
 run:android` does NOT restore it → `SDK location not found`. Recreate:
   `sdk.dir=/Users/juanevillam/Library/Android/sdk`.
 
+## `patches/` — a dependency's source, overlaid on every install
+
+One dependency is patched: `react-native-audio-api`, whose time-stretcher is
+swapped for a phase vocoder (see
+[`../patches/react-native-audio-api/README.md`](../patches/react-native-audio-api/README.md)).
+What to know before it surprises you:
+
+- **It applies from the root `postinstall`**, so `npm install`, `npm ci` and CI
+  all get it. `patches/<package>/` is a plain mirror of that package's tree,
+  copied over `node_modules` by `scripts/apply-patches.mjs` — not a diff.
+- **`npm ci` never loses it, and neither does `prebuild --clean`** (pods compile
+  out of `node_modules`, already patched by then).
+- **A bump fails the install on purpose.** Each overlay pins its version in
+  `patch.json`; anything else exits non-zero naming the package and its README.
+  That is the re-verification prompt, not a bug. If upstream fixed the problem,
+  delete the overlay instead of rebasing it.
+- **Patched C++ compiles into the pod, so a Metro reload proves nothing** — the
+  same trap as any native change. Rebuild, then confirm the patched code
+  actually shipped rather than assuming: `nm -a <App>.app/<App> | grep -c
+<symbol-only-the-patch-introduces>` reads the installed binary. It is how the
+  phase vocoder was confirmed present on the phone (112 hits) rather than
+  inferred from "Build Succeeded".
+- **patch-package does NOT work here** and adding it back will waste an hour:
+  it refuses to diff a package containing symlinks, and this one ships
+  macCatalyst xcframework symlinks. `--include` / `--exclude` do not narrow the
+  scan enough to matter.
+
 ## CocoaPods — "no such module X" is usually a corrupt cache
 
 Seen on Topper (FirebaseSessions → GoogleDataTransport, exit 65): a corrupt

@@ -661,9 +661,10 @@ player): a streaming `<Audio>` element routed through a Web-Audio shaping
 graph — an automatic headroom trim + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
 `src/lib/eqResponse.ts`,
 `src/components/player/AudioEngine.tsx`, shaper settings in
-`src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch (an opt-in,
-defaulting OFF — see the stretcher note above), clips (personal replay
-bookmarks), and background playback via the plugin's media foreground service.
+`src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch (ON by default,
+over a patched stretcher — see the stretcher note above), clips (personal
+replay bookmarks), and background playback via the plugin's media foreground
+service.
 
 Deliberate gaps, in build order: lock-screen now-playing metadata, and
 Cloudinary media on account deletion (the audio and artwork orphan — deleting
