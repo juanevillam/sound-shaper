@@ -9,6 +9,7 @@ import {
   TROPHY_IDS,
 } from '@/constants/trophies';
 import { useListeningStore } from '@/store/listening';
+import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useShapesStore } from '@/store/shapes';
 import { useSoundsStore } from '@/store/sounds';
@@ -30,10 +31,15 @@ export const useTrophyTriggers = () => {
   const shapes = useShapesStore(state => state.shapes);
   const listened = useListeningStore(state => state.seconds);
 
-  // Shaping is "not flat any more", whichever way you got there: a preset, a
-  // dragged band, or a saved shape applied.
+  // Shaping is "not default any more", whichever way you got there: a preset, a
+  // dragged band, a saved shape applied, or the speed moved off 1×. Rate counts
+  // because this app already treats it as shaping everywhere else — the Shape
+  // summary prints it, and `createShape` stores it beside the gains — so the
+  // trophy's own copy promises it. It lives in the player store, not the
+  // shaper's, which is the only reason it was missing here.
   const gains = useShaperStore(state => state.gains);
   const activeShapeId = useShaperStore(state => state.activeShapeId);
+  const rate = usePlayerStore(state => state.rate);
 
   useEffect(() => {
     if (!hydrated || !hasSettled) return;
@@ -43,7 +49,8 @@ export const useTrophyTriggers = () => {
     if (shapes.length >= SAVED_SHAPE_COUNT) awardTrophy(TROPHY_IDS.savedShapes);
     if (listened >= LISTENING_MINUTES * 60) awardTrophy(TROPHY_IDS.listening);
 
-    const shaped = activeShapeId !== null || gains.some(gain => gain !== 0);
+    const shaped =
+      activeShapeId !== null || rate !== 1 || gains.some(gain => gain !== 0);
     if (shaped) awardTrophy(TROPHY_IDS.firstShape);
   }, [
     activeShapeId,
@@ -51,6 +58,7 @@ export const useTrophyTriggers = () => {
     hasSettled,
     hydrated,
     listened,
+    rate,
     shapes.length,
     sounds.length,
   ]);
