@@ -487,6 +487,122 @@ constants are hardcoded C++ in the library, so tuning them needs a patch plus a
 listening test. If it is ever fixed, revisit this default and that chip — both
 are workarounds and neither should outlive the bug.
 
+**THE HEADROOM TRIM IS AUTOMATIC, AND THERE IS NO MANUAL PREAMP** (2026-08-22).
+The graph is `mediaSource → trim(gain) → 5 biquads → destination`, and the trim
+is COMPUTED FROM THE CURVE by `headroomTrimDb` (`src/lib/eqResponse.ts`), never
+chosen by hand.
+
+It replaced a manual `preamp` dB setting that **had no UI on either platform** —
+no slider, no row, and its `player.eq.preamp` string was never rendered in any of
+the three languages. It could only ever be 0, so the chain shipped with no
+headroom protection at all. A second, hand-driven preamp beside the automatic one
+would only raise the question of which is which, so there is one gain node and
+one meaning for it.
+
+Measured on device (iPhone 17 / iOS 26.5, "Immortals", a 2014 master that already
+peaks at **+0.03 dBFS** through the flat chain):
+
+| chain                                    | output peak    |
+| ---------------------------------------- | -------------- |
+| flat                                     | +0.03 dBFS     |
+| old `bass` [9, 5, 0, 0, 1], no trim      | **+6.05 dBFS** |
+| new `bass` [3, 2, 0, -1, -2] + auto trim | **-3.55 dBFS** |
+
+Six dB over full scale, sustained for a whole track. That is the crunch, and it
+is what a graphic EQ with no trim does to anything mastered after about 1995.
+
+**THE TRIM IS THE CURVE'S PEAK PLUS 1.5 dB, AND THE MARGIN IS NOT A FUDGE.**
+Filtering does not preserve sample peak — it shifts phase, which changes the crest
+factor — so the output can land ABOVE the maximum of the magnitude response.
+Measured against a limited master and pink noise, `treble` overshot its own
+theoretical bound by 0.26 dB and `bright` by 0.58, and a curve that only CUTS
+([-3, -7, -9, -6, -6], response peak -2.30 dB) still raised the sample peak by
+0.32. That last case is why the margin applies to EVERY non-flat curve and not
+only to boosts. A perfectly flat curve takes NO trim, so the chain stays
+bit-transparent when nobody has shaped anything.
+
+**PEAK-SAFE AND LOUDNESS-MATCHED ARE IN DIRECT CONFLICT, and "let the automatic
+trim do the loudness matching" makes it WORSE.** After a peak trim the net
+loudness is `loudness − peak`, and a weighted average is never above a maximum,
+so every shaped preset ends up quieter than flat — and the more shaped it is, the
+quieter it gets. Trimming the OLD boost-only presets would have spread them from
+0 to **-7.22 LU** (K-weighted per ITU-R BS.1770 over pink noise), worse than the
+3.38 LU they started with.
+
+The fix is in the CURVES, not the trim: every preset is now a TILT around unity —
+the characteristic end up, the far end down — so it asks for far less headroom
+while saying the same thing tonally. The five shaped presets now sit within
+**0.86 LU** of each other, under the ~1 LU nobody can hear, and none of them
+clips. Flat stays at 0 and is deliberately NOT pulled down to join them:
+attenuating a sound nobody has touched would be its own defect.
+
+**A LOW SHELF IS THE EXPENSIVE BAND.** It costs its full boost in headroom and
+buys almost no loudness back, because K-weighting discounts everything under
+~100 Hz. That is why `bass` is +3 and not +9 — the tilt does the work, not the
+number. Preset gains must also stay WHOLE dB: the sliders step by 1 and
+`matchPreset` compares exactly, so a fractional gain is a preset the chip can
+never show as selected.
+
+**EVERY PARAMETER MOVE IS SCHEDULED, NEVER WRITTEN.** `band.gain.value = db` is a
+step discontinuity in the signal: measured at **30.9x** the natural
+sample-to-sample slew of a 100 Hz tone on a preset change, and **19.1x** while
+dragging a band in 1 dB steps. Both return to ~1x — i.e. gone — with
+`setTargetAtTime` at a **12 ms** time constant, which is ~95% settled in 36 ms, so
+dragging still feels live. The same constant drives the trim, which was verified
+rather than assumed: a flat→bass switch on a limited master peaks at -0.40 dBFS
+mid-transition, so the trim never lags the boost it is compensating. A fresh graph
+still takes its values outright (`setValueAtTime`) — fading the EQ in over the
+first 36 ms of a sound would be its own artefact.
+
+**SAVED SHAPES SOUND THE SAME BUT PLAY QUIETER.** A shape stores its own `gains`
+(plus `rate` and `keepPitch`), never a preset name, so nothing in Firestore
+changed and no migration is needed. Its TONE is untouched; it now plays at its own
+trim below where it used to, which is the difference between a shape that clipped
+and one that does not. A shape saved from the old `bass` also no longer matches
+the `bass` chip — `matchPreset` compares gains exactly — so it shows as a custom
+curve, which is what it now is.
+
+**Two things about the library that are easy to assume wrong**, both read out of
+its C++ rather than guessed:
+
+- **Shelves ignore Q entirely.** `getLowshelfCoefficients(frequency, gain)` takes
+  no Q argument at all — the slope is hardcoded S = 1. Declaring `q` on the 80 Hz
+  or 12 kHz band would do nothing, which is why neither does.
+- **The peaking bands DO overlap and sum.** At Q = 1 their skirts run ~1.4 octaves
+  and 250 / 1k / 4k sit 2 octaves apart, so all five sliders at +12 measures
+  **+13.97 dB**, not +12. (The old `bass` was the opposite case and the brief's
+  premise for it was wrong: its shelf and peak barely interact, so [9, 5, 0, 0, 1]
+  peaks at +8.99 dB — just under the shelf's own +9, not above it.)
+
+**There is no compressor, but there IS a `createWaveShaper`.** The library has no
+`DynamicsCompressorNode`, so a true limiter is unavailable — but a static soft-clip
+curve on a `WaveShaperNode` would catch the residual, and the residual is real: a
+1.5 dB margin covers ~89% of plausible hand-dragged curves, not all of them, and a
+pathological one can still overshoot by ~1 dB. It was NOT built, because covering
+that tail with trim alone would cost ~4 dB of level on every shaped sound to
+protect against curves nobody sets. **Build the waveshaper before raising the
+margin.**
+
+**THE ENGINE IS SHARED BY BOTH TWINS, AND ANDROID IS UNVERIFIED.**
+`src/lib/audioEngine.ts`, `src/lib/eqResponse.ts` and `src/store/shaper.ts` carry
+no platform split, so Android got the automatic trim, the scheduled parameters and
+the new preset curves the moment iOS did — and nothing Android is installed or run
+(see the root `AGENTS.md` freeze). The DSP is platform-independent, but Compose's
+`ShaperSheet.tsx` has never been seen against the new curves; re-check it on
+device when Android resumes.
+
+**How to re-measure**, because these numbers are the whole argument. There is no
+meter in the app and no dev flag for one — `flags.ts` has ONE switch and will not
+get a second. Tap the graph's output with an `AnalyserNode` (`ctx.createAnalyser()`,
+inserted between the last band and `destination` so it is actually pulled), hold
+the running max of `getFloatTimeDomainData`, and read it from a temporary row in
+the Shape form; delete it afterwards. Mind the sampling caveat: a polled analyser
+sees roughly a fifth of the samples, which is ample for a sustained clip and
+useless for catching a few-sample click. The click figures above therefore come
+from an offline port of the library's own `BiquadFilterNode.cpp` (Direct Form 1,
+k-rate gain per 128-sample quantum, a-rate gain node), which sees every sample and
+agrees with the shipped `peakResponseDb` to 0.05 dB.
+
 **Home's iOS header is the SYSTEM large title**, not the shared
 `CollapsingHeaderBar` (Android still uses that). The one thing it costs is
 spelled out in `home.tsx`: the bar EMPTIES while the player is expanded rather
@@ -522,7 +638,8 @@ assets (a known gap, exactly Topper's pre-Functions state).
 
 Playback runs on **react-native-audio-api** (expo-audio is gone from the
 player): a streaming `<Audio>` element routed through a Web-Audio shaping
-graph — preamp + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
+graph — an automatic headroom trim + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
+`src/lib/eqResponse.ts`,
 `src/components/player/AudioEngine.tsx`, shaper settings in
 `src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch (an opt-in,
 defaulting OFF — see the stretcher note above), clips (personal replay
