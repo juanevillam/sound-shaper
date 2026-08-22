@@ -161,6 +161,21 @@ function ShaperSheetScreen() {
     foregroundStyle(colors.onSurfaceMuted),
   ];
 
+  /**
+   * MONOCHROME FILLS, the same conversion `PlayerScrubber.ios.tsx` already
+   * made. A slider's played portion says the same thing its thumb position
+   * says, so the colour there carries nothing — it was blue only because
+   * `SheetFormBodyIos` tints the whole `Form` `primary`, and a `Slider` picks
+   * that up along with everything else.
+   *
+   * OVERRIDDEN PER SLIDER RATHER THAN AT THE FORM, because that Form tint is
+   * load-bearing for the two controls above: the Presets row is a menu
+   * picker whose VALUE is tinted on Apple's own authority (Settings does it to
+   * Language and Appearance), and a saved shape's checkmark marks SELECTION.
+   * Dropping the tint at the top would repaint both.
+   */
+  const sliderInk = [tint(colors.onSurface)];
+
   return (
     // `SheetScreen` for the toast — see `SnackbarOutlet`. Saving or deleting a
     // shape confirms with a snackbar, and from inside a sheet that message drew
@@ -286,6 +301,7 @@ function ShaperSheetScreen() {
                 {band.label}
               </SwiftUIText>
               <Slider
+                modifiers={sliderInk}
                 value={gains[index]}
                 min={EQ_MIN_DB}
                 max={EQ_MAX_DB}
@@ -325,6 +341,7 @@ function ShaperSheetScreen() {
           }
         >
           <Slider
+            modifiers={sliderInk}
             value={rate}
             min={RATE_MIN}
             max={RATE_MAX}
