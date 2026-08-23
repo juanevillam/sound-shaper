@@ -68,6 +68,26 @@ export type AppColors = {
   tertiary: string;
   onTertiary: string;
   danger: string;
+  /**
+   * A SWITCH'S ON STATE, and it is a PLATFORM SEMANTIC rather than the accent.
+   *
+   * iOS reads green as "on" everywhere Apple draws a switch — Settings and
+   * every UIKit `UISwitch` — and RN's own `Switch` already IS a `UISwitch`, so
+   * this is the value it shows without being told. A SwiftUI `Toggle` is the
+   * odd one out: it takes the ambient accent, which inside our tinted `Form`
+   * meant blue, so it has to be told.
+   *
+   * It sits in the same class as `danger`, not in the same class as `primary`:
+   * red means destructive, green means on, and neither is brand colour the
+   * monochrome rule has any claim over. Two monochrome alternatives were
+   * rendered and rejected first — `onSurface` is a solid white blob in dark
+   * (the knob is white and fixed) and a mid grey reads as neither state.
+   *
+   * ANDROID MAPS TO `primary` because a Compose `Switch` draws its own thumb
+   * and track from the Material scheme; nothing there reads this token, and a
+   * hardcoded green would be a lie about what that platform shows.
+   */
+  switchOn: string;
   // M3 container / on-container pairs — the decorative palette used by
   // showcase demos (colored boxes, carousel pages, list rows).
   primaryContainer: string;
@@ -117,6 +137,8 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     tertiary: m.tertiary,
     onTertiary: m.onTertiary,
     danger: m.error,
+    // A Compose `Switch` draws itself from the scheme — see the token's note.
+    switchOn: m.primary,
     primaryContainer: m.primaryContainer,
     onPrimaryContainer: m.onPrimaryContainer,
     secondaryContainer: m.secondaryContainer,
@@ -184,6 +206,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#AF52DE',
     onTertiary: '#FFFFFF',
     danger: '#FF3B30',
+    switchOn: '#34C759', // systemGreen, light
     primaryContainer: '#CCE4FF',
     onPrimaryContainer: '#00428C',
     secondaryContainer: '#E5E5EA',
@@ -217,6 +240,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#BF5AF2',
     onTertiary: '#FFFFFF',
     danger: '#FF453A',
+    switchOn: '#30D158', // systemGreen, dark
     primaryContainer: '#0D3A66',
     onPrimaryContainer: '#A8CFFF',
     secondaryContainer: '#2C2C2E',
@@ -253,6 +277,8 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#7D5260',
     onTertiary: '#FFFFFF',
     danger: '#B3261E',
+    // A Compose `Switch` draws itself from the scheme — see the token.
+    switchOn: '#6750A4',
     primaryContainer: '#EADDFF',
     onPrimaryContainer: '#21005D',
     secondaryContainer: '#E8DEF8',
@@ -286,6 +312,8 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#EFB8C8',
     onTertiary: '#492532',
     danger: '#F2B8B5',
+    // A Compose `Switch` draws itself from the scheme — see the token.
+    switchOn: '#D0BCFF',
     primaryContainer: '#4F378B',
     onPrimaryContainer: '#EADDFF',
     secondaryContainer: '#4A4458',
