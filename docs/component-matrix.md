@@ -296,6 +296,19 @@ Other standing exceptions:
   the remote URL to expo-image's DISK CACHE path and hand `Image` a `file://` via
   `uiImage`, prefetching through expo-image so both stacks share one cache. A
   plain child of the `List` (not inside the `ForEach`) can still bridge normally.
+- **`listSectionSpacing` on a `Section` sets the gap on BOTH SIDES of it, and
+  that is how a fix becomes a defect.** Sound Shaper's Shape sheet handed 22 back
+  to the section after a footer; SwiftUI added it above AND clamped the boundary
+  below from the default 35.00 to 22.00, which is the one thing on that sheet
+  Juan caught by eye. **A section boundary is the platform's — measure Apple
+  before handing anything back.** Measured on iPhone 17 / iOS 26.5, both
+  appearances: card to card **35.00** (our account sheet, twice), card bottom to
+  the next header's ink **32.33** (Settings > Accessibility, three boundaries) and
+  **31.00** ours, a card's bottom to its OWN footer ink **10.00** Apple against
+  **10.67** ours, and that footer's ink to the next card **25.66** (Settings >
+  Accessibility > Motion, which is three headerless sections each carrying a
+  footer — the exact case). A footer's INK is not its section's edge: it belongs
+  to the section above and is supposed to occupy that space.
 - **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
   `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
   puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail

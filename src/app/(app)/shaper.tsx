@@ -11,7 +11,6 @@ import {
   font,
   foregroundStyle,
   frame,
-  listSectionSpacing,
   pickerStyle,
   tag,
   tint,
@@ -81,14 +80,6 @@ function ShaperSheetScreen() {
         return t('player.eq.presets.flat');
     }
   };
-
-  /**
-   * ADDED to the existing separation, not the total — verified by measurement:
-   * passing 44 produced a 66pt gap on a boundary that already had 22. So this
-   * is the 22 a footer eats, handed back, landing the boundary on the same 44
-   * a card-to-header one has. See the note on the Playback Speed section.
-   */
-  const SECTION_AFTER_FOOTER_SPACING = 22;
 
   const mutedText = [
     font({ textStyle: 'footnote' }),
@@ -169,17 +160,27 @@ function ShaperSheetScreen() {
           ))}
         </Section>
 
-        {/* A SECTION THAT FOLLOWS A FOOTER LOSES HALF ITS SEPARATION.
-          Band-scanned on iPhone 17 / iOS 26.5: a card-to-header boundary runs
-          44pt from the card's edge to the header's ink, while this one — footer
-          ink to header ink — ran 22. SwiftUI puts the footer INSIDE the previous
-          section's box and then applies its standard spacing, so the footer's
-          own line eats the gap the header would otherwise have had.
+        {/* EVERY BOUNDARY IN THIS FORM IS THE PLATFORM'S OWN, and the one
+          override that used to sit here is gone (2026-08-22).
 
-          Restored explicitly rather than by padding the text, so the two
-          boundaries in this form are the same distance. */}
+          It read "a section that follows a footer loses half its separation"
+          and handed 22 back through `listSectionSpacing`, on the evidence that
+          a card-to-header boundary measures 31 while footer-ink to header-ink
+          measures 20.66. Those two are not comparable: a footer's INK is not
+          its section's edge — the footer belongs to the section above and is
+          supposed to occupy that space.
+
+          Apple's own Motion pane (Settings > Accessibility > Motion) is three
+          headerless sections each carrying a footer, and it measures a card's
+          bottom to its own footer ink at 10.00 and that footer's ink to the
+          next card at 25.66. Ours reads 10.67 for the first, which is the
+          platform behaviour, not a defect.
+
+          What the override DID cost was the boundary below it: SwiftUI applied
+          the 22 to both sides of this section, so Speed to Preserve Pitch came
+          to 22.00 against the family's 35.00 — the account sheet's two
+          card-to-card boundaries, measured. Juan caught that by eye. */}
         <Section
-          modifiers={[listSectionSpacing(SECTION_AFTER_FOOTER_SPACING)]}
           header={
             <HStack>
               <SwiftUIText>{t('player.speed')}</SwiftUIText>
