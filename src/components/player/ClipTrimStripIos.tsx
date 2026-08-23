@@ -19,6 +19,14 @@ import { usePlayerStore } from '@/store/player';
 
 // THE ZOOMED TRIM STRIP — clip framing over real material, Photos' way.
 //
+// AUTHORED RN, AND HERE IS THE NATIVE COMPONENT THAT WAS REJECTED: there is
+// none. UIKit's only public trimmer is `UIVideoEditorController`, a
+// video-file view controller that cannot trim an audio range in place;
+// SwiftUI and `@expo/ui` 57 ship no trim control at all (the starter
+// showcases every component — nothing trims). Photos' own trimmer is
+// private. So the strip is drawn by hand, measured against Photos, and its
+// two glyphs are still real SF Symbols in stated-box hosts.
+//
 // What this replaced was a trim frame riding the 5.67pt slider track, and the
 // defect no restyling could fix was SCALE: a fifteen-second clip is ~30pt of a
 // three-minute track, so fine trimming was impossible at any styling. This
