@@ -369,6 +369,12 @@ not.
 Shipped instead: no scrim. Two 14 × 32 caps that OVERHANG the box they bracket,
 joined by 2pt accent rails.
 
+**2026-08-23 postscript — the premise changed, the rejection stands.** The
+trimmer became a zoomed waveform strip (`ClipTrimStripIos`), which IS an opaque
+band of material — Photos' filmstrip premise — so it dims outside the selection
+legitimately (`background` washed over the bars). Do not read that as licence
+to scrim a bare slider track; the reasoning above still holds for one.
+
 ## `PRESS_SCALE` at 0.95 — TOO DEEP, 2026-08-21
 
 The portfolio's card squash was 0.97, which is 5.3pt of travel on a 178pt home

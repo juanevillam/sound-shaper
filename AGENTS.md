@@ -181,51 +181,73 @@ in the file's header; the ones worth knowing before touching it:
 - **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
   expand ramp so it exists only on the open console. 0.94 read as a rendering
   wobble, 0.82 opened a gap under the bar row.
-- **FRAMING IS A TRIM FRAME, NOT TWO SWITCHES** (2026-08-21). The iOS trimmer
-  drew a translucent accent box with two 14 × 28 rounded pills floating outside
-  it, each with a white grip bar down its middle — which at this control's real
-  size read as a pair of toggle switches sitting on the scrubber, and Juan
-  called it cheap on sight. Two faults, both structural: there was no FRAME, so
-  two caps with nothing joining them read as two objects; and the white grip is
-  what a SWITCH has. It is two 14 × 32 caps joined by 2pt accent RAILS around a
-  20pt washed box now, and there is no white left in it — so the slider's own
-  thumb stays unambiguously the playhead.
+- **FRAMING IS A ZOOMED WAVEFORM TRIM STRIP** (2026-08-23, `ClipTrimStripIos`),
+  and the two generations before it are the argument for why. The first trimmer
+  was two grip-barred pills on the slider that read as switches; the second was
+  a proper trim frame on the slider track, and its unfixable defect was SCALE —
+  a fifteen-second clip is ~30pt of a three-minute track, so fine trimming was
+  impossible at any styling. The strip is the "dedicated trim track that zooms
+  around the selection" that note asked for: real RMS bars under a Photos-style
+  frame, showing a WINDOW of `selection ± max(5s, 0.75 × clip)` instead of the
+  whole track (the same fifteen seconds now spans ~200pt), with a full-track
+  overview bar above and the slider faded out underneath. Dragging a cap into
+  the strip's edge pans the window; every crossed second ticks
+  `haptics.dragMove`; the window recomputes and recentres on release.
 
-  **THE CAPS OVERHANG THE FRAME on all four sides.** They are what you grab, so
-  they are the part that has to look grabbable; a cap flush with its own frame
-  reads as the frame's edge rather than as a handle. The box is the band's 32
-  less 6 at each end, and the caps take the whole band.
+  **THE FRAME IS MEASURED FROM PHOTOS' VIDEO TRIMMER** (iPhone 17 / iOS 26.5,
+  both appearances): frame outer 51pt, rails 5, caps ~14.7 wide with ~7pt outer
+  corners, chevron ink 6 × 24 at a 3pt stroke, outside media dimmed to ×0.67
+  luminance, playhead a ~3.3pt white line. Ours maps those onto a 44pt band:
+  rails 4, caps 14 × full band with `chevron.compact.left/right`, radius 7.
+  The caps no longer overhang the frame — that rule was the slider-band
+  premise (a cap flush with a 20pt box read as its edge) and retires with it;
+  Photos' caps are the frame's own full-height ends and so are these.
 
-  **NO SCRIM OUTSIDE THE SELECTION.** Photos dims the film either side of a
-  trim, and that was built here, measured (the elapsed track lifted from
-  near-black to (122,122,125) outside the selection) and rejected on sight. The
-  reason it fails is the thing underneath: Photos dims an opaque FILMSTRIP,
-  while this sits on a 5.67pt slider track, so the dimming reads as a mask laid
-  over the player RECOLOURING the track — with a hole in it exactly where the
-  frame is. A trim frame on a slider is already unambiguous without repainting
-  everything it is not. Two sizes were tried before that conclusion (a full 32pt
-  band, which is a pale plate over 26pt of pure artwork wash, and 8pt hugging
-  the track); the size was never the problem.
+  **THE SCRIM OUTSIDE THE SELECTION IS BACK, AND ITS 2026-08-21 REJECTION IS
+  NOT OVERTURNED — ITS PREMISE CHANGED.** The rejection was specific to
+  dimming a 5.67pt slider track, where the scrim read as a mask recolouring
+  the player. The strip is an opaque band of material, which is Photos' own
+  filmstrip premise. It is `background` washed over the bars, so "dimmed"
+  means "faded toward the page" in both appearances — the ink equivalent of
+  Photos darkening photographic media.
 
-  **ENTERING FRAMING MOVES NOTHING.** The range readout used to be its own line
-  under the elapsed/total row, appearing only while framing, so the transport
-  and the footer dropped by that line plus `CLIP_FRAMING_GAP` on the exact frame
-  the mode changed. It is absolutely centred INSIDE the elapsed/total row now —
-  a row that already exists and is already the right width — and iOS no longer
-  applies `CLIP_FRAMING_GAP` at all. Reserving the line permanently was the
-  obvious alternative and is worse: it buys the fix with ~25pt of blank on the
-  resting player, and clawing dead space back out of this console is most of why
-  it was rebuilt. Verified by band-scanning a 6-frame burst across the mode
-  change with no interaction — play glyph ink 680.00 → 703.67 and footer top
-  764.00, identical resting and framing, in both appearances.
+  **THE PLAYHEAD IS THE BARS' INVERSE, NOT THEIR INK.** Photos' line is white
+  because its media is dark; here the media IS `onSurface` ink, and an
+  `onSurface` playhead shipped invisible inside the selection on the first
+  light-mode screenshot. It is `background` with a hairline `onSurface` edge.
 
-  **What no restyling can fix is the SCALE.** Rendered at 0:24 – 0:39 on a 3:02
-  track the frame is 30.67pt wide. The mapping is correct (the overlay's origin
-  is the track's, both at the content box's 16pt edge — checked, 48.67 / 369 =
-  24 / 182), but a fifteen-second clip will always be ~30pt of the full track,
-  so fine trimming is not possible here at any styling. The real answer is a
-  dedicated trim track that zooms around the selection; that is a feature, not a
-  repaint, and it is unbuilt.
+  **ENTERING FRAMING STILL MOVES NOTHING, and the strip had to earn it.** The
+  console's column has ~72pt of flex slack, so a 52pt strip joining it would
+  drop the transport on the exact frame the mode changes. It therefore lives
+  in the same ABSOLUTE overlay the bracket band used — bottom-aligned to the
+  slider host (`IOS_SLIDER_HOST_HEIGHT`, now in `chrome.ts`), extending 20pt
+  up into the title block's own padding — and the slider FADES under it,
+  never unmounts (a remount re-runs the host's first-frame safe-area race on
+  every mode exit; `trackHidden` on `PlayerScrubberProps`). The range readout
+  stays absolutely centred inside the elapsed/total row, exactly as before.
+  Verified by band-scanning an 8-frame burst across the mode change with no
+  interaction: transport ink 654.33 and footer top 772.00, identical resting
+  and framing, strip complete on frame 1.
+
+  **THE WAVEFORM IS ITS OWN PIPELINE** (`lib/waveform.ts` + `useWaveform`),
+  because playback streams through a media element and never holds PCM:
+  download the mp3 to cache, decode NATIVELY by file path at 8 kHz
+  (`decodeAudioData` — hand it the https URL and the whole file crosses the JS
+  bridge instead), bucket to RMS at 4/s capped at 1200, persist JSON, delete
+  the mp3. Once per sound, ever. Failures resolve null and retry on the next
+  entry; the strip draws uniform placeholder bars meanwhile, so its geometry
+  never waits on the network. No Firestore field — the cache is per-device.
+
+- **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
+  box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word
+  leading, the preview play/pause glyph dead centre in an absolute slot, Save
+  as the filled brand pill trailing. What it replaced mixed four treatments in
+  one row — grey ✕, muted "New Clip" caption, tinted word, filled pill — and
+  the muted caption read as disabled text. Photos titles its trim mode
+  nowhere: the frame on the strip explains the mode, so the caption went with
+  the ✕. The glyph answers the preview's own state read at the leaf
+  (`playing && activeClip 'preview'`), so it pauses a running preview; the
+  `player.clips.new` key survives — Android's row and the Clips sheet read it.
 
 Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst with no
 interaction: bar glyph ink 79.00, artwork 119.00 (inset 62 + target 43 + gap
