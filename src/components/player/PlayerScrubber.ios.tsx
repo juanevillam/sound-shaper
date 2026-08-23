@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 
-import { type PlayerScrubberProps } from './chrome';
+import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 
 // The Host gets a FIXED height rather than matchContents: an auto-sized Host
 // inside the player's absolutely-positioned console mis-measures on first
@@ -35,7 +35,10 @@ import { type PlayerScrubberProps } from './chrome';
 // iOS one. That is also why the import is `SwiftUIHost` now: the type checker
 // resolves the BASE specifier, so a `ThemedHost` call site is checked against
 // the Compose props, where `ignoreSafeArea` does not exist.
-const SLIDER_HEIGHT = 32;
+//
+// The height itself is `IOS_SLIDER_HOST_HEIGHT` in `chrome.ts` — the console
+// positions the trim strip against it, and a value cannot be imported OUT of a
+// platform-suffixed file (see that module's header).
 
 // THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
 // row, which is already there and already the right width.
@@ -62,6 +65,7 @@ export function PlayerScrubber({
   duration,
   totalDuration,
   clipLabel,
+  trackHidden = false,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
@@ -69,7 +73,14 @@ export function PlayerScrubber({
 
   return (
     <View style={styles.block}>
-      <SwiftUIHost ignoreSafeArea="all" style={styles.host}>
+      {/* While the trim strip stands over it the track FADES, never
+          unmounts — a remount re-runs the host's first-frame safe-area race
+          (above) on every mode exit. */}
+      <SwiftUIHost
+        ignoreSafeArea="all"
+        pointerEvents={trackHidden ? 'none' : 'auto'}
+        style={[styles.host, trackHidden && styles.hostHidden]}
+      >
         <Slider
           // MONOCHROME, like every other control on this surface. A
           // now-playing screen is tinted by its ARTWORK — that is what
@@ -122,7 +133,8 @@ const styles = StyleSheet.create({
    * `monospacedDigit` does, which is what Apple sets on every running timer.
    */
   time: { fontVariant: ['tabular-nums'] },
-  host: { height: SLIDER_HEIGHT, width: '100%' },
+  host: { height: IOS_SLIDER_HOST_HEIGHT, width: '100%' },
+  hostHidden: { opacity: 0 },
   labels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
