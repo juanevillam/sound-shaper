@@ -395,7 +395,17 @@ export const WelcomeScreen = ({
                         // departs from it: the portfolio's marks and grounds
                         // are the two neutrals, and the first screen anyone
                         // sees is where that has to hold.
-                        ...(colors?.onSurface ? [tint(colors.onSurface)] : []),
+                        // Ink for the FILLED capsule; the outlined variant
+                        // keeps the accent, because a bordered button's wash
+                        // AND label both come from the tint and grey reads as
+                        // disabled. See `actionButtonModifiersIos`.
+                        ...(isOutlined
+                          ? colors?.primary
+                            ? [tint(colors.primary)]
+                            : []
+                          : colors?.onSurface
+                            ? [tint(colors.onSurface)]
+                            : []),
                         // The filled capsule does not invert its own label —
                         // see `labelColor` on `actionButtonModifiersIos`. The
                         // outlined variant takes the tint and needs nothing.
@@ -421,8 +431,8 @@ export const WelcomeScreen = ({
                             size={18}
                             // Filled (borderedProminent) labels are tinted by the
                             // system; only outlined buttons need the explicit
-                            // tint, and it is the ink now, with the capsule.
-                            tint={isOutlined ? colors?.onSurface : undefined}
+                            // tint, and it is the accent, with its capsule.
+                            tint={isOutlined ? colors?.primary : undefined}
                           />
                         ) : null}
                         <Text>{label}</Text>

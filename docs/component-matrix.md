@@ -324,8 +324,12 @@ Other standing exceptions:
   appearances.
 - **A swipe action ignores `foregroundStyle` too, and has no `labelColor`.** Its
   glyph and word are always white, so its `tint` must be dark in BOTH
-  appearances — a light fill is an empty capsule. Apple's own neutral action is
-  systemGray, the same value light and dark.
+  appearances — a light fill is an empty capsule. In practice that means it
+  keeps the accent: the greys that do satisfy it read as DISABLED.
+- **A `bordered` button takes its wash AND its label from `tint`**, so tinting it
+  with the page's ink gives grey-on-grey — again the disabled look. Only
+  `borderedProminent` can carry a monochrome fill, and only with an explicit
+  inverse label.
 - **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
   `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
   puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail

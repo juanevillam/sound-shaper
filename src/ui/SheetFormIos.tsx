@@ -423,13 +423,20 @@ export function ActionButtonIos({
         label={label}
         onPress={onPress}
         modifiers={actionButtonModifiersIos({
-          // THE ONE BUTTON IS MONOCHROME (2026-08-22). A filled CTA's colour
-          // says "this is the affirmative action", and so does being the only
-          // filled thing on the screen — the fill carries it, the hue was
-          // along for the ride. `onSurface` is black in light and white in
-          // dark, and `borderedProminent` derives its own label colour from
-          // the tint, so the label stays legible either way.
-          tintColor: colors.onSurface,
+          // MONOCHROME ONLY WHERE IT STILL READS AS A BUTTON (2026-08-22).
+          //
+          // The FILLED variant takes the ink: a solid black-in-light,
+          // white-in-dark capsule is unmistakably a control, and the fill was
+          // always what said "this is the affirmative action" — the hue was
+          // along for the ride.
+          //
+          // The BORDERED variant KEEPS THE ACCENT, because it derives BOTH its
+          // wash and its label from the tint. Inked, it renders a grey capsule
+          // with grey-ish text — which is iOS's vocabulary for DISABLED, and
+          // was rejected on sight on the item sheet, where "Edit Item" is the
+          // only action there is. See the monochrome rule's opening principle.
+          tintColor:
+            variant === 'prominent' ? colors.onSurface : colors.primary,
           labelColor: colors.background,
           variant,
           size,
