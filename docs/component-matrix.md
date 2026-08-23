@@ -322,6 +322,10 @@ Other standing exceptions:
   token. Likewise a `Toggle`'s knob is white and fixed — an `onSurface` ON track
   in dark is one solid blob; a mid grey is the monochrome that survives both
   appearances.
+- **A swipe action ignores `foregroundStyle` too, and has no `labelColor`.** Its
+  glyph and word are always white, so its `tint` must be dark in BOTH
+  appearances — a light fill is an empty capsule. Apple's own neutral action is
+  systemGray, the same value light and dark.
 - **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
   `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
   puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail
