@@ -115,7 +115,7 @@ function ClipsSheetScreen() {
           />
         </StateWrap>
       ) : (
-        <SheetFormBodyIos>
+        <SheetFormBodyIos fullHeight>
           <Section>
             {clips.map(clip => {
               const isActive = activeClip?.clipId === clip.id;
