@@ -181,74 +181,41 @@ in the file's header; the ones worth knowing before touching it:
 - **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
   expand ramp so it exists only on the open console. 0.94 read as a rendering
   wobble, 0.82 opened a gap under the bar row.
-- **FRAMING IS A WAVEFORM TRIM STRIP AT THE SLIDER'S OWN SCALE** (2026-08-23,
-  `ClipTrimStripIos`), and it took three generations to land. The first
-  trimmer was two grip-barred pills on the slider that read as switches; the
-  second was a proper trim frame on the slider track, whose recorded defect
-  was SCALE — a fifteen-second clip is ~30pt of a three-minute track. The
-  third BUILT the zoom that note asked for (`selection ± max(5s, 0.75 ×
-clip)`, edge-pan, a full-track overview bar) and **Juan rejected it the
-  same day**: the window recomputing under the drag read as the control
-  EXPANDING the more you dragged, and a trimmer has to be simple before it
-  is precise. What shipped keeps everything else — real RMS bars under a
-  Photos-style frame, the slider faded out underneath — mapped to the WHOLE
-  track, which is also what the slider under it says. The fine-trim cost is
-  knowingly accepted; do not rebuild the zoom (see
-  docs/rejected-experiments.md). The bar area is inset a cap's width each
-  side so a selection touching either end keeps its cap on screen (Photos'
-  own inset), and bars resample to a fixed 3px pitch so every track draws
-  the same calm density.
+- **FRAMING IS A TRIM FRAME ON THE REAL SLIDER** (2026-08-23,
+  `ClipTrimFrameIos`), and it took four generations in three days to land —
+  read this before proposing any of the other three again. Gen 1 was two
+  grip-barred pills that read as switches. Gen 2 was a proper frame on the
+  slider, faulted in review for SCALE (a fifteen-second clip is ~30pt of a
+  three-minute track). Gen 3 built the zoomed waveform strip that note asked
+  for — RMS bars, a window of `selection ± max(5s, 0.75 × clip)`, edge-pan,
+  an overview bar — and Juan rejected the zoom the same day ("the more i
+  drag it the more it expands"); made STATIC, the waveform still died, as
+  "two diff progress sliders… out of place" on one screen. Both are in
+  docs/rejected-experiments.md. The standing conclusion: **the player has
+  ONE progress surface and framing is a MODE of it** — the slider stays
+  visible and interactive, its thumb stays the playhead, and the fine-trim
+  cost of whole-track scale is accepted knowingly, by the person who uses
+  it.
 
-  **NO HAPTICS IN THE DRAG** — a per-second `dragMove` buzz plus
-  grab/release pulses shipped with the zoom and Juan rejected them with it
-  ("makes the clipping un-usable"): RN's `Vibration` is a buzz, not Apple's
-  detent click, and a tick per crossed second is nearly continuous at
-  whole-track scale. Save keeps its one `haptics.selection()` at the save
-  site.
+  What survived every generation is the FRAME'S TREATMENT, measured from
+  Photos' video trimmer (iPhone 17 / iOS 26.5: outer 51pt, rails 5, caps
+  ~14.7 wide, ~7pt outer corners, chevron ink 6 × 24 at a 3pt stroke):
+  full-height caps carrying `chevron.compact.left/right` — the affordance
+  gens 1–2 lacked — joined by 4pt rails, with gen 2's faint `primary` wash
+  (0.16) inside as the middle drag zone's body. The box is 36pt centred on
+  the 32pt slider host (`IOS_SLIDER_HOST_HEIGHT`, in `chrome.ts`) so the
+  rails clear the thumb's ~27pt disc. NO scrim outside the selection — the
+  2026-08-21 rejection is back in full force now the surface under the
+  frame is a bare slider track again. NO haptics in the drag — the
+  per-second buzz was rejected with the zoom ("makes the clipping
+  un-usable"); Save keeps its one `haptics.selection()` at the save site.
 
-  **THE FRAME IS MEASURED FROM PHOTOS' VIDEO TRIMMER** (iPhone 17 / iOS 26.5,
-  both appearances): frame outer 51pt, rails 5, caps ~14.7 wide with ~7pt outer
-  corners, chevron ink 6 × 24 at a 3pt stroke, outside media dimmed to ×0.67
-  luminance, playhead a ~3.3pt white line. Ours maps those onto a 44pt band:
-  rails 4, caps 14 × full band with `chevron.compact.left/right`, radius 7.
-  The caps no longer overhang the frame — that rule was the slider-band
-  premise (a cap flush with a 20pt box read as its edge) and retires with it;
-  Photos' caps are the frame's own full-height ends and so are these.
-
-  **THE SCRIM OUTSIDE THE SELECTION IS BACK, AND ITS 2026-08-21 REJECTION IS
-  NOT OVERTURNED — ITS PREMISE CHANGED.** The rejection was specific to
-  dimming a 5.67pt slider track, where the scrim read as a mask recolouring
-  the player. The strip is an opaque band of material, which is Photos' own
-  filmstrip premise. It is `background` washed over the bars, so "dimmed"
-  means "faded toward the page" in both appearances — the ink equivalent of
-  Photos darkening photographic media.
-
-  **THE PLAYHEAD IS THE BARS' INVERSE, NOT THEIR INK.** Photos' line is white
-  because its media is dark; here the media IS `onSurface` ink, and an
-  `onSurface` playhead shipped invisible inside the selection on the first
-  light-mode screenshot. It is `background` with a hairline `onSurface` edge.
-
-  **ENTERING FRAMING STILL MOVES NOTHING, and the strip had to earn it.** The
-  console's column has ~72pt of flex slack, so a 44pt strip joining it would
-  drop the transport on the exact frame the mode changes. It therefore lives
-  in the same ABSOLUTE overlay the bracket band used — bottom-aligned to the
-  slider host (`IOS_SLIDER_HOST_HEIGHT`, now in `chrome.ts`), extending 12pt
-  up into the title block's own 20pt padding — and the slider FADES under it,
-  never unmounts (a remount re-runs the host's first-frame safe-area race on
-  every mode exit; `trackHidden` on `PlayerScrubberProps`). The range readout
-  stays absolutely centred inside the elapsed/total row, exactly as before.
-  Verified by band-scanning an 8-frame burst across the mode change with no
-  interaction: transport ink 654.33 and footer top 772.00, identical resting
-  and framing, strip complete on frame 1.
-
-  **THE WAVEFORM IS ITS OWN PIPELINE** (`lib/waveform.ts` + `useWaveform`),
-  because playback streams through a media element and never holds PCM:
-  download the mp3 to cache, decode NATIVELY by file path at 8 kHz
-  (`decodeAudioData` — hand it the https URL and the whole file crosses the JS
-  bridge instead), bucket to RMS at 4/s capped at 1200, persist JSON, delete
-  the mp3. Once per sound, ever. Failures resolve null and retry on the next
-  entry; the strip draws uniform placeholder bars meanwhile, so its geometry
-  never waits on the network. No Firestore field — the cache is per-device.
+  **ENTERING FRAMING MOVES NOTHING**, as every generation: the frame is an
+  ABSOLUTE overlay on the slider block, and the range readout is absolutely
+  centred inside the elapsed/total row. Verified by band-scanning bursts
+  across the mode change at every generation, most recently: transport ink
+  654.33 and footer top 772.00, identical resting and framing, in both
+  appearances.
 
 - **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
   box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word
@@ -256,7 +223,7 @@ clip)`, edge-pan, a full-track overview bar) and **Juan rejected it the
   as the filled brand pill trailing. What it replaced mixed four treatments in
   one row — grey ✕, muted "New Clip" caption, tinted word, filled pill — and
   the muted caption read as disabled text. Photos titles its trim mode
-  nowhere: the frame on the strip explains the mode, so the caption went with
+  nowhere: the frame on the slider explains the mode, so the caption went with
   the ✕. The glyph answers the preview's own state read at the leaf
   (`playing && activeClip 'preview'`), so it pauses a running preview; the
   `player.clips.new` key survives — Android's row and the Clips sheet read it.
