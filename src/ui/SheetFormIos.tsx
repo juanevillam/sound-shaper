@@ -39,20 +39,39 @@ import { SwiftUIHost } from './SwiftUIHost';
 import { spacing } from './tokens';
 
 /**
- * WHAT THE BODY PULLS BACK — the grouped empty section-header slot, less a
- * measured 3.33 residual.
+ * WHAT THE BODY PULLS BACK — the grouped empty section-header slot, and THE
+ * DETENT DECIDES WHETHER A RESIDUAL COMES OFF IT.
  *
  * The slot itself is `SHEET_EMPTY_HEADER_SLOT`, the same 21 every sheet in the
- * portfolio takes off. The residual is not a fudge: this Form's own first
- * section inset differs from a `List`'s by that much, so a flat 21 landed the
- * first card 80.67 below the sheet's own top edge against the family's 84.00.
+ * portfolio takes off. On a FRACTIONAL sheet this Form's own first-section
+ * inset differs from a `List`'s by 3.33, so a flat 21 landed the first card
+ * 80.67 below the sheet's own top edge against the family's 84.00. That was
  * SOLVED BACKWARDS against `SHEET_CONTENT_TOP`, band-scanned on iPhone 17 /
  * iOS 26.5, not chosen.
  *
- * Re-measure against a family sheet — `manage-account` or `trophies` — if the
- * sheet chrome changes; the target is the constant, this is the compensation.
+ * AT THE LARGE DETENT THERE IS NO RESIDUAL, and assuming there was shipped
+ * both of Sound Shaper's `[1]` form sheets 3.33 low. Measured 2026-08-22, same
+ * device, 6-frame bursts with no interaction:
+ *
+ *   Topper    `edit-top`   [0.38]   84.00  ✓ (this constant, as solved)
+ *   Topper    `edit-item`  [0.62]   97.67  ✓ (hero ink + the row's padding)
+ *   Sound Sh. `edit-sound` [0.65]   98.33  ✓ (same hero shape)
+ *   Sound Sh. `shaper`     [1]      87.33  ✗ — 3.33 low
+ *   Sound Sh. `clips`      [1]      87.33  ✗ — 3.33 low
+ *
+ * Every fractional sheet in the portfolio lands on the family number and both
+ * full-height ones miss it by exactly the residual, so the compensation is the
+ * fractional presentation's, not the Form's. Topper owns no `[1]` form sheet,
+ * which is the only reason this stood for as long as it did.
+ *
+ * The two are separate constants rather than one number plus a conditional
+ * because each is a MEASURED value with its own reason — see `fullHeight` on
+ * `SheetFormBodyIos`. Re-measure against a family sheet (`manage-account` or
+ * `trophies`) if the sheet chrome changes; the target is `SHEET_CONTENT_TOP`,
+ * these are the compensations.
  */
 const BODY_PULL_BACK = SHEET_EMPTY_HEADER_SLOT - 3.33;
+const BODY_PULL_BACK_FULL_HEIGHT = SHEET_EMPTY_HEADER_SLOT;
 
 /**
  * Chrome for the iOS form-sheet routes, shared by every portfolio app: the
@@ -102,6 +121,8 @@ const styles = StyleSheet.create({
    * own header inside the Host, so shifting the box would move the header too.
    */
   bodyHost: { flex: 1, marginTop: -BODY_PULL_BACK },
+  /** The same box on a `[1]` sheet, which takes no residual — see above. */
+  bodyHostFullHeight: { flex: 1, marginTop: -BODY_PULL_BACK_FULL_HEIGHT },
 });
 
 /**
@@ -144,11 +165,29 @@ const styles = StyleSheet.create({
  * so each named its commit action twice and neither copy was the one that
  * rendered. Two components, each with only the props it uses.
  */
-export function SheetFormBodyIos({ children }: { children: React.ReactNode }) {
+export function SheetFormBodyIos({
+  children,
+  fullHeight = false,
+}: {
+  children: React.ReactNode;
+  /**
+   * PASS THIS WHEN THE ROUTE'S DETENT IS `[1]`, and nothing else — a sheet
+   * presented at the large detent takes no residual off its pull-back (the
+   * measurements are on `BODY_PULL_BACK`). It is stated rather than sensed on
+   * purpose: the honest signal is the screen's own safe-area top inset, which
+   * arrives from the provider and can land a frame late, and an async answer on
+   * the layout path is the exact bug family `SHEET_BONE_TOP` and
+   * `matchContents` already cost this repo three times.
+   *
+   * The detent itself lives in each app's `IOS_FORM_SHEETS`; this call site is
+   * where the two meet, so change them together.
+   */
+  fullHeight?: boolean;
+}) {
   const { colors } = useAppTheme();
 
   return (
-    <Host style={styles.bodyHost}>
+    <Host style={fullHeight ? styles.bodyHostFullHeight : styles.bodyHost}>
       {/* EXACTLY the Settings sheet's Form — `tint` on the whole Form (so a
           menu picker's value renders tinted, as Settings' Language and
           Appearance values do) and the Form's OWN grouped background kept.
