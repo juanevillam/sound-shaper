@@ -240,7 +240,11 @@ function ShaperSheetScreen() {
             isOn={keepPitch}
             label={t('player.keepPitch')}
             onIsOnChange={setKeepPitch}
-            modifiers={[tint(colors.onSurfaceMuted)]}
+            // GREEN, not the ink and not the accent — see `switchOn`. It
+            // has to be stated because a SwiftUI `Toggle` takes the ambient
+            // accent, and `SheetFormBodyIos` tints this whole Form `primary`
+            // for the picker's sake one section up.
+            modifiers={[tint(colors.switchOn)]}
           />
         </Section>
       </SheetFormBodyIos>
