@@ -28,8 +28,6 @@ type PlayerScrubberLiveProps = {
   copyInset?: number;
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
-  /** iOS only: fade the track while the trim strip stands over it. */
-  trackHidden?: boolean;
   /** Commit a scrub. Also ends any clip replay — see the store's `seek`. */
   onSeek: (seconds: number) => void;
 };
@@ -37,7 +35,6 @@ type PlayerScrubberLiveProps = {
 export function PlayerScrubberLive({
   copyInset,
   clipLabel,
-  trackHidden,
   onSeek,
 }: PlayerScrubberLiveProps) {
   const storePosition = usePlayerStore(s => s.position);
@@ -55,7 +52,6 @@ export function PlayerScrubberLive({
       duration={storeDuration > 0 ? storeDuration : 1}
       totalDuration={storeDuration}
       clipLabel={clipLabel}
-      trackHidden={trackHidden}
       onDrag={value => {
         lastDragRef.current = value;
         setDragValue(value);
