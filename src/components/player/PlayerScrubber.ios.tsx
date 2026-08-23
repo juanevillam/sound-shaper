@@ -3,6 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { Slider } from '@expo/ui/swift-ui';
 import { tint } from '@expo/ui/swift-ui/modifiers';
 import { SwiftUIHost } from '@portfolio/mobile-ui';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -37,8 +41,15 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 // the Compose props, where `ignoreSafeArea` does not exist.
 //
 // The height itself is `IOS_SLIDER_HOST_HEIGHT` in `chrome.ts` — the console
-// positions the trim strip against it, and a value cannot be imported OUT of a
+// positions the trim frame against it, and a value cannot be imported OUT of a
 // platform-suffixed file (see that module's header).
+
+/**
+ * How far the time row steps down while framing. The frame's box bottom is
+ * host + 34 (36pt box centred on the 32pt host); resting ink top is ~host +
+ * 34, so 8 buys a clear 8pt band between rail and ink.
+ */
+const CLIP_LABELS_DROP = 8;
 
 // THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
 // row, which is already there and already the right width.
@@ -54,6 +65,18 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 // The row is 370pt wide against ~30pt of elapsed, ~30 of total and ~75 of
 // range, so the three do not crowd; the range is not muted, because while
 // framing it is the number that matters.
+//
+// WHILE FRAMING, THE ROW STEPS DOWN — a TRANSFORM, not layout. The trim
+// frame's 36pt box reaches 2pt past the slider host's bottom edge, which is
+// exactly where the labels' ink starts (measured: box bottom +34, ink top
+// ~+34 in host coordinates) — so a cap parked near either end of the track
+// stood directly on the time under it (Juan, 2026-08-23). Resting, the row
+// is right where it should be, so it does not move permanently; it
+// translates down `CLIP_LABELS_DROP` for the mode, animated over 200ms so
+// it reads as the row MAKING ROOM for the frame — a designed transition,
+// not the mode-change reflow this console bans. A transform costs no
+// layout, so the transport and the footer cannot move with it, which keeps
+// the band-scan invariant intact by construction.
 
 // iOS counterpart of `PlayerScrubber` — SwiftUI's own Slider (so it drags,
 // tracks and feels exactly like the system one) with the elapsed/total labels
@@ -69,6 +92,21 @@ export function PlayerScrubber({
   onDragEnd,
 }: PlayerScrubberProps) {
   const { colors } = useAppTheme();
+
+  const framing = clipLabel != null;
+  // See the header: the row makes room for the trim frame, by transform.
+  const labelsDrop = useAnimatedStyle(
+    () => ({
+      transform: [
+        {
+          translateY: withTiming(framing ? CLIP_LABELS_DROP : 0, {
+            duration: 200,
+          }),
+        },
+      ],
+    }),
+    [framing],
+  );
 
   return (
     <View style={styles.block}>
@@ -90,7 +128,9 @@ export function PlayerScrubber({
           }}
         />
       </SwiftUIHost>
-      <View style={[styles.labels, { paddingHorizontal: copyInset }]}>
+      <Animated.View
+        style={[styles.labels, { paddingHorizontal: copyInset }, labelsDrop]}
+      >
         <Text
           doNotTranslate
           muted
@@ -110,7 +150,7 @@ export function PlayerScrubber({
             <Text doNotTranslate text={clipLabel} variant="labelMedium" />
           </View>
         ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }
