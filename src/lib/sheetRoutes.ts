@@ -27,7 +27,10 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    *
    * Titled sheets state their bar through `sheetCommitBarOptionsIos` (a
    * commit-modal pair) or their own `Stack.Screen` slots, which override the
-   * close glyph this table's `titled` branch supplies by default.
+   * close glyph this table's `titled` branch supplies by default. `shaper`
+   * overrides NOTHING: nothing on it commits, so the plain close glyph is the
+   * whole bar — Apple's split between a commit modal and a panel that applies
+   * as you go (see `HeaderCloseButton`).
    */
   titled?: boolean;
   /** Translation key for the bar's title. Required when `titled`. */
@@ -76,9 +79,9 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   },
   /**
    * FULL HEIGHT, like Settings and Account — this is a PRIMARY surface, not a
-   * quick edit. It holds a preset picker, the saved-shapes section, five EQ
-   * sliders, a speed slider and a pitch toggle, each with its own footnote;
-   * it scrolled at 0.9 and it will scroll at anything less than the screen.
+   * quick edit. It holds a preset picker, five EQ sliders, a speed slider and a
+   * pitch toggle, each with its own footnote; it scrolled at 0.9 and it will
+   * scroll at anything less than the screen.
    *
    * A fractional detent also costs it the OS's sheet dimming (see Topper's
    * table): below the large detent iOS keeps the presenting window primary and

@@ -31,8 +31,10 @@ service cloud.firestore {
         }
       }
 
-      // The user's own saved sound shapes (EQ + speed + keep-pitch). Global to
-      // the account rather than per-song, so they sit beside `songs`.
+      // LEGACY saved sound shapes (EQ + speed + keep-pitch), global to the
+      // account rather than per-song. Nothing has written one since 2026-08-22,
+      // when saving a shape was removed; the rule stays so the delete-account
+      // sweep can still clear what an early account left behind.
       match /shapes/{shapeId} {
         allow read, write: if isUser(uid);
       }

@@ -77,9 +77,9 @@ import { haptics } from '@/lib/haptics';
 import { rateLabel } from '@/lib/player';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
+import { useClipsSavedStore } from '@/store/clipsSaved';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
-import { useShapesStore } from '@/store/shapes';
 import { useSoundsStore } from '@/store/sounds';
 import {
   CONTINUOUS_CURVE,
@@ -381,10 +381,6 @@ export function PlayerSheet() {
   const clipFramingNonce = usePlayerStore(s => s.clipFramingNonce);
 
   const activePreset = useShaperStore(s => s.activePreset);
-  const activeShapeId = useShaperStore(s => s.activeShapeId);
-  const activeShape =
-    useShapesStore(s => s.shapes.find(shape => shape.id === activeShapeId)) ??
-    null;
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is moderate (~58% width) so the whole console fits without scrolling.
@@ -993,7 +989,10 @@ export function PlayerSheet() {
       .then(() => {
         // Awarded here rather than from a store: the clips cache only holds
         // sounds you have opened, so it can't answer "have you ever saved one".
+        // The running total the GOLD trophy counts is banked in the same place,
+        // and for the same reason — see `store/clipsSaved.ts`.
         awardTrophy(TROPHY_IDS.firstClip);
+        useClipsSavedStore.getState().saved();
         showSnackbar(t('snackbar.clip-created'));
       })
       .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
@@ -1001,10 +1000,8 @@ export function PlayerSheet() {
 
   const subtitle = current.artist || ' ';
 
-  // Card summaries: live settings at a glance. A saved shape names itself.
+  // Card summaries: live settings at a glance.
   const presetSummary = (() => {
-    if (activeShape) return activeShape.name;
-
     switch (activePreset) {
       case 'flat':
         return t('player.eq.presets.flat');
@@ -1036,16 +1033,12 @@ export function PlayerSheet() {
    * everything IS default the summary is "None", the same word the Clips card
    * uses for the same idea.
    *
-   * A SAVED SHAPE'S NAME is a person's own string and can be any length; it
-   * truncates, which is what `numberOfLines={1}` is for.
+   * The long form can still overrun the box ("Bright · 1.5×"); it truncates,
+   * which is what `numberOfLines={1}` is for.
    */
   const shapeSummary =
     [
-      activeShape
-        ? activeShape.name
-        : activePreset === 'flat'
-          ? null
-          : presetSummary,
+      activePreset === 'flat' ? null : presetSummary,
       rate === 1 ? null : rateLabel(rate, locale),
       // THE PITCH NOTE FOLLOWS THE RULE ABOVE — state what is not default —
       // so it inverts whenever the default does (it has twice now; see

@@ -74,8 +74,11 @@ export const deleteAccountData = reported(
     }
 
     // Deleting the user doc does NOT remove its subcollections, so every one of
-    // them has to be swept by hand — shapes and trophies included, or a
-    // recreated account would inherit the old one's saved shapes and awards.
+    // them has to be swept by hand — trophies included, or a recreated account
+    // would inherit the old one's awards. `shapes` is swept for a feature that
+    // no longer exists: nothing has written one since 2026-08-22, but an early
+    // account still holds documents and this is the only thing that clears
+    // them.
     for (const subcollection of [
       SHAPES_SUBCOLLECTION,
       TROPHIES_SUBCOLLECTION,

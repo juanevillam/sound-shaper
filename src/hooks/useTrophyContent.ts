@@ -9,7 +9,7 @@ import {
 import {
   LIBRARY_SOUND_COUNT,
   LISTENING_MINUTES,
-  SAVED_SHAPE_COUNT,
+  SAVED_CLIP_COUNT,
   TROPHY_CONFIGS,
   TROPHY_IDS,
   TROPHY_TITLES,
@@ -20,7 +20,7 @@ import { type TranslationKey, useI18n } from '@/i18n';
 // trigger thresholds), so "Keep {count} sounds" can't drift from the objective.
 const TROPHY_COUNTS: Record<string, number> = {
   [TROPHY_IDS.library]: LIBRARY_SOUND_COUNT,
-  [TROPHY_IDS.savedShapes]: SAVED_SHAPE_COUNT,
+  [TROPHY_IDS.savedClips]: SAVED_CLIP_COUNT,
   [TROPHY_IDS.listening]: LISTENING_MINUTES,
 };
 

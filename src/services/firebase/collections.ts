@@ -25,8 +25,11 @@ export const SOUNDS_SUBCOLLECTION = 'songs';
 // Subcollection of users/{uid}/sounds/{soundId} — personal replay bookmarks.
 export const CLIPS_SUBCOLLECTION = 'clips';
 
-// Subcollection of users/{uid} — the user's own saved sound shapes (EQ gains
-// + speed + keep-pitch). Global, not per-sound: shaping carries across sounds.
+// Subcollection of users/{uid} — LEGACY. It held the user's own saved sound
+// shapes (EQ gains + speed + keep-pitch), global rather than per-sound. Saving
+// a shape was removed on 2026-08-22 (see `store/shaper.ts`), so nothing writes
+// or reads these documents any more; the name survives ONLY so the
+// delete-account sweep still clears what an early account left behind.
 export const SHAPES_SUBCOLLECTION = 'shapes';
 
 // Subcollection of users/{uid} — earned trophies, one doc per trophy id
