@@ -241,6 +241,18 @@ in the file's header; the ones worth knowing before touching it:
   the screen through one continuous drag and reading the frames: 0:00–0:15 →
   0:20–0:35 → 0:48–1:03 → 1:19–1:34 → 2:18–2:33, all before the commit.
 
+  **AND IT TAKES THE ELAPSED/TOTAL LABELS' STYLE OBJECT, FOR THE TABULAR
+  FIGURES.** SF's proportional digits differ in width, so a CENTRED readout
+  re-centres itself on every digit change — several times a second under a
+  drag. The elapsed label was fixed for this long ago; the range label,
+  written later, never picked the term up, which is the retrofit trap the
+  root `AGENTS.md` names. It is handed the style OBJECT rather than
+  re-declaring `fontVariant`, so the three readouts cannot drift. Measured
+  across a recorded drag: ink width spread **5.00pt before, 1.00pt after**.
+  What tabular figures do NOT fix is a change in digit COUNT — a sound over
+  ten minutes would widen once at the 9:59 → 10:00 boundary, exactly as the
+  elapsed label already does, and that is left alone.
+
 - **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
   box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word
   leading, the preview play/pause glyph dead centre in an absolute slot, Save
