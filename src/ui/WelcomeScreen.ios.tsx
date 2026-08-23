@@ -389,7 +389,19 @@ export const WelcomeScreen = ({
                         // fill (0,144,255), not glass.
                         controlSize('regular'),
                         buttonBorderShape('capsule'),
-                        ...(colors?.primary ? [tint(colors.primary)] : []),
+                        // MONOCHROME (2026-08-22), with `ActionButtonIos`
+                        // and the empty-state CTA. Apple's own onboarding
+                        // capsule measures a solid blue and this deliberately
+                        // departs from it: the portfolio's marks and grounds
+                        // are the two neutrals, and the first screen anyone
+                        // sees is where that has to hold.
+                        ...(colors?.onSurface ? [tint(colors.onSurface)] : []),
+                        // The filled capsule does not invert its own label —
+                        // see `labelColor` on `actionButtonModifiersIos`. The
+                        // outlined variant takes the tint and needs nothing.
+                        ...(!isOutlined && colors?.background
+                          ? [foregroundStyle(colors.background)]
+                          : []),
                         disabled(isDisabled || Boolean(action.isLoading)),
                       ]}
                     >
@@ -408,8 +420,9 @@ export const WelcomeScreen = ({
                             name={action.icon}
                             size={18}
                             // Filled (borderedProminent) labels are tinted by the
-                            // system; only outlined buttons need the explicit tint.
-                            tint={isOutlined ? colors?.primary : undefined}
+                            // system; only outlined buttons need the explicit
+                            // tint, and it is the ink now, with the capsule.
+                            tint={isOutlined ? colors?.onSurface : undefined}
                           />
                         ) : null}
                         <Text>{label}</Text>

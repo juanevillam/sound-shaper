@@ -315,6 +315,13 @@ Other standing exceptions:
   default 35.00. That is what `listSectionSpacing` cannot do (above). Use it
   when a boundary genuinely needs making up — Sound Shaper's Shape sheet adds 10
   so its footer-to-header reads 30.66 against Apple's 31.00.
+- **A prominent control does not invert its own label.** `borderedProminent` and
+  `glassProminent` draw their label WHITE whatever `tint` says, so a dark-mode
+  `onSurface` fill is white-on-white (measured: a selected capsule's count
+  disappeared). Pair a monochrome fill with `foregroundStyle` of the inverse
+  token. Likewise a `Toggle`'s knob is white and fixed — an `onSurface` ON track
+  in dark is one solid blob; a mid grey is the monochrome that survives both
+  appearances.
 - **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
   `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
   puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail

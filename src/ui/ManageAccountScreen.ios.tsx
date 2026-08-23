@@ -7,7 +7,6 @@ import {
   disabled as disabledModifier,
   foregroundStyle,
   scrollContentBackground,
-  tint,
 } from '@expo/ui/swift-ui/modifiers';
 
 import { FormDisclosureRowIos, FormValueRowIos } from './FormDisclosureRowIos';
@@ -57,9 +56,11 @@ export const ManageAccountScreen = ({
           strip of whatever is behind it above the grouped card. In a sheet that
           strip reads as the flat sheet colour above the elevated one, and this
           file carried a 16pt one. The Form's own section spacing is the air. */}
-      <Form
-        modifiers={[scrollContentBackground('hidden'), tint(colors.primary)]}
-      >
+      {/* NO Form-level `tint`. `SheetFormBodyIos` carries one because its
+          forms hold menu pickers, whose VALUE Apple tints itself; this one
+          holds none, so the tint reached nothing and only stood ready to
+          paint the next control added here. */}
+      <Form modifiers={[scrollContentBackground('hidden')]}>
         {info ? (
           /**
            * ONLY THE VALUES WAIT. The labels — "Name", "Email" — are static

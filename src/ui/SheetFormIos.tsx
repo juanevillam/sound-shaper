@@ -369,16 +369,31 @@ export function actionButtonModifiersIos({
   variant = 'bordered',
   size = 'large',
   disabled = false,
+  labelColor,
 }: {
   tintColor: string;
   variant?: 'bordered' | 'prominent';
   size?: 'small' | 'regular' | 'large';
   disabled?: boolean;
+  /**
+   * THE FILLED VARIANT'S LABEL, and it exists because a `borderedProminent`
+   * button DOES NOT INVERT ITS OWN LABEL: SwiftUI draws that label white
+   * whatever the tint is. That was invisible while the tint was blue and
+   * became a white-on-white capsule the moment the fill went `onSurface` in
+   * dark — measured on device. Pass `colors.background`, which is
+   * `onSurface`'s inverse in both appearances, so the label follows the FILL
+   * rather than the colour scheme. Ignored by the bordered variant, whose
+   * label is the tint itself.
+   */
+  labelColor?: string;
 }) {
   return [
     buttonStyle(variant === 'prominent' ? 'borderedProminent' : 'bordered'),
     controlSize(size),
     tint(tintColor),
+    ...(variant === 'prominent' && labelColor
+      ? [foregroundStyle(labelColor)]
+      : []),
     ...(disabled ? [disabledModifier(true)] : []),
   ];
 }
@@ -408,7 +423,14 @@ export function ActionButtonIos({
         label={label}
         onPress={onPress}
         modifiers={actionButtonModifiersIos({
-          tintColor: colors.primary,
+          // THE ONE BUTTON IS MONOCHROME (2026-08-22). A filled CTA's colour
+          // says "this is the affirmative action", and so does being the only
+          // filled thing on the screen — the fill carries it, the hue was
+          // along for the ride. `onSurface` is black in light and white in
+          // dark, and `borderedProminent` derives its own label colour from
+          // the tint, so the label stays legible either way.
+          tintColor: colors.onSurface,
+          labelColor: colors.background,
           variant,
           size,
           disabled,
