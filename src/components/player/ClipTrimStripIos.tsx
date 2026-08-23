@@ -413,11 +413,19 @@ export function ClipTrimStripIos({
               ]}
             />
 
+            {/* The playhead is the bars' INVERSE, not their ink — Photos'
+                line is white because its media is dark, and here the media IS
+                onSurface ink, so an onSurface line vanishes into it (shipped
+                and caught on the first light-mode screenshot). The hairline
+                keeps it findable in the gaps between bars. */}
             <Animated.View
               pointerEvents="none"
               style={[
                 styles.playhead,
-                { backgroundColor: colors.onSurface },
+                {
+                  backgroundColor: colors.background,
+                  borderColor: withAlpha(colors.onSurface, 0.35),
+                },
                 playheadStyle,
               ]}
             />
@@ -511,6 +519,7 @@ const styles = StyleSheet.create({
   scrimRight: { right: 0 },
   playhead: {
     borderRadius: PLAYHEAD_WIDTH / 2,
+    borderWidth: StyleSheet.hairlineWidth,
     bottom: RAIL_HEIGHT,
     left: 0,
     position: 'absolute',
