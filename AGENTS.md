@@ -202,9 +202,11 @@ in the file's header; the ones worth knowing before touching it:
   ~14.7 wide, ~7pt outer corners, chevron ink 6 × 24 at a 3pt stroke):
   full-height caps carrying `chevron.compact.left/right` — the affordance
   gens 1–2 lacked — joined by 4pt rails, with gen 2's faint `primary` wash
-  (0.16) inside as the middle drag zone's body. The box is 36pt centred on
-  the 32pt slider host (`IOS_SLIDER_HOST_HEIGHT`, in `chrome.ts`) so the
-  rails clear the thumb's ~27pt disc. NO scrim outside the selection — the
+  (0.16) inside as the middle drag zone's body. The box is **44pt** centred
+  on the 32pt slider host (`IOS_SLIDER_HOST_HEIGHT`, in `chrome.ts`): it
+  shipped at 36, the caps were fiddly to catch, and 44 is Apple's minimum
+  touch target — height is the only axis a 14pt cap can grow in without the
+  frame mis-stating the range it covers. NO scrim outside the selection — the
   2026-08-21 rejection is back in full force now the surface under the
   frame is a bare slider track again. NO haptics in the drag — the
   per-second buzz was rejected with the zoom ("makes the clipping
@@ -218,13 +220,26 @@ in the file's header; the ones worth knowing before touching it:
   appearances.
 
   **The one thing that DOES move is the time row, on purpose, by
-  TRANSFORM.** The frame's box bottom lands exactly on the labels' ink
-  (host + 34 both, measured), so a cap parked near a track end stood on the
-  time under it. The row translates down 8pt while framing, animated 200ms —
-  a designed making-room transition, not reflow: a transform costs no
-  layout, so the transport and footer cannot move with it, and the resting
-  row keeps its exact position (`CLIP_LABELS_DROP` in
-  `PlayerScrubber.ios.tsx`).
+  TRANSFORM.** The frame's box bottom lands on the labels' ink, so a cap
+  parked near a track end stood on the time under it. The row translates
+  down `CLIP_LABELS_DROP` (12, for the 44pt frame — it was 8 at 36) while
+  framing, animated 200ms — a designed making-room transition, not reflow: a
+  transform costs no layout, so the transport and footer cannot move with
+  it, and the resting row keeps its exact position. Measured after the frame
+  grew: frame box 548.00–591.67, label ink top 601.67, a 10.00pt band.
+
+  **THE RANGE READOUT IS LIVE, AND IT IS A LEAF** (`ClipRangeLabelIos`). It
+  was rendered from committed `clipRange` state, so it held its old value
+  for the whole drag and jumped on release — you cannot land a clip on
+  1:40–2:00 when the feedback arrives after you let go. The frame's edges
+  are shared values OWNED BY THE CONSOLE (two children draw from them), and
+  the readout reacts to those at the leaf, so the console never re-renders —
+  the same rule `PlayerScrubberLive` follows for the playhead, applied at
+  gesture rate. It reacts on the ROUNDED second, which is not a throttle but
+  what the label says: it re-renders only when the string would change, and
+  the number you watch land is the number that saves. Verified by recording
+  the screen through one continuous drag and reading the frames: 0:00–0:15 →
+  0:20–0:35 → 0:48–1:03 → 1:19–1:34 → 2:18–2:33, all before the commit.
 
 - **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
   box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word

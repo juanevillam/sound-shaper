@@ -48,20 +48,20 @@ export const CLIP_FRAMING_GAP = Platform.select({
 }) as number;
 
 /**
- * ANDROID's trim-bracket band, laid over the scrubber's top edge. iOS no
- * longer has one: its clip framing is `ClipTrimStripIos`, a zoomed waveform
- * strip that states its own box (`TRIM_STRIP_HEIGHT`) and hangs above the
- * slider host rather than matching it.
+ * ANDROID's trim-bracket band, laid over the scrubber's top edge. iOS states
+ * its own box instead (`TRIM_FRAME_HEIGHT` in `ClipTrimFrameIos`), which is
+ * deliberately TALLER than the slider host it rides so the caps clear
+ * Apple's minimum touch target.
  */
 export const HANDLES_REGION_HEIGHT = 44;
 
 /**
  * The SwiftUI slider host's stated box. It lives HERE rather than in
- * `PlayerScrubber.ios.tsx` because the console positions the trim strip
- * against it, and a VALUE imported from a platform-suffixed file resolves
- * back to that same file from inside it — the self-import trap this module
- * exists to avoid. The full story of why the host both states this box AND
- * ignores the safe area is at the top of `PlayerScrubber.ios.tsx`.
+ * `PlayerScrubber.ios.tsx` because the console centres the trim frame on it,
+ * and a VALUE imported from a platform-suffixed file resolves back to that
+ * same file from inside it — the self-import trap this module exists to
+ * avoid. The full story of why the host both states this box AND ignores the
+ * safe area is at the top of `PlayerScrubber.ios.tsx`.
  */
 export const IOS_SLIDER_HOST_HEIGHT = 32;
 
