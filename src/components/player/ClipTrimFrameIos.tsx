@@ -9,7 +9,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
-  useSharedValue,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -43,9 +43,13 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // frame's edge (gen 2); the chevron is the platform's own word for "grab
 // me, I slide this way".
 //
-// THE BOX IS 36pt AROUND THE 32pt SLIDER HOST (±2 overhang), so the rails
+// THE BOX IS 44pt AROUND THE 32pt SLIDER HOST (±6 overhang), so the rails
 // clear the thumb's ~27pt disc and the frame reads as enclosing the
-// slider's travel rather than crowding its track. Inside the rails a faint
+// slider's travel rather than crowding its track. 44 is also Apple's
+// minimum touch target, which is the point: it shipped at 36 and the caps
+// were fiddly to catch (Juan, 2026-08-23), and a cap is only 14pt wide, so
+// the height is the only axis where the target can grow without the frame
+// mis-stating the range it covers. Inside the rails a faint
 // `primary` wash marks the selection and gives the middle drag zone a
 // visible body; there is NO scrim outside it — dimming a bare slider track
 // was rejected 2026-08-21 (it reads as a mask recolouring the player) and
@@ -65,8 +69,8 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // generation before it: entering framing must move nothing (the band-scan
 // invariant), and an overlay costs no layout.
 
-/** The frame's box — the 32pt slider host plus a 2pt overhang each side. */
-export const TRIM_FRAME_HEIGHT = 36;
+/** The frame's box — the 32pt slider host plus a 6pt overhang each side. */
+export const TRIM_FRAME_HEIGHT = 44;
 
 /** Photos' trimmer, mapped onto the 36pt box. */
 const CAP_WIDTH = 14;
@@ -83,6 +87,14 @@ type ClipTrimFrameIosProps = {
   durationS: number;
   startS: number;
   endS: number;
+  /**
+   * The live edges, OWNED BY THE CONSOLE. They are shared rather than local
+   * because the range readout under the slider draws from them too — it has
+   * to move while the finger is down, and the console is the nearest parent
+   * of both (`ClipRangeLabelIos`).
+   */
+  startSv: SharedValue<number>;
+  endSv: SharedValue<number>;
   onChange: (startS: number, endS: number) => void;
 };
 
@@ -90,6 +102,8 @@ export function ClipTrimFrameIos({
   durationS,
   startS,
   endS,
+  startSv,
+  endSv,
   onChange,
 }: ClipTrimFrameIosProps) {
   const { colors } = useAppTheme();
@@ -97,8 +111,6 @@ export function ClipTrimFrameIos({
 
   const pxPerS = durationS > 0 ? trackWidth / durationS : 0;
 
-  const startSv = useSharedValue(startS);
-  const endSv = useSharedValue(endS);
   const draggingRef = useRef(false);
 
   useEffect(() => {

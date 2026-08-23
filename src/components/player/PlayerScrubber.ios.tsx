@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { ClipRangeLabelIos } from '@/components/player/ClipRangeLabelIos';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
@@ -46,10 +47,11 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 
 /**
  * How far the time row steps down while framing. The frame's box bottom is
- * host + 34 (36pt box centred on the 32pt host); resting ink top is ~host +
- * 34, so 8 buys a clear 8pt band between rail and ink.
+ * host + 38 (a 44pt box centred on the 32pt host) and the resting ink top is
+ * ~host + 34, so the row has to clear 4 before it buys any air: 12 leaves
+ * the same 8pt band the 36pt frame had at a drop of 8.
  */
-const CLIP_LABELS_DROP = 8;
+const CLIP_LABELS_DROP = 12;
 
 // THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
 // row, which is already there and already the right width.
@@ -88,6 +90,7 @@ export function PlayerScrubber({
   duration,
   totalDuration,
   clipLabel,
+  clipRangeSv,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
@@ -147,7 +150,17 @@ export function PlayerScrubber({
         />
         {clipLabel ? (
           <View pointerEvents="none" style={styles.clipLabelSlot}>
-            <Text doNotTranslate text={clipLabel} variant="labelMedium" />
+            {/* The LIVE readout when the frame is up: it re-renders itself
+                off the drag's shared values, so the number tracks the finger
+                without the console hearing about it. */}
+            {clipRangeSv ? (
+              <ClipRangeLabelIos
+                startSv={clipRangeSv.startSv}
+                endSv={clipRangeSv.endSv}
+              />
+            ) : (
+              <Text doNotTranslate text={clipLabel} variant="labelMedium" />
+            )}
           </View>
         ) : null}
       </Animated.View>

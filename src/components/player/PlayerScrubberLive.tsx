@@ -3,6 +3,8 @@ import { useRef, useState } from 'react';
 import { PlayerScrubber } from '@/components/player/PlayerScrubber';
 import { usePlayerStore } from '@/store/player';
 
+import { type PlayerScrubberProps } from './chrome';
+
 // ---------------------------------------------------------------------------
 // THE ONE COMPONENT IN THE PLAYER THAT SUBSCRIBES TO `position`.
 //
@@ -28,6 +30,8 @@ type PlayerScrubberLiveProps = {
   copyInset?: number;
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
+  /** iOS only: the trim frame's live edges — see `PlayerScrubberProps`. */
+  clipRangeSv?: PlayerScrubberProps['clipRangeSv'];
   /** Commit a scrub. Also ends any clip replay — see the store's `seek`. */
   onSeek: (seconds: number) => void;
 };
@@ -35,6 +39,7 @@ type PlayerScrubberLiveProps = {
 export function PlayerScrubberLive({
   copyInset,
   clipLabel,
+  clipRangeSv,
   onSeek,
 }: PlayerScrubberLiveProps) {
   const storePosition = usePlayerStore(s => s.position);
@@ -52,6 +57,7 @@ export function PlayerScrubberLive({
       duration={storeDuration > 0 ? storeDuration : 1}
       totalDuration={storeDuration}
       clipLabel={clipLabel}
+      clipRangeSv={clipRangeSv}
       onDrag={value => {
         lastDragRef.current = value;
         setDragValue(value);
