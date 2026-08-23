@@ -88,6 +88,26 @@ export type AppColors = {
    * hardcoded green would be a lie about what that platform shows.
    */
   switchOn: string;
+  /**
+   * A NON-DESTRUCTIVE SWIPE ACTION'S FILL — `danger`'s counterpart, and a
+   * platform semantic rather than the accent.
+   *
+   * It exists because a swipe action CANNOT be monochrome: SwiftUI draws the
+   * action's glyph and word WHITE whatever the tint says, and unlike a
+   * prominent button it ignores `foregroundStyle` (both were tried on device),
+   * so the fill has to be dark enough for white ink in BOTH appearances.
+   * `onSurface` is white in dark and rendered an empty white capsule.
+   *
+   * Apple's own answer is systemGray — Mail's "More" — which is the SAME value
+   * in light and dark for exactly this reason, and is what this is. It keeps
+   * the row monochrome while staying legible, and it still says the only thing
+   * the colour has to say beside a red action: not that one.
+   *
+   * ANDROID maps to `secondaryContainer`: nothing there reads this token today
+   * (swipe actions are an iOS surface), and a hardcoded grey would misdescribe
+   * a Material surface.
+   */
+  actionNeutral: string;
   // M3 container / on-container pairs — the decorative palette used by
   // showcase demos (colored boxes, carousel pages, list rows).
   primaryContainer: string;
@@ -139,6 +159,8 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     danger: m.error,
     // A Compose `Switch` draws itself from the scheme — see the token's note.
     switchOn: m.primary,
+    // No Material surface reads this today — see the token's note.
+    actionNeutral: m.secondaryContainer,
     primaryContainer: m.primaryContainer,
     onPrimaryContainer: m.onPrimaryContainer,
     secondaryContainer: m.secondaryContainer,
@@ -207,6 +229,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     onTertiary: '#FFFFFF',
     danger: '#FF3B30',
     switchOn: '#34C759', // systemGreen, light
+    actionNeutral: '#8E8E93', // systemGray — the same value in both appearances
     primaryContainer: '#CCE4FF',
     onPrimaryContainer: '#00428C',
     secondaryContainer: '#E5E5EA',
@@ -241,6 +264,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     onTertiary: '#FFFFFF',
     danger: '#FF453A',
     switchOn: '#30D158', // systemGreen, dark
+    actionNeutral: '#8E8E93', // systemGray — the same value in both appearances
     primaryContainer: '#0D3A66',
     onPrimaryContainer: '#A8CFFF',
     secondaryContainer: '#2C2C2E',
@@ -279,6 +303,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     danger: '#B3261E',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#6750A4',
+    actionNeutral: '#E8DEF8',
     primaryContainer: '#EADDFF',
     onPrimaryContainer: '#21005D',
     secondaryContainer: '#E8DEF8',
@@ -314,6 +339,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     danger: '#F2B8B5',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#D0BCFF',
+    actionNeutral: '#4A4458',
     primaryContainer: '#4F378B',
     onPrimaryContainer: '#EADDFF',
     secondaryContainer: '#4A4458',
