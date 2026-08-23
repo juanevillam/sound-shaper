@@ -370,10 +370,42 @@ Shipped instead: no scrim. Two 14 × 32 caps that OVERHANG the box they bracket,
 joined by 2pt accent rails.
 
 **2026-08-23 postscript — the premise changed, the rejection stands.** The
-trimmer became a zoomed waveform strip (`ClipTrimStripIos`), which IS an opaque
+trimmer became a waveform strip (`ClipTrimStripIos`), which IS an opaque
 band of material — Photos' filmstrip premise — so it dims outside the selection
 legitimately (`background` washed over the bars). Do not read that as licence
 to scrim a bare slider track; the reasoning above still holds for one.
+
+## A ZOOMED window in the clip trim strip — REJECTED 2026-08-23, same day it shipped
+
+The strip first framed `selection ± max(5s, 0.75 × clip)` instead of the whole
+track — edge-pan when a cap reached the strip's margin, a 4pt full-track
+overview bar, the window recomputing and recentring on every release. It solved
+the recorded SCALE defect exactly (a fifteen-second clip went from ~30pt of
+strip to ~200pt), and Juan rejected it on first use: the window recomputing
+under the drag read as the control EXPANDING the more he dragged it — "the more
+i drag it the more it expands... this whole UI must be simple to use".
+
+The lesson is not that the zoom was mis-built; it is that a trimmer has to be
+simple before it is precise, and a control whose coordinate system moves while
+your finger is down is not simple whatever it buys. Whole-track mapping also
+agrees with the slider the strip replaces, so the frame sits where the person
+already believes that moment lives. Photos maps its whole video the same way.
+
+Shipped instead: static whole-track mapping, bar area inset a cap's width each
+side, bars resampled to a fixed 3px pitch. The fine-trim cost is accepted
+knowingly — do not rebuild the zoom to win it back.
+
+## Per-second haptic ticks while dragging the trim caps — REJECTED 2026-08-23, with the zoom
+
+Every whole second a trim edge crossed fired `haptics.dragMove` (11ms), plus
+`haptics.selection` on grab and release — modelled on Apple's pickers, which
+click per detent. Juan: it "makes the clipping un-usable, very bad feeling".
+The model does not transfer: RN's `Vibration` API is a motor buzz, not the
+Taptic Engine's detent click, and at whole-track scale (~2pt per second) a
+tick per crossed second is close to a continuous buzz under any real drag.
+
+Shipped instead: no haptics anywhere in the drag. The save action keeps its
+single `haptics.selection()` at the save site, which predates the trimmer.
 
 ## `PRESS_SCALE` at 0.95 — TOO DEEP, 2026-08-21
 
