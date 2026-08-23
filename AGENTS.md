@@ -217,6 +217,15 @@ in the file's header; the ones worth knowing before touching it:
   654.33 and footer top 772.00, identical resting and framing, in both
   appearances.
 
+  **The one thing that DOES move is the time row, on purpose, by
+  TRANSFORM.** The frame's box bottom lands exactly on the labels' ink
+  (host + 34 both, measured), so a cap parked near a track end stood on the
+  time under it. The row translates down 8pt while framing, animated 200ms —
+  a designed making-room transition, not reflow: a transform costs no
+  layout, so the transport and footer cannot move with it, and the resting
+  row keeps its exact position (`CLIP_LABELS_DROP` in
+  `PlayerScrubber.ios.tsx`).
+
 - **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
   box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word
   leading, the preview play/pause glyph dead centre in an absolute slot, Save
