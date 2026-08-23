@@ -240,6 +240,7 @@ function ShaperSheetScreen() {
             isOn={keepPitch}
             label={t('player.keepPitch')}
             onIsOnChange={setKeepPitch}
+            modifiers={[tint(colors.onSurfaceMuted)]}
           />
         </Section>
       </SheetFormBodyIos>

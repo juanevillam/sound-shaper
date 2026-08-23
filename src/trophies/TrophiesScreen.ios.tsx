@@ -374,9 +374,11 @@ export const TrophiesScreen = ({
 
   return (
     <Host style={styles.host}>
-      <Form
-        modifiers={[scrollContentBackground('hidden'), tint(colors.primary)]}
-      >
+      {/* NO Form-level `tint`. `SheetFormBodyIos` carries one because its
+          forms hold menu pickers, whose VALUE Apple tints itself; this one
+          holds none, so the tint reached nothing and only stood ready to
+          paint the next control added here. */}
+      <Form modifiers={[scrollContentBackground('hidden')]}>
         {/**
          * THE SUMMARY IS THE SCREEN'S OPENING BLOCK, not the list's header.
          *

@@ -441,11 +441,11 @@ const TrophyBanner = ({
               underlay
                 ? styles.bannerClear
                 : [styles.bannerSolid, { backgroundColor: colors.surface }],
-              // Platinum is the one expressive moment: a faint primary glow. Every
-              // other banner sits flat like a Material notification.
-              !underlay && isPlatinum
-                ? { shadowColor: colors.primary, shadowOpacity: 0.3 }
-                : null,
+              // NO PLATINUM GLOW (dropped 2026-08-22). It was a faint accent
+              // shadow on the one banner, and the accent said nothing the
+              // banner did not already say: the platinum has its own tier
+              // palette and its own title. Every banner sits flat now, like
+              // the Material notification the rest of them imitate.
               squash.style,
             ]}
           >
