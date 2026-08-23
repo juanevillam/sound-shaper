@@ -14,10 +14,10 @@ import Animated, {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useWaveform } from '@/hooks/useWaveform';
-import { haptics } from '@/lib/haptics';
 import { usePlayerStore } from '@/store/player';
 
-// THE ZOOMED TRIM STRIP — clip framing over real material, Photos' way.
+// THE TRIM STRIP — clip framing over real material, Photos' way, at the
+// SLIDER'S OWN SCALE.
 //
 // AUTHORED RN, AND HERE IS THE NATIVE COMPONENT THAT WAS REJECTED: there is
 // none. UIKit's only public trimmer is `UIVideoEditorController`, a
@@ -27,45 +27,67 @@ import { usePlayerStore } from '@/store/player';
 // private. So the strip is drawn by hand, measured against Photos, and its
 // two glyphs are still real SF Symbols in stated-box hosts.
 //
-// What this replaced was a trim frame riding the 5.67pt slider track, and the
-// defect no restyling could fix was SCALE: a fifteen-second clip is ~30pt of a
-// three-minute track, so fine trimming was impossible at any styling. This
-// strip shows a WINDOW around the selection instead of the whole track —
-// `pad = max(5s, 0.75 × clip)` each side — which puts the same fifteen seconds
-// across ~200pt. The overview bar up top keeps the whole-track context the
-// zoom gives up.
+// THE STRIP MAPS THE WHOLE TRACK, NOT A ZOOMED WINDOW. A zoom that framed
+// `selection ± max(5s, 0.75 × clip)` was built first (2026-08-23), with
+// edge-pan and a full-track overview bar, and Juan rejected it the same day:
+// the window recomputing under the drag read as the control EXPANDING the
+// more you dragged it, and a trimmer has to be simple before it is precise.
+// Whole-track mapping is also what the slider under it says, so the frame
+// sits where the person already believes that moment lives. What the zoom
+// bought — fine trims on long tracks — is knowingly given back; the strip
+// still beats the bare slider frame because caps, rails and material carry
+// the grab affordance at any width. Photos maps its whole video the same
+// way. (See docs/rejected-experiments.md.)
+//
+// THE BARS RESAMPLE TO A FIXED PITCH — one bar per `BAR_PITCH` px of strip,
+// whatever the track's length — so a three-minute sound and a thirty-second
+// one draw the same calm density, and the waveform reads as one shape rather
+// than a data plot.
+//
+// NO HAPTICS IN THE DRAG. A per-second tick plus grab/release pulses shipped
+// with the zoom and Juan rejected them with it ("makes the clipping
+// un-usable") — RN's Vibration is a buzz, not Apple's detent click, and a
+// buzz per crossed second on a whole-track scale is nearly continuous. The
+// save action keeps its single `haptics.selection()` at the save site.
+//
+// THE TRACK RUNS BETWEEN THE CAPS, Photos' own inset: the bar area is inset
+// `CAP_WIDTH` each side so a selection touching 0:00 or the track's end
+// keeps its cap fully on screen, exactly as Photos' filmstrip sits inside
+// its yellow frame's outer bounds.
 //
 // THE FRAME IS MEASURED FROM PHOTOS (iPhone 17 / iOS 26.5, video trimmer,
 // band-scanned from screenshots): frame outer 51pt with 5pt rails around a
 // 40.67pt filmstrip, caps ~14.7pt wide with ~7pt outer corners, chevron ink
 // 6 × 24 at a 3pt stroke, media outside the selection dimmed to ×0.67
-// luminance, playhead a ~3.3pt white line. Ours maps those onto a 44pt wave
+// luminance, playhead a ~3.3pt white line. Ours maps those onto a 44pt
 // band: rails 4, caps 14, radius 7, chevron stepped to match.
 //
 // DIMMING OUTSIDE THE SELECTION IS LEGITIMATE HERE, and was NOT for the
-// slider it replaces — that rejection (2026-08-21) was specific to dimming a
+// slider underneath — that rejection (2026-08-21) was specific to dimming a
 // 5.67pt track, where the scrim read as a mask recolouring the player. This
 // strip is an opaque band of material, which is Photos' own filmstrip
 // premise. The scrim is the BACKGROUND colour washed over the bars, so
 // "dimmed" means "faded toward the page" in both appearances — the ink
 // equivalent of Photos darkening photographic media.
 //
-// IT LIVES IN AN ABSOLUTE OVERLAY, exactly like the bracket band it replaces:
-// the console's column has ~72pt of flex slack and a strip that joined it
-// would move the transport on the exact frame the mode changes — the one kind
-// of CLS this player must not have. The strip's box hangs 20pt above the
-// slider host, which is the title block's own padding; the slider fades out
-// underneath it while framing.
+// THE PLAYHEAD IS THE BARS' INVERSE, NOT THEIR INK — Photos' line is white
+// because its media is dark, and here the media IS onSurface ink, so an
+// onSurface line vanishes into it (shipped and caught on the first
+// light-mode screenshot). The hairline keeps it findable between bars.
+//
+// IT LIVES IN AN ABSOLUTE OVERLAY, exactly like the bracket band it
+// replaces: the console's column has ~72pt of flex slack and a strip that
+// joined it would move the transport on the exact frame the mode changes —
+// the one kind of CLS this player must not have. The strip's box hangs 12pt
+// above the slider host, inside the title block's own 20pt padding; the
+// slider fades out underneath it while framing.
 //
 // NO PLAYHEAD CROSSES THE CONSOLE BOUNDARY (chrome.ts): the 10Hz position
 // tick lands in a shared value via a store subscription, so it moves the
 // playhead line without re-rendering this component — or anything above it.
 
-/** The whole overlay box. Overview bar on top, wave band below. */
-export const TRIM_STRIP_HEIGHT = 52;
-const OVERVIEW_HEIGHT = 4;
-const OVERVIEW_GAP = 4;
-const WAVE_BAND = TRIM_STRIP_HEIGHT - OVERVIEW_HEIGHT - OVERVIEW_GAP;
+/** The whole overlay box — the wave band; the frame rides inside it. */
+export const TRIM_STRIP_HEIGHT = 44;
 
 /** The frame, mapped from Photos' 51pt trimmer onto the 44pt band. */
 const CAP_WIDTH = 14;
@@ -74,22 +96,15 @@ const RAIL_HEIGHT = 4;
 const CHEVRON_SIZE = 17;
 const PLAYHEAD_WIDTH = 3;
 
-/** Bars: ink at full strength inside the selection's premise, faded outside. */
-const BAR_ALPHA = 0.9;
+/** One bar per this many px of strip — the same density for any track. */
+const BAR_PITCH = 3;
 const BAR_GAP = 1;
 const BAR_MIN_HEIGHT = 3;
+/** Bars: ink at full strength inside the selection, faded outside. */
+const BAR_ALPHA = 0.9;
 const SCRIM_ALPHA = 0.55;
-const OVERVIEW_TRACK_ALPHA = 0.15;
-const OVERVIEW_WINDOW_ALPHA = 0.45;
 /** Uniform stand-in while the waveform decodes (or never arrives). */
 const PLACEHOLDER_LEVEL = 0.35;
-const PLACEHOLDER_BUCKET_MS = 250;
-
-/** The zoom: padding each side of the selection, in seconds. */
-const WINDOW_MIN_PAD_S = 5;
-const WINDOW_PAD_RATIO = 0.75;
-/** A cap dragged into this many px of the strip's edge pans the window. */
-const EDGE_PAN_ZONE = 28;
 
 const MIN_GAP_S = 1;
 const EDGE_SLOP = { bottom: 14, left: 10, right: 10, top: 14 };
@@ -99,13 +114,6 @@ type ClipTrimStripIosProps = {
   startS: number;
   endS: number;
   onChange: (startS: number, endS: number) => void;
-};
-
-const windowFor = (startS: number, endS: number, durationS: number) => {
-  const pad = Math.max(WINDOW_MIN_PAD_S, WINDOW_PAD_RATIO * (endS - startS));
-  const winStartS = Math.max(0, startS - pad);
-  const winEndS = Math.min(durationS, endS + pad);
-  return { winLenS: winEndS - winStartS, winStartS };
 };
 
 export function ClipTrimStripIos({
@@ -121,30 +129,19 @@ export function ClipTrimStripIos({
   const audioUrl = usePlayerStore(s => s.current?.audioUrl);
   const waveform = useWaveform(soundId, audioUrl);
 
-  // The window is React state on purpose: it changes only at discrete moments
-  // (mount, sound change, gesture end), and each change re-slices the bars at
-  // the new scale. DURING a drag only `winStartSv` moves, on the UI thread.
-  const [window, setWindow] = useState(() =>
-    windowFor(startS, endS, durationS),
-  );
-  const pxPerS = window.winLenS > 0 ? stripWidth / window.winLenS : 0;
-  const wholeTrack = window.winStartS === 0 && window.winLenS >= durationS;
+  // The track runs between the caps — see the header.
+  const trackWidth = Math.max(stripWidth - CAP_WIDTH * 2, 0);
+  const pxPerS = durationS > 0 ? trackWidth / durationS : 0;
 
   const startSv = useSharedValue(startS);
   const endSv = useSharedValue(endS);
-  const winStartSv = useSharedValue(window.winStartS);
-  // The last whole second a moving edge crossed — the haptic tick's memory.
-  const tickSv = useSharedValue(0);
   const draggingRef = useRef(false);
 
   useEffect(() => {
     if (draggingRef.current) return;
     startSv.value = startS;
     endSv.value = endS;
-    const next = windowFor(startS, endS, durationS);
-    winStartSv.value = next.winStartS;
-    setWindow(next);
-  }, [startS, endS, durationS, startSv, endSv, winStartSv]);
+  }, [startS, endS, startSv, endSv]);
 
   // The 10Hz playhead tick lands in a shared value, never in React.
   const positionSv = useSharedValue(usePlayerStore.getState().position);
@@ -161,58 +158,19 @@ export function ClipTrimStripIos({
   };
   const commit = (nextStartS: number, nextEndS: number) => {
     draggingRef.current = false;
-    haptics.selection();
     onChange(nextStartS, nextEndS);
-    const next = windowFor(nextStartS, nextEndS, durationS);
-    winStartSv.value = next.winStartS;
-    setWindow(next);
-  };
-
-  const winLenS = window.winLenS;
-
-  const grab = () => {
-    'worklet';
-
-    runOnJS(setDragging)(true);
-    runOnJS(haptics.selection)();
-  };
-  const tickAcross = (seconds: number) => {
-    'worklet';
-
-    const whole = Math.round(seconds);
-    if (whole !== tickSv.value) {
-      tickSv.value = whole;
-      runOnJS(haptics.dragMove)();
-    }
-  };
-  const panWindowFor = (edgeS: number) => {
-    'worklet';
-
-    // Keep the moving edge out of the strip's margins by sliding the window.
-    const edgePx = (edgeS - winStartSv.value) * pxPerS;
-    if (edgePx < EDGE_PAN_ZONE) {
-      winStartSv.value = Math.max(0, edgeS - EDGE_PAN_ZONE / pxPerS);
-    } else if (edgePx > stripWidth - EDGE_PAN_ZONE) {
-      winStartSv.value = Math.min(
-        Math.max(durationS - winLenS, 0),
-        edgeS + EDGE_PAN_ZONE / pxPerS - winLenS,
-      );
-    }
   };
 
   const dragStart = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .hitSlop(EDGE_SLOP)
-    .onBegin(grab)
+    .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const max = endSv.value - MIN_GAP_S;
-      const next = Math.min(
+      startSv.value = Math.min(
         Math.max(startSv.value + event.changeX / pxPerS, 0),
         max,
       );
-      startSv.value = next;
-      tickAcross(next);
-      panWindowFor(next);
     })
     .onFinalize(() => {
       const seconds = Math.round(startSv.value);
@@ -223,16 +181,13 @@ export function ClipTrimStripIos({
   const dragEnd = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .hitSlop(EDGE_SLOP)
-    .onBegin(grab)
+    .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const min = startSv.value + MIN_GAP_S;
-      const next = Math.max(
+      endSv.value = Math.max(
         Math.min(endSv.value + event.changeX / pxPerS, durationS),
         min,
       );
-      endSv.value = next;
-      tickAcross(next);
-      panWindowFor(next);
     })
     .onFinalize(() => {
       const seconds = Math.round(endSv.value);
@@ -243,7 +198,7 @@ export function ClipTrimStripIos({
   // The framed middle slides the whole clip — length preserved.
   const dragClip = Gesture.Pan()
     .activeOffsetX([-8, 8])
-    .onBegin(grab)
+    .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const length = endSv.value - startSv.value;
       const next = Math.min(
@@ -252,8 +207,6 @@ export function ClipTrimStripIos({
       );
       startSv.value = next;
       endSv.value = next + length;
-      tickAcross(next);
-      panWindowFor(event.changeX < 0 ? next : next + length);
     })
     .onFinalize(() => {
       const lengthS = Math.round(endSv.value - startSv.value);
@@ -267,67 +220,57 @@ export function ClipTrimStripIos({
     });
 
   // ------------------------------------------------------------------ bars --
-  // The slice covers the window plus half a window each side, so an auto-pan
-  // mid-drag is pure UI-thread translation with bars already standing there.
-  const slice = useMemo(() => {
-    const bucketS = (waveform?.bucketMs ?? PLACEHOLDER_BUCKET_MS) / 1000;
-    const sliceStartS = Math.max(0, window.winStartS - winLenS / 2);
-    const sliceEndS = Math.min(durationS, window.winStartS + winLenS * 1.5);
-    const first = Math.floor(sliceStartS / bucketS);
-    const last = Math.ceil(sliceEndS / bucketS);
-    const bars: { level: number; timeS: number }[] = [];
-    for (let i = first; i < last; i += 1) {
-      bars.push({
-        level: waveform
-          ? Math.max(waveform.buckets[i] ?? 0, 0.04)
-          : PLACEHOLDER_LEVEL,
-        timeS: i * bucketS,
-      });
+  // Rendered ONCE per waveform/width — nothing about them changes during a
+  // drag. Each bar is the MAX of its bucket range: at this downsample a mean
+  // flattens the song's shape, and the shape is the whole point.
+  const bars = useMemo(() => {
+    if (trackWidth <= 0) return [];
+    const count = Math.floor(trackWidth / BAR_PITCH);
+    if (count <= 0) return [];
+    const levels: number[] = [];
+    if (waveform) {
+      const perBar = waveform.buckets.length / count;
+      for (let i = 0; i < count; i += 1) {
+        const from = Math.floor(i * perBar);
+        const to = Math.max(Math.ceil((i + 1) * perBar), from + 1);
+        let peak = 0;
+        for (let j = from; j < to && j < waveform.buckets.length; j += 1) {
+          if (waveform.buckets[j] > peak) peak = waveform.buckets[j];
+        }
+        levels.push(Math.max(peak, 0.04));
+      }
+    } else {
+      for (let i = 0; i < count; i += 1) levels.push(PLACEHOLDER_LEVEL);
     }
-    return { bars, bucketS, sliceStartS };
-  }, [waveform, window.winStartS, winLenS, durationS]);
+    return levels;
+  }, [waveform, trackWidth]);
 
-  const barsStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: (slice.sliceStartS - winStartSv.value) * pxPerS },
-    ],
-  }));
+  const toPx = (seconds: number) => {
+    'worklet';
+
+    return CAP_WIDTH + seconds * pxPerS;
+  };
 
   const scrimLeftStyle = useAnimatedStyle(() => ({
-    width: Math.max((startSv.value - winStartSv.value) * pxPerS, 0),
+    width: Math.max(startSv.value * pxPerS, 0),
   }));
-  const scrimRightStyle = useAnimatedStyle(() => {
-    const endPx = (endSv.value - winStartSv.value) * pxPerS;
-    return { width: Math.max(stripWidth - endPx, 0) };
-  });
+  const scrimRightStyle = useAnimatedStyle(() => ({
+    width: Math.max((durationS - endSv.value) * pxPerS, 0),
+  }));
 
   const frameStyle = useAnimatedStyle(() => ({
-    left: (startSv.value - winStartSv.value) * pxPerS,
+    left: toPx(startSv.value),
     width: Math.max((endSv.value - startSv.value) * pxPerS, 0),
   }));
   const startCapStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: (startSv.value - winStartSv.value) * pxPerS - CAP_WIDTH,
-      },
-    ],
+    transform: [{ translateX: toPx(startSv.value) - CAP_WIDTH }],
   }));
   const endCapStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (endSv.value - winStartSv.value) * pxPerS }],
+    transform: [{ translateX: toPx(endSv.value) }],
   }));
 
-  const playheadStyle = useAnimatedStyle(() => {
-    const px = (positionSv.value - winStartSv.value) * pxPerS;
-    const inside = px >= 0 && px <= stripWidth;
-    return {
-      opacity: inside ? 1 : 0,
-      transform: [{ translateX: px - PLAYHEAD_WIDTH / 2 }],
-    };
-  });
-
-  const overviewStyle = useAnimatedStyle(() => ({
-    left: durationS > 0 ? (winStartSv.value / durationS) * stripWidth : 0,
-    width: durationS > 0 ? (winLenS / durationS) * stripWidth : 0,
+  const playheadStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: toPx(positionSv.value) - PLAYHEAD_WIDTH / 2 }],
   }));
 
   const barInk = withAlpha(colors.onSurface, BAR_ALPHA);
@@ -339,71 +282,34 @@ export function ClipTrimStripIos({
       pointerEvents="box-none"
       onLayout={event => setStripWidth(event.nativeEvent.layout.width)}
     >
-      {stripWidth > 0 && durationS > 0 ? (
+      {trackWidth > 0 && durationS > 0 ? (
         <>
-          {!wholeTrack ? (
-            <View
-              style={[
-                styles.overviewTrack,
-                {
-                  backgroundColor: withAlpha(
-                    colors.onSurface,
-                    OVERVIEW_TRACK_ALPHA,
-                  ),
-                },
-              ]}
-            >
-              <Animated.View
-                style={[
-                  styles.overviewWindow,
-                  {
-                    backgroundColor: withAlpha(
-                      colors.onSurface,
-                      OVERVIEW_WINDOW_ALPHA,
-                    ),
-                  },
-                  overviewStyle,
-                ]}
-              />
-            </View>
-          ) : null}
-
-          <View style={styles.band}>
-            <Animated.View style={[styles.bars, barsStyle]}>
-              {slice.bars.map(bar => (
+          <View style={styles.track} pointerEvents="none">
+            {bars.map((level, index) => {
+              const height = Math.max(
+                Math.round(level * (TRIM_STRIP_HEIGHT - RAIL_HEIGHT * 2)),
+                BAR_MIN_HEIGHT,
+              );
+              return (
                 <View
-                  key={bar.timeS}
+                  key={index}
                   style={{
                     backgroundColor: barInk,
                     borderRadius: 1,
-                    height: Math.max(
-                      Math.round(bar.level * (WAVE_BAND - RAIL_HEIGHT * 2)),
-                      BAR_MIN_HEIGHT,
-                    ),
-                    left: (bar.timeS - slice.sliceStartS) * pxPerS,
+                    height,
+                    left: index * BAR_PITCH,
                     position: 'absolute',
                     top: '50%',
-                    transform: [
-                      {
-                        translateY:
-                          -Math.max(
-                            Math.round(
-                              bar.level * (WAVE_BAND - RAIL_HEIGHT * 2),
-                            ),
-                            BAR_MIN_HEIGHT,
-                          ) / 2,
-                      },
-                    ],
-                    width: Math.max(slice.bucketS * pxPerS - BAR_GAP, 1),
+                    transform: [{ translateY: -height / 2 }],
+                    width: BAR_PITCH - BAR_GAP,
                   }}
                 />
-              ))}
-            </Animated.View>
+              );
+            })}
 
             {/* Outside the selection the material fades toward the page —
                 the ink equivalent of Photos dimming its filmstrip. */}
             <Animated.View
-              pointerEvents="none"
               style={[
                 styles.scrim,
                 styles.scrimLeft,
@@ -412,7 +318,6 @@ export function ClipTrimStripIos({
               ]}
             />
             <Animated.View
-              pointerEvents="none"
               style={[
                 styles.scrim,
                 styles.scrimRight,
@@ -420,79 +325,74 @@ export function ClipTrimStripIos({
                 scrimRightStyle,
               ]}
             />
+          </View>
 
-            {/* The playhead is the bars' INVERSE, not their ink — Photos'
-                line is white because its media is dark, and here the media IS
-                onSurface ink, so an onSurface line vanishes into it (shipped
-                and caught on the first light-mode screenshot). The hairline
-                keeps it findable in the gaps between bars. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.playhead,
+              {
+                backgroundColor: colors.background,
+                borderColor: withAlpha(colors.onSurface, 0.35),
+              },
+              playheadStyle,
+            ]}
+          />
+
+          <GestureDetector gesture={dragClip}>
             <Animated.View
-              pointerEvents="none"
               style={[
-                styles.playhead,
-                {
-                  backgroundColor: colors.background,
-                  borderColor: withAlpha(colors.onSurface, 0.35),
-                },
-                playheadStyle,
+                styles.frame,
+                { borderColor: colors.primary },
+                frameStyle,
               ]}
             />
+          </GestureDetector>
 
-            <GestureDetector gesture={dragClip}>
-              <Animated.View
-                style={[
-                  styles.frame,
-                  { borderColor: colors.primary },
-                  frameStyle,
-                ]}
-              />
-            </GestureDetector>
-
-            <GestureDetector gesture={dragStart}>
-              <Animated.View
-                style={[
-                  styles.cap,
-                  styles.capStart,
-                  { backgroundColor: colors.primary },
-                  startCapStyle,
-                ]}
+          <GestureDetector gesture={dragStart}>
+            <Animated.View
+              style={[
+                styles.cap,
+                styles.capStart,
+                { backgroundColor: colors.primary },
+                startCapStyle,
+              ]}
+            >
+              <SwiftUIHost
+                ignoreSafeArea="all"
+                pointerEvents="none"
+                style={styles.chevronHost}
               >
-                <SwiftUIHost
-                  ignoreSafeArea="all"
-                  pointerEvents="none"
-                  style={styles.chevronHost}
-                >
-                  <Image
-                    systemName="chevron.compact.left"
-                    size={CHEVRON_SIZE}
-                    color={colors.onPrimary}
-                  />
-                </SwiftUIHost>
-              </Animated.View>
-            </GestureDetector>
-            <GestureDetector gesture={dragEnd}>
-              <Animated.View
-                style={[
-                  styles.cap,
-                  styles.capEnd,
-                  { backgroundColor: colors.primary },
-                  endCapStyle,
-                ]}
+                <Image
+                  systemName="chevron.compact.left"
+                  size={CHEVRON_SIZE}
+                  color={colors.onPrimary}
+                />
+              </SwiftUIHost>
+            </Animated.View>
+          </GestureDetector>
+          <GestureDetector gesture={dragEnd}>
+            <Animated.View
+              style={[
+                styles.cap,
+                styles.capEnd,
+                { backgroundColor: colors.primary },
+                endCapStyle,
+              ]}
+            >
+              <SwiftUIHost
+                ignoreSafeArea="all"
+                pointerEvents="none"
+                style={styles.chevronHost}
               >
-                <SwiftUIHost
-                  ignoreSafeArea="all"
-                  pointerEvents="none"
-                  style={styles.chevronHost}
-                >
-                  <Image
-                    systemName="chevron.compact.right"
-                    size={CHEVRON_SIZE}
-                    color={colors.onPrimary}
-                  />
-                </SwiftUIHost>
-              </Animated.View>
-            </GestureDetector>
-          </View>
+                <Image
+                  systemName="chevron.compact.right"
+                  size={CHEVRON_SIZE}
+                  color={colors.onPrimary}
+                />
+              </SwiftUIHost>
+            </Animated.View>
+          </GestureDetector>
         </>
       ) : null}
     </View>
@@ -501,27 +401,14 @@ export function ClipTrimStripIos({
 
 const styles = StyleSheet.create({
   strip: { height: TRIM_STRIP_HEIGHT, width: '100%' },
-  overviewTrack: {
-    borderRadius: OVERVIEW_HEIGHT / 2,
-    height: OVERVIEW_HEIGHT,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  overviewWindow: {
-    borderRadius: OVERVIEW_HEIGHT / 2,
+  track: {
     bottom: 0,
+    left: CAP_WIDTH,
+    overflow: 'hidden',
     position: 'absolute',
+    right: CAP_WIDTH,
     top: 0,
   },
-  band: {
-    bottom: 0,
-    left: 0,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 0,
-    top: OVERVIEW_HEIGHT + OVERVIEW_GAP,
-  },
-  bars: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   scrim: { bottom: 0, position: 'absolute', top: 0 },
   scrimLeft: { left: 0 },
   scrimRight: { right: 0 },
