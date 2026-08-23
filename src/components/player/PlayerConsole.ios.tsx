@@ -13,7 +13,10 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipActionsRow } from '@/components/player/ClipActionsRow';
-import { ClipHandles } from '@/components/player/ClipHandles';
+import {
+  ClipTrimStripIos,
+  TRIM_STRIP_HEIGHT,
+} from '@/components/player/ClipTrimStripIos';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
@@ -31,7 +34,7 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
-  HANDLES_REGION_HEIGHT,
+  IOS_SLIDER_HOST_HEIGHT,
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
@@ -621,8 +624,9 @@ export function PlayerConsole({
         </GestureDetector>
 
         {/* THE scrubber — the native SwiftUI slider, tinted to the content
-            colour rather than the accent. While framing, the trim brackets
-            ride on top: edges resize, the tinted middle slides the clip. */}
+            colour rather than the accent. While framing, the track fades out
+            and the zoomed trim strip stands over the block: edges resize, the
+            framed middle slides the clip. */}
         <View
           // NO FRAMING-ONLY MARGIN. `CLIP_FRAMING_GAP` made room for a third
           // line under the scrubber that iOS no longer draws — the range rides
@@ -637,11 +641,12 @@ export function PlayerConsole({
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
+            trackHidden={clipMode}
             onSeek={onSeek}
           />
           {clipMode ? (
-            <View style={styles.handlesRegion} pointerEvents="box-none">
-              <ClipHandles
+            <View style={styles.trimStripRegion} pointerEvents="box-none">
+              <ClipTrimStripIos
                 durationS={trimmerDuration}
                 startS={clipRange.startS}
                 endS={clipRange.endS}
@@ -748,12 +753,16 @@ const styles = StyleSheet.create({
   },
   artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
   sliderBlock: { position: 'relative', width: '100%' },
-  handlesRegion: {
-    height: HANDLES_REGION_HEIGHT,
+  // The strip's box hangs ABOVE the slider host — bottom-aligned to the
+  // host's bottom edge, extending up into the title block's own 20pt padding
+  // — so entering framing still costs no layout. The overlay pattern is the
+  // same one the bracket band used; only the box grew.
+  trimStripRegion: {
+    height: TRIM_STRIP_HEIGHT,
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 0,
+    top: IOS_SLIDER_HOST_HEIGHT - TRIM_STRIP_HEIGHT,
   },
   transportRow: {
     alignItems: 'center',

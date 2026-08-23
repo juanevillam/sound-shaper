@@ -48,14 +48,22 @@ export const CLIP_FRAMING_GAP = Platform.select({
 }) as number;
 
 /**
- * Height of the band the trim brackets ride in, laid over the scrubber's top
- * edge. It must not reach the elapsed/total label row below — on iOS the
- * SwiftUI slider host is 32pt, so the band matches it exactly.
+ * ANDROID's trim-bracket band, laid over the scrubber's top edge. iOS no
+ * longer has one: its clip framing is `ClipTrimStripIos`, a zoomed waveform
+ * strip that states its own box (`TRIM_STRIP_HEIGHT`) and hangs above the
+ * slider host rather than matching it.
  */
-export const HANDLES_REGION_HEIGHT = Platform.select({
-  ios: 32,
-  default: 44,
-}) as number;
+export const HANDLES_REGION_HEIGHT = 44;
+
+/**
+ * The SwiftUI slider host's stated box. It lives HERE rather than in
+ * `PlayerScrubber.ios.tsx` because the console positions the trim strip
+ * against it, and a VALUE imported from a platform-suffixed file resolves
+ * back to that same file from inside it — the self-import trap this module
+ * exists to avoid. The full story of why the host both states this box AND
+ * ignores the safe area is at the top of `PlayerScrubber.ios.tsx`.
+ */
+export const IOS_SLIDER_HOST_HEIGHT = 32;
 
 export type PlayerScrubberProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
@@ -68,6 +76,12 @@ export type PlayerScrubberProps = {
   totalDuration: number;
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
+  /**
+   * iOS only: fade the slider track out while the trim strip stands over it.
+   * A FADE, never an unmount — remounting the SwiftUI host re-runs its
+   * first-frame safe-area race on every mode exit. Android ignores it.
+   */
+  trackHidden?: boolean;
   onDrag: (value: number) => void;
   onDragEnd: () => void;
 };
