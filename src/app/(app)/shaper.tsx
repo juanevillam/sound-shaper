@@ -11,6 +11,7 @@ import {
   font,
   foregroundStyle,
   frame,
+  listSectionMargins,
   pickerStyle,
   tag,
   tint,
@@ -41,6 +42,27 @@ import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 // takes effect on the live audio graph as you move it, so leaving keeps the
 // sound you are hearing. Saving a named shape was built and REMOVED
 // 2026-08-22 — see the note in `store/shaper.ts`.
+
+/**
+ * WHAT APPLE PUTS BETWEEN A FOOTER AND THE NEXT SECTION'S HEADER, less what
+ * this Form already gives — added to the EQ section's BOTTOM edge alone.
+ *
+ * Band-scanned on iPhone 17 / iOS 26.5. Apple's own Settings > General >
+ * Keyboard has two footer-to-header boundaries and both measure **31.00** from
+ * the footer's ink to the header's ink; a SwiftUI `Form` gives **20.66**. The
+ * 10 is that difference, and it lands the boundary at 30.66.
+ *
+ * `listSectionMargins({edges: 'bottom'})` is the lever because it is the only
+ * ONE-SIDED one. `listSectionSpacing` is additive on a section's top and
+ * ABSOLUTE on its bottom, so the override that used to sit on Playback Speed
+ * bought this same gap by collapsing Speed-to-Preserve-Pitch from the family's
+ * 35.00 to 22.00 — see the note on that section. Verified here: at 20 this
+ * added exactly 20 above and left the boundary below at 35.00.
+ *
+ * Everything else on the sheet is the platform's untouched: a card to its own
+ * footer ink is 10.67 against Apple's 11.00, and card-to-card is 35.00.
+ */
+const FOOTER_TO_HEADER_MAKEUP = 10;
 
 const EQ_LABEL_WIDTH = 38;
 const RATE_MIN = 0.5;
@@ -130,6 +152,12 @@ function ShaperSheetScreen() {
           what the ends of the range actually sound like. In a Form that line is
           the section's FOOTER, which is where iOS puts explanatory text. */}
         <Section
+          modifiers={[
+            listSectionMargins({
+              edges: 'bottom',
+              length: FOOTER_TO_HEADER_MAKEUP,
+            }),
+          ]}
           title={t('player.eq.title')}
           footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
         >
@@ -160,26 +188,25 @@ function ShaperSheetScreen() {
           ))}
         </Section>
 
-        {/* EVERY BOUNDARY IN THIS FORM IS THE PLATFORM'S OWN, and the one
-          override that used to sit here is gone (2026-08-22).
+        {/* THE OVERRIDE THAT USED TO SIT HERE IS GONE (2026-08-22), and what
+          replaced it is one-sided and on the section ABOVE — see
+          `FOOTER_TO_HEADER_MAKEUP`.
 
-          It read "a section that follows a footer loses half its separation"
-          and handed 22 back through `listSectionSpacing`, on the evidence that
-          a card-to-header boundary measures 31 while footer-ink to header-ink
-          measures 20.66. Those two are not comparable: a footer's INK is not
-          its section's edge — the footer belongs to the section above and is
-          supposed to occupy that space.
+          This one read "a section that follows a footer loses half its
+          separation" and handed 22 back through `listSectionSpacing`. The gap
+          it was chasing is real — Apple's Settings > General > Keyboard puts
+          31.00 between a footer's ink and the next header's ink, twice, where
+          a SwiftUI `Form` puts 20.66 — but the instrument was wrong twice
+          over. It sat on the section BELOW the boundary, and
+          `listSectionSpacing` is additive on a section's top and ABSOLUTE on
+          its bottom, so it paid for the gap by collapsing Speed to Preserve
+          Pitch from the family's 35.00 to 22.00. Juan caught that by eye.
 
-          Apple's own Motion pane (Settings > Accessibility > Motion) is three
-          headerless sections each carrying a footer, and it measures a card's
-          bottom to its own footer ink at 10.00 and that footer's ink to the
-          next card at 25.66. Ours reads 10.67 for the first, which is the
-          platform behaviour, not a defect.
-
-          What the override DID cost was the boundary below it: SwiftUI applied
-          the 22 to both sides of this section, so Speed to Preserve Pitch came
-          to 22.00 against the family's 35.00 — the account sheet's two
-          card-to-card boundaries, measured. Juan caught that by eye. */}
+          Not everything the old note called a defect was one. A card's bottom
+          to its own footer ink reads 10.67 here against Apple's 11.00, because
+          a footer's INK is not its section's edge — the footer belongs to the
+          section above and is meant to occupy that space. That half needed
+          nothing. */}
         <Section
           header={
             <HStack>

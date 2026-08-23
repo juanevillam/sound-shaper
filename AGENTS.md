@@ -261,8 +261,25 @@ The override's real cost was the boundary BELOW it: SwiftUI applies the value to
 both sides of the section, so Speed to Preserve Pitch came to 22.00 against the
 family's 35.00 — the account sheet's two card-to-card boundaries, measured. Juan
 caught it by eye. Removed, the sheet's three boundaries are 58.00 (holds the
-Equalizer header), 70.00 (holds the EQ footer and the Speed header) and 35.00,
-every one of them the platform's own, band-scanned in both appearances.
+Equalizer header), 80.00 (holds the EQ footer and the Speed header) and 35.00,
+band-scanned in both appearances.
+
+**THE FOOTER-TO-HEADER BOUNDARY IS THE ONE PLACE THIS FORM IS SHORT, AND IT
+TAKES A ONE-SIDED MAKE-UP.** Juan read the EQ hint as sitting too close to
+"Playback Speed", and he was right: Apple's Settings > General > Keyboard has
+two footer-to-header boundaries and both measure **31.00** from the footer's
+ink to the header's ink, where a SwiftUI `Form` gives **20.66**. Settings is
+UIKit and this is SwiftUI, and the portfolio's reference for sheet metrics is
+Settings — the same authority the 84.00 rule rests on — so the 10.34 is made
+up rather than lived with.
+
+The lever is `listSectionMargins({edges: 'bottom'})` on the section that OWNS
+the footer, which is the only one-sided one: measured at 20 it added exactly 20
+above and left the boundary below at 35.00. `listSectionSpacing` cannot do this
+— it is additive on a section's top and absolute on its bottom, which is how
+the old override broke the boundary under it. At 10 the boundary lands 30.66,
+and nothing else on the sheet moves: 58.00, 35.00, card-to-footer-ink 10.67
+against Apple's 11.00, first card still 84.00 below the sheet's edge.
 
 **THE TWO `[1]` FORM SHEETS SAT 3.33 LOW, AND THE CONSTANT WAS NOT WRONG — ITS
 EVIDENCE WAS** (2026-08-22). `shaper` and `clips` band-scanned at 87.33 below
