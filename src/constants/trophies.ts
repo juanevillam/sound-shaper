@@ -13,7 +13,7 @@ export const TROPHY_IDS = {
   firstClip: 'first-clip',
   library: 'library',
   listening: 'listening',
-  savedShapes: 'saved-shapes',
+  savedClips: 'saved-clips',
   platinum: 'platinum',
 } as const;
 
@@ -29,7 +29,7 @@ export const TROPHY_TITLES: Record<string, string> = {
   [TROPHY_IDS.firstClip]: 'Clipper',
   [TROPHY_IDS.library]: 'Stacker',
   [TROPHY_IDS.listening]: 'Listener',
-  [TROPHY_IDS.savedShapes]: 'Refiner',
+  [TROPHY_IDS.savedClips]: 'Splicer',
   [TROPHY_IDS.platinum]: 'Sound Shaper',
 };
 
@@ -37,7 +37,14 @@ export const TROPHY_TITLES: Record<string, string> = {
 // both the trigger logic AND the localized copy (via `{count}`), so changing a
 // number never desyncs the description from the objective.
 export const LIBRARY_SOUND_COUNT = 3;
-export const SAVED_SHAPE_COUNT = 3;
+// The GOLD one, so it asks for more than the silver library's three. It counts
+// clips ever saved, not clips you still have — see `store/clipsSaved.ts`.
+//
+// It used to be `SAVED_SHAPE_COUNT` (3 saved shapes, "Refiner"), and went with
+// shape saving on 2026-08-22. Anyone who had already earned that trophy keeps
+// its document under `users/{uid}/trophies/saved-shapes`; nothing reads it now,
+// so it simply stops appearing.
+export const SAVED_CLIP_COUNT = 10;
 // Roughly an album a day for a week — long enough to mean the app is actually
 // in use, short enough to be reachable.
 export const LISTENING_MINUTES = 130;
@@ -49,7 +56,7 @@ export const LISTENING_MINUTES = 130;
  */
 export const TROPHY_CONFIGS: TrophyConfig[] = [
   { id: TROPHY_IDS.platinum, tier: 'platinum' },
-  { id: TROPHY_IDS.savedShapes, tier: 'gold' },
+  { id: TROPHY_IDS.savedClips, tier: 'gold' },
   { id: TROPHY_IDS.listening, tier: 'silver' },
   { id: TROPHY_IDS.library, tier: 'silver' },
   { id: TROPHY_IDS.firstSound, tier: 'bronze' },

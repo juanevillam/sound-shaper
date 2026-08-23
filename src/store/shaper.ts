@@ -5,6 +5,16 @@ import { EQ_BANDS, audioEngine } from '@/lib/audioEngine';
 // The user's sound-shaping settings — the UI's source of truth. Every setter
 // also pushes the change onto the live audio graph so it's heard immediately.
 // Settings are global (not per-sound), so shaping carries across the queue.
+//
+// NOTHING HERE IS PERSISTED, and SAVED SHAPES ARE GONE (2026-08-22). A shape
+// was a named config — the curve plus rate and keep-pitch — stored at
+// `users/{uid}/shapes` and applied from the Shape sheet; creating and deleting
+// them was pulled to make that sheet one thing (presets, EQ, speed, pitch) and
+// to stop maintaining a feature nobody had asked for yet. The Firestore
+// documents of anyone who saved one are LEFT ALONE — the rules and the
+// delete-account sweep still name the subcollection, so old data still gets
+// cleaned up on account deletion; nothing reads it. If it comes back after a
+// release, the shape of it is in git.
 
 // ---------------------------------------------------------------------------
 // Curated starting points. Gains are per-band dB in EQ_BANDS order
@@ -45,12 +55,8 @@ export const EQ_PRESETS: { i18nKey: string; gains: number[] }[] = [
 type ShaperState = {
   gains: number[]; // per-band, dB
   activePreset: string | null; // i18nKey while gains match a preset, else null
-  /** Id of the user's saved shape currently applied, if any. */
-  activeShapeId: string | null;
   setBandGain: (index: number, db: number) => void;
   applyPreset: (i18nKey: string) => void;
-  /** Apply one of the user's saved shapes (its EQ curve). */
-  applyShape: (shapeId: string, gains: number[]) => void;
   reset: () => void;
   isFlat: () => boolean;
 };
@@ -64,13 +70,12 @@ const matchPreset = (gains: number[]): string | null =>
 export const useShaperStore = create<ShaperState>()((set, get) => ({
   gains: flat(),
   activePreset: 'flat',
-  activeShapeId: null,
 
   setBandGain: (index, db) => {
     const gains = get().gains.slice();
     gains[index] = db;
-    // Hand-tweaking a band leaves whatever preset/shape was applied.
-    set({ gains, activePreset: matchPreset(gains), activeShapeId: null });
+    // Hand-tweaking a band leaves whatever preset was applied.
+    set({ gains, activePreset: matchPreset(gains) });
     audioEngine.setBandGain(index, db);
   },
 
@@ -78,20 +83,13 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     const preset = EQ_PRESETS.find(entry => entry.i18nKey === i18nKey);
     if (!preset) return;
     const gains = [...preset.gains];
-    set({ gains, activePreset: i18nKey, activeShapeId: null });
-    audioEngine.apply(gains);
-  },
-
-  applyShape: (shapeId, shapeGains) => {
-    // A saved curve may predate a band change — pad/trim to today's bands.
-    const gains = EQ_BANDS.map((_, index) => shapeGains[index] ?? 0);
-    set({ gains, activePreset: matchPreset(gains), activeShapeId: shapeId });
+    set({ gains, activePreset: i18nKey });
     audioEngine.apply(gains);
   },
 
   reset: () => {
     const gains = flat();
-    set({ gains, activePreset: 'flat', activeShapeId: null });
+    set({ gains, activePreset: 'flat' });
     audioEngine.apply(gains);
   },
 

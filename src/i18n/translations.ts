@@ -74,14 +74,7 @@ export const translations = {
         custom: 'Custom',
         none: 'None',
         pitchOff: 'pitch off',
-      },
-      shapes: {
-        save: 'Save',
-        saveTitle: 'Save This Shape',
         presets: 'Presets',
-        mine: 'My Shapes',
-        nameLabel: 'Name',
-        delete: 'Delete Shape',
       },
       menu: {
         label: 'Sound Options',
@@ -187,8 +180,8 @@ export const translations = {
         listening: {
           description: 'Listen for {count} minutes in total.',
         },
-        'saved-shapes': {
-          description: 'Save {count} shapes of your own.',
+        'saved-clips': {
+          description: 'Save {count} clips of your own.',
         },
         platinum: {
           description: 'Earn every other trophy.',
@@ -273,10 +266,6 @@ export const translations = {
       'clip-save-failed': "Couldn't save the clip. Try again.",
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': "Couldn't delete the clip. Try again.",
-      'shape-created': 'Shape saved',
-      'shape-save-failed': "Couldn't save the shape. Try again.",
-      'shape-deleted': 'Shape deleted',
-      'shape-delete-failed': "Couldn't delete the shape. Try again.",
       'delete-account-failed': "Couldn't delete the account. Try again.",
       'delete-account-reauth':
         'Sign out, sign in again, and then try deleting.',
@@ -358,14 +347,7 @@ export const translations = {
         custom: 'Personalizado',
         none: 'Ninguno',
         pitchOff: 'tono libre',
-      },
-      shapes: {
-        save: 'Guardar',
-        saveTitle: 'Guardar este molde',
         presets: 'Ajustes preestablecidos',
-        mine: 'Mis moldes',
-        nameLabel: 'Nombre',
-        delete: 'Eliminar molde',
       },
       menu: {
         label: 'Opciones del sonido',
@@ -461,8 +443,8 @@ export const translations = {
         listening: {
           description: 'Escucha {count} minutos en total.',
         },
-        'saved-shapes': {
-          description: 'Guarda {count} moldes propios.',
+        'saved-clips': {
+          description: 'Guarda {count} clips propios.',
         },
         platinum: {
           description: 'Consigue todos los demás trofeos.',
@@ -546,11 +528,6 @@ export const translations = {
       'clip-save-failed': 'No se pudo guardar el clip. Vuelve a intentarlo.',
       'clip-deleted': 'Clip eliminado',
       'clip-delete-failed': 'No se pudo eliminar el clip. Vuelve a intentarlo.',
-      'shape-created': 'Molde guardado',
-      'shape-save-failed': 'No se pudo guardar el molde. Vuelve a intentarlo.',
-      'shape-deleted': 'Molde eliminado',
-      'shape-delete-failed':
-        'No se pudo eliminar el molde. Vuelve a intentarlo.',
       'delete-account-failed':
         'No se pudo eliminar la cuenta. Vuelve a intentarlo.',
       'delete-account-reauth':
@@ -631,14 +608,7 @@ export const translations = {
         custom: '自定',
         none: '无',
         pitchOff: '不保持音高',
-      },
-      shapes: {
-        save: '存储',
-        saveTitle: '存储此音色',
         presets: '预置',
-        mine: '我的音色',
-        nameLabel: '名称',
-        delete: '删除音色',
       },
       menu: {
         label: '音频选项',
@@ -731,8 +701,8 @@ export const translations = {
         listening: {
           description: '累计聆听 {count} 分钟。',
         },
-        'saved-shapes': {
-          description: '存储 {count} 个你自己的音色。',
+        'saved-clips': {
+          description: '存储 {count} 个你自己的片段。',
         },
         platinum: {
           description: '获得其他所有奖杯。',
@@ -811,10 +781,6 @@ export const translations = {
       'clip-save-failed': '无法存储片段。请再试一次。',
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段。请再试一次。',
-      'shape-created': '音色已存储',
-      'shape-save-failed': '无法存储音色。请再试一次。',
-      'shape-deleted': '音色已删除',
-      'shape-delete-failed': '无法删除音色。请再试一次。',
       'delete-account-failed': '无法删除账户。请再试一次。',
       'delete-account-reauth': '请退出登录后重新登录，然后再尝试删除。',
     },

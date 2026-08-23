@@ -22,10 +22,11 @@ import { STATE_LAB } from '@/dev/flags';
  * what renders is the real branch and not a mock of it. `live` disables the lab
  * for that surface.
  *
- * THREE SURFACES, and the omissions are deliberate. The player's Shape and
- * Clips sheets have states worth looking at (no saved shapes, no clips) but
- * every one of them is reachable by hand in a second, and a pinnable state that
- * duplicates a surface's own resting state is noise in the picker.
+ * THREE SURFACES, and the omissions are deliberate. The player's Clips sheet
+ * has a state worth looking at (no clips) but it is reachable by hand in a
+ * second, and a pinnable state that duplicates a surface's own resting state is
+ * noise in the picker. The Shape sheet has no states at all — every control on
+ * it is always there.
  */
 export const UI_STATE_LAB = __DEV__ && STATE_LAB;
 
