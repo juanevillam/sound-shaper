@@ -181,18 +181,30 @@ in the file's header; the ones worth knowing before touching it:
 - **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
   expand ramp so it exists only on the open console. 0.94 read as a rendering
   wobble, 0.82 opened a gap under the bar row.
-- **FRAMING IS A ZOOMED WAVEFORM TRIM STRIP** (2026-08-23, `ClipTrimStripIos`),
-  and the two generations before it are the argument for why. The first trimmer
-  was two grip-barred pills on the slider that read as switches; the second was
-  a proper trim frame on the slider track, and its unfixable defect was SCALE —
-  a fifteen-second clip is ~30pt of a three-minute track, so fine trimming was
-  impossible at any styling. The strip is the "dedicated trim track that zooms
-  around the selection" that note asked for: real RMS bars under a Photos-style
-  frame, showing a WINDOW of `selection ± max(5s, 0.75 × clip)` instead of the
-  whole track (the same fifteen seconds now spans ~200pt), with a full-track
-  overview bar above and the slider faded out underneath. Dragging a cap into
-  the strip's edge pans the window; every crossed second ticks
-  `haptics.dragMove`; the window recomputes and recentres on release.
+- **FRAMING IS A WAVEFORM TRIM STRIP AT THE SLIDER'S OWN SCALE** (2026-08-23,
+  `ClipTrimStripIos`), and it took three generations to land. The first
+  trimmer was two grip-barred pills on the slider that read as switches; the
+  second was a proper trim frame on the slider track, whose recorded defect
+  was SCALE — a fifteen-second clip is ~30pt of a three-minute track. The
+  third BUILT the zoom that note asked for (`selection ± max(5s, 0.75 ×
+clip)`, edge-pan, a full-track overview bar) and **Juan rejected it the
+  same day**: the window recomputing under the drag read as the control
+  EXPANDING the more you dragged, and a trimmer has to be simple before it
+  is precise. What shipped keeps everything else — real RMS bars under a
+  Photos-style frame, the slider faded out underneath — mapped to the WHOLE
+  track, which is also what the slider under it says. The fine-trim cost is
+  knowingly accepted; do not rebuild the zoom (see
+  docs/rejected-experiments.md). The bar area is inset a cap's width each
+  side so a selection touching either end keeps its cap on screen (Photos'
+  own inset), and bars resample to a fixed 3px pitch so every track draws
+  the same calm density.
+
+  **NO HAPTICS IN THE DRAG** — a per-second `dragMove` buzz plus
+  grab/release pulses shipped with the zoom and Juan rejected them with it
+  ("makes the clipping un-usable"): RN's `Vibration` is a buzz, not Apple's
+  detent click, and a tick per crossed second is nearly continuous at
+  whole-track scale. Save keeps its one `haptics.selection()` at the save
+  site.
 
   **THE FRAME IS MEASURED FROM PHOTOS' VIDEO TRIMMER** (iPhone 17 / iOS 26.5,
   both appearances): frame outer 51pt, rails 5, caps ~14.7 wide with ~7pt outer
@@ -217,11 +229,11 @@ in the file's header; the ones worth knowing before touching it:
   light-mode screenshot. It is `background` with a hairline `onSurface` edge.
 
   **ENTERING FRAMING STILL MOVES NOTHING, and the strip had to earn it.** The
-  console's column has ~72pt of flex slack, so a 52pt strip joining it would
+  console's column has ~72pt of flex slack, so a 44pt strip joining it would
   drop the transport on the exact frame the mode changes. It therefore lives
   in the same ABSOLUTE overlay the bracket band used — bottom-aligned to the
-  slider host (`IOS_SLIDER_HOST_HEIGHT`, now in `chrome.ts`), extending 20pt
-  up into the title block's own padding — and the slider FADES under it,
+  slider host (`IOS_SLIDER_HOST_HEIGHT`, now in `chrome.ts`), extending 12pt
+  up into the title block's own 20pt padding — and the slider FADES under it,
   never unmounts (a remount re-runs the host's first-frame safe-area race on
   every mode exit; `trackHidden` on `PlayerScrubberProps`). The range readout
   stays absolutely centred inside the elapsed/total row, exactly as before.
