@@ -146,7 +146,10 @@ Two portfolio-wide passes landed on top of it and are NOT re-listed row by row,
 because they changed how surfaces are painted rather than what they are built
 from — both are stated in full in `AGENTS.md`: the **monochrome tint audit**
 (2026-08-21 — an accent stays only where the colour IS the information; Topper
-needed nothing, the trophies ring and Sound Shaper's player took the rest) and
+needed nothing, the trophies ring and Sound Shaper's player took the rest;
+re-audited 2026-08-22, where the governing principle became "monochrome is not
+colourless — an action must read as an action", and two sites came back because
+ink left them looking disabled) and
 the **floating-glass family** (snackbar, trophy banner, now-playing banner all
 on `GlassSurfaceIos` over `GLASS_FLOOR`).
 
@@ -319,9 +322,10 @@ Other standing exceptions:
   `glassProminent` draw their label WHITE whatever `tint` says, so a dark-mode
   `onSurface` fill is white-on-white (measured: a selected capsule's count
   disappeared). Pair a monochrome fill with `foregroundStyle` of the inverse
-  token. Likewise a `Toggle`'s knob is white and fixed — an `onSurface` ON track
-  in dark is one solid blob; a mid grey is the monochrome that survives both
-  appearances.
+  token. Likewise a `Toggle`'s knob is white and fixed — an `onSurface` ON
+  track in dark is one solid blob, and a mid grey reads as neither state, so the
+  switch takes the platform's green (`colors.switchOn`) rather than any
+  monochrome at all.
 - **A swipe action ignores `foregroundStyle` too, and has no `labelColor`.** Its
   glyph and word are always white, so its `tint` must be dark in BOTH
   appearances — a light fill is an empty capsule. In practice that means it
