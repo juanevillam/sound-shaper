@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
@@ -9,7 +11,7 @@ import {
   usePressSquash,
 } from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipActionsRow } from '@/components/player/ClipActionsRow';
@@ -529,6 +531,22 @@ export function PlayerConsole({
    */
   const copyInset = opticalTextInset(playerArtRadius(winW, 0));
 
+  /**
+   * THE TRIM FRAME'S LIVE EDGES, owned here because TWO children draw from
+   * them: the frame itself, and the range readout in the scrubber's label
+   * row. They are shared values rather than state for the console's standing
+   * reason (`chrome.ts`) — a drag moves them at gesture rate, and routing
+   * that through React would re-render this whole tree on every frame of
+   * every trim. `clipRange` state is still the committed truth; these follow
+   * it whenever it changes from outside a drag.
+   */
+  const clipStartSv = useSharedValue(clipRange.startS);
+  const clipEndSv = useSharedValue(clipRange.endS);
+  useEffect(() => {
+    clipStartSv.value = clipRange.startS;
+    clipEndSv.value = clipRange.endS;
+  }, [clipRange.startS, clipRange.endS, clipStartSv, clipEndSv]);
+
   const copy = (sound: { artist: string; name: string }) => (
     <>
       <AppText
@@ -642,6 +660,9 @@ export function PlayerConsole({
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
+            clipRangeSv={
+              clipMode ? { endSv: clipEndSv, startSv: clipStartSv } : null
+            }
             onSeek={onSeek}
           />
           {clipMode ? (
@@ -650,6 +671,8 @@ export function PlayerConsole({
                 durationS={trimmerDuration}
                 startS={clipRange.startS}
                 endS={clipRange.endS}
+                startSv={clipStartSv}
+                endSv={clipEndSv}
                 onChange={onClipRangeChange}
               />
             </View>

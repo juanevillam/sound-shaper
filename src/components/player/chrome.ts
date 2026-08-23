@@ -5,7 +5,7 @@ import {
   type ComposedGesture,
   type GestureType,
 } from 'react-native-gesture-handler';
-import { type AnimatedStyle } from 'react-native-reanimated';
+import { type AnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { SCREEN_PADDING } from '@/styles/metrics';
 
@@ -76,6 +76,16 @@ export type PlayerScrubberProps = {
   totalDuration: number;
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
+  /**
+   * iOS only: the trim frame's LIVE edges, so the centre readout tracks the
+   * finger instead of waiting for the drag to commit. When present it
+   * replaces `clipLabel`'s text (which stays the framing flag, and is what
+   * Android's twin renders). See `ClipRangeLabelIos`.
+   */
+  clipRangeSv?: {
+    startSv: SharedValue<number>;
+    endSv: SharedValue<number>;
+  } | null;
   onDrag: (value: number) => void;
   onDragEnd: () => void;
 };
