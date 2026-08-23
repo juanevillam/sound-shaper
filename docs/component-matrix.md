@@ -309,6 +309,12 @@ Other standing exceptions:
   Accessibility > Motion, which is three headerless sections each carrying a
   footer — the exact case). A footer's INK is not its section's edge: it belongs
   to the section above and is supposed to occupy that space.
+- **`listSectionMargins({edges: 'bottom'})` is the ONE-SIDED lever, and the one
+  to reach for.** Measured on a `Form` section that owns a footer: at `length:
+20` it added exactly 20 below that section and left the NEXT boundary at its
+  default 35.00. That is what `listSectionSpacing` cannot do (above). Use it
+  when a boundary genuinely needs making up — Sound Shaper's Shape sheet adds 10
+  so its footer-to-header reads 30.66 against Apple's 31.00.
 - **`listSectionMargins` only bites at SECTION level on @expo/ui 57** — on the
   `List` itself it measured as a no-op, as did `listSectionSpacing`. The gap iOS
   puts BETWEEN sections is likewise not ours to shrink (measured 30.3pt); a tail
