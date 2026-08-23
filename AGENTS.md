@@ -246,6 +246,24 @@ There were five, and `sound-info` was the fifth — untitled and RN on purpose,
 because a `fitToContents` sheet is too short for a bar and a native `Form`
 renders 0pt tall inside one. It is deleted; see the header rule below.
 
+**THE SHAPE SHEET'S SECTION BOUNDARIES ARE THE PLATFORM'S, AND THE ONE
+OVERRIDE IS GONE** (2026-08-22). Playback Speed carried
+`listSectionSpacing(22)`, added on the reading that "a section that follows a
+footer loses half its separation" — a card-to-header boundary measures 31.00
+while footer-ink to header-ink measures 20.66. Those are not comparable
+quantities: a footer's INK is not its section's edge, the footer belongs to the
+section above, and Apple's own Settings > Accessibility > Motion — three
+headerless sections each carrying a footer — puts a card's bottom 10.00 above
+its footer ink and that ink 25.66 above the next card. Ours reads 10.67. There
+was nothing to give back.
+
+The override's real cost was the boundary BELOW it: SwiftUI applies the value to
+both sides of the section, so Speed to Preserve Pitch came to 22.00 against the
+family's 35.00 — the account sheet's two card-to-card boundaries, measured. Juan
+caught it by eye. Removed, the sheet's three boundaries are 58.00 (holds the
+Equalizer header), 70.00 (holds the EQ footer and the Speed header) and 35.00,
+every one of them the platform's own, band-scanned in both appearances.
+
 **THE TWO `[1]` FORM SHEETS SAT 3.33 LOW, AND THE CONSTANT WAS NOT WRONG — ITS
 EVIDENCE WAS** (2026-08-22). `shaper` and `clips` band-scanned at 87.33 below
 their own top edge against the family's 84.00. `SheetFormBodyIos`'s pull-back
