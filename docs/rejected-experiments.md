@@ -369,11 +369,11 @@ not.
 Shipped instead: no scrim. Two 14 × 32 caps that OVERHANG the box they bracket,
 joined by 2pt accent rails.
 
-**2026-08-23 postscript — the premise changed, the rejection stands.** The
-trimmer became a waveform strip (`ClipTrimStripIos`), which IS an opaque
-band of material — Photos' filmstrip premise — so it dims outside the selection
-legitimately (`background` washed over the bars). Do not read that as licence
-to scrim a bare slider track; the reasoning above still holds for one.
+**2026-08-23 postscript.** For one day the trimmer was a waveform strip — an
+opaque band of material, Photos' filmstrip premise — and there the scrim was
+legitimate. The strip itself was then rejected (see the waveform-strip entry
+below), the trimmer went back onto the bare slider, and this rejection is back
+in full force exactly as written.
 
 ## A ZOOMED window in the clip trim strip — REJECTED 2026-08-23, same day it shipped
 
@@ -391,9 +391,33 @@ your finger is down is not simple whatever it buys. Whole-track mapping also
 agrees with the slider the strip replaces, so the frame sits where the person
 already believes that moment lives. Photos maps its whole video the same way.
 
-Shipped instead: static whole-track mapping, bar area inset a cap's width each
-side, bars resampled to a fixed 3px pitch. The fine-trim cost is accepted
-knowingly — do not rebuild the zoom to win it back.
+Shipped instead: static whole-track mapping (first on the strip, then — after
+the strip's own rejection below — on the bare slider). The fine-trim cost is
+accepted knowingly, by the person who uses it — do not rebuild the zoom to win
+it back.
+
+## The WAVEFORM STRIP itself — REJECTED 2026-08-23, hours after going static
+
+With the zoom gone the strip was a static whole-track waveform — real RMS bars
+decoded from the mp3 (downloaded to cache, `decodeAudioData` at 8 kHz, bucketed
+at 4/s, persisted as JSON), resampled to a fixed 3px pitch, the slider faded
+out underneath it. Technically it all worked: decode was near-instant, cached
+per sound, and the geometry never waited on the network.
+
+Juan rejected the surface itself: "i dont like the way the sound wave shape
+looks like, and i dont like to make the user see two diff progress slider, is
+like, out of place". The screen already has a progress surface — the slider —
+and replacing it in one mode with a second track-shaped thing makes the person
+re-read where "now" lives at the exact moment they are trying to mark it.
+Photos gets away with a filmstrip because its viewer has no other progress
+surface; this player does.
+
+Shipped instead: `ClipTrimFrameIos` — the frame treatment the strip proved out
+(full-height chevron caps, rails, gen 2's faint accent wash) drawn directly on
+the visible, interactive slider, whose thumb stays the playhead. The whole
+decode pipeline (`lib/waveform.ts`, `useWaveform`) was deleted with the strip;
+git history keeps it (commits `f5b4117` → `f7556d6`) if a waveform ever earns a
+place somewhere that has no competing progress surface.
 
 ## Per-second haptic ticks while dragging the trim caps — REJECTED 2026-08-23, with the zoom
 
