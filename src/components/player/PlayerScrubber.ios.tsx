@@ -157,9 +157,15 @@ export function PlayerScrubber({
               <ClipRangeLabelIos
                 startSv={clipRangeSv.startSv}
                 endSv={clipRangeSv.endSv}
+                style={styles.time}
               />
             ) : (
-              <Text doNotTranslate text={clipLabel} variant="labelMedium" />
+              <Text
+                doNotTranslate
+                style={styles.time}
+                text={clipLabel}
+                variant="labelMedium"
+              />
             )}
           </View>
         ) : null}
@@ -176,6 +182,12 @@ const styles = StyleSheet.create({
    * whole label sideways as it ticks — a control that twitches once a second
    * beside a slider that does not. `tabular-nums` is what SwiftUI's
    * `monospacedDigit` does, which is what Apple sets on every running timer.
+   *
+   * ALL THREE READOUTS SHARE THIS OBJECT — elapsed, total, and the centred
+   * clip range, which is handed it as a prop rather than re-declaring the
+   * `fontVariant`. The range needs it MOST: it is centred, so a narrower `1`
+   * moves both of its ends, and under a drag its digits change several times
+   * a second.
    */
   time: { fontVariant: ['tabular-nums'] },
   host: { height: IOS_SLIDER_HOST_HEIGHT, width: '100%' },
