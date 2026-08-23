@@ -235,14 +235,65 @@ A LIVE appearance switch reads the same numbers, which is the proof the
 `matchContents` header jump is gone.
 
 **The player's four sheets are on TOPPER'S bar** (2026-08-21). `shaper`,
-`clips` and `edit-sound` are `titled` in `IOS_FORM_SHEETS` and state their bar
-through `sheetCommitBarOptionsIos` (or, for `clips`, their own slots — it
-commits nothing, so its trailing glyph is `plus`, not a ✓). They drew an
-authored header above their Form before, which cannot have genuine Liquid Glass
-and carried the filled-primary-disc ✓ that Topper already rejected.
+`clips` and `edit-sound` are `titled` in `IOS_FORM_SHEETS`. `edit-sound` states
+its bar through `sheetCommitBarOptionsIos`; `clips` states its own slots (it
+commits nothing, so its trailing glyph is `plus`, not a ✓); and `shaper` states
+NOTHING at all, so it takes the table's default — a title and one close glyph
+(see the removal below). They drew an authored header above their Form before,
+which cannot have genuine Liquid Glass and carried the filled-primary-disc ✓
+that Topper already rejected.
 There were five, and `sound-info` was the fifth — untitled and RN on purpose,
 because a `fitToContents` sheet is too short for a bar and a native `Form`
 renders 0pt tall inside one. It is deleted; see the header rule below.
+
+**THE TWO `[1]` FORM SHEETS SAT 3.33 LOW, AND THE CONSTANT WAS NOT WRONG — ITS
+EVIDENCE WAS** (2026-08-22). `shaper` and `clips` band-scanned at 87.33 below
+their own top edge against the family's 84.00. `SheetFormBodyIos`'s pull-back
+takes a 3.33 residual off the empty-header slot, and that residual was solved
+against Topper's editors, which are `[0.38]` and `[0.62]`; Topper owns no
+full-height form sheet, so nothing had ever measured the `[1]` case. There is no
+residual there — the Form wants the flat 21 — and both sheets now read 84.00 in
+both appearances. The component takes `fullHeight` and this app's two `[1]`
+routes pass it; `edit-sound` (`[0.65]`) does not and is unchanged at 98.33, which
+is Topper's `edit-item` hero shape to within 0.66. The trap is written up in the
+root `AGENTS.md`.
+
+**SAVED SHAPES WERE BUILT AND REMOVED** (Juan's call, 2026-08-22). The Shape
+sheet could save the whole live config under a name — the curve plus rate and
+keep-pitch — into `users/{uid}/shapes`, list them in their own section, apply
+one, and delete one by swipe. All of it is gone: the sheet now SETS presets, EQ,
+speed and pitch and nothing else, which is a feature that does not have to be
+maintained before a first release and a bar that does not have to carry a ✓.
+
+What that bought, and what it cost, so neither has to be re-derived:
+
+- **The bar collapsed to one glyph.** The ✓ was the sheet's only commit, so with
+  it gone `sheetCommitBarOptionsIos` had nothing to state and the sheet fell
+  back to `IOS_FORM_SHEETS`' default close glyph. That is Apple's own split, and
+  `HeaderCloseButton` was already documenting it: Done for a commit modal, a
+  close glyph for a panel that applies as you go. This sheet has always been the
+  second kind — every row edits the live graph as you move it — and the ✓ was
+  the only thing pretending otherwise.
+- **The Picker lost its null case.** `selection` was
+  `activeShapeId === null ? activePreset : null`, because a saved shape
+  overrode the preset. It is `activePreset` outright now.
+- **The GOLD trophy had to move.** "Refiner" (save 3 shapes) became unearnable,
+  and so did the platinum that needs every other one. It is `saved-clips`
+  ("Splicer", save 10 clips) — the count comes from `store/clipsSaved.ts`,
+  banked at the clip save site, because the clips cache only holds the sounds
+  you have opened. An account that already earned `saved-shapes` keeps the
+  document; nothing reads it, so it stops appearing.
+- **Nothing was migrated, and nothing was deleted.** `SHAPES_SUBCOLLECTION`,
+  its `firestore.rules` match and its line in the delete-account sweep all
+  survive, marked LEGACY, so an early account's rows still get cleaned up when
+  that account goes. Restoring the feature is a git revert plus those three
+  comments.
+
+**ANDROID'S TWIN WAS EDITED UNVERIFIED**, because leaving it half-removed would
+be worse: `ShaperSheet.tsx` lost the chips row, the save dialog and the delete
+button, and its `SheetBar` (a title plus a Save pill) became a plain title
+`Text`. It typechecks and it mirrors iOS; nothing Android is installed, so
+re-check it on device when Android resumes.
 
 **THE EXPANDED PLAYER HAS NO BAR ROW, AND EDIT SITS WITH THE COPY IT EDITS**
 (2026-08-21). Above the artwork there is now the artwork and nothing else.
@@ -359,10 +410,10 @@ is 1×, the pitch note when pitch is preserved, and an untouched sound reads
 **"None"** — the same word the Clips card uses for the same idea.
 
 **The long form still truncates and that is accepted.** "Bright · 1.5×" needs
-more than 65.33, and a SAVED SHAPE's name is a person's own string of any
-length. Truncation is what `numberOfLines={1}` is for, the label above carries
-the meaning, and the state now occurs only when someone has set BOTH a non-flat
-shape and a non-default speed.
+more than 65.33. Truncation is what `numberOfLines={1}` is for, the label above
+carries the meaning, and the state now occurs only when someone has set BOTH a
+non-flat preset and a non-default speed. (It was worse while shapes could be
+saved: a shape's name was a person's own string of any length.)
 
 **THE LABEL IS ONE WORD; THE SPOKEN NAME IS NOT.** `player.menu.editShort`
 ("Edit") is a card title beside "Shape" and "Clips" and has to read as one of
@@ -573,14 +624,6 @@ rather than assumed: a flat→bass switch on a limited master peaks at -0.40 dBF
 mid-transition, so the trim never lags the boost it is compensating. A fresh graph
 still takes its values outright (`setValueAtTime`) — fading the EQ in over the
 first 36 ms of a sound would be its own artefact.
-
-**SAVED SHAPES SOUND THE SAME BUT PLAY QUIETER.** A shape stores its own `gains`
-(plus `rate` and `keepPitch`), never a preset name, so nothing in Firestore
-changed and no migration is needed. Its TONE is untouched; it now plays at its own
-trim below where it used to, which is the difference between a shape that clipped
-and one that does not. A shape saved from the old `bass` also no longer matches
-the `bass` chip — `matchPreset` compares gains exactly — so it shows as a custom
-curve, which is what it now is.
 
 **Two things about the library that are easy to assume wrong**, both read out of
 its C++ rather than guessed:
