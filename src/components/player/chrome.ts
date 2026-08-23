@@ -76,12 +76,6 @@ export type PlayerScrubberProps = {
   totalDuration: number;
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
-  /**
-   * iOS only: fade the slider track out while the trim strip stands over it.
-   * A FADE, never an unmount — remounting the SwiftUI host re-runs its
-   * first-frame safe-area race on every mode exit. Android ignores it.
-   */
-  trackHidden?: boolean;
   onDrag: (value: number) => void;
   onDragEnd: () => void;
 };

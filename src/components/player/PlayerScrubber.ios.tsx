@@ -65,7 +65,6 @@ export function PlayerScrubber({
   duration,
   totalDuration,
   clipLabel,
-  trackHidden = false,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
@@ -73,14 +72,7 @@ export function PlayerScrubber({
 
   return (
     <View style={styles.block}>
-      {/* While the trim strip stands over it the track FADES, never
-          unmounts — a remount re-runs the host's first-frame safe-area race
-          (above) on every mode exit. */}
-      <SwiftUIHost
-        ignoreSafeArea="all"
-        pointerEvents={trackHidden ? 'none' : 'auto'}
-        style={[styles.host, trackHidden && styles.hostHidden]}
-      >
+      <SwiftUIHost ignoreSafeArea="all" style={styles.host}>
         <Slider
           // MONOCHROME, like every other control on this surface. A
           // now-playing screen is tinted by its ARTWORK — that is what
@@ -134,7 +126,6 @@ const styles = StyleSheet.create({
    */
   time: { fontVariant: ['tabular-nums'] },
   host: { height: IOS_SLIDER_HOST_HEIGHT, width: '100%' },
-  hostHidden: { opacity: 0 },
   labels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
