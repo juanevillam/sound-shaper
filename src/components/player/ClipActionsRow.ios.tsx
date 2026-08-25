@@ -8,58 +8,43 @@ import {
   PRESSED_OPACITY,
 } from '@portfolio/mobile-ui';
 
-import { GlyphButton } from '@/components/player/GlyphButton';
-import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useI18n } from '@/i18n';
-import { usePlayerStore } from '@/store/player';
 import { CONTINUOUS_CURVE, PILL_RADIUS } from '@/styles/shape';
 
 import { type ClipActionsRowProps } from './chrome';
 
 /**
- * PHOTOS' TRIM TOOLBAR, IN THE GLASS BAR'S BOX.
+ * PHOTOS' TRIM BAR, IN THE GLASS BAR'S BOX: leave the mode, or commit it.
  *
  * Framing swaps this in where the Shape/Clips glass bar sits — same
  * `MINI_PLAYER_HEIGHT` box, same `FLOATING_RADIUS`, same material — so the
- * console's bottom edge never changes shape on a mode switch. What changed is
- * the CONTENTS, which now follow Photos' video-trim toolbar: Cancel as a
- * plain word leading, the preview PLAY GLYPH dead centre, the commit
- * trailing.
+ * console's bottom edge never changes shape on a mode switch. Only the
+ * contents change.
  *
- * What this replaced was four treatments in one row — a grey ✕, a muted
- * "New Clip" caption, a tinted "Preview" word and a filled pill — which read
- * as loose parts, and the muted caption read as disabled text. Photos titles
- * its trim mode nowhere: once the frame is on the strip, the mode explains
- * itself, so the caption went with the ✕.
+ * IT HELD A THIRD CONTROL AND THAT WAS THE DEFECT (Juan, 2026-08-23): a
+ * preview play glyph sat dead centre here while the transport's own play sat
+ * ~130pt directly above it — the same triangle, on the same centre line,
+ * meaning two different things ("like seeing the player controls twice").
+ * Preview is now what the TRANSPORT's play button does while framing, so
+ * there is exactly one play control on the screen and this bar is left with
+ * the two actions that are genuinely its own.
  *
- * THE GLYPH IS THE PREVIEW BUTTON, and it answers the preview's own state
- * read at the leaf (`playing && activeClip 'preview'`) — play starts the clip
- * from its start, pause stops it mid-listen. Centred absolutely, the
- * `clipLabelSlot` pattern, so it stays dead centre whatever the two words
- * beside it measure.
+ * That is also the shape Apple ships: Photos and Voice Memos put a single
+ * play beside the trim surface and leave the bar to Cancel and the commit.
+ * `onPreview` stays on the shared props because ANDROID's row still owns its
+ * own preview button; this side no longer draws one.
  *
  * Save keeps the filled brand pill: framing is a distinct MODE rather than
  * the resting player, and Save is its one commit — the accent carve-out the
  * monochrome rule names.
  */
-
-/** The preview glyph's SF point size — the toolbar's ink, not a transport's. */
-const PREVIEW_GLYPH_SIZE = 26;
-
 export function ClipActionsRow({
   onCancel,
-  onPreview,
   onSave,
   width = 0,
 }: ClipActionsRowProps) {
-  const { t } = useI18n();
   const { colors } = useAppTheme();
-
-  const previewing = usePlayerStore(
-    s => s.playing && s.activeClip?.clipId === 'preview',
-  );
 
   return (
     <View style={[styles.bar, { height: MINI_PLAYER_HEIGHT, width }]}>
@@ -104,24 +89,6 @@ export function ClipActionsRow({
           />
         </Pressable>
       </View>
-
-      {/* Dead centre whatever Cancel and Save measure — the absolute slot
-          pattern the scrubber's range label uses. */}
-      <View pointerEvents="box-none" style={styles.previewSlot}>
-        <GlyphButton
-          accessibilityLabel={t(
-            previewing ? 'player.pause' : 'player.clips.preview',
-          )}
-          hitSlop={12}
-          onPress={previewing ? usePlayerStore.getState().toggle : onPreview}
-        >
-          {previewing ? (
-            <PauseGlyph color={colors.onSurface} size={PREVIEW_GLYPH_SIZE} />
-          ) : (
-            <PlayGlyph color={colors.onSurface} size={PREVIEW_GLYPH_SIZE} />
-          )}
-        </GlyphButton>
-      </View>
     </View>
   );
 }
@@ -138,15 +105,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cancel: { paddingHorizontal: 12, paddingVertical: 8 },
-  previewSlot: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
   save: {
     borderRadius: PILL_RADIUS,
     paddingHorizontal: 18,
