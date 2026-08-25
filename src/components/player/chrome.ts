@@ -56,14 +56,22 @@ export const CLIP_FRAMING_GAP = Platform.select({
 export const HANDLES_REGION_HEIGHT = 44;
 
 /**
- * The SwiftUI slider host's stated box. It lives HERE rather than in
+ * The scrubber's box. It was 32 while this was a SwiftUI `Slider`, because a
+ * thumb slider needs room for its 36.67pt knob — and that knob was also what
+ * filled the space between the track and the time labels. Apple's media
+ * scrubber has no knob, so the same 32 left the labels stranded ~28pt below an
+ * 8pt bar (Juan, 2026-08-25). The box is now the bar plus a little air; the
+ * TOUCH target is restored by hit slop on the gesture rather than by padding
+ * the layout, so the bar can sit close to its labels without becoming hard to
+ * catch.
+ * It lives HERE rather than in
  * `PlayerScrubber.ios.tsx` because the console centres the trim frame on it,
  * and a VALUE imported from a platform-suffixed file resolves back to that
  * same file from inside it — the self-import trap this module exists to
  * avoid. The full story of why the host both states this box AND ignores the
  * safe area is at the top of `PlayerScrubber.ios.tsx`.
  */
-export const IOS_SLIDER_HOST_HEIGHT = 32;
+export const IOS_SLIDER_HOST_HEIGHT = 18;
 
 export type PlayerScrubberProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */

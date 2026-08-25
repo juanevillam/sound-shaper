@@ -49,6 +49,20 @@ const TRACK_HEIGHT_ACTIVE = 10.67;
 const GROW_MS = 150;
 /** Apple's remaining track reads ~0.3 of its own chrome — see the header. */
 const TRACK_REMAINING_ALPHA = 0.3;
+/**
+ * THE BAR IS 8pt; THE TARGET IS NOT. The band just above the bar belongs to
+ * the title block, whose swipe skips tracks — so reaching for the scrubber
+ * paged the artwork instead, and a touch between the two hit nothing at all
+ * (Juan, 2026-08-25).
+ *
+ * It is padding cancelled by a negative margin, NOT `hitSlop`: a gesture's
+ * hit slop cannot grow the area past the view's own bounds on iOS, and a
+ * version using it took no events whatsoever (measured — the drag logged no
+ * `onBegin`). This grows the real view, which costs no layout because the
+ * margin gives back exactly what the padding takes, and the scrubber sits
+ * after the title in the tree so it wins the overlap.
+ */
+const SCRUB_TOUCH_PAD = 15;
 
 type MediaScrubberIosProps = {
   /** Displayed position; the drag owns it while the finger is down. */
@@ -160,7 +174,12 @@ export function MediaScrubberIos({
 
 const styles = StyleSheet.create({
   /** The bar is 8pt; the target around it is the console's slider box. */
-  hit: { justifyContent: 'center', width: '100%' },
+  hit: {
+    justifyContent: 'center',
+    marginVertical: -SCRUB_TOUCH_PAD,
+    paddingVertical: SCRUB_TOUCH_PAD,
+    width: '100%',
+  },
   bar: { overflow: 'hidden', width: '100%' },
   fill: { bottom: 0, left: 0, position: 'absolute', top: 0 },
 });
