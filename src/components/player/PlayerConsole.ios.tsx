@@ -141,11 +141,23 @@ const ARTIST_LEADING = 22;
  * Play is still primary — it just says so with SIZE rather than with a fill,
  * which is how a symbol-based transport carries hierarchy. These are SF point
  * sizes; `TransportGlyphs.ios` derives each glyph's box from its size.
+ *
+ * THEY GREW WITH THE SPACE AROUND THEM (2026-08-25). At 30/44 the row was
+ * 195pt of a 370pt content box and read as floating in the console's lower
+ * half rather than holding it — an imbalance that only appeared once the
+ * cover moved up and the scrubber lost its thumb, freeing 26pt into exactly
+ * those gaps. Apple's own video transport runs ~40pt of play ink against our
+ * 35.67. At 34/52 the row is 228pt, and the taller box also takes ~10pt back
+ * out of the flexible gaps it was floating in.
+ *
+ * This is GEOMETRY, so it scales with its box rather than stepping a ladder —
+ * the rule that governs `artworkRadius`. A symbol has no Dynamic Type ramp to
+ * break.
  */
-const TRANSPORT_SKIP_SIZE = 30;
-const TRANSPORT_PLAY_SIZE = 44;
+const TRANSPORT_SKIP_SIZE = 34;
+const TRANSPORT_PLAY_SIZE = 52;
 /** Between the boxes, so the three read as one group rather than a spread row. */
-const TRANSPORT_GAP = 30;
+const TRANSPORT_GAP = 34;
 
 /**
  * THE TRANSPORT IS CENTRED OPTICALLY, NOT MATHEMATICALLY, and the difference is
