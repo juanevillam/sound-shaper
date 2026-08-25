@@ -44,12 +44,10 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import {
-  clipWindowFor,
   playerArtRadius,
   playerArtSize,
   playerArtTop,
   playerConsoleTop,
-  type ClipWindow,
   type PlayerCard,
 } from '@/components/player/chrome';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
@@ -908,11 +906,6 @@ export function PlayerSheet() {
   // exited by save / dismiss / track change.
   const [clipMode, setClipMode] = useState(false);
   const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
-  // The slice the trimmer maps while framing — set at entry, never after.
-  const [clipWindow, setClipWindow] = useState<ClipWindow>({
-    endS: 0,
-    startS: 0,
-  });
 
   useEffect(() => {
     setClipMode(false);
@@ -929,9 +922,7 @@ export function PlayerSheet() {
     const total = Math.floor(duration);
     const start = Math.max(0, Math.round(position - 7));
     const end = Math.min(total || 15, start + 15);
-    const range = { startS: start, endS: Math.max(end, start + 1) };
-    setClipRange(range);
-    setClipWindow(clipWindowFor(range.startS, range.endS, total));
+    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
     // Framing is a quiet mode — see the store's `pause`.
     usePlayerStore.getState().pause();
     setClipMode(true);
@@ -980,9 +971,7 @@ export function PlayerSheet() {
       Math.round(usePlayerStore.getState().position - 7),
     );
     const end = Math.min(trimmerDuration || 15, start + 15);
-    const range = { startS: start, endS: Math.max(end, start + 1) };
-    setClipRange(range);
-    setClipWindow(clipWindowFor(range.startS, range.endS, trimmerDuration));
+    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
     // Framing is a quiet mode — see the store's `pause`.
     usePlayerStore.getState().pause();
     setClipMode(true);
@@ -1282,7 +1271,6 @@ export function PlayerSheet() {
             cards={cards}
             clipMode={clipMode}
             clipRange={clipRange}
-            clipWindow={clipWindow}
             consoleStyle={expandedStyle}
             contentTop={contentTop}
             expanded={expanded}

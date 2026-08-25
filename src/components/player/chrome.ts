@@ -95,6 +95,35 @@ export type PlayerScrubberProps = {
   onDragEnd: () => void;
 };
 
+/**
+ * THE FRAMING WINDOW — the slice of the sound the trimmer maps, and the answer
+ * to the SCALE problem this feature carried from its first generation.
+ *
+ * Mapped whole, a 3-minute song is ~0.51s per point and a 6-minute one ~0.97s,
+ * so a finger's wobble is a second or more and long recordings are effectively
+ * untrimmable. Zoomed, a point is ~0.081s at any length.
+ *
+ * IT IS THE WHOLE SOUND AT REST AND ZOOMS ONLY WHILE A HANDLE IS HELD —
+ * Google Photos' model, and the shape that finally satisfies both halves of
+ * the problem. At rest the frame maps everything, so a clip can start at 0:15
+ * and end at 2:00; the moment a cap is grabbed the view zooms to
+ * `CLIP_ZOOM_SPAN_S` around it and HOLDS that scale until the finger lifts.
+ *
+ * THE SCALE NEVER CHANGES MID-DRAG. That is the whole difference from the
+ * zoomed strip rejected on 2026-08-23, whose span was a function of the
+ * selection and so rescaled continuously as the clip grew ("the more i drag
+ * it the more it expands"). Zooming AT the grab is a deliberate transition;
+ * rescaling DURING the drag is the ground moving under your hand.
+ *
+ * A fixed window that never moved was tried in between (2026-08-25) and could
+ * not express a clip from 0:15 to 2:00, nor one longer than its own span —
+ * which is why the zoom is tied to the gesture rather than to the mode.
+ */
+export type ClipWindow = { startS: number; endS: number };
+
+/** The span a grab zooms to. Not a clip limit — the window pans as you drag. */
+export const CLIP_ZOOM_SPAN_S = 30;
+
 export type PlayerCard = {
   icon: IconName;
   key: string;
@@ -129,41 +158,6 @@ export type ClipHandlesProps = {
   startS: number;
   endS: number;
   onChange: (startS: number, endS: number) => void;
-};
-
-/**
- * THE FRAMING WINDOW — the slice of the sound the trimmer maps while framing,
- * and the answer to the SCALE problem this feature carried from its first
- * generation.
- *
- * Mapping the whole track puts a 3-minute song at ~0.51s per point and a
- * 6-minute one at ~0.97s, so a finger's wobble is a second or more and long
- * recordings are simply untrimmable. A fixed window is ~0.081s per point at
- * any length.
- *
- * IT IS SET ONCE, WHEN FRAMING OPENS, AND NEVER MOVES. That is the whole
- * difference from the zoomed strip rejected on 2026-08-23, whose window
- * recomputed as you dragged ("the more i drag it the more it expands"): a
- * control whose coordinate system moves under the finger is not simple,
- * whatever precision it buys. Nothing here recomputes — not on drag, not on
- * release — so the window bounds the clip's length and its travel, which is
- * the accepted cost.
- */
-export type ClipWindow = { startS: number; endS: number };
-
-/** The window's span. A clip cannot be longer than this, by construction. */
-export const CLIP_WINDOW_S = 30;
-
-/** Centre `window` on the clip, clamped to the sound. Called ONCE, at entry. */
-export const clipWindowFor = (
-  startS: number,
-  endS: number,
-  durationS: number,
-): ClipWindow => {
-  const span = Math.min(CLIP_WINDOW_S, durationS || CLIP_WINDOW_S);
-  const centred = startS - (span - (endS - startS)) / 2;
-  const from = Math.min(Math.max(centred, 0), Math.max(durationS - span, 0));
-  return { endS: from + span, startS: from };
 };
 
 /**
@@ -226,8 +220,6 @@ export type PlayerConsoleProps = {
   /* Clip framing — the brackets and the action row that replaces the footer. */
   clipMode: boolean;
   clipRange: { startS: number; endS: number };
-  /** iOS: the fixed slice the trimmer maps while framing. See `ClipWindow`. */
-  clipWindow: ClipWindow;
   trimmerDuration: number;
   onClipRangeChange: (startS: number, endS: number) => void;
   onClipCancel: () => void;
