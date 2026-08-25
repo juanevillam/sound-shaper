@@ -212,6 +212,24 @@ in the file's header; the ones worth knowing before touching it:
   per-second buzz was rejected with the zoom ("makes the clipping
   un-usable"); Save keeps its one `haptics.selection()` at the save site.
 
+  **THE KNOB GOES WHILE FRAMING, AND THE TRACK IS DRAWN.** The slider's thumb
+  is a **36.67pt** disc, measured, and a fifteen-second clip on a three-minute
+  track is a **~29pt** frame — so the knob was WIDER than the selection it sat
+  in, covering the thing being trimmed, and its slider stole touches aimed at
+  the caps (a cap drag seeked the track instead; reproduced twice). SwiftUI's
+  `Slider` exposes no thumb size — `controlSize('mini')` was tried on device
+  and does nothing to it — so framing hides the native slider and draws the
+  same track with a thin PLAYHEAD in its place, which is what Photos' trimmer
+  shows. The drawn layer is inert, so the caps now win every touch in the band.
+
+  This is the console's one deliberate imitation of a system control, so it
+  was MEASURED off the real slider (iPhone 17 / iOS 26.5, both appearances):
+  track **5.67pt** tall from the host's left edge, played side `onSurface`,
+  the rest `onSurface` at **0.083** light / **0.094** dark — one 0.09 covers
+  both. Rendered: height 6.00 (one device pixel), origin 16.00, remaining
+  within 1/255 light and 2/255 dark. The slider FADES rather than unmounting,
+  or its first-frame safe-area race would re-run on every mode exit.
+
   **ENTERING FRAMING MOVES NOTHING**, as every generation: the frame is an
   ABSOLUTE overlay on the slider block, and the range readout is absolutely
   centred inside the elapsed/total row. Verified by band-scanning bursts
