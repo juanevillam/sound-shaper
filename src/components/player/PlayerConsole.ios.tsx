@@ -830,7 +830,17 @@ const styles = StyleSheet.create({
   /** See `SPACER_LOWER_WEIGHT` — heavier, so the row lifts off the glass bar. */
   spacerLower: { flex: SPACER_LOWER_WEIGHT },
   titleSlot: { width: '100%' },
-  titleBlock: { paddingBottom: 20, width: '100%' },
+  /**
+   * THE COPY'S OWN BREATHING ROOM, and the console's one hand-placed gap
+   * between groups. The screen reads as three blocks — the artwork with the
+   * copy that names it, the scrubber with its times, and the transport — so
+   * the space WITHIN a block is its type's own leading and the space BETWEEN
+   * blocks is set here. It was 20 while the slider box was 32 and carried a
+   * thumb; freeing 26pt at the top of the console (a 12pt island gap and an
+   * 18pt scrubber box) sent all of it to the transport's two flexible gaps
+   * and left the copy the tightest thing on screen.
+   */
+  titleBlock: { paddingBottom: 30, width: '100%' },
   // Overlays the real title block, so a neighbour's copy costs no layout.
   titleGhost: { position: 'absolute', top: 0 },
   title: {
