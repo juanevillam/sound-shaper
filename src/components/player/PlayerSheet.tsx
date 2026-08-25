@@ -278,9 +278,6 @@ const BACKDROP_FADE_START = 0.8;
  * preference.
  */
 const EXPAND_SPRING = { duration: 320, dampingRatio: 1 } as const;
-/** See `pausedScale`. Critically damped for the same reason these are. */
-const PAUSED_ART_SCALE = 0.88;
-const PAUSED_ART_SPRING = { duration: 260, dampingRatio: 1 } as const;
 const COLLAPSE_SPRING = { duration: 260, dampingRatio: 1 } as const;
 // Drag-release: past this progress (or flung faster than this) it commits.
 const SNAP_PROGRESS = 0.28;
@@ -777,41 +774,21 @@ export function PlayerSheet() {
     };
   });
 
-  /**
-   * THE COVER SHRINKS WHILE PAUSED — iOS's own now-playing idiom, and the one
-   * piece of state on this screen you can read without looking at a control.
-   *
-   * It is an INTERACTION borrowed, not a geometry copied: the amount is ours,
-   * solved against this console rather than sampled from anyone's screenshot.
-   * 0.88 of a 370pt cover is 44.4pt of travel, enough to be unmistakable in
-   * peripheral vision; 0.94 read as a rendering wobble and 0.82 opened a gap
-   * under the bar row that made the layout look broken rather than paused.
-   *
-   * CRITICALLY DAMPED, for the same correctness reason the expand springs are
-   * (see `EXPAND_SPRING`): this multiplies the shared element's scale, and an
-   * overshoot past 1 would push the cover wider than its own content box on
-   * the frame it settles.
-   *
-   * Reduce Motion takes the destination rather than a faster spring — the
-   * setting asks for no movement, not brisk movement, which is the rule
-   * `springTo` already follows.
-   */
-  const pausedScale = useSharedValue(playing ? 1 : PAUSED_ART_SCALE);
-  useEffect(() => {
-    const target = playing ? 1 : PAUSED_ART_SCALE;
-    pausedScale.value = reduceMotion
-      ? withTiming(target, { duration: 0 })
-      : withSpring(target, PAUSED_ART_SPRING);
-  }, [playing, pausedScale, reduceMotion]);
+  // THE COVER NO LONGER SHRINKS WHILE PAUSED (Juan, 2026-08-25). It used to
+  // drop to 0.88 — iOS's own now-playing idiom, and the one piece of state
+  // you could read without looking at a control — but on this console, where
+  // the cover is the full width of the content box, a 44pt breath in and out
+  // on every pause is movement the screen does not want. The transport says
+  // the same thing without moving anything.
+  //
+  // What went with it: `PAUSED_ART_SCALE` (0.88, chosen over 0.94 as a
+  // rendering wobble and 0.82 as a hole under the bar row) and its critically
+  // damped spring. Restoring it is that constant, a shared value driven off
+  // `playing`, and one more factor in `artStyle` below.
 
   const artStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    // The paused inset is scaled BY the expand ramp, so it exists only on the
-    // open console and fades to nothing as the cover collapses into the
-    // banner's thumb — a 46pt thumb has no room to shrink and would just look
-    // wrong at two sizes.
-    const paused = 1 - (1 - pausedScale.value) * p;
-    const scale = (artScaleMin + (1 - artScaleMin) * p) * paused;
+    const scale = artScaleMin + (1 - artScaleMin) * p;
     // Centers travel from the mini thumb to the expanded slot.
     const fromCx = MINI_ART_X + MINI_ART_SIZE / 2;
     const fromCy = MINI_ART_Y + MINI_ART_SIZE / 2;
