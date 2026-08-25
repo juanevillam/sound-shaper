@@ -122,26 +122,24 @@ import {
  * subject rather than a row's label, so it steps up to `title2`/`body` —
  * 22/17, both named steps, with Apple's own leading (28/22).
  *
- * IT IS `title1` (28/34) NOW, and that reverses an earlier call on this same
- * surface: 28 was rendered and rejected once for competing with the artwork
- * rather than captioning it. What changed is the column around it — the cover
- * moved up to 12pt under the island, the scrubber lost its thumb, and the
- * transport grew — so the copy was left the one thing still sized for the
- * denser layout.
+ * `title1` (28) HAS BEEN RENDERED AND REJECTED TWICE ON THIS SURFACE — once
+ * for competing with the artwork instead of captioning it, and again on
+ * 2026-08-25 after the column around it had opened up (the cover at 12pt
+ * under the island, the scrubber without its thumb, a larger transport).
+ * Juan's verdict both times was the same on sight: too big.
  *
- * The app's own precedent decides the rung. When the home grid's cover grew
- * from Topper's 124 to 178, its caption stepped 14 to 17 and the ratio fell
- * 0.113 to 0.096 — a bigger picture carries a proportionally SMALLER caption,
- * but a larger one in absolute terms. Extending that to a 370pt cover asks
- * for ~26, and the ladder has no rung between 22 and 28: 22 was 0.059 of the
- * cover, the smallest caption in the app by some way. 28 is 0.076.
+ * DO NOT DERIVE THIS RUNG FROM THE COVER'S SIZE. The argument for 28 was the
+ * app's own caption precedent — the home grid stepped 14 to 17 when its cover
+ * grew 124 to 178, so a 370pt cover "wants" about 26 and the ladder offers
+ * only 22 or 28. That reasoning is what produced the second rejection. A
+ * now-playing title is not a caption on a tile: the cover is already the
+ * subject, and the copy's job is to name it quietly, so the ratio falling as
+ * the picture grows is correct rather than a deficit to correct for.
  *
- * The subtitle stays `body` (17). Stepping it too would close a hierarchy the
- * title needs, and it is the SECOND line — Apple pairs a large title with an
- * ordinary body line, not with a second title.
+ * 22/17 — `title2` over `body`, both named rungs with Apple's own leading.
  */
-const TITLE_SIZE = 28;
-const TITLE_LEADING = 34;
+const TITLE_SIZE = 22;
+const TITLE_LEADING = 28;
 const ARTIST_SIZE = 17;
 const ARTIST_LEADING = 22;
 
