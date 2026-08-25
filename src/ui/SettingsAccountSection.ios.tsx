@@ -1,10 +1,7 @@
-import { useState } from 'react';
-
 import { StyleSheet } from 'react-native';
 
 import {
   Button,
-  ConfirmationDialog,
   HStack,
   RNHostView,
   Section,
@@ -20,6 +17,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { Image as RemoteImage } from 'expo-image';
 
+import { confirmDestructiveIos } from './confirmDestructiveIos';
 import {
   FormDisclosureIndicatorIos,
   FormDisclosureRowIos,
@@ -239,6 +237,29 @@ export const SettingsAccountSection = ({
  * card of its own, below the legal links, with nothing else in it). It used to
  * sit inside the account group directly under the profile row, which read as
  * "part of your identity" rather than "leave".
+ *
+ * THE CONFIRMATION IS THE HOUSE ALERT, and this was the ELEVENTH copy the rule
+ * on `confirmDestructiveIos` warned about — written before that helper existed
+ * and never brought onto it, so sign-out was the one destructive confirmation
+ * in the portfolio still presenting a SwiftUI `ConfirmationDialog`. It shipped
+ * broken in all three apps, in three different ways on one device:
+ *
+ *  - IT PRESENTED AS A POPOVER, not an action sheet. `.confirmationDialog`
+ *    picks its presentation from the presenting environment's size class, and
+ *    the trigger lives in an `@expo/ui` hosting controller inside a form sheet
+ *    — which does not report compact, so UIKit chose iPad's idiom on an iPhone.
+ *  - THE ANCHOR WAS WRONG, and wrong differently per app: the popover's arrow
+ *    landed on the About card in the starter, floated free of the row in
+ *    Topper, and covered the Legal card in Sound Shaper. A popover anchors to
+ *    the trigger's frame, and the trigger's frame is a bridged view's.
+ *  - CANCEL DISAPPEARED. A popover-style dialog drops its `cancel` role on
+ *    purpose (tapping outside is the cancel), so all three shipped a
+ *    confirmation whose only visible button was the red one.
+ *
+ * An `Alert` has none of that: it is centred, owns the screen, keeps Cancel,
+ * and BOLDS it as the preferred action. It is also what the other ten do and
+ * what Android's twin renders — same `signOutDialog` copy, each platform in
+ * its own grammar.
  */
 export const SettingsSignOutSection = ({
   signOutLabel,
@@ -247,50 +268,23 @@ export const SettingsSignOutSection = ({
 }: Pick<
   SettingsAccountSectionProps,
   'signOutLabel' | 'signOutDialog' | 'onSignOut'
->) => {
-  const [confirmVisible, setConfirmVisible] = useState(false);
-
-  return (
-    <Section>
-      {/* The sign-out button doubles as the sheet's native trigger — a
-          ConfirmationDialog mounted on demand (the Android dialog pattern)
-          loses the presentation race and never shows, so the dialog stays
-          mounted and the trigger presents it. */}
-      <ConfirmationDialog
-        title={signOutDialog.title}
-        titleVisibility="visible"
-        isPresented={confirmVisible}
-        onIsPresentedChange={setConfirmVisible}
-      >
-        <ConfirmationDialog.Trigger>
-          <Button
-            label={signOutLabel}
-            role="destructive"
-            onPress={() => setConfirmVisible(true)}
-          />
-        </ConfirmationDialog.Trigger>
-        <ConfirmationDialog.Actions>
-          <Button
-            label={signOutDialog.confirm}
-            role="destructive"
-            onPress={() => {
-              setConfirmVisible(false);
-              onSignOut();
-            }}
-          />
-          <Button
-            label={signOutDialog.cancel}
-            role="cancel"
-            onPress={() => setConfirmVisible(false)}
-          />
-        </ConfirmationDialog.Actions>
-        <ConfirmationDialog.Message>
-          <Text>{signOutDialog.message}</Text>
-        </ConfirmationDialog.Message>
-      </ConfirmationDialog>
-    </Section>
-  );
-};
+>) => (
+  <Section>
+    <Button
+      label={signOutLabel}
+      role="destructive"
+      onPress={() =>
+        confirmDestructiveIos({
+          cancelLabel: signOutDialog.cancel,
+          confirmLabel: signOutDialog.confirm,
+          message: signOutDialog.message,
+          onConfirm: onSignOut,
+          title: signOutDialog.title,
+        })
+      }
+    />
+  </Section>
+);
 
 /**
  * WHAT THE BANNER GIVES BACK OF THE EMPTY HEADER SLOT — solved backwards
