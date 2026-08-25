@@ -307,6 +307,23 @@ const NO_CLIPS: never[] = [];
  * The banner's played portion — the ONLY thing in the collapsed state that
  * changes with the playhead, so it is the only thing that subscribes to it.
  *
+ * AUTHORED RN, AND THE NATIVE COMPONENT IT REJECTS IS SwiftUI's
+ * `ProgressView` — `@expo/ui` exposes it, determinate, with
+ * `progressViewStyle('linear')` and a `tint`, so the parts-catalogue answer
+ * is a real one and was tried on device (2026-08-25).
+ *
+ * IT IS THE WRONG SHAPE, and that is the part no styling reaches. A linear
+ * `ProgressView` is an INSET CAPSULE with rounded caps and its own intrinsic
+ * height; this is a full-bleed 4pt RULE pinned to the card's bottom edge and
+ * cut by its 22pt corner — the card's own bottom rule rather than a control
+ * sitting inside it, which is what Podcasts' mini player draws too. Making
+ * the capsule serve would mean clipping it into a shape it is not.
+ *
+ * It also did not render at all inside this container — a `SwiftUIHost` in
+ * the clipped, transformed `progressClip` view drew nothing at 4pt or at 14.
+ * That alone might have been solvable; the shape is not, so it was not chased
+ * further.
+ *
  * A leaf for the same reason `PlayerScrubberLive` is one: the transport ticks
  * ten times a second, and reading `position` on the sheet made all of
  * `PlayerSheet` re-render at that rate to move a 3pt line. This has no
