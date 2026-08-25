@@ -122,11 +122,26 @@ import {
  * subject rather than a row's label, so it steps up to `title2`/`body` —
  * 22/17, both named steps, with Apple's own leading (28/22).
  *
- * `title1` (28) was rendered and rejected: against a 370pt cover it competes
- * with the artwork instead of captioning it.
+ * IT IS `title1` (28/34) NOW, and that reverses an earlier call on this same
+ * surface: 28 was rendered and rejected once for competing with the artwork
+ * rather than captioning it. What changed is the column around it — the cover
+ * moved up to 12pt under the island, the scrubber lost its thumb, and the
+ * transport grew — so the copy was left the one thing still sized for the
+ * denser layout.
+ *
+ * The app's own precedent decides the rung. When the home grid's cover grew
+ * from Topper's 124 to 178, its caption stepped 14 to 17 and the ratio fell
+ * 0.113 to 0.096 — a bigger picture carries a proportionally SMALLER caption,
+ * but a larger one in absolute terms. Extending that to a 370pt cover asks
+ * for ~26, and the ladder has no rung between 22 and 28: 22 was 0.059 of the
+ * cover, the smallest caption in the app by some way. 28 is 0.076.
+ *
+ * The subtitle stays `body` (17). Stepping it too would close a hierarchy the
+ * title needs, and it is the SECOND line — Apple pairs a large title with an
+ * ordinary body line, not with a second title.
  */
-const TITLE_SIZE = 22;
-const TITLE_LEADING = 28;
+const TITLE_SIZE = 28;
+const TITLE_LEADING = 34;
 const ARTIST_SIZE = 17;
 const ARTIST_LEADING = 22;
 
