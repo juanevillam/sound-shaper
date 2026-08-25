@@ -11,6 +11,12 @@ import { Alert } from 'react-native';
  * to be written without it, and it very nearly was: `isPreferred` below was
  * missing from all ten.
  *
+ * THE ELEVENTH ALREADY EXISTED, and it was worse than a missing bold: sign-out
+ * predates this file and stayed on a SwiftUI `ConfirmationDialog`, which inside
+ * a form sheet presents as a mis-anchored popover WITHOUT a Cancel button, in a
+ * different wrong place in each of the three apps. Adding an export is half the
+ * job; the half that gets skipped is grepping its old callers.
+ *
  * CANCEL IS THE PREFERRED ACTION, and that is the one thing this adds beyond
  * what the copies did. Apple BOLDS an alert's preferred action, and in a
  * destructive alert the preferred action is the safe one — deleting a note,

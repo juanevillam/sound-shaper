@@ -47,63 +47,63 @@ a custom SwiftUI implementation.
 
 ## Matrix
 
-| Component                   | Android (`jetpack-compose`)      | iOS (`swift-ui`)     | iOS | Porting note                                                                    |
-| --------------------------- | -------------------------------- | -------------------- | :-: | ------------------------------------------------------------------------------- |
-| Alert dialog                | `AlertDialog`                    | `Alert`              | 🟢  | Both modal title/message/actions; `isPresented` vs callback pattern differs.    |
-| Animated visibility         | `AnimatedVisibility`             | `withAnimation`      | 🟢  | Compose animates a child in/out; SwiftUI drives the same from the transaction.  |
-| Badge                       | `Badge`                          | —                    | 🔴  | Material pill badge; build with `Label` or a custom overlay shape.              |
-| Badged box                  | `BadgedBox`                      | —                    | 🔴  | Overlay-badge primitive; build with `ZStack` + badge overlay.                   |
-| Basic alert dialog          | `BasicAlertDialog`               | `ConfirmationDialog` | 🟢  | `ConfirmationDialog` covers basic modal confirmation.                           |
-| Basic text field            | `BasicTextField`                 | `TextField`          | ✅  | Bare, unstyled text input; iOS `TextField` is the closest primitive.            |
-| Box                         | `Box`                            | `Group`              | 🟢  | Lightweight layout/grouping container on both.                                  |
-| Button                      | `Button`                         | `Button`             | ✅  | Same role/API: label + action + appearance modifiers.                           |
-| Card                        | `Card`                           | —                    | 🔴  | No iOS `Card`; `Group` + `shadow`/`cornerRadius`/`background` modifiers.        |
-| Carousel                    | `Carousel`                       | —                    | 🔴  | No iOS carousel; `TabView` page style or custom horizontal scroll.              |
-| Checkbox                    | `Checkbox`                       | —                    | 🔴  | No iOS checkbox; `Toggle` or a custom control.                                  |
-| Chip                        | `Chip`                           | —                    | 🔴  | No iOS chip; styled `Button` or `Label`.                                        |
-| Column                      | `Column`                         | `VStack`             | ✅  | Vertical stack on both.                                                         |
-| Date/time picker            | `DatePicker`                     | `DatePicker`         | ✅  | Both export `DatePicker`.                                                       |
-| Divider                     | `Divider`                        | `Divider`            | ✅  | Same purpose/API.                                                               |
-| Docked search bar           | `DockedSearchBar`                | —                    | 🔴  | No iOS search bar; `TextField` + custom layout.                                 |
-| Dropdown menu               | `DropdownMenu`                   | `Menu`               | 🟢  | `Menu` presents a selection menu on tap.                                        |
-| Exposed dropdown menu box   | `ExposedDropdownMenuBox`         | `Picker`             | 🟢  | `Picker` handles the field + selection.                                         |
-| Floating action button      | `FloatingActionButton`           | —                    | 🔴  | No iOS FAB; positioned `Button` via overlay.                                    |
-| Flow row                    | `FlowRow`                        | —                    | 🔴  | No iOS wrapping row; `Grid` or custom arrangement.                              |
-| Horizontal floating toolbar | `HorizontalFloatingToolbar`      | —                    | 🔴  | Material 3 toolbar; custom floating `HStack` + overlay.                         |
-| Horizontal pager            | `HorizontalPager`                | `TabView`            | 🟢  | `TabView` page style for horizontal paging.                                     |
-| Host                        | `Host`                           | `Host`               | ✅  | Embed point for expo-ui views; both platforms.                                  |
-| Icon                        | `Icon`                           | `Image`              | 🟢  | Android Material icons; iOS `Image` (SF Symbols / assets).                      |
-| Icon button                 | `IconButton`                     | —                    | 🔴  | No iOS icon-button; `Button` with image content.                                |
-| Lazy column                 | `LazyColumn`                     | `List`               | 🟢  | `List` gives virtualized vertical rendering.                                    |
-| Lazy row                    | `LazyRow`                        | `LazyHStack`         | ✅  | Lazy horizontal stack on both.                                                  |
-| List item                   | `ListItem`                       | —                    | 🔴  | No iOS `ListItem`; `HStack` + `Label`/`Text`.                                   |
-| Loading indicator           | `LoadingIndicator`               | `ProgressView`       | 🟢  | New in 57 — M3 morphing-shape loader; iOS spinner via `ProgressView`.           |
-| Material colors             | `getMaterialColors`              | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                   |
-| Modal bottom sheet          | `ModalBottomSheet`               | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                     |
-| Modifiers                   | `…/modifiers`                    | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                       |
-| Navigation bar              | `NavigationBar`                  | `TabView`            | 🟢  | M3 bottom nav bar; iOS `TabView` fills the tab-bar role.                        |
-| Progress                    | `Progress`                       | `ProgressView`       | 🟢  | Both show progress; APIs differ.                                                |
-| Pull-to-refresh box         | `PullToRefreshBox`               | —                    | 🔴  | No iOS export; scroll view + custom refresh.                                    |
-| Radio button                | `RadioButton`                    | —                    | 🔴  | No iOS radio; `Picker` or custom toggle group.                                  |
-| RN host view                | `RNHostView`                     | `RNHostView`         | ✅  | Embed RN inside expo-ui; both platforms.                                        |
-| Row                         | `Row`                            | `HStack`             | ✅  | Horizontal stack on both.                                                       |
-| Search bar                  | `SearchBar`                      | —                    | 🔴  | No iOS search bar; `TextField` + styling.                                       |
-| Segmented button            | `SegmentedButton`                | `Picker`             | 🟢  | `Picker` with segmented style.                                                  |
-| Segmented row, single       | `SingleChoiceSegmentedButtonRow` | `Picker`             | 🟢  | The container Compose needs; `Picker` IS the container on iOS.                  |
-| Segmented row, multi        | `MultiChoiceSegmentedButtonRow`  | —                    | 🔴  | No multi-select segmented control on iOS; a row of `Toggle`s in a `Group`.      |
-| Shape                       | `Shape`                          | `Shapes`             | 🟡  | iOS `Shapes` is limited (`ConcentricRectangle`); use shape modifiers.           |
-| Slider                      | `Slider`                         | `Slider`             | ✅  | Same role/API.                                                                  |
-| Snackbar                    | `Snackbar`                       | —                    | 🔴  | No iOS snackbar; custom overlay + animation.                                    |
-| Spacer                      | `Spacer`                         | `Spacer`             | ✅  | Flexible spacing on both.                                                       |
-| Surface                     | `Surface`                        | `Group`              | 🟢  | `Surface` adds Material elevation; `Group` is lighter.                          |
-| Switch                      | `Switch`                         | `Toggle`             | 🟢  | On/off state; different native look.                                            |
-| Switch, worklet-driven      | `SyncSwitch`                     | `SyncToggle`         | ✅  | The same control driven off the UI thread; exact twins.                         |
-| Text                        | `Text`                           | `Text`               | ✅  | Same role/API.                                                                  |
-| Text field                  | `TextField`                      | `TextField`          | ✅  | Text input on both.                                                             |
-| Text field, outlined        | `OutlinedTextField`              | `TextField`          | 🟢  | Material's outlined variant; iOS gets it from `textFieldStyle(.roundedBorder)`. |
-| Toggle button               | `ToggleButton`                   | —                    | 🔴  | No iOS toggle-button; `Button` with custom state.                               |
-| Tooltip                     | `Tooltip`                        | —                    | 🔴  | No iOS tooltip; custom overlay or `Popover`.                                    |
-| Use native state            | `useNativeState`                 | `useNativeState`     | ✅  | Cross-platform hook to sync state with the native view.                         |
+| Component                   | Android (`jetpack-compose`)      | iOS (`swift-ui`)     | iOS | Porting note                                                                                                                    |
+| --------------------------- | -------------------------------- | -------------------- | :-: | ------------------------------------------------------------------------------------------------------------------------------- |
+| Alert dialog                | `AlertDialog`                    | `Alert`              | 🟢  | Both modal title/message/actions; `isPresented` vs callback pattern differs.                                                    |
+| Animated visibility         | `AnimatedVisibility`             | `withAnimation`      | 🟢  | Compose animates a child in/out; SwiftUI drives the same from the transaction.                                                  |
+| Badge                       | `Badge`                          | —                    | 🔴  | Material pill badge; build with `Label` or a custom overlay shape.                                                              |
+| Badged box                  | `BadgedBox`                      | —                    | 🔴  | Overlay-badge primitive; build with `ZStack` + badge overlay.                                                                   |
+| Basic alert dialog          | `BasicAlertDialog`               | `ConfirmationDialog` | 🟢  | Closest API twin, but NOT our confirm: it presents as a popover in a form sheet and drops Cancel — use `confirmDestructiveIos`. |
+| Basic text field            | `BasicTextField`                 | `TextField`          | ✅  | Bare, unstyled text input; iOS `TextField` is the closest primitive.                                                            |
+| Box                         | `Box`                            | `Group`              | 🟢  | Lightweight layout/grouping container on both.                                                                                  |
+| Button                      | `Button`                         | `Button`             | ✅  | Same role/API: label + action + appearance modifiers.                                                                           |
+| Card                        | `Card`                           | —                    | 🔴  | No iOS `Card`; `Group` + `shadow`/`cornerRadius`/`background` modifiers.                                                        |
+| Carousel                    | `Carousel`                       | —                    | 🔴  | No iOS carousel; `TabView` page style or custom horizontal scroll.                                                              |
+| Checkbox                    | `Checkbox`                       | —                    | 🔴  | No iOS checkbox; `Toggle` or a custom control.                                                                                  |
+| Chip                        | `Chip`                           | —                    | 🔴  | No iOS chip; styled `Button` or `Label`.                                                                                        |
+| Column                      | `Column`                         | `VStack`             | ✅  | Vertical stack on both.                                                                                                         |
+| Date/time picker            | `DatePicker`                     | `DatePicker`         | ✅  | Both export `DatePicker`.                                                                                                       |
+| Divider                     | `Divider`                        | `Divider`            | ✅  | Same purpose/API.                                                                                                               |
+| Docked search bar           | `DockedSearchBar`                | —                    | 🔴  | No iOS search bar; `TextField` + custom layout.                                                                                 |
+| Dropdown menu               | `DropdownMenu`                   | `Menu`               | 🟢  | `Menu` presents a selection menu on tap.                                                                                        |
+| Exposed dropdown menu box   | `ExposedDropdownMenuBox`         | `Picker`             | 🟢  | `Picker` handles the field + selection.                                                                                         |
+| Floating action button      | `FloatingActionButton`           | —                    | 🔴  | No iOS FAB; positioned `Button` via overlay.                                                                                    |
+| Flow row                    | `FlowRow`                        | —                    | 🔴  | No iOS wrapping row; `Grid` or custom arrangement.                                                                              |
+| Horizontal floating toolbar | `HorizontalFloatingToolbar`      | —                    | 🔴  | Material 3 toolbar; custom floating `HStack` + overlay.                                                                         |
+| Horizontal pager            | `HorizontalPager`                | `TabView`            | 🟢  | `TabView` page style for horizontal paging.                                                                                     |
+| Host                        | `Host`                           | `Host`               | ✅  | Embed point for expo-ui views; both platforms.                                                                                  |
+| Icon                        | `Icon`                           | `Image`              | 🟢  | Android Material icons; iOS `Image` (SF Symbols / assets).                                                                      |
+| Icon button                 | `IconButton`                     | —                    | 🔴  | No iOS icon-button; `Button` with image content.                                                                                |
+| Lazy column                 | `LazyColumn`                     | `List`               | 🟢  | `List` gives virtualized vertical rendering.                                                                                    |
+| Lazy row                    | `LazyRow`                        | `LazyHStack`         | ✅  | Lazy horizontal stack on both.                                                                                                  |
+| List item                   | `ListItem`                       | —                    | 🔴  | No iOS `ListItem`; `HStack` + `Label`/`Text`.                                                                                   |
+| Loading indicator           | `LoadingIndicator`               | `ProgressView`       | 🟢  | New in 57 — M3 morphing-shape loader; iOS spinner via `ProgressView`.                                                           |
+| Material colors             | `getMaterialColors`              | —                    | 🔴  | Android Material palette only; iOS uses its own color system.                                                                   |
+| Modal bottom sheet          | `ModalBottomSheet`               | `BottomSheet`        | 🟢  | Both present from the bottom; names differ.                                                                                     |
+| Modifiers                   | `…/modifiers`                    | `…/modifiers`        | 🟢  | Both expose a modifier system; different APIs, same role.                                                                       |
+| Navigation bar              | `NavigationBar`                  | `TabView`            | 🟢  | M3 bottom nav bar; iOS `TabView` fills the tab-bar role.                                                                        |
+| Progress                    | `Progress`                       | `ProgressView`       | 🟢  | Both show progress; APIs differ.                                                                                                |
+| Pull-to-refresh box         | `PullToRefreshBox`               | —                    | 🔴  | No iOS export; scroll view + custom refresh.                                                                                    |
+| Radio button                | `RadioButton`                    | —                    | 🔴  | No iOS radio; `Picker` or custom toggle group.                                                                                  |
+| RN host view                | `RNHostView`                     | `RNHostView`         | ✅  | Embed RN inside expo-ui; both platforms.                                                                                        |
+| Row                         | `Row`                            | `HStack`             | ✅  | Horizontal stack on both.                                                                                                       |
+| Search bar                  | `SearchBar`                      | —                    | 🔴  | No iOS search bar; `TextField` + styling.                                                                                       |
+| Segmented button            | `SegmentedButton`                | `Picker`             | 🟢  | `Picker` with segmented style.                                                                                                  |
+| Segmented row, single       | `SingleChoiceSegmentedButtonRow` | `Picker`             | 🟢  | The container Compose needs; `Picker` IS the container on iOS.                                                                  |
+| Segmented row, multi        | `MultiChoiceSegmentedButtonRow`  | —                    | 🔴  | No multi-select segmented control on iOS; a row of `Toggle`s in a `Group`.                                                      |
+| Shape                       | `Shape`                          | `Shapes`             | 🟡  | iOS `Shapes` is limited (`ConcentricRectangle`); use shape modifiers.                                                           |
+| Slider                      | `Slider`                         | `Slider`             | ✅  | Same role/API.                                                                                                                  |
+| Snackbar                    | `Snackbar`                       | —                    | 🔴  | No iOS snackbar; custom overlay + animation.                                                                                    |
+| Spacer                      | `Spacer`                         | `Spacer`             | ✅  | Flexible spacing on both.                                                                                                       |
+| Surface                     | `Surface`                        | `Group`              | 🟢  | `Surface` adds Material elevation; `Group` is lighter.                                                                          |
+| Switch                      | `Switch`                         | `Toggle`             | 🟢  | On/off state; different native look.                                                                                            |
+| Switch, worklet-driven      | `SyncSwitch`                     | `SyncToggle`         | ✅  | The same control driven off the UI thread; exact twins.                                                                         |
+| Text                        | `Text`                           | `Text`               | ✅  | Same role/API.                                                                                                                  |
+| Text field                  | `TextField`                      | `TextField`          | ✅  | Text input on both.                                                                                                             |
+| Text field, outlined        | `OutlinedTextField`              | `TextField`          | 🟢  | Material's outlined variant; iOS gets it from `textFieldStyle(.roundedBorder)`.                                                 |
+| Toggle button               | `ToggleButton`                   | —                    | 🔴  | No iOS toggle-button; `Button` with custom state.                                                                               |
+| Tooltip                     | `Tooltip`                        | —                    | 🔴  | No iOS tooltip; custom overlay or `Popover`.                                                                                    |
+| Use native state            | `useNativeState`                 | `useNativeState`     | ✅  | Cross-platform hook to sync state with the native view.                                                                         |
 
 ## SwiftUI-only exports (no Android showcase yet)
 
