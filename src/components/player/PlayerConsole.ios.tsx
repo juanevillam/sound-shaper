@@ -35,6 +35,7 @@ import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
+import { usePlayerStore } from '@/store/player';
 import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
@@ -556,6 +557,19 @@ export function PlayerConsole({
    * TRANSFORM-free opacity, and the row keeps its height either way, so the
    * fade cannot move the play button beside them or anything below.
    */
+  /**
+   * IS THE CLIP PREVIEW SOUNDING? Read at the leaf, and it changes only when a
+   * preview starts or stops — never on the position tick. While framing the
+   * transport is the CLIP's control, so this and not `playing` decides both
+   * the glyph and what a press does: pressing with nothing previewing always
+   * (re)starts the selection from its start, which is what a trimmer's play
+   * button means. Framing entry pauses the song (see the store's `pause`), so
+   * the two states cannot disagree in practice — this just makes it explicit.
+   */
+  const previewing = usePlayerStore(
+    s => s.playing && s.activeClip?.clipId === 'preview',
+  );
+
   const skipStyle = useAnimatedStyle(
     () => ({ opacity: withTiming(clipMode ? 0 : 1, { duration: 200 }) }),
     [clipMode],
@@ -730,17 +744,19 @@ export function PlayerConsole({
             </GlyphButton>
           </Animated.View>
           <GlyphButton
-            onPress={clipMode && !playing ? onClipPreview : onToggle}
+            onPress={clipMode && !previewing ? onClipPreview : onToggle}
             hitSlop={12}
             accessibilityLabel={t(
-              playing
-                ? 'player.pause'
-                : clipMode
-                  ? 'player.clips.preview'
+              clipMode
+                ? previewing
+                  ? 'player.pause'
+                  : 'player.clips.preview'
+                : playing
+                  ? 'player.pause'
                   : 'player.play',
             )}
           >
-            {playing ? (
+            {(clipMode ? previewing : playing) ? (
               <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             ) : (
               <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />

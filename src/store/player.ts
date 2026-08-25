@@ -77,6 +77,8 @@ type PlayerState = {
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
   toggle: () => void;
+  /** Stop playback in place, idempotent — entering clip framing uses it. */
+  pause: () => void;
   next: () => void;
   previous: () => void;
   seek: (seconds: number) => void;
@@ -189,6 +191,20 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       audioEngine.play();
       set({ playing: true });
     }
+  },
+
+  /**
+   * ENTERING CLIP FRAMING USES THIS. Framing is a quiet mode: the only thing
+   * that should sound in it is the clip preview, so the song stops on the way
+   * in — which is what Photos and Voice Memos do when you open their trimmer,
+   * and what keeps the transport's glyph honest (a play glyph over audible
+   * sound is a lie, and the alternative — leaving the song running — made the
+   * first press pause the SONG instead of previewing the clip).
+   */
+  pause: () => {
+    if (!get().playing) return;
+    audioEngine.pause();
+    set({ playing: false });
   },
 
   // Skipping WRAPS: past the last sound comes the first, and back from the

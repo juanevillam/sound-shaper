@@ -923,6 +923,8 @@ export function PlayerSheet() {
     const start = Math.max(0, Math.round(position - 7));
     const end = Math.min(total || 15, start + 15);
     setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    // Framing is a quiet mode — see the store's `pause`.
+    usePlayerStore.getState().pause();
     setClipMode(true);
   }, [clipFramingNonce]);
   const [clipsVisible, setClipsVisible] = useState(false);
@@ -970,6 +972,8 @@ export function PlayerSheet() {
     );
     const end = Math.min(trimmerDuration || 15, start + 15);
     setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    // Framing is a quiet mode — see the store's `pause`.
+    usePlayerStore.getState().pause();
     setClipMode(true);
   };
 
