@@ -77,6 +77,11 @@ export type PlayerScrubberProps = {
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
   /**
+   * iOS: while framing, the slider maps THIS slice rather than the whole
+   * sound, and the end labels read its bounds. See `ClipWindow`.
+   */
+  clipWindow?: ClipWindow | null;
+  /**
    * iOS only: the trim frame's LIVE edges, so the centre readout tracks the
    * finger instead of waiting for the drag to commit. When present it
    * replaces `clipLabel`'s text (which stays the framing flag, and is what
@@ -124,6 +129,41 @@ export type ClipHandlesProps = {
   startS: number;
   endS: number;
   onChange: (startS: number, endS: number) => void;
+};
+
+/**
+ * THE FRAMING WINDOW — the slice of the sound the trimmer maps while framing,
+ * and the answer to the SCALE problem this feature carried from its first
+ * generation.
+ *
+ * Mapping the whole track puts a 3-minute song at ~0.51s per point and a
+ * 6-minute one at ~0.97s, so a finger's wobble is a second or more and long
+ * recordings are simply untrimmable. A fixed window is ~0.081s per point at
+ * any length.
+ *
+ * IT IS SET ONCE, WHEN FRAMING OPENS, AND NEVER MOVES. That is the whole
+ * difference from the zoomed strip rejected on 2026-08-23, whose window
+ * recomputed as you dragged ("the more i drag it the more it expands"): a
+ * control whose coordinate system moves under the finger is not simple,
+ * whatever precision it buys. Nothing here recomputes — not on drag, not on
+ * release — so the window bounds the clip's length and its travel, which is
+ * the accepted cost.
+ */
+export type ClipWindow = { startS: number; endS: number };
+
+/** The window's span. A clip cannot be longer than this, by construction. */
+export const CLIP_WINDOW_S = 30;
+
+/** Centre `window` on the clip, clamped to the sound. Called ONCE, at entry. */
+export const clipWindowFor = (
+  startS: number,
+  endS: number,
+  durationS: number,
+): ClipWindow => {
+  const span = Math.min(CLIP_WINDOW_S, durationS || CLIP_WINDOW_S);
+  const centred = startS - (span - (endS - startS)) / 2;
+  const from = Math.min(Math.max(centred, 0), Math.max(durationS - span, 0));
+  return { endS: from + span, startS: from };
 };
 
 /**
@@ -186,6 +226,8 @@ export type PlayerConsoleProps = {
   /* Clip framing — the brackets and the action row that replaces the footer. */
   clipMode: boolean;
   clipRange: { startS: number; endS: number };
+  /** iOS: the fixed slice the trimmer maps while framing. See `ClipWindow`. */
+  clipWindow: ClipWindow;
   trimmerDuration: number;
   onClipRangeChange: (startS: number, endS: number) => void;
   onClipCancel: () => void;
