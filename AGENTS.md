@@ -178,9 +178,18 @@ in the file's header; the ones worth knowing before touching it:
   belong inside the copy naming the song). What must not come back is how the
   ORIGINAL row was built — on `IconButton`'s `matchContents` Host, which moved it
   79pt on a re-render. Every host in the row states its box.
-- **THE COVER SHRINKS TO 0.88 WHILE PAUSED**, critically damped, scaled by the
-  expand ramp so it exists only on the open console. 0.94 read as a rendering
-  wobble, 0.82 opened a gap under the bar row.
+- **THE COVER NO LONGER SHRINKS WHILE PAUSED** (Juan, 2026-08-25). It dropped
+  to 0.88 — iOS's own now-playing idiom, and the one piece of state you could
+  read without looking at a control — but on this console the cover is the
+  full width of the content box, so a 44pt breath in and out on every pause is
+  movement the screen does not want; the transport says the same thing without
+  moving anything. Restoring it is one constant (0.88, chosen over 0.94 as a
+  rendering wobble and 0.82 as a hole under the then-present bar row), a
+  shared value driven off `playing`, and one factor in `artStyle`.
+- **THE COVER SITS 12pt UNDER THE SAFE AREA**, measured top 74.00 on iPhone 17.
+  It was 24, sized while that gap was still standing in for the removed bar
+  row; nothing shares the band now, so the only job left is keeping the cover
+  off the Dynamic Island's own shadow (Juan, 2026-08-25).
 - **FRAMING IS A TRIM FRAME ON THE REAL SLIDER** (2026-08-23,
   `ClipTrimFrameIos`), and it took four generations in three days to land —
   read this before proposing any of the other three again. Gen 1 was two

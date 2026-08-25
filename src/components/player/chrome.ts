@@ -256,10 +256,11 @@ export const playerArtSize = (winW: number): number =>
  * busiest thing on an otherwise calm screen. Deleting it hands 43pt back to the
  * column, which is where the transport and the footer wanted it.
  *
- * The gap that remains is the cover's own breathing room under the notch, and
- * it is bigger than the 14 that used to sit under the row because it is now
- * doing that row's job as well: 14 under a 43pt target read as ~25 optically,
- * since the target's ink is only 20 and the rest is padding.
+ * The gap that remains is the cover's own breathing room under the notch. It
+ * was 24 — sized as if it were still standing in for the removed bar row —
+ * and Juan asked for the sound to sit closer to the Dynamic Island
+ * (2026-08-25), which it can: nothing shares that band, so the only job left
+ * is to keep the cover off the island's own shadow.
  *
  * A grabber was tried in this slot before the bar row and rejected on sight:
  * this surface has a bottom sheet's dismiss GESTURE but is not a sheet, and a
@@ -270,7 +271,7 @@ export const playerArtSize = (winW: number): number =>
  * gone and the console's only glyph-only control is a compartment of the glass
  * bar, which takes the bar's geometry rather than a bar item's.
  */
-const IOS_ART_TOP_GAP = 24;
+const IOS_ART_TOP_GAP = 12;
 
 export const playerArtTop = (topInset: number): number =>
   Platform.OS === 'ios' ? topInset + IOS_ART_TOP_GAP : topInset + 60;
