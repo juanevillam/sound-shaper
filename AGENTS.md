@@ -253,10 +253,34 @@ in the file's header; the ones worth knowing before touching it:
   ten minutes would widen once at the 9:59 → 10:00 boundary, exactly as the
   elapsed label already does, and that is left alone.
 
-- **THE FRAMING BAR IS PHOTOS' TRIM TOOLBAR** (2026-08-23), in the same glass
-  box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a plain word
-  leading, the preview play/pause glyph dead centre in an absolute slot, Save
-  as the filled brand pill trailing. What it replaced mixed four treatments in
+- **THE FRAMING BAR IS CANCEL AND SAVE, AND NOTHING ELSE** (2026-08-23), in
+  the same glass box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a
+  plain word leading, Save as the filled brand pill trailing.
+
+  **IT HELD A THIRD CONTROL FOR A DAY AND THAT WAS THE DEFECT.** A preview
+  play glyph sat dead centre here while the TRANSPORT's own play sat ~130pt
+  directly above it — the same triangle, on the same centre line, meaning two
+  different things. Juan read it as "seeing the player controls twice", which
+  is what it was. **PREVIEW IS NOW WHAT THE TRANSPORT'S PLAY DOES WHILE
+  FRAMING**, so the screen carries exactly one play control, and this bar is
+  left with the two actions that are genuinely its own. Apple ships the same
+  split: Photos and Voice Memos put a single play beside the trim surface and
+  leave the bar to Cancel and the commit.
+
+  Two things that fall out of it, neither of which needed new state. The two
+  SKIPS fade out for the mode — they would leave it anyway, since a sound
+  change drops the frame — and the row keeps its height, so the fade cannot
+  move the play button beside them. And the GLYPH already tracks `playing`,
+  which a preview sets too, so the rule is simply "sounding → pause it,
+  silent → play the clip"; that stays honest when framing is entered
+  mid-song, where a play glyph over audible sound would have been a lie.
+  Band-scanned across mode entry, 7 frames: play ink 654.00–689.67, bar top
+  772.00, identical resting and framing.
+
+  A GIGA GLASS BAR swallowing the transport was the other proposal and was
+  rejected: it moves the transport on mode entry (the invariant), makes a
+  ~180pt panel out of a toolbar the floating-surface family sizes as a bar,
+  and does not remove the duplicate play by itself. What it replaced mixed four treatments in
   one row — grey ✕, muted "New Clip" caption, tinted word, filled pill — and
   the muted caption read as disabled text. Photos titles its trim mode
   nowhere: the frame on the slider explains the mode, so the caption went with
