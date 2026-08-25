@@ -2,7 +2,10 @@ import { View } from 'react-native';
 
 import {
   Button,
+  HStack,
+  Image,
   Section,
+  Spacer,
   SwipeActions,
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
@@ -126,18 +129,49 @@ function ClipsSheetScreen() {
                 // tap targets in one row is an Android table idiom, and iOS
                 // hides row destruction behind the swipe (Mail, Reminders).
                 <SwipeActions key={clip.id}>
+                  {/* PRESSING A CLIP LEAVES THE SHEET. Playing one is a
+                      request to HEAR it, and the thing that shows what is
+                      sounding — the artwork, the scrubber, the frame's own
+                      range — is the player underneath. Staying put left the
+                      person looking at a list while the sound they asked for
+                      played somewhere they could not see. `onNewClip` above
+                      already dismisses for the same reason.
+
+                      THE ACTIVE ROW IS THE MUSIC IDIOM, NOT A CHECKMARK. A
+                      trailing ✓ is Apple's SELECTION accessory — the chosen
+                      ringtone, the current AirPlay output — and it says "this
+                      is set", which is not what is true here: `activeClip` is
+                      transient playback state that a seek, a sound change or
+                      the clip simply ending all clear. Music marks the
+                      sounding row instead, with the accent AND a glyph, and
+                      the glyph is the half that matters: colour alone is not
+                      an indicator for anyone who cannot see this particular
+                      colour. */}
                   <Button
-                    onPress={() => playClip(clip.id, clip.startMs, clip.endMs)}
+                    onPress={() => {
+                      router.back();
+                      playClip(clip.id, clip.startMs, clip.endMs);
+                    }}
                   >
-                    <SwiftUIText
-                      modifiers={[
-                        foregroundStyle(
-                          isActive ? colors.primary : colors.onSurface,
-                        ),
-                      ]}
-                    >
-                      {range}
-                    </SwiftUIText>
+                    <HStack>
+                      <SwiftUIText
+                        modifiers={[
+                          foregroundStyle(
+                            isActive ? colors.primary : colors.onSurface,
+                          ),
+                        ]}
+                      >
+                        {range}
+                      </SwiftUIText>
+                      <Spacer />
+                      {isActive ? (
+                        <Image
+                          systemName="speaker.wave.2.fill"
+                          size={15}
+                          color={colors.primary}
+                        />
+                      ) : null}
+                    </HStack>
                   </Button>
                   <SwipeActions.Actions edge="trailing">
                     {/* LABELLED, like every swipe action in the portfolio.
