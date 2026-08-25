@@ -32,8 +32,6 @@ type PlayerScrubberLiveProps = {
   clipLabel?: string | null;
   /** iOS only: the trim frame's live edges — see `PlayerScrubberProps`. */
   clipRangeSv?: PlayerScrubberProps['clipRangeSv'];
-  /** iOS: the fixed slice the slider maps while framing. */
-  clipWindow?: PlayerScrubberProps['clipWindow'];
   /** Commit a scrub. Also ends any clip replay — see the store's `seek`. */
   onSeek: (seconds: number) => void;
 };
@@ -42,7 +40,6 @@ export function PlayerScrubberLive({
   copyInset,
   clipLabel,
   clipRangeSv,
-  clipWindow,
   onSeek,
 }: PlayerScrubberLiveProps) {
   const storePosition = usePlayerStore(s => s.position);
@@ -61,7 +58,6 @@ export function PlayerScrubberLive({
       totalDuration={storeDuration}
       clipLabel={clipLabel}
       clipRangeSv={clipRangeSv}
-      clipWindow={clipWindow}
       onDrag={value => {
         lastDragRef.current = value;
         setDragValue(value);
