@@ -1,16 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Slider } from '@expo/ui/swift-ui';
-import { tint } from '@expo/ui/swift-ui/modifiers';
-import { SwiftUIHost } from '@portfolio/mobile-ui';
 import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
 
 import { ClipRangeLabelIos } from '@/components/player/ClipRangeLabelIos';
+import { MediaScrubberIos } from '@/components/player/MediaScrubberIos';
 import { Text } from '@/components/ui/Text';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 
 import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
@@ -94,8 +91,6 @@ export function PlayerScrubber({
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
-  const { colors } = useAppTheme();
-
   const framing = clipLabel != null;
   // See the header: the row makes room for the trim frame, by transform.
   const labelsDrop = useAnimatedStyle(
@@ -113,24 +108,18 @@ export function PlayerScrubber({
 
   return (
     <View style={styles.block}>
-      <SwiftUIHost ignoreSafeArea="all" style={styles.host}>
-        <Slider
-          // MONOCHROME, like every other control on this surface. A
-          // now-playing screen is tinted by its ARTWORK — that is what
-          // `PlayerBackdrop` paints — and Apple leaves the controls on top in
-          // the content colour rather than the accent. The default `Slider`
-          // fills its played portion with the system tint, which is the last
-          // place `colors.primary` survived on the iOS console.
-          modifiers={[tint(colors.onSurface)]}
-          value={Math.min(position, duration)}
-          min={0}
-          max={duration}
-          onValueChange={onDrag}
-          onEditingChanged={isEditing => {
-            if (!isEditing) onDragEnd();
-          }}
+      {/* APPLE'S MEDIA SCRUBBER, not a thumb slider — see
+          `MediaScrubberIos`. It also stands down while the trim frame is up,
+          so the frame's caps win every touch in this band. */}
+      <View style={styles.host}>
+        <MediaScrubberIos
+          position={position}
+          duration={duration}
+          disabled={framing}
+          onDrag={onDrag}
+          onDragEnd={onDragEnd}
         />
-      </SwiftUIHost>
+      </View>
       <Animated.View
         style={[styles.labels, { paddingHorizontal: copyInset }, labelsDrop]}
       >
