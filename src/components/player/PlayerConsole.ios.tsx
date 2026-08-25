@@ -11,7 +11,11 @@ import {
   usePressSquash,
 } from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipActionsRow } from '@/components/player/ClipActionsRow';
@@ -547,6 +551,16 @@ export function PlayerConsole({
     clipEndSv.value = clipRange.endS;
   }, [clipRange.startS, clipRange.endS, clipStartSv, clipEndSv]);
 
+  /**
+   * The two SKIPS fade out while framing — see the transport row. A
+   * TRANSFORM-free opacity, and the row keeps its height either way, so the
+   * fade cannot move the play button beside them or anything below.
+   */
+  const skipStyle = useAnimatedStyle(
+    () => ({ opacity: withTiming(clipMode ? 0 : 1, { duration: 200 }) }),
+    [clipMode],
+  );
+
   const copy = (sound: { artist: string; name: string }) => (
     <>
       <AppText
@@ -681,21 +695,50 @@ export function PlayerConsole({
 
         <View style={styles.spacer} />
 
+        {/* THE TRANSPORT IS THE ONLY PLAY CONTROL, IN BOTH MODES.
+
+            While framing, the two SKIPS fade out — they would leave the mode
+            (a sound change drops the frame), and they were competing for
+            attention with the thing being aimed. What stays is the play
+            button, which becomes the CLIP's: press it with nothing sounding
+            and it previews the selection.
+
+            The glass bar used to carry that preview as a third control, dead
+            centre, ~130pt directly below this one — the same triangle on the
+            same centre line, meaning something else. Juan read it as seeing
+            the player controls twice, which is exactly what it was.
+
+            The GLYPH needs no new state to do this: it already tracks
+            `playing`, and a preview sets that too. So the rule is simply
+            "sounding → pause it, silent → play the clip", which is honest in
+            every combination — including entering framing mid-song, where a
+            play glyph over audible sound would have been a lie. */}
         <View style={styles.transportRow}>
-          <GlyphButton
-            onPress={onPrevious}
-            hitSlop={12}
-            accessibilityLabel={t('player.previous')}
+          <Animated.View
+            pointerEvents={clipMode ? 'none' : 'auto'}
+            style={skipStyle}
           >
-            <PreviousGlyph
-              color={colors.onSurface}
-              size={TRANSPORT_SKIP_SIZE}
-            />
-          </GlyphButton>
+            <GlyphButton
+              onPress={onPrevious}
+              hitSlop={12}
+              accessibilityLabel={t('player.previous')}
+            >
+              <PreviousGlyph
+                color={colors.onSurface}
+                size={TRANSPORT_SKIP_SIZE}
+              />
+            </GlyphButton>
+          </Animated.View>
           <GlyphButton
-            onPress={onToggle}
+            onPress={clipMode && !playing ? onClipPreview : onToggle}
             hitSlop={12}
-            accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
+            accessibilityLabel={t(
+              playing
+                ? 'player.pause'
+                : clipMode
+                  ? 'player.clips.preview'
+                  : 'player.play',
+            )}
           >
             {playing ? (
               <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
@@ -703,13 +746,18 @@ export function PlayerConsole({
               <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             )}
           </GlyphButton>
-          <GlyphButton
-            onPress={onNext}
-            hitSlop={12}
-            accessibilityLabel={t('player.next')}
+          <Animated.View
+            pointerEvents={clipMode ? 'none' : 'auto'}
+            style={skipStyle}
           >
-            <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
-          </GlyphButton>
+            <GlyphButton
+              onPress={onNext}
+              hitSlop={12}
+              accessibilityLabel={t('player.next')}
+            >
+              <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
+            </GlyphButton>
+          </Animated.View>
         </View>
 
         <View style={styles.spacerLower} />
