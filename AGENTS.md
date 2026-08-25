@@ -212,24 +212,42 @@ in the file's header; the ones worth knowing before touching it:
   per-second buzz was rejected with the zoom ("makes the clipping
   un-usable"); Save keeps its one `haptics.selection()` at the save site.
 
-  **FRAMING MAPS A FIXED 30s WINDOW, NOT THE WHOLE SOUND** (2026-08-25), and
-  this is the answer to the SCALE problem the feature carried from gen 2.
+  **THE TRIMMER ZOOMS AT THE GRAB AND PANS AT THE EDGE** (2026-08-25,
+  Google Photos' model) — the answer to the SCALE problem the feature carried
+  from gen 2, and the third attempt at it.
   Mapped whole, a 3-minute song is ~0.51s per point and a 6-minute one
   ~0.97s — a finger's wobble is a second or more, so long recordings were
   effectively untrimmable. The window is ~0.081s per point at ANY length;
   measured on device, a 20pt cap drag moves an edge 2s where it used to move
   ~10s.
 
-  **IT IS SET ONCE, AT ENTRY, AND NEVER MOVES** (`clipWindowFor` in
-  `chrome.ts`). That is the whole difference from the zoomed strip rejected
-  on 2026-08-23, whose window recomputed as you dragged ("the more i drag it
-  the more it expands"): a control whose coordinate system moves under the
-  finger is not simple, whatever precision it buys. Nothing recomputes here —
-  not on drag, not on release. The accepted cost is that the window BOUNDS
-  the clip: the caps clamp to it and a clip cannot exceed `CLIP_WINDOW_S`.
-  The slider's end labels read the window's bounds while framing, because a
-  slider spanning thirty seconds must not be captioned with the song's
-  length.
+  **THE WHOLE SOUND AT REST; ZOOMED ONLY WHILE A HANDLE IS HELD.** At rest
+  the frame maps everything, so a clip can run 0:15 to 2:00 and be any
+  length; grabbing a cap zooms to `CLIP_ZOOM_SPAN_S` around it and HOLDS that
+  scale until the finger lifts. The slider's end labels follow the mapped
+  slice, since a slider spanning thirty seconds must not be captioned with
+  the song's length.
+
+  **THE SCALE NEVER CHANGES MID-DRAG**, which is the whole difference from
+  the strip rejected on 2026-08-23, whose span was a function of the
+  selection and so rescaled continuously as the clip grew ("the more i drag
+  it the more it expands"). Zooming AT the grab is a deliberate transition;
+  rescaling DURING the drag is the ground moving under your hand.
+
+  **A FIXED WINDOW WAS TRIED IN BETWEEN AND COULD NOT REACH.** Set once at
+  entry and never moved, it was precise and stable — and could express
+  neither a clip from 0:15 to 2:00 nor one longer than its own span, because
+  a window that never moves bounds the clip's travel and its length. That is
+  why the zoom is tied to the GESTURE rather than to the mode.
+
+  **AUTO-PAN IS DRIVEN BY A FRAME CALLBACK, NOT BY THE GESTURE.** A gesture
+  only reports while the finger MOVES, so pushing a cap to the screen's edge
+  and holding stopped dead a screen-width from where it started — the first
+  cut of this had `panFor` inside `onChange` and looked right until it was
+  measured. `useFrameCallback` pans while a held edge sits in the margin, at
+  the same scale, so travel is continuous. Verified: one gesture took a clip
+  from 0:26 to 1:38, a second moved it whole to 1:57–3:09 with the playhead
+  left back near 0:30.
 
   **IT ALSO RETIRED A HAND-DRAWN CONTROL.** At full-track scale the slider's
   36.67pt thumb was WIDER than a 15s clip's ~29pt frame, so framing briefly
