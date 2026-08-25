@@ -491,6 +491,7 @@ export function PlayerConsole({
   cards,
   clipMode,
   clipRange,
+  clipWindow,
   consoleStyle,
   contentTop,
   expanded,
@@ -688,6 +689,7 @@ export function PlayerConsole({
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
+            clipWindow={clipMode ? clipWindow : null}
             clipRangeSv={
               clipMode ? { endSv: clipEndSv, startSv: clipStartSv } : null
             }
@@ -701,6 +703,7 @@ export function PlayerConsole({
                 endS={clipRange.endS}
                 startSv={clipStartSv}
                 endSv={clipEndSv}
+                window={clipWindow}
                 onChange={onClipRangeChange}
               />
             </View>

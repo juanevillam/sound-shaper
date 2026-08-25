@@ -14,6 +14,8 @@ import Animated, {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 
+import { type ClipWindow } from './chrome';
+
 // THE TRIM FRAME — clip framing drawn ON the real slider, which stays the
 // screen's ONE progress surface.
 //
@@ -76,13 +78,6 @@ export const TRIM_FRAME_HEIGHT = 44;
 const CAP_WIDTH = 14;
 const CAP_RADIUS = 7;
 const RAIL_HEIGHT = 4;
-/**
- * The height INSIDE the rails — what the framing playhead spans, so it reads
- * the way Photos' does: a line the full height of the trimmed strip rather
- * than a knob sitting on a track. `PlayerScrubber.ios` draws that playhead,
- * because it owns the track the frame brackets.
- */
-export const TRIM_FRAME_INNER_HEIGHT = TRIM_FRAME_HEIGHT - RAIL_HEIGHT * 2;
 const CHEVRON_SIZE = 17;
 /** The selection's body — the same faint accent wash gen 2 carried. */
 const RANGE_FILL_ALPHA = 0.16;
@@ -94,6 +89,11 @@ type ClipTrimFrameIosProps = {
   durationS: number;
   startS: number;
   endS: number;
+  /**
+   * The slice the frame maps — NOT the whole sound. Fixed for the mode, so
+   * the mapping under the finger never changes. See `ClipWindow`.
+   */
+  window: ClipWindow;
   /**
    * The live edges, OWNED BY THE CONSOLE. They are shared rather than local
    * because the range readout under the slider draws from them too — it has
@@ -111,12 +111,18 @@ export function ClipTrimFrameIos({
   endS,
   startSv,
   endSv,
+  window,
   onChange,
 }: ClipTrimFrameIosProps) {
   const { colors } = useAppTheme();
   const [trackWidth, setTrackWidth] = useState(0);
 
-  const pxPerS = durationS > 0 ? trackWidth / durationS : 0;
+  // Everything maps the WINDOW, not the sound: a point is ~0.081s here
+  // against ~0.97s on a six-minute track mapped whole.
+  const windowLenS = Math.max(window.endS - window.startS, 1);
+  const pxPerS = trackWidth / windowLenS;
+  const minS = window.startS;
+  const maxS = Math.min(window.endS, durationS || window.endS);
 
   const draggingRef = useRef(false);
 
@@ -141,7 +147,7 @@ export function ClipTrimFrameIos({
     .onChange(event => {
       const max = endSv.value - MIN_GAP_S;
       startSv.value = Math.min(
-        Math.max(startSv.value + event.changeX / pxPerS, 0),
+        Math.max(startSv.value + event.changeX / pxPerS, minS),
         max,
       );
     })
@@ -158,7 +164,7 @@ export function ClipTrimFrameIos({
     .onChange(event => {
       const min = startSv.value + MIN_GAP_S;
       endSv.value = Math.max(
-        Math.min(endSv.value + event.changeX / pxPerS, durationS),
+        Math.min(endSv.value + event.changeX / pxPerS, maxS),
         min,
       );
     })
@@ -175,8 +181,8 @@ export function ClipTrimFrameIos({
     .onChange(event => {
       const length = endSv.value - startSv.value;
       const next = Math.min(
-        Math.max(startSv.value + event.changeX / pxPerS, 0),
-        durationS - length,
+        Math.max(startSv.value + event.changeX / pxPerS, minS),
+        maxS - length,
       );
       startSv.value = next;
       endSv.value = next + length;
@@ -185,7 +191,7 @@ export function ClipTrimFrameIos({
       const lengthS = Math.round(endSv.value - startSv.value);
       const seconds = Math.min(
         Math.round(startSv.value),
-        Math.max(durationS - lengthS, 0),
+        Math.max(maxS - lengthS, minS),
       );
       startSv.value = seconds;
       endSv.value = seconds + lengthS;
@@ -193,14 +199,14 @@ export function ClipTrimFrameIos({
     });
 
   const frameStyle = useAnimatedStyle(() => ({
-    left: startSv.value * pxPerS,
+    left: (startSv.value - minS) * pxPerS,
     width: Math.max((endSv.value - startSv.value) * pxPerS, 0),
   }));
   const startCapStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: startSv.value * pxPerS - CAP_WIDTH }],
+    transform: [{ translateX: (startSv.value - minS) * pxPerS - CAP_WIDTH }],
   }));
   const endCapStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: endSv.value * pxPerS }],
+    transform: [{ translateX: (endSv.value - minS) * pxPerS }],
   }));
 
   return (
