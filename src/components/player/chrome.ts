@@ -77,11 +77,6 @@ export type PlayerScrubberProps = {
   /** Centre label while framing a clip ("0:36 – 0:42"), else null. */
   clipLabel?: string | null;
   /**
-   * iOS: while framing, the slider maps THIS slice rather than the whole
-   * sound, and the end labels read its bounds. See `ClipWindow`.
-   */
-  clipWindow?: ClipWindow | null;
-  /**
    * iOS only: the trim frame's LIVE edges, so the centre readout tracks the
    * finger instead of waiting for the drag to commit. When present it
    * replaces `clipLabel`'s text (which stays the framing flag, and is what
@@ -94,35 +89,6 @@ export type PlayerScrubberProps = {
   onDrag: (value: number) => void;
   onDragEnd: () => void;
 };
-
-/**
- * THE FRAMING WINDOW — the slice of the sound the trimmer maps, and the answer
- * to the SCALE problem this feature carried from its first generation.
- *
- * Mapped whole, a 3-minute song is ~0.51s per point and a 6-minute one ~0.97s,
- * so a finger's wobble is a second or more and long recordings are effectively
- * untrimmable. Zoomed, a point is ~0.081s at any length.
- *
- * IT IS THE WHOLE SOUND AT REST AND ZOOMS ONLY WHILE A HANDLE IS HELD —
- * Google Photos' model, and the shape that finally satisfies both halves of
- * the problem. At rest the frame maps everything, so a clip can start at 0:15
- * and end at 2:00; the moment a cap is grabbed the view zooms to
- * `CLIP_ZOOM_SPAN_S` around it and HOLDS that scale until the finger lifts.
- *
- * THE SCALE NEVER CHANGES MID-DRAG. That is the whole difference from the
- * zoomed strip rejected on 2026-08-23, whose span was a function of the
- * selection and so rescaled continuously as the clip grew ("the more i drag
- * it the more it expands"). Zooming AT the grab is a deliberate transition;
- * rescaling DURING the drag is the ground moving under your hand.
- *
- * A fixed window that never moved was tried in between (2026-08-25) and could
- * not express a clip from 0:15 to 2:00, nor one longer than its own span —
- * which is why the zoom is tied to the gesture rather than to the mode.
- */
-export type ClipWindow = { startS: number; endS: number };
-
-/** The span a grab zooms to. Not a clip limit — the window pans as you drag. */
-export const CLIP_ZOOM_SPAN_S = 30;
 
 export type PlayerCard = {
   icon: IconName;

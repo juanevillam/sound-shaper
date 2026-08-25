@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -45,7 +45,6 @@ import {
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
-  type ClipWindow,
   type PlayerCard,
   type PlayerConsoleProps,
 } from './chrome';
@@ -567,17 +566,6 @@ export function PlayerConsole({
    * button means. Framing entry pauses the song (see the store's `pause`), so
    * the two states cannot disagree in practice — this just makes it explicit.
    */
-  /**
-   * THE SLICE THE TRIMMER IS MAPPING. Null means the whole sound, which is
-   * the resting state; the frame reports a zoomed one for the length of a
-   * drag (see `ClipWindow`). It lives here because the SLIDER and its end
-   * labels have to stay on the frame's scale, and they are siblings.
-   */
-  const [clipWindow, setClipWindow] = useState<ClipWindow | null>(null);
-  useEffect(() => {
-    if (!clipMode) setClipWindow(null);
-  }, [clipMode]);
-
   const previewing = usePlayerStore(
     s => s.playing && s.activeClip?.clipId === 'preview',
   );
@@ -700,7 +688,6 @@ export function PlayerConsole({
                 ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
                 : null
             }
-            clipWindow={clipMode ? clipWindow : null}
             clipRangeSv={
               clipMode ? { endSv: clipEndSv, startSv: clipStartSv } : null
             }
@@ -714,7 +701,6 @@ export function PlayerConsole({
                 endS={clipRange.endS}
                 startSv={clipStartSv}
                 endSv={clipEndSv}
-                onWindowChange={setClipWindow}
                 onChange={onClipRangeChange}
               />
             </View>

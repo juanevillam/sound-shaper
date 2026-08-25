@@ -91,24 +91,12 @@ export function PlayerScrubber({
   totalDuration,
   clipLabel,
   clipRangeSv,
-  clipWindow,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
   const { colors } = useAppTheme();
 
   const framing = clipLabel != null;
-  // WHILE FRAMING THE SLIDER MAPS THE WINDOW, not the sound — that is what
-  // buys the precision (see `ClipWindow`), and it is why the end labels read
-  // the window's bounds rather than 0:00 and the track length: a slider that
-  // spans thirty seconds must not be captioned with the song's.
-  //
-  // It is also INERT for the mode. The trim frame's caps sit on top of it and
-  // a native slider claims a touch the instant it lands, so an interactive
-  // track underneath stole drags aimed at a cap (reproduced twice on device).
-  // Auditioning is what the preview button is for.
-  const sliderMin = framing && clipWindow ? clipWindow.startS : 0;
-  const sliderMax = framing && clipWindow ? clipWindow.endS : duration;
   // See the header: the row makes room for the trim frame, by transform.
   const labelsDrop = useAnimatedStyle(
     () => ({
@@ -125,11 +113,7 @@ export function PlayerScrubber({
 
   return (
     <View style={styles.block}>
-      <SwiftUIHost
-        ignoreSafeArea="all"
-        pointerEvents={framing ? 'none' : 'auto'}
-        style={styles.host}
-      >
+      <SwiftUIHost ignoreSafeArea="all" style={styles.host}>
         <Slider
           // MONOCHROME, like every other control on this surface. A
           // now-playing screen is tinted by its ARTWORK — that is what
@@ -138,9 +122,9 @@ export function PlayerScrubber({
           // fills its played portion with the system tint, which is the last
           // place `colors.primary` survived on the iOS console.
           modifiers={[tint(colors.onSurface)]}
-          value={Math.min(Math.max(position, sliderMin), sliderMax)}
-          min={sliderMin}
-          max={sliderMax}
+          value={Math.min(position, duration)}
+          min={0}
+          max={duration}
           onValueChange={onDrag}
           onEditingChanged={isEditing => {
             if (!isEditing) onDragEnd();
@@ -154,18 +138,14 @@ export function PlayerScrubber({
           doNotTranslate
           muted
           style={styles.time}
-          text={formatTime(
-            framing && clipWindow ? clipWindow.startS : position,
-          )}
+          text={formatTime(position)}
           variant="labelMedium"
         />
         <Text
           doNotTranslate
           muted
           style={styles.time}
-          text={formatTime(
-            framing && clipWindow ? clipWindow.endS : totalDuration,
-          )}
+          text={formatTime(totalDuration)}
           variant="labelMedium"
         />
         {clipLabel ? (
