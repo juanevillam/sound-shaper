@@ -212,7 +212,37 @@ in the file's header; the ones worth knowing before touching it:
   per-second buzz was rejected with the zoom ("makes the clipping
   un-usable"); Save keeps its one `haptics.selection()` at the save site.
 
-  **THE KNOB GOES WHILE FRAMING, AND THE TRACK IS DRAWN.** The slider's thumb
+  **FRAMING MAPS A FIXED 30s WINDOW, NOT THE WHOLE SOUND** (2026-08-25), and
+  this is the answer to the SCALE problem the feature carried from gen 2.
+  Mapped whole, a 3-minute song is ~0.51s per point and a 6-minute one
+  ~0.97s — a finger's wobble is a second or more, so long recordings were
+  effectively untrimmable. The window is ~0.081s per point at ANY length;
+  measured on device, a 20pt cap drag moves an edge 2s where it used to move
+  ~10s.
+
+  **IT IS SET ONCE, AT ENTRY, AND NEVER MOVES** (`clipWindowFor` in
+  `chrome.ts`). That is the whole difference from the zoomed strip rejected
+  on 2026-08-23, whose window recomputed as you dragged ("the more i drag it
+  the more it expands"): a control whose coordinate system moves under the
+  finger is not simple, whatever precision it buys. Nothing recomputes here —
+  not on drag, not on release. The accepted cost is that the window BOUNDS
+  the clip: the caps clamp to it and a clip cannot exceed `CLIP_WINDOW_S`.
+  The slider's end labels read the window's bounds while framing, because a
+  slider spanning thirty seconds must not be captioned with the song's
+  length.
+
+  **IT ALSO RETIRED A HAND-DRAWN CONTROL.** At full-track scale the slider's
+  36.67pt thumb was WIDER than a 15s clip's ~29pt frame, so framing briefly
+  hid the native slider and drew its own track and thin playhead (Photos'
+  shape, measured to 1/255). At window scale a 15s clip is ~185pt of frame
+  and the native thumb sits inside it comfortably, so the imitation was
+  deleted — the better fix removed the need for the workaround rather than
+  polishing it. The slider stays INERT while framing, though: a native slider
+  claims a touch the instant it lands, and an interactive one underneath
+  stole drags aimed at the caps (reproduced twice on device).
+
+  **[RETIRED 2026-08-25 — kept for the measurements.] THE KNOB GOES WHILE
+  FRAMING, AND THE TRACK IS DRAWN.** The slider's thumb
   is a **36.67pt** disc, measured, and a fifteen-second clip on a three-minute
   track is a **~29pt** frame — so the knob was WIDER than the selection it sat
   in, covering the thing being trimmed, and its slider stole touches aimed at
