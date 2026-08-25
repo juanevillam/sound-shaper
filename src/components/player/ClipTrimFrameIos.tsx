@@ -76,6 +76,13 @@ export const TRIM_FRAME_HEIGHT = 44;
 const CAP_WIDTH = 14;
 const CAP_RADIUS = 7;
 const RAIL_HEIGHT = 4;
+/**
+ * The height INSIDE the rails — what the framing playhead spans, so it reads
+ * the way Photos' does: a line the full height of the trimmed strip rather
+ * than a knob sitting on a track. `PlayerScrubber.ios` draws that playhead,
+ * because it owns the track the frame brackets.
+ */
+export const TRIM_FRAME_INNER_HEIGHT = TRIM_FRAME_HEIGHT - RAIL_HEIGHT * 2;
 const CHEVRON_SIZE = 17;
 /** The selection's body — the same faint accent wash gen 2 carried. */
 const RANGE_FILL_ALPHA = 0.16;

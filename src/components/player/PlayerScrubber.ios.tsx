@@ -1,7 +1,10 @@
+import { useState } from 'react';
+
 import { StyleSheet, View } from 'react-native';
 
 import { Slider } from '@expo/ui/swift-ui';
 import { tint } from '@expo/ui/swift-ui/modifiers';
+import { withAlpha } from '@portfolio/core';
 import { SwiftUIHost } from '@portfolio/mobile-ui';
 import Animated, {
   useAnimatedStyle,
@@ -9,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ClipRangeLabelIos } from '@/components/player/ClipRangeLabelIos';
+import { TRIM_FRAME_INNER_HEIGHT } from '@/components/player/ClipTrimFrameIos';
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
@@ -53,6 +57,30 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
  */
 const CLIP_LABELS_DROP = 12;
 
+// WHILE FRAMING THE TRACK IS DRAWN, NOT NATIVE — and this is the one place
+// this console imitates a system control on purpose.
+//
+// SwiftUI's `Slider` has no thumb-size API (`controlSize` was tried on device
+// and does nothing to it), and its thumb is a 36.67pt disc — measured — while
+// a fifteen-second clip on a three-minute track is a ~29pt frame. The knob is
+// therefore WIDER THAN THE SELECTION it sits in: it hides the very thing being
+// trimmed, and its slider steals touches that were aimed at the caps.
+//
+// So framing hides the native slider and draws the same track with a thin
+// PLAYHEAD in place of the knob, which is what Photos' trimmer shows. It is
+// also inert, so every touch in the band reaches the frame's caps.
+//
+// MEASURED off the real slider on iPhone 17 / iOS 26.5, both appearances, so
+// the drawn one is the same object: track 5.67pt tall, full host width, the
+// played side `onSurface` (3,3,3 light / 253,253,252 dark) and the rest
+// `onSurface` at 0.083 light / 0.094 dark — one 0.09 covers both.
+//
+// The slider FADES rather than unmounting: remounting the host re-runs its
+// first-frame safe-area race (above) on every mode exit.
+const TRACK_HEIGHT = 5.67;
+const TRACK_REMAINING_ALPHA = 0.09;
+const PLAYHEAD_WIDTH = 3;
+
 // THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
 // row, which is already there and already the right width.
 //
@@ -95,8 +123,10 @@ export function PlayerScrubber({
   onDragEnd,
 }: PlayerScrubberProps) {
   const { colors } = useAppTheme();
+  const [trackWidth, setTrackWidth] = useState(0);
 
   const framing = clipLabel != null;
+  const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
   // See the header: the row makes room for the trim frame, by transform.
   const labelsDrop = useAnimatedStyle(
     () => ({
@@ -112,8 +142,15 @@ export function PlayerScrubber({
   );
 
   return (
-    <View style={styles.block}>
-      <SwiftUIHost ignoreSafeArea="all" style={styles.host}>
+    <View
+      style={styles.block}
+      onLayout={event => setTrackWidth(event.nativeEvent.layout.width)}
+    >
+      <SwiftUIHost
+        ignoreSafeArea="all"
+        pointerEvents={framing ? 'none' : 'auto'}
+        style={[styles.host, framing && styles.hostHidden]}
+      >
         <Slider
           // MONOCHROME, like every other control on this surface. A
           // now-playing screen is tinted by its ARTWORK — that is what
@@ -131,6 +168,47 @@ export function PlayerScrubber({
           }}
         />
       </SwiftUIHost>
+
+      {/* The drawn stand-in — see the header. Inert by construction, so the
+          trim frame's caps win every touch in this band. */}
+      {framing && trackWidth > 0 ? (
+        <View pointerEvents="none" style={styles.drawnTrack}>
+          <View
+            style={[
+              styles.trackBar,
+              {
+                backgroundColor: withAlpha(
+                  colors.onSurface,
+                  TRACK_REMAINING_ALPHA,
+                ),
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.trackBar,
+              {
+                backgroundColor: colors.onSurface,
+                width: progress * trackWidth,
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.playhead,
+              {
+                backgroundColor: colors.onSurface,
+                transform: [
+                  {
+                    translateX: progress * trackWidth - PLAYHEAD_WIDTH / 2,
+                  },
+                ],
+              },
+            ]}
+          />
+        </View>
+      ) : null}
+
       <Animated.View
         style={[styles.labels, { paddingHorizontal: copyInset }, labelsDrop]}
       >
@@ -191,6 +269,31 @@ const styles = StyleSheet.create({
    */
   time: { fontVariant: ['tabular-nums'] },
   host: { height: IOS_SLIDER_HOST_HEIGHT, width: '100%' },
+  hostHidden: { opacity: 0 },
+  // Sits exactly where the native track does: centred in the host's box.
+  drawnTrack: {
+    height: IOS_SLIDER_HOST_HEIGHT,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  trackBar: {
+    borderRadius: TRACK_HEIGHT / 2,
+    height: TRACK_HEIGHT,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  /** Photos' trim playhead: a line the height of the frame, not a knob. */
+  playhead: {
+    borderRadius: PLAYHEAD_WIDTH / 2,
+    height: TRIM_FRAME_INNER_HEIGHT,
+    left: 0,
+    position: 'absolute',
+    width: PLAYHEAD_WIDTH,
+  },
   labels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
