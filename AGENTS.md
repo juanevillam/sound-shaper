@@ -860,10 +860,29 @@ over a patched stretcher — see the stretcher note above), clips (personal
 replay bookmarks), and background playback via the plugin's media foreground
 service.
 
-Deliberate gaps, in build order: lock-screen now-playing metadata, and
-Cloudinary media on account deletion (the audio and artwork orphan — deleting
-them needs a signed backend call this app doesn't have, the same accepted gap as
-deleting a single song).
+**THE SYSTEM NOW PLAYING SESSION IS PUBLISHED — iOS only** (2026-08-26,
+`NowPlayingBridgeIos`). The Dynamic Island's audio pill, the Lock Screen
+player and Control Center's card are ONE system surface, drawn by iOS for
+whichever app owns the now-playing session; the bridge publishes it through
+the library's `PlaybackNotificationManager` (`MPNowPlayingInfoCenter` +
+`MPRemoteCommandCenter` underneath) and answers play / pause / nextTrack /
+previousTrack / seekTo with the store's own transport actions. The rule
+worth keeping: **publish on DISCONTINUITIES, never on the position tick** —
+iOS interpolates the playhead itself from one (elapsedTime, rate) pair, so
+the bridge keys off the sound, play/pause, the rate, the duration landing,
+and the store's `seekNonce`, which every discontinuous playhead move stamps
+(a scrub, a clip start, a boundary park, a restart). Verified on simulator:
+Control Center's card carries the artwork, both text lines and a progress
+bar that advances between screenshots off a single publish; seven publishes
+across a whole play/skip/pause session, none from ticks. What the simulator
+cannot show is the island pill itself and remote button presses (its card
+renders non-interactive) — check both on hardware. Android's media
+notification uses the same manager but needs notification permissions and a
+verified device; wire it when the freeze lifts.
+
+Deliberate gaps, in build order: Cloudinary media on account deletion (the
+audio and artwork orphan — deleting them needs a signed backend call this app
+doesn't have, the same accepted gap as deleting a single song).
 
 **Account deletion is `hooks/useDeleteAccount` on iOS** — re-auth FIRST, then the
 Firestore sweep, then the Apple token revoke, then the Auth user. Android calls

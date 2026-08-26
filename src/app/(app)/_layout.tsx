@@ -7,6 +7,7 @@ import { Redirect, Stack } from 'expo-router';
 import { router } from 'expo-router';
 
 import { AudioEngine } from '@/components/player/AudioEngine';
+import { NowPlayingBridgeIos } from '@/components/player/NowPlayingBridgeIos';
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
@@ -158,6 +159,11 @@ export default function AppLayout() {
           is deliberately NOT tied to the player UI: the UI is mounted by the
           Home screen (see its comment), this keeps playing regardless. */}
       <AudioEngine />
+      {/* Publishes the system Now Playing session — the Dynamic Island's
+          audio pill, the Lock Screen player and Control Center's card, with
+          their transport wired back to the store. iOS-only; Android's media
+          notification waits for the freeze to lift (see the bridge). */}
+      {Platform.OS === 'ios' ? <NowPlayingBridgeIos /> : null}
       {/* Top-anchored unlock banner, above every screen. No sound with it: this
           app IS a player, and a jingle over what you are listening to is the
           one place a trophy must not intrude — the haptic carries it. */}
