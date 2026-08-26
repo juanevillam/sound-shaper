@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { PlaybackNotificationManager } from 'react-native-audio-api';
 
@@ -15,8 +15,8 @@ import { usePlayerStore } from '@/store/player';
 // which wraps both (see `PlaybackNotification.mm`).
 //
 // PUSH ON DISCONTINUITIES, NEVER ON THE TICK. iOS interpolates the published
-// playhead itself from one (elapsedTime, playbackRate) pair — that is why a
-// paused state publishes rate 0 implicitly via `state: 'paused'`. Republishing
+// playhead itself from one (elapsedTime, playbackRate) pair — which is also
+// why a pause must publish rate 0 outright (see `speed` below). Republishing
 // on the 10Hz position tick would be wrong twice over: it is wasted bridge
 // traffic, and it makes the system's own interpolation stutter against the
 // stream of overrides. So the effect keys off the things that BREAK the
@@ -36,13 +36,31 @@ import { usePlayerStore } from '@/store/player';
  */
 const NOW_PLAYING_ART_WIDTH = 600;
 
-/** The controls the system surfaces answer to — wired once, below. */
+/**
+ * WHICH BUTTONS THE SYSTEM DRAWS, and the half that matters is the DISABLING.
+ *
+ * The library enables all seven remote commands in its own
+ * `initializeWithOptions` — play, pause, nextTrack, previousTrack,
+ * skipForward, skipBackward, seekTo — so every `true` below is a no-op
+ * restating a default. What is NOT a no-op is turning the two SKIP commands
+ * off: iOS gives the outer slots to skip-forward/back whenever they are
+ * enabled alongside next/previous track, which is why the island shipped
+ * with a ±15s pair (Juan's device screenshots, 2026-08-26) where this app's
+ * own transport has prev/next.
+ *
+ * The island must mirror the app: this is a music player with a wrapping
+ * queue and no ±15 control anywhere in it, and next/previous is what Music
+ * and Spotify put there. The seek command stays enabled — it is the
+ * scrubbable progress bar, not a button.
+ */
 const REMOTE_CONTROLS = [
-  'play',
-  'pause',
-  'nextTrack',
-  'previousTrack',
-  'seekTo',
+  ['play', true],
+  ['pause', true],
+  ['nextTrack', true],
+  ['previousTrack', true],
+  ['seekTo', true],
+  ['skipForward', false],
+  ['skipBackward', false],
 ] as const;
 
 export function NowPlayingBridgeIos() {
@@ -51,8 +69,6 @@ export function NowPlayingBridgeIos() {
   const rate = usePlayerStore(s => s.rate);
   const duration = usePlayerStore(s => s.duration);
   const seekNonce = usePlayerStore(s => s.seekNonce);
-
-  const controlsWiredRef = useRef(false);
 
   // The remote commands, answered with the store's own transport actions —
   // the same ones the banner and the console call, so the island's buttons
@@ -84,6 +100,19 @@ export function NowPlayingBridgeIos() {
       ),
     ];
 
+    /**
+     * The button SET is static, so it is stated once here rather than after
+     * the first metadata publish — which is also the ordering iOS wants: the
+     * command centre decides which controls exist, and the now-playing info
+     * is what fills them. Wiring it the other way round left the first
+     * rendered session holding the defaults.
+     */
+    REMOTE_CONTROLS.forEach(([control, enabled]) => {
+      PlaybackNotificationManager.enableControl(control, enabled).catch(
+        () => {},
+      );
+    });
+
     return () => subscriptions.forEach(subscription => subscription.remove());
   }, []);
 
@@ -91,7 +120,6 @@ export function NowPlayingBridgeIos() {
     if (!current) {
       // Sign-out, deletion, queue cleared: the session is over, so the
       // island's pill and the Lock Screen player go with it.
-      controlsWiredRef.current = false;
       PlaybackNotificationManager.hide().catch(() => {});
       return;
     }
@@ -106,25 +134,30 @@ export function NowPlayingBridgeIos() {
         : {}),
       ...(duration > 0 ? { duration } : {}),
       elapsedTime: usePlayerStore.getState().position,
-      speed: rate,
+      /**
+       * ZERO WHEN PAUSED, AND THIS IS THE ONLY PAUSE SIGNAL THE SYSTEM GETS.
+       *
+       * `speed` is `MPNowPlayingInfoPropertyPlaybackRate`, which is what iOS
+       * interpolates its own playhead from — so publishing the app's rate
+       * setting (1 by default) while paused tells the system to keep
+       * counting. On device that ran the Lock Screen player to the end of
+       * the track and left it there showing a playing glyph, over silence
+       * (Juan, 2026-08-26); the simulator happens to freeze correctly, which
+       * is how it passed the first pass of verification.
+       *
+       * The `state` field below cannot cover for it: the library reads
+       * `_currentInfo[@"state"]` but only ever stores keys that appear in
+       * its `NOW_PLAYING_INFO_KEYS` map, and `state` is not one of them — so
+       * its `playbackState` write is dead code upstream. It stays published
+       * because it costs nothing and comes right if that is ever fixed.
+       */
+      speed: playing ? rate : 0,
       state: playing ? ('playing' as const) : ('paused' as const),
     };
 
-    PlaybackNotificationManager.show(info)
-      .then(() => {
-        if (controlsWiredRef.current) return;
-        controlsWiredRef.current = true;
-        return Promise.all(
-          REMOTE_CONTROLS.map(control =>
-            PlaybackNotificationManager.enableControl(control, true),
-          ),
-        );
-      })
-      .catch(() => {
-        // Best-effort: a failed publish must never take playback down with
-        // it, and the next discontinuity retries anyway.
-        controlsWiredRef.current = false;
-      });
+    // Best-effort: a failed publish must never take playback down with it,
+    // and the next discontinuity retries anyway.
+    PlaybackNotificationManager.show(info).catch(() => {});
   }, [current, playing, rate, duration, seekNonce]);
 
   return null;
