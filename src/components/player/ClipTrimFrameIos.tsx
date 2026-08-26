@@ -87,10 +87,15 @@ const CAP_WIDTH = 14;
 const CAP_RADIUS = 7;
 const RAIL_HEIGHT = 4;
 const CHEVRON_SIZE = 17;
-/** The selection's body — the same faint accent wash gen 2 carried. */
-const RANGE_FILL_ALPHA = 0.16;
+/**
+ * The selection's body — the same faint accent wash gen 2 carried. Exported:
+ * the editor's zoomed view draws the SAME selection over its waveform, and a
+ * re-declared 0.16 is how the two would drift.
+ */
+export const RANGE_FILL_ALPHA = 0.16;
 
-const MIN_GAP_S = 1;
+/** A clip's floor, shared with every surface that edits one. */
+export const MIN_GAP_S = 1;
 /**
  * A cap is 14pt of ink; its TARGET is a transparent wrapper VIEW around it —
  * ±15 horizontal (44 wide, Apple's minimum, the same number that sized the
