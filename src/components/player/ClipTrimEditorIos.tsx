@@ -22,6 +22,7 @@ import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
+import { formatTime } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 
 // ---------------------------------------------------------------------------
@@ -83,20 +84,6 @@ const OVERVIEW_BAR_WIDTH = 1.5;
 const SKIP_S = 15;
 const SKIP_GLYPH_SIZE = 26;
 const PLAY_SIZE = 44;
-
-/**
- * Voice Memos' timecode: minutes, seconds, CENTISECONDS, comma-separated —
- * the comma is what the real surface draws (see the screenshots), so it is
- * matched rather than localised by us.
- */
-const formatTimecode = (seconds: number): string => {
-  const clamped = Math.max(0, seconds);
-  const m = Math.floor(clamped / 60);
-  const s = Math.floor(clamped % 60);
-  const cs = Math.floor((clamped * 100) % 100);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(m)}:${pad(s)},${pad(cs)}`;
-};
 
 /** Placeholder amplitude while the decode is in flight — geometry never waits. */
 const PLACEHOLDER_LEVEL = 0.18;
@@ -295,6 +282,12 @@ export function ClipTrimEditorIos({
       );
     })
     .onFinalize(() => {
+      // WHOLE SECONDS, END TO END (Juan, 2026-08-26): clips are marked
+      // second by second — Voice Memos' surgical precision is for trimming
+      // a recording, and a clip does not need it. The drag itself stays
+      // continuous (that is the fluidity); the RELEASE lands on the second,
+      // so the line, the timecode and the seek all agree.
+      playheadSv.value = Math.round(playheadSv.value);
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
@@ -499,34 +492,35 @@ export function ClipTrimEditorIos({
             </GestureDetector>
           </Animated.View>
 
-          {/* THE PLAYHEAD IS THE CURSOR COLOUR, NOT THE BARS' INK — Voice
-              Memos draws its bars white, its selection in the edit tint and
-              its playhead in a third, cursor colour, so the three can never
-              be read as one another (Juan, from the screenshots: the line
-              must differ from both the bars and their container). This app
-              owns one accent, so the cursor takes it in BOTH views — here
-              and in the overview — and the selection's edges stay
-              distinguishable by standing on the wash's own boundaries. The
-              dots protrude past the band, exactly as Voice Memos' do. */}
+          {/* THE PLAYHEAD IS ITS OWN COLOUR, DISTINCT FROM THE SELECTION'S
+              EDGES TOO (Juan, 2026-08-26) — Voice Memos can split cursor
+              from selection by hue because it owns two colours, and one
+              accent cannot say both. The cursor takes the audio tool's own
+              convention instead: the red playhead Apple's Logic draws,
+              already in the palette as `danger` — worn here as the CURSOR
+              semantic, the way `switchOn`'s green is worn as a switch's.
+              Distinct from the bars, both grounds, and the accent edges, in
+              both appearances. The dots protrude past the band, exactly as
+              Voice Memos' do. */}
           <View
             pointerEvents="none"
             style={[styles.playheadWrap, { left: centerX - 1.25 }]}
           >
             <View
-              style={[styles.playheadLine, { backgroundColor: colors.primary }]}
+              style={[styles.playheadLine, { backgroundColor: colors.danger }]}
             />
             <View
               style={[
                 styles.edgeDot,
                 styles.playheadDotTop,
-                { backgroundColor: colors.primary },
+                { backgroundColor: colors.danger },
               ]}
             />
             <View
               style={[
                 styles.edgeDot,
                 styles.playheadDotBottom,
-                { backgroundColor: colors.primary },
+                { backgroundColor: colors.danger },
               ]}
             />
           </View>
@@ -542,7 +536,7 @@ export function ClipTrimEditorIos({
           pointerEvents="none"
           style={[
             styles.overviewPlayhead,
-            { backgroundColor: colors.primary },
+            { backgroundColor: colors.danger },
             overviewPlayheadStyle,
           ]}
         />
@@ -611,8 +605,11 @@ export function ClipTrimEditorIos({
 
 /**
  * The timecode re-renders itself off the shared playhead — the leaf-reader
- * rule (`PlayerScrubberLive`), reacting on the CENTISECOND the label draws so
- * it never renders a frame that reads the same.
+ * rule (`PlayerScrubberLive`), reacting on the SECOND the label draws so it
+ * never renders a frame that reads the same. It showed centiseconds first,
+ * copied from Voice Memos; Juan cut them (2026-08-26) — that precision is a
+ * recording-trimmer's need, not a clip's — which also makes the label ~100×
+ * quieter under a drag.
  */
 function TimecodeLabel({
   playheadSv,
@@ -621,11 +618,11 @@ function TimecodeLabel({
   playheadSv: SharedValue<number>;
   color: string;
 }) {
-  const [cs, setCs] = useState(() => Math.round(playheadSv.value * 100));
+  const [seconds, setSeconds] = useState(() => Math.round(playheadSv.value));
   useAnimatedReaction(
-    () => Math.round(playheadSv.value * 100),
+    () => Math.round(playheadSv.value),
     (next, previous) => {
-      if (next !== previous) runOnJS(setCs)(next);
+      if (next !== previous) runOnJS(setSeconds)(next);
     },
     [],
   );
@@ -633,7 +630,7 @@ function TimecodeLabel({
   return (
     <AppText
       doNotTranslate
-      text={formatTimecode(cs / 100)}
+      text={formatTime(seconds)}
       style={[styles.timecode, { color }]}
     />
   );
