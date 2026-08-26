@@ -185,12 +185,21 @@ const MINI_ART_RADIUS = innerRadius(BANNER_RADIUS, BANNER_INSET, SHAPE_SM);
 const MINI_ART_X = BANNER_SIDE_INSET + BANNER_INSET;
 const MINI_ART_Y = BANNER_INSET;
 
-// Transport glyphs are hand-drawn and ~14pt wide, so a 48pt box would push the
-// last one nearly 3x further from the edge than the artwork is from the other
-// — the single thing that made the banner read as badly spaced. These are
-// sized to the GLYPH plus the banner's inset; hitSlop restores the touch
-// target (38 + 16 = 54 wide, 68 tall, both past either platform's minimum).
-const MINI_GLYPH_WIDTH = 14;
+// The glyphs are sized to the GLYPH plus the banner's inset, not to a generic
+// touch box: a 48pt box would push the last one nearly 3x further from the
+// edge than the artwork is from the other — the single thing that made the
+// banner read as badly spaced. hitSlop restores the touch target (38 + 16 =
+// 54 wide, 68 tall, both past either platform's minimum).
+//
+// THE WIDTH IS MEASURED, AND IT MOVED. It read 14 while the glyphs were
+// hand-drawn views, and stayed 14 through the switch to SF Symbols because
+// `forward.end.fill` happens to be about that wide. `forward.fill` — Apple's
+// own music-transport double triangle — band-scans at 25.33pt for a 19pt
+// symbol, and the stale 14 silently pulled the trailing inset below to
+// 10.33pt against the 18 it states (measured on the banner before this was
+// corrected), i.e. level with the artwork's own 11pt inset, which is exactly
+// the pinched look that inset exists to avoid.
+const MINI_GLYPH_WIDTH = 25.33;
 const MINI_BUTTON_WIDTH = 38;
 const MINI_BUTTON_HIT_SLOP = 8;
 
@@ -210,10 +219,22 @@ const MINI_TRAILING_GLYPH_INSET = 18;
  * artwork beside it, so the copy fills its own band instead of floating in it.
  */
 const MINI_COPY_GAP = FLOATING_COPY_GAP;
+/**
+ * `forward.fill`'s ink is NOT centred in the frame SwiftUI reserves for it.
+ * Both centrings in the chain are symmetric — the symbol in its host box, the
+ * box in the button — so the trailing inset should land at exactly
+ * `MINI_TRAILING_GLYPH_INSET`, and it band-scanned at 16.67 instead. The
+ * missing 1.33 is the symbol's own optical bearing, which is a property of
+ * that glyph rather than of this layout, so it is corrected here by name and
+ * not by quietly editing one of the two widths above.
+ */
+const MINI_GLYPH_TRAILING_BEARING = 1.33;
 // The row's own padding is then whatever gets the glyph there, so changing the
 // button box can't quietly move it.
 const MINI_ROW_PADDING_RIGHT =
-  MINI_TRAILING_GLYPH_INSET - (MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2;
+  MINI_TRAILING_GLYPH_INSET -
+  (MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2 +
+  MINI_GLYPH_TRAILING_BEARING;
 
 // iOS trades the banner's solid fill for real Liquid Glass, so the library's
 // cover art reads through it. The player it becomes is opaque, so the fill
