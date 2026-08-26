@@ -393,18 +393,47 @@ export function ClipTrimEditorIos({
     <View style={styles.screen}>
       {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
       <GestureDetector gesture={scrubPan}>
+        {/* The wave BAND has its own ground — Voice Memos gives the zoomed
+            container a panel distinct from the page, which is what lets the
+            unselected region read as "the track" rather than as bare screen.
+            `surfaceContainer` is the house's one art-less-box material. The
+            ruler strip below stays on the page colour, as Voice Memos' does. */}
         <View style={styles.zoomRegion}>
           <Animated.View
             style={[styles.strip, { width: windowWidth }, stripStyle]}
           >
+            {/* The panel rides INSIDE the strip, so it spans exactly the
+                track's extent — before 0:00 and past the end the page colour
+                shows, which is what Voice Memos draws there. */}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.waveBand,
+                { backgroundColor: colors.surfaceContainer },
+              ]}
+            />
             <Svg width={windowWidth} height={WAVE_HEIGHT + RULER_HEIGHT}>
               <Path d={wavePath} fill={colors.onSurface} />
+              {/* APPLE'S ORDER: the tick marks hang directly off the wave's
+                  bottom edge and the time labels sit BELOW them — Voice Memos
+                  draws it that way (Juan's screenshots), and the first cut
+                  had it inverted. */}
+              <Path
+                d={rulerTicks
+                  .map(
+                    tick =>
+                      `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
+                  )
+                  .join('')}
+                stroke={colors.onSurfaceMuted}
+                strokeWidth={1}
+              />
               {rulerTicks.map(tick =>
                 tick.major ? (
                   <SvgText
                     key={`l${tick.x}`}
                     x={tick.x}
-                    y={WAVE_HEIGHT + 18}
+                    y={WAVE_HEIGHT + 23}
                     fontSize={11}
                     textAnchor="middle"
                     fill={colors.onSurfaceMuted}
@@ -413,16 +442,6 @@ export function ClipTrimEditorIos({
                   </SvgText>
                 ) : null,
               )}
-              <Path
-                d={rulerTicks
-                  .map(
-                    tick =>
-                      `M${tick.x.toFixed(1)},${WAVE_HEIGHT + (tick.major ? 22 : 24)}v${tick.major ? 6 : 4}`,
-                  )
-                  .join('')}
-                stroke={colors.onSurfaceMuted}
-                strokeWidth={1}
-              />
             </Svg>
 
             {/* Selection wash + edges ride the strip. */}
@@ -480,14 +499,37 @@ export function ClipTrimEditorIos({
             </GestureDetector>
           </Animated.View>
 
-          {/* The fixed playhead, over everything. */}
+          {/* THE PLAYHEAD IS THE CURSOR COLOUR, NOT THE BARS' INK — Voice
+              Memos draws its bars white, its selection in the edit tint and
+              its playhead in a third, cursor colour, so the three can never
+              be read as one another (Juan, from the screenshots: the line
+              must differ from both the bars and their container). This app
+              owns one accent, so the cursor takes it in BOTH views — here
+              and in the overview — and the selection's edges stay
+              distinguishable by standing on the wash's own boundaries. The
+              dots protrude past the band, exactly as Voice Memos' do. */}
           <View
             pointerEvents="none"
-            style={[
-              styles.playhead,
-              { backgroundColor: colors.onSurface, left: centerX - 1 },
-            ]}
-          />
+            style={[styles.playheadWrap, { left: centerX - 1.25 }]}
+          >
+            <View
+              style={[styles.playheadLine, { backgroundColor: colors.primary }]}
+            />
+            <View
+              style={[
+                styles.edgeDot,
+                styles.playheadDotTop,
+                { backgroundColor: colors.primary },
+              ]}
+            />
+            <View
+              style={[
+                styles.edgeDot,
+                styles.playheadDotBottom,
+                { backgroundColor: colors.primary },
+              ]}
+            />
+          </View>
         </View>
       </GestureDetector>
 
@@ -500,7 +542,7 @@ export function ClipTrimEditorIos({
           pointerEvents="none"
           style={[
             styles.overviewPlayhead,
-            { backgroundColor: colors.onSurface },
+            { backgroundColor: colors.primary },
             overviewPlayheadStyle,
           ]}
         />
@@ -611,6 +653,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%',
   },
+  /** The panel behind the WAVE only — the ruler stays on the page colour. */
+  waveBand: {
+    height: WAVE_HEIGHT,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
   strip: {
     bottom: 0,
     left: 0,
@@ -640,12 +690,16 @@ const styles = StyleSheet.create({
   },
   edgeDotTop: { top: -4.5 },
   edgeDotBottom: { bottom: -4.5 },
-  playhead: {
+  playheadWrap: {
+    alignItems: 'center',
     bottom: RULER_HEIGHT,
     position: 'absolute',
     top: 0,
-    width: 2,
+    width: 2.5,
   },
+  playheadLine: { bottom: 0, position: 'absolute', top: 0, width: 2.5 },
+  playheadDotTop: { top: -4.5 },
+  playheadDotBottom: { bottom: -4.5 },
   overview: {
     alignSelf: 'center',
     height: OVERVIEW_HEIGHT,
