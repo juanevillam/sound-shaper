@@ -28,6 +28,9 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
+  IOS_TRANSPORT_GAP,
+  IOS_TRANSPORT_PLAY_SIZE,
+  IOS_TRANSPORT_SKIP_SIZE,
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
@@ -130,33 +133,15 @@ const ARTIST_SIZE = 17;
 const ARTIST_LEADING = 22;
 
 /**
- * TRANSPORT — three controls of equal weight, no filled disc.
- *
- * The FAB this replaces was Material's, and it broke the row twice over: a
- * filled 64pt circle made play the only control with a background, and the
- * 19pt symbol inside it occupied 0.30 of its own disc, so the glyph read as
- * undersized in a button that read as oversized.
- *
- * Play is still primary — it just says so with SIZE rather than with a fill,
- * which is how a symbol-based transport carries hierarchy. These are SF point
- * sizes; `TransportGlyphs.ios` derives each glyph's box from its size.
- *
- * THEY GREW WITH THE SPACE AROUND THEM (2026-08-25). At 30/44 the row was
- * 195pt of a 370pt content box and read as floating in the console's lower
- * half rather than holding it — an imbalance that only appeared once the
- * cover moved up and the scrubber lost its thumb, freeing 26pt into exactly
- * those gaps. Apple's own video transport runs ~40pt of play ink against our
- * 35.67. At 34/52 the row is 228pt, and the taller box also takes ~10pt back
- * out of the flexible gaps it was floating in.
- *
- * This is GEOMETRY, so it scales with its box rather than stepping a ladder —
- * the rule that governs `artworkRadius`. A symbol has no Dynamic Type ramp to
- * break.
+ * TRANSPORT — three controls of equal weight, no filled disc. The FAB story,
+ * the 2026-08-25 growth from 30/44 and the size-not-fill hierarchy rule are
+ * this file's history; the NUMBERS moved to `chrome.ts` the day the clip
+ * editor grew a second transport row (2026-08-26) — the single-source rule:
+ * two surfaces drawing one control share the term, or they drift.
  */
-const TRANSPORT_SKIP_SIZE = 34;
-const TRANSPORT_PLAY_SIZE = 52;
-/** Between the boxes, so the three read as one group rather than a spread row. */
-const TRANSPORT_GAP = 34;
+const TRANSPORT_SKIP_SIZE = IOS_TRANSPORT_SKIP_SIZE;
+const TRANSPORT_PLAY_SIZE = IOS_TRANSPORT_PLAY_SIZE;
+const TRANSPORT_GAP = IOS_TRANSPORT_GAP;
 
 /**
  * THE TRANSPORT IS CENTRED OPTICALLY, NOT MATHEMATICALLY, and the difference is

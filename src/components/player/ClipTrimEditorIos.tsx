@@ -18,16 +18,29 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
-import { ClipTrimFrameIos } from '@/components/player/ClipTrimFrameIos';
+import {
+  ClipTrimFrameIos,
+  MIN_GAP_S,
+  RANGE_FILL_ALPHA,
+  TRIM_FRAME_HEIGHT,
+} from '@/components/player/ClipTrimFrameIos';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
+
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
+import { SCREEN_PADDING } from '@/styles/metrics';
 import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
+
+import {
+  IOS_TRANSPORT_GAP,
+  IOS_TRANSPORT_PLAY_SIZE,
+  IOS_TRANSPORT_SKIP_SIZE,
+} from './chrome';
 
 // ---------------------------------------------------------------------------
 // THE CLIP EDITOR — Voice Memos' trim surface, producing a CLIP.
@@ -74,20 +87,32 @@ const RULER_HEIGHT = 28;
 /** Bars: one per waveform bucket (50ms), VM's density at this scale. */
 const BAR_PITCH = 5;
 const BAR_WIDTH = 3;
-/** The selection wash — same term the in-player frame used. */
-const RANGE_FILL_ALPHA = 0.16;
-/** An edge line's touch wrapper; the line itself is 3pt. */
+/**
+ * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
+ * sized the trim frame's own box. The line inside is 3pt.
+ */
 const EDGE_TOUCH_WIDTH = 44;
-const MIN_GAP_S = 1;
 
-/** Overview strip: the full track, with the selection frame riding on it. */
-const OVERVIEW_HEIGHT = 44;
+/**
+ * The overview strip IS the trim frame's box — `ClipTrimFrameIos` rides it,
+ * and that component was designed around exactly this 44 (Apple's minimum,
+ * measured against Photos). Stated as the import, not a coincident 44.
+ */
+const OVERVIEW_HEIGHT = TRIM_FRAME_HEIGHT;
 const OVERVIEW_BAR_PITCH = 2.5;
 const OVERVIEW_BAR_WIDTH = 1.5;
 
 const SKIP_S = 15;
-const SKIP_GLYPH_SIZE = 26;
-const PLAY_SIZE = 44;
+/** The skip glyphs take the transport's own skip size — one app, one transport. */
+const SKIP_HOST_BOX = Math.round(IOS_TRANSPORT_SKIP_SIZE * 1.3);
+
+/**
+ * ONE GAP BETWEEN THE EDITOR'S GROUPS — wave card, overview, timecode,
+ * transport. The first cut used three invented numbers (28/40/36); the
+ * console's own block gap is 30 (`titleBlock`), and one value close to it
+ * keeps the sheet reading as that family.
+ */
+const GROUP_GAP = 28;
 
 /** Placeholder amplitude while the decode is in flight — geometry never waits. */
 const PLACEHOLDER_LEVEL = 0.18;
@@ -148,10 +173,11 @@ export function ClipTrimEditorIos({
 
   /**
    * THE WAVE CARD IS INSET AND ROUNDED (Juan, 2026-08-26) — Voice Memos runs
-   * its container full-bleed; he prefers the house card: 16pt gutters and the
+   * its container full-bleed; he prefers the house card: the app's own screen
+   * gutter (`SCREEN_PADDING` — the banner's and the console's inset) and the
    * grouped-card corner. Every x below is CARD-local.
    */
-  const cardWidth = winW - 32;
+  const cardWidth = winW - SCREEN_PADDING * 2;
   const centerX = cardWidth / 2;
 
   // --- The playhead -------------------------------------------------------
@@ -368,7 +394,7 @@ export function ClipTrimEditorIos({
   };
 
   // --- Overview -----------------------------------------------------------
-  const overviewWidth = winW - 32;
+  const overviewWidth = winW - SCREEN_PADDING * 2;
   const overviewPps = overviewWidth / durationS;
   const overviewPath = useMemo(() => {
     const pitchS = OVERVIEW_BAR_PITCH / overviewPps;
@@ -550,7 +576,9 @@ export function ClipTrimEditorIos({
       {/* THE OVERVIEW — the whole track, carrying the selection frame. */}
       <View style={[styles.overview, { width: overviewWidth }]}>
         <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
-          <Path d={overviewPath} fill={withAlpha(colors.onSurface, 0.55)} />
+          {/* The rest of the track, in the house's muted ink — the frame's
+              wash is what marks the selection over it. */}
+          <Path d={overviewPath} fill={colors.onSurfaceMuted} />
         </Svg>
         <Animated.View
           pointerEvents="none"
@@ -583,11 +611,13 @@ export function ClipTrimEditorIos({
           accessibilityLabel={t('player.clips.skipBack')}
         >
           {/* Bare `Image`, TransportGlyphs' reasoning: `AppIcon`'s map is
-              keyed by Material names, and these are Apple's own ±15 glyphs. */}
+              keyed by Material names, and these are Apple's own ±15 glyphs.
+              They draw at the transport's own skip size, so this row and the
+              console's read as one app's controls. */}
           <SwiftUIHost ignoreSafeArea="all" style={styles.skipHost}>
             <Image
               systemName="gobackward.15"
-              size={SKIP_GLYPH_SIZE}
+              size={IOS_TRANSPORT_SKIP_SIZE}
               color={colors.onSurface}
             />
           </SwiftUIHost>
@@ -600,9 +630,15 @@ export function ClipTrimEditorIos({
           )}
         >
           {playing ? (
-            <PauseGlyph color={colors.onSurface} size={PLAY_SIZE} />
+            <PauseGlyph
+              color={colors.onSurface}
+              size={IOS_TRANSPORT_PLAY_SIZE}
+            />
           ) : (
-            <PlayGlyph color={colors.onSurface} size={PLAY_SIZE} />
+            <PlayGlyph
+              color={colors.onSurface}
+              size={IOS_TRANSPORT_PLAY_SIZE}
+            />
           )}
         </GlyphButton>
         <GlyphButton
@@ -613,7 +649,7 @@ export function ClipTrimEditorIos({
           <SwiftUIHost ignoreSafeArea="all" style={styles.skipHost}>
             <Image
               systemName="goforward.15"
-              size={SKIP_GLYPH_SIZE}
+              size={IOS_TRANSPORT_SKIP_SIZE}
               color={colors.onSurface}
             />
           </SwiftUIHost>
@@ -728,7 +764,7 @@ const styles = StyleSheet.create({
   overview: {
     alignSelf: 'center',
     height: OVERVIEW_HEIGHT,
-    marginTop: 28,
+    marginTop: GROUP_GAP,
   },
   overviewPlayhead: {
     bottom: 0,
@@ -743,22 +779,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
   },
+  /**
+   * LARGE TITLE — 34/41, the ladder's biggest named rung. It shipped at a
+   * derived 44, which is a size Apple never draws (STEPPED, NEVER SCALED);
+   * Voice Memos' giant readout carries centiseconds this surface no longer
+   * shows, so the step down also fits what the label now says. The explicit
+   * lineHeight is still required: `AppText`'s variant line box is
+   * body-sized, and large glyphs in it render clipped.
+   */
   timecode: {
-    fontSize: 44,
+    fontSize: 34,
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
-    // Stated: `AppText`'s variant line box is body-sized, and 44pt glyphs in
-    // a 20pt line box render struck-through-looking clips.
-    lineHeight: 52,
-    marginTop: 40,
+    lineHeight: 41,
+    marginTop: GROUP_GAP,
     textAlign: 'center',
   },
   transport: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 44,
+    gap: IOS_TRANSPORT_GAP,
     justifyContent: 'center',
-    marginTop: 36,
+    marginTop: GROUP_GAP,
   },
-  skipHost: { height: 34, width: 34 },
+  skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });

@@ -84,6 +84,21 @@ export const IOS_SLIDER_HOST_HEIGHT = 18;
  */
 export const IOS_SLIDER_TRACK_CENTER = 4;
 
+/**
+ * THE iOS TRANSPORT'S GEOMETRY — one term, TWO surfaces since the clip
+ * editor gained its own transport row (2026-08-26): the expanded console and
+ * the editor must feel like one app's controls, not two apps'. Play carries
+ * hierarchy with SIZE, not a fill; the sizes are SF point sizes and the full
+ * reasoning (including the 2026-08-25 growth from 30/44) lives where it was
+ * measured, in `PlayerConsole.ios.tsx`'s history. GEOMETRY, so it scales
+ * with its box rather than stepping a type ladder — a symbol has no Dynamic
+ * Type ramp to break.
+ */
+export const IOS_TRANSPORT_SKIP_SIZE = 34;
+export const IOS_TRANSPORT_PLAY_SIZE = 52;
+/** Between the boxes, so the three read as one group rather than a spread row. */
+export const IOS_TRANSPORT_GAP = 34;
+
 export type PlayerScrubberProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
   copyInset?: number;
