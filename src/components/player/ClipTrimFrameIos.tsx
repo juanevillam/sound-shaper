@@ -258,6 +258,21 @@ export function ClipTrimFrameIos({
     });
 
   /**
+   * ARBITRATION, STATED — never left to the gesture system's defaults. The
+   * three drags' touch boxes OVERLAP by design (a short clip's two 44pt
+   * wrappers can cover most of its own middle), and overlapping RNGH
+   * handlers on different views are not guaranteed exclusive: a touch in an
+   * overlap could start two drags at once, and a frame whose start chases
+   * its own end collapses to the minimum gap under one swipe (seen on
+   * simulator, 2026-08-25: one middle drag left a 0:49–0:50 sliver). So the
+   * priority is explicit, and it is the same one the render order implies —
+   * a cap beats the middle, and where the two caps' boxes overlap the END
+   * cap wins, the edge framing exists to adjust most.
+   */
+  dragStart.requireExternalGestureToFail(dragEnd);
+  dragClip.requireExternalGestureToFail(dragStart, dragEnd);
+
+  /**
    * VOICEOVER'S OWN TRIM. Each cap is an ADJUSTABLE element — the trait a
    * `UISlider` carries — so swipe up/down nudges its edge by a second, spoken
    * back through `accessibilityValue`. Without it the mode's whole point was
