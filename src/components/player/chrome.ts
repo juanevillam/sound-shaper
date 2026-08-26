@@ -73,6 +73,17 @@ export const HANDLES_REGION_HEIGHT = 44;
  */
 export const IOS_SLIDER_HOST_HEIGHT = 18;
 
+/**
+ * WHERE THE TRACK'S INK ACTUALLY IS, measured — the media scrubber does not
+ * centre its bar in the host. Band-scanned in framing mode (iPhone 17 /
+ * iOS 26.5): the track spans host 0.2 → 7.9, centre 4.0, against the 18pt
+ * box's geometric centre of 9. A trim frame centred on the HOST therefore
+ * sat 5pt low against the track it brackets, which Juan read on sight
+ * (2026-08-25). Anything that must align with the BAR — the trim frame is
+ * today's one caller — centres on this, not on the host's half-height.
+ */
+export const IOS_SLIDER_TRACK_CENTER = 4;
+
 export type PlayerScrubberProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
   copyInset?: number;

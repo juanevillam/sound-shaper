@@ -43,12 +43,14 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 // platform-suffixed file (see that module's header).
 
 /**
- * How far the time row steps down while framing. The frame's box bottom is
- * host + 38 (a 44pt box centred on the 32pt host) and the resting ink top is
- * ~host + 34, so the row has to clear 4 before it buys any air: 12 leaves
- * the same 8pt band the 36pt frame had at a drop of 8.
+ * How far the time row steps down while framing. Re-measured 2026-08-25,
+ * after the frame recentred on the track's ink (`IOS_SLIDER_TRACK_CENTER`):
+ * the frame's bottom lands at host + 26 and the resting ink top at
+ * host + 21.8, so the row must clear 4.2 before it buys any air. At 12 the
+ * rendered band was 2.8pt — Juan read the caps as standing on the numbers —
+ * and 16 lands ~12pt of clear space, the gap the frame's own overhang set.
  */
-const CLIP_LABELS_DROP = 12;
+const CLIP_LABELS_DROP = 16;
 
 // THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
 // row, which is already there and already the right width.
