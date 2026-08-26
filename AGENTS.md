@@ -876,7 +876,40 @@ Control Center's card carries the artwork, both text lines and a progress
 bar that advances between screenshots off a single publish; seven publishes
 across a whole play/skip/pause session, none from ticks. What the simulator
 cannot show is the island pill itself and remote button presses (its card
-renders non-interactive) — check both on hardware. Android's media
+renders non-interactive) — check both on hardware.
+
+**TWO THINGS THE FIRST CUT GOT WRONG, both found on Juan's device and both
+about the CONTRACT rather than the drawing** (2026-08-26):
+
+- **The button set is decided by what you DISABLE.** The library enables all
+  seven remote commands in its own `initializeWithOptions`, and iOS gives the
+  outer slots to skip-forward/back whenever those are enabled alongside
+  next/previous track — so the island shipped with a ±15s pair on a music
+  player whose own transport has prev/next. `REMOTE_CONTROLS` now states
+  `skipForward`/`skipBackward` as `false`; every `true` in that list is a
+  no-op restating a default, and the disables are the whole point. They are
+  also applied ONCE AT MOUNT, before any metadata: the command centre decides
+  which controls exist and the now-playing info fills them, and wiring it the
+  other way round left the first rendered session holding the defaults.
+- **`speed` must be 0 when paused, and it is the only pause signal that
+  reaches iOS.** It maps to `MPNowPlayingInfoPropertyPlaybackRate`, which is
+  what the system interpolates its own playhead from, so publishing the app's
+  rate setting (1 by default) while paused told it to keep counting — on
+  device the Lock Screen player ran to the end of the track and sat there
+  showing a playing glyph over silence. The `state` field cannot cover for
+  it: the library reads `_currentInfo[@"state"]` but only stores keys present
+  in its `NOW_PLAYING_INFO_KEYS` map, and `state` is not one, so its
+  `playbackState` write is dead code upstream.
+
+**NEITHER IS SIMULATOR-VERIFIABLE, AND THAT IS THE LESSON.** The sim draws no
+island, a blank Lock Screen player, and a Control Center card too blurred to
+read a glyph from — and it freezes the paused playhead correctly even when
+rate 1 is published, which is exactly why the first pass passed. What CAN be
+verified there is the contract: every `enableControl` resolving (all seven,
+including the two `false`) and the published payload itself
+(`speed=1 state=playing` → `speed=0 state=paused elapsed=32.1` → `speed=1
+state=playing elapsed=32.1` across a play/pause/resume). Verify the payload
+on the simulator; verify the PIXELS on hardware. Android's media
 notification uses the same manager but needs notification permissions and a
 verified device; wire it when the freeze lifts.
 
