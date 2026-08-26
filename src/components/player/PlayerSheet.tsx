@@ -9,14 +9,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { ProgressView } from '@expo/ui/swift-ui';
-import { progressViewStyle, tint } from '@expo/ui/swift-ui/modifiers';
 import { withAlpha } from '@portfolio/core';
 import {
   FLOATING_COPY_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
-  SwiftUIHost,
 } from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
 import { router } from 'expo-router';
@@ -126,23 +123,6 @@ const MINI_ART_SIZE = 46;
 // the sentence cannot go stale the way its hard-coded "44pt artwork in a 64pt
 // box" did when both grew.
 const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
-
-/** Taller than the ~4pt bar it holds: SwiftUI centres the bar in its box. */
-const BANNER_PROGRESS_BOX = 8;
-/** The bar's own drawn height inside the host — measured, not the box. */
-const BANNER_PROGRESS_BAR = 4;
-/**
- * The bar CENTRES IN THE BAND BELOW THE ARTWORK rather than hugging the card's
- * edge: that band is `BANNER_INSET` tall, since the art's bottom edge is one
- * inset up from the card's, so this splits the difference.
- *
- * IT IS OFFSET BY THE BAR, NOT THE BOX. SwiftUI draws the bar at the BOTTOM of
- * whatever box it is given rather than centred in it — measured on device: with
- * the host bottom at 1.5 the bar landed 5.67 under the artwork and 1.67 above
- * the card's edge, not the 3.5 either side the box maths predicted. Position
- * the ink, not its container.
- */
-const BANNER_PROGRESS_BOTTOM = (BANNER_INSET - BANNER_PROGRESS_BAR) / 2;
 
 /**
  * THE LIFT — Android's alone. iOS's was measured out of existence.
@@ -325,58 +305,27 @@ const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 const NO_CLIPS: never[] = [];
 
 /**
- * THE BANNER'S PROGRESS ON iOS — Apple's own `ProgressView`, inset so it
- * floats in the card's bottom padding.
+ * ANDROID'S BANNER PROGRESS — a full-bleed rule on the card's bottom edge.
  *
- * IT USED TO BE AUTHORED RN, and the reason recorded here was that the native
- * control is the wrong shape: a linear `ProgressView` is an inset CAPSULE,
- * while the bar was a full-bleed 4pt rule pinned to the card's bottom edge and
- * cut by its corner. That was true, and it was the wrong conclusion — the
- * shape to change was OURS. Insetting the bar (Juan, 2026-08-25) makes the
- * capsule the right object, so the platform draws it instead of us imitating
- * it. Android keeps the full-bleed rule: it is a Material surface and that is
- * its own bottom rule.
+ * iOS HAS NONE, ON PURPOSE. It carried one until 2026-08-25, most recently as
+ * Apple's own inset `ProgressView`, and the component was never the problem:
+ * a `ProgressView` is a CONTROL, with a control's capsule and a control's
+ * margins, and the only space this banner has for it is the 11pt of card
+ * padding under the artwork. Nothing fits a control there. Making it fit means
+ * a taller banner, and `MINI_PLAYER_HEIGHT` is one box shared with the
+ * expanded console's glass footer and the clip-framing row — so the fix would
+ * have moved a bar on a different screen.
  *
- * IT SITS IN THE 11pt BAND BELOW THE ARTWORK. Everything inside this banner is
- * at one inset from its edges (`BANNER_INSET`, which is what centres the 46pt
- * artwork in the 68pt box), so the art's bottom edge is 11 from the card's and
- * the bar takes that band — `BANNER_PROGRESS_BOTTOM` up from the card's edge,
- * the same inset each side.
+ * Apple's mini player in Music shows no progress at all: identity and
+ * transport, with the position living in the expanded player. That is what
+ * this is now, and the expanded player carries a real media scrubber
+ * (`MediaScrubberIos`). Podcasts is the other Apple answer — a full-bleed
+ * hairline on the bottom EDGE, a seam rather than a control — and it is the
+ * shape to reach for if iOS ever wants one back. Not the inset capsule.
  *
- * THE HOST STATES A BOX TALLER THAN THE BAR. SwiftUI centres the bar in
- * whatever it is given; `BANNER_PROGRESS_BOX` is 8 against a ~4pt bar.
- *
- * ───────────────────────────────────────────────────────────────────────────
- * IF THIS EVER LOOKS LIKE IT IS NOT RENDERING, CHECK WHAT IS ON SCREEN FIRST.
- * It cost most of an afternoon: `PlayerSheet` returns `IdleBanner` early while
- * `current` is null, and that idle banner is PRIMED WITH THE FIRST SOUND, so a
- * freshly launched app shows a banner with a name, an artist and a transport
- * that looks exactly like this one — but is a different subtree, without any
- * progress bar. Every "it draws nothing" reading was taken there, or on an
- * expanded player where `progressLineStyle` has faded the bar to zero. A
- * `flog` at the top of the sheet said `current NONE` and ended it in one run.
- * ───────────────────────────────────────────────────────────────────────────
+ * Android keeps its rule: it is a Material surface, and that is its own
+ * bottom rule rather than a control dropped into padding.
  */
-function BannerProgressIos({ color }: { color: string }) {
-  const position = usePlayerStore(s => s.position);
-  const duration = usePlayerStore(s => s.duration);
-  const ratio = duration > 0 ? Math.min(position / duration, 1) : 0;
-  return (
-    <View pointerEvents="none" style={styles.progressFloat}>
-      <SwiftUIHost
-        ignoreSafeArea="all"
-        pointerEvents="none"
-        style={styles.progressHost}
-      >
-        <ProgressView
-          value={ratio}
-          modifiers={[progressViewStyle('linear'), tint(color)]}
-        />
-      </SwiftUIHost>
-    </View>
-  );
-}
-
 function BannerProgressFill({ color }: { color: string }) {
   const position = usePlayerStore(s => s.position);
   const duration = usePlayerStore(s => s.duration);
@@ -1197,12 +1146,10 @@ export function PlayerSheet() {
           </Animated.View>
         ) : null}
 
-        {/* COLLAPSED PROGRESS — iOS floats Apple's own bar inside the card's
-            bottom padding; Android keeps its full-bleed rule. */}
-        <Animated.View style={[styles.progressClip, progressLineStyle]}>
-          {Platform.OS === 'ios' ? (
-            <BannerProgressIos color={colors.onSurface} />
-          ) : (
+        {/* COLLAPSED PROGRESS — ANDROID ONLY. See `BannerProgressFill` for
+            why iOS's mini player carries none. */}
+        {Platform.OS === 'ios' ? null : (
+          <Animated.View style={[styles.progressClip, progressLineStyle]}>
             <View
               style={[
                 styles.progressTrack,
@@ -1216,8 +1163,8 @@ export function PlayerSheet() {
             >
               <BannerProgressFill color={colors.primary} />
             </View>
-          )}
-        </Animated.View>
+          </Animated.View>
+        )}
 
         <GestureDetector gesture={dragUp}>
           <Animated.View
@@ -1656,15 +1603,6 @@ const styles = StyleSheet.create({
     right: 0,
   },
   progressFill: { height: '100%' },
-  progressFloat: {
-    bottom: BANNER_PROGRESS_BOTTOM,
-    height: BANNER_PROGRESS_BOX,
-    justifyContent: 'center',
-    left: BANNER_INSET,
-    position: 'absolute',
-    right: BANNER_INSET,
-  },
-  progressHost: { height: BANNER_PROGRESS_BOX, width: '100%' },
   miniRow: {
     alignItems: 'center',
     flexDirection: 'row',
