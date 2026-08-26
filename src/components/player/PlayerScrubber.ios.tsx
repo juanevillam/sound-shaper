@@ -111,13 +111,20 @@ export function PlayerScrubber({
   return (
     <View style={styles.block}>
       {/* APPLE'S MEDIA SCRUBBER, not a thumb slider — see
-          `MediaScrubberIos`. It also stands down while the trim frame is up,
-          so the frame's caps win every touch in this band. */}
+          `MediaScrubberIos`. It stays LIVE while the trim frame is up
+          (2026-08-25): finding a clip's end means listening around it, and a
+          dead playhead forced a full preview from the start every time —
+          "if a clip is 50 secs this may get annoying" (Juan, on device). It
+          used to stand down so the caps would win this band's touches; the
+          caps now win by GEOMETRY instead — each owns a transparent wrapper
+          the size its slop used to be, so hit-testing resolves the overlap
+          deterministically and the scrubber only ever sees touches aimed at
+          the bare track. Voice Memos' trim is the model: playhead free,
+          handles mark the selection. */}
       <View style={styles.host}>
         <MediaScrubberIos
           position={position}
           duration={duration}
-          disabled={framing}
           onDrag={onDrag}
           onDragEnd={onDragEnd}
         />

@@ -37,7 +37,6 @@ import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
-import { usePlayerStore } from '@/store/player';
 import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
@@ -593,17 +592,16 @@ export function PlayerConsole({
    * fade cannot move the play button beside them or anything below.
    */
   /**
-   * IS THE CLIP PREVIEW SOUNDING? Read at the leaf, and it changes only when a
-   * preview starts or stops — never on the position tick. While framing the
-   * transport is the CLIP's control, so this and not `playing` decides both
-   * the glyph and what a press does: pressing with nothing previewing always
-   * (re)starts the selection from its start, which is what a trimmer's play
-   * button means. Framing entry pauses the song (see the store's `pause`), so
-   * the two states cannot disagree in practice — this just makes it explicit.
+   * WHILE FRAMING, `playing` DECIDES BOTH THE GLYPH AND THE PRESS — not
+   * "is the preview sounding". It used to be the preview flag, and with the
+   * scrubber live during framing that flag can go stale honest sound is
+   * still running: a scrub mid-preview clears `activeClip` (a seek always
+   * does) without pausing, so the preview flag read false while audio
+   * played and the glyph showed a play triangle over sound. `playing` is
+   * true whenever anything is audible, whatever started it, so the glyph
+   * cannot lie. The press rule stays one sentence: sounding → pause it,
+   * silent → play from the playhead to the end cap (`onClipPreview`).
    */
-  const previewing = usePlayerStore(
-    s => s.playing && s.activeClip?.clipId === 'preview',
-  );
 
   const skipStyle = useAnimatedStyle(
     () => ({ opacity: withTiming(clipMode ? 0 : 1, { duration: 200 }) }),
@@ -779,19 +777,17 @@ export function PlayerConsole({
             </GlyphButton>
           </Animated.View>
           <GlyphButton
-            onPress={clipMode && !previewing ? onClipPreview : onToggle}
+            onPress={clipMode && !playing ? onClipPreview : onToggle}
             hitSlop={12}
             accessibilityLabel={t(
-              clipMode
-                ? previewing
-                  ? 'player.pause'
-                  : 'player.clips.preview'
-                : playing
-                  ? 'player.pause'
+              playing
+                ? 'player.pause'
+                : clipMode
+                  ? 'player.clips.preview'
                   : 'player.play',
             )}
           >
-            {(clipMode ? previewing : playing) ? (
+            {playing ? (
               <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             ) : (
               <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />

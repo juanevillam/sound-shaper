@@ -1091,8 +1091,27 @@ export function PlayerSheet() {
     setClipMode(true);
   };
 
+  /**
+   * PLAY WHILE FRAMING: FROM THE PLAYHEAD, STOPPING AT THE END CAP.
+   *
+   * It replayed the selection from its start on every press, and finding a
+   * clip's END meant sitting through the whole thing each time — "if a clip
+   * is 50 secs this may get annoying" (Juan, 2026-08-25, on device). With the
+   * scrubber live during framing, the playhead is the person's own cursor:
+   * scrub near the moment in question, press play, hear it land on the end
+   * cap. The boundary parks the playhead back where this press started
+   * (`playClip` stores its own start), so pressing play again repeats the
+   * exact passage — the listen-nudge-listen loop framing actually is.
+   *
+   * At or past the end cap there is nothing left to hear, so the press
+   * replays the whole clip — which is also what makes the parked-after-entry
+   * default do the right thing without a special case.
+   */
   const onPreviewClip = () => {
-    playClip('preview', clipRange.startS * 1000, clipRange.endS * 1000);
+    const { position } = usePlayerStore.getState();
+    const { startS, endS } = clipRange;
+    const fromS = position < endS - 0.5 ? Math.max(position, 0) : startS;
+    playClip('preview', fromS * 1000, endS * 1000);
   };
 
   const onSaveClip = () => {

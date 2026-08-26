@@ -40,8 +40,12 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 //
 // IT ALSO ENDS A LONG-RUNNING FIGHT WITH THE TRIM FRAME. A native slider
 // claims a touch the instant it lands, so the frame's caps kept losing drags
-// aimed at them; an authored control can simply be told to stand down while
-// framing (`disabled`).
+// aimed at them. This control first solved that by standing down while
+// framing (`disabled`); since 2026-08-25 it stays live instead — scrubbing
+// while framing is how a clip's end is found by ear — and the caps win their
+// touches by GEOMETRY (transparent touch wrappers, resolved by hit-testing)
+// rather than by this control's silence. `disabled` remains for any caller
+// that genuinely needs a dead scrubber.
 
 /** Apple's, measured. The bar grows about its centre, so the box is stable. */
 const TRACK_HEIGHT = 8;
