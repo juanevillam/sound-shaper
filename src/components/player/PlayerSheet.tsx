@@ -9,11 +9,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import { ProgressView } from '@expo/ui/swift-ui';
+import { progressViewStyle, tint } from '@expo/ui/swift-ui/modifiers';
 import { withAlpha } from '@portfolio/core';
 import {
   FLOATING_COPY_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
+  SwiftUIHost,
 } from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
 import { router } from 'expo-router';
@@ -167,6 +170,8 @@ const BANNER_CHROME_FADE = 0.35;
 const PROGRESS_HEIGHT = 4;
 // The unplayed remainder, as a tint of the content colour.
 const PROGRESS_TRACK_ALPHA = 0.2;
+const BANNER_PROGRESS_BOTTOM = 3;
+const BANNER_PROGRESS_BOX = 8;
 // How far into the expansion the progress bar is gone. Deliberately tiny: its
 // mask is the collapsed banner's shape, so it may only be seen while the
 // banner still HAS that shape.
@@ -304,31 +309,58 @@ const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 const NO_CLIPS: never[] = [];
 
 /**
- * The banner's played portion — the ONLY thing in the collapsed state that
- * changes with the playhead, so it is the only thing that subscribes to it.
+ * THE BANNER'S PROGRESS ON iOS — Apple's own `ProgressView`, inset so it
+ * floats in the card's bottom padding.
  *
- * AUTHORED RN, AND THE NATIVE COMPONENT IT REJECTS IS SwiftUI's
- * `ProgressView` — `@expo/ui` exposes it, determinate, with
- * `progressViewStyle('linear')` and a `tint`, so the parts-catalogue answer
- * is a real one and was tried on device (2026-08-25).
+ * IT USED TO BE AUTHORED RN, and the reason recorded here was that the native
+ * control is the wrong shape: a linear `ProgressView` is an inset CAPSULE,
+ * while the bar was a full-bleed 4pt rule pinned to the card's bottom edge and
+ * cut by its corner. That was true, and it was the wrong conclusion — the
+ * shape to change was OURS. Insetting the bar (Juan, 2026-08-25) makes the
+ * capsule the right object, so the platform draws it instead of us imitating
+ * it. Android keeps the full-bleed rule: it is a Material surface and that is
+ * its own bottom rule.
  *
- * IT IS THE WRONG SHAPE, and that is the part no styling reaches. A linear
- * `ProgressView` is an INSET CAPSULE with rounded caps and its own intrinsic
- * height; this is a full-bleed 4pt RULE pinned to the card's bottom edge and
- * cut by its 22pt corner — the card's own bottom rule rather than a control
- * sitting inside it, which is what Podcasts' mini player draws too. Making
- * the capsule serve would mean clipping it into a shape it is not.
+ * IT SITS IN THE 11pt BAND BELOW THE ARTWORK. Everything inside this banner is
+ * at one inset from its edges (`BANNER_INSET`, which is what centres the 46pt
+ * artwork in the 68pt box), so the art's bottom edge is 11 from the card's and
+ * the bar takes that band — `BANNER_PROGRESS_BOTTOM` up from the card's edge,
+ * the same inset each side.
  *
- * It also did not render at all inside this container — a `SwiftUIHost` in
- * the clipped, transformed `progressClip` view drew nothing at 4pt or at 14.
- * That alone might have been solvable; the shape is not, so it was not chased
- * further.
+ * THE HOST STATES A BOX TALLER THAN THE BAR. SwiftUI centres the bar in
+ * whatever it is given; `BANNER_PROGRESS_BOX` is 8 against a ~4pt bar.
  *
- * A leaf for the same reason `PlayerScrubberLive` is one: the transport ticks
- * ten times a second, and reading `position` on the sheet made all of
- * `PlayerSheet` re-render at that rate to move a 3pt line. This has no
- * children, so the tick stops here.
+ * ───────────────────────────────────────────────────────────────────────────
+ * IF THIS EVER LOOKS LIKE IT IS NOT RENDERING, CHECK WHAT IS ON SCREEN FIRST.
+ * It cost most of an afternoon: `PlayerSheet` returns `IdleBanner` early while
+ * `current` is null, and that idle banner is PRIMED WITH THE FIRST SOUND, so a
+ * freshly launched app shows a banner with a name, an artist and a transport
+ * that looks exactly like this one — but is a different subtree, without any
+ * progress bar. Every "it draws nothing" reading was taken there, or on an
+ * expanded player where `progressLineStyle` has faded the bar to zero. A
+ * `flog` at the top of the sheet said `current NONE` and ended it in one run.
+ * ───────────────────────────────────────────────────────────────────────────
  */
+function BannerProgressIos({ color }: { color: string }) {
+  const position = usePlayerStore(s => s.position);
+  const duration = usePlayerStore(s => s.duration);
+  const ratio = duration > 0 ? Math.min(position / duration, 1) : 0;
+  return (
+    <View pointerEvents="none" style={styles.progressFloat}>
+      <SwiftUIHost
+        ignoreSafeArea="all"
+        pointerEvents="none"
+        style={styles.progressHost}
+      >
+        <ProgressView
+          value={ratio}
+          modifiers={[progressViewStyle('linear'), tint(color)]}
+        />
+      </SwiftUIHost>
+    </View>
+  );
+}
+
 function BannerProgressFill({ color }: { color: string }) {
   const position = usePlayerStore(s => s.position);
   const duration = usePlayerStore(s => s.duration);
@@ -1149,40 +1181,26 @@ export function PlayerSheet() {
           </Animated.View>
         ) : null}
 
-        {/* Collapsed progress, attached to the banner's bottom edge and cut by
-            its corner — the card's own bottom rule, not a line floating inside
-            it. */}
+        {/* COLLAPSED PROGRESS — iOS floats Apple's own bar inside the card's
+            bottom padding; Android keeps its full-bleed rule. */}
         <Animated.View style={[styles.progressClip, progressLineStyle]}>
-          <View
-            style={[
-              styles.progressTrack,
-              // NOT surfaceVariant: on the Material You dark palette it
-              // resolves to the banner's own fill, so the unplayed part simply
-              // vanished and progress read as a stray blue dash. A tint of the
-              // content colour is visible on any palette, on both platforms.
-              {
-                backgroundColor: withAlpha(
-                  colors.onSurface,
-                  PROGRESS_TRACK_ALPHA,
-                ),
-              },
-            ]}
-          >
-            {/* MONOCHROME ON iOS, ACCENTED ON ANDROID — and the split is the
-                portfolio's platform rule, not a hedge. Material's progress
-                indicator IS accent-coloured; that is what a Material surface
-                should draw, and Android's banner is a Material surface.
-                iOS's is not: the console this banner expands into carries no
-                accent anywhere, and the fill was the last thing in the player
-                family still tinted, which made a two-frame transition run
-                blue-then-monochrome. The track was already a tint of
-                `onSurface`; now the fill is the full-strength version of the
-                same ink, which is exactly the relationship the expanded
-                scrubber has. */}
-            <BannerProgressFill
-              color={BANNER_GLASS ? colors.onSurface : colors.primary}
-            />
-          </View>
+          {Platform.OS === 'ios' ? (
+            <BannerProgressIos color={colors.onSurface} />
+          ) : (
+            <View
+              style={[
+                styles.progressTrack,
+                {
+                  backgroundColor: withAlpha(
+                    colors.onSurface,
+                    PROGRESS_TRACK_ALPHA,
+                  ),
+                },
+              ]}
+            >
+              <BannerProgressFill color={colors.primary} />
+            </View>
+          )}
         </Animated.View>
 
         <GestureDetector gesture={dragUp}>
@@ -1622,6 +1640,15 @@ const styles = StyleSheet.create({
     right: 0,
   },
   progressFill: { height: '100%' },
+  progressFloat: {
+    bottom: BANNER_PROGRESS_BOTTOM,
+    height: BANNER_PROGRESS_BOX,
+    justifyContent: 'center',
+    left: BANNER_INSET,
+    position: 'absolute',
+    right: BANNER_INSET,
+  },
+  progressHost: { height: BANNER_PROGRESS_BOX, width: '100%' },
   miniRow: {
     alignItems: 'center',
     flexDirection: 'row',
