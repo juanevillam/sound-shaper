@@ -7,10 +7,13 @@ import { withAlpha } from '@portfolio/core';
 import { SHEET_CONTENT_TOP, SwiftUIHost } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
+  Easing,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
@@ -24,6 +27,7 @@ import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
+import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
 
 // ---------------------------------------------------------------------------
 // THE CLIP EDITOR — Voice Memos' trim surface, producing a CLIP.
@@ -142,7 +146,13 @@ export function ClipTrimEditorIos({
 
   const waveform = useWaveform(current?.id, current?.audioUrl);
 
-  const centerX = winW / 2;
+  /**
+   * THE WAVE CARD IS INSET AND ROUNDED (Juan, 2026-08-26) — Voice Memos runs
+   * its container full-bleed; he prefers the house card: 16pt gutters and the
+   * grouped-card corner. Every x below is CARD-local.
+   */
+  const cardWidth = winW - 32;
+  const centerX = cardWidth / 2;
 
   // --- The playhead -------------------------------------------------------
   // One shared value, written by the position tick while sounding and by the
@@ -154,10 +164,28 @@ export function ClipTrimEditorIos({
     panningRef.current = value;
   };
 
+  /**
+   * SMOOTH BETWEEN TICKS. The engine reports position roughly every 250ms,
+   * and writing the value straight in stepped the strip ~25pt per tick —
+   * "a trancones" (Juan, on device). A linear tween spanning one tick
+   * interval turns the steps into continuous tape motion; a JUMP (a seek, a
+   * boundary park — anything over 1.5s) still lands directly, because
+   * tweening across a discontinuity would animate travel that never
+   * happened.
+   */
   useEffect(
     () =>
       usePlayerStore.subscribe(state => {
-        if (!panningRef.current) playheadSv.value = state.position;
+        if (panningRef.current) return;
+        const delta = Math.abs(state.position - playheadSv.value);
+        if (state.playing && delta < 1.5) {
+          playheadSv.value = withTiming(state.position, {
+            duration: 260,
+            easing: Easing.linear,
+          });
+        } else {
+          playheadSv.value = state.position;
+        }
       }),
     [playheadSv],
   );
@@ -272,6 +300,9 @@ export function ClipTrimEditorIos({
   const scrubPan = Gesture.Pan()
     .minDistance(2)
     .onBegin(() => {
+      // The finger owns the value now — an in-flight tick tween would keep
+      // writing under it.
+      cancelAnimation(playheadSv);
       runOnJS(setPanning)(true);
       runOnJS(pause)();
     })
@@ -386,111 +417,100 @@ export function ClipTrimEditorIos({
     <View style={styles.screen}>
       {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
       <GestureDetector gesture={scrubPan}>
-        {/* The wave BAND has its own ground — Voice Memos gives the zoomed
-            container a panel distinct from the page, which is what lets the
-            unselected region read as "the track" rather than as bare screen.
-            `surfaceContainer` is the house's one art-less-box material. The
-            ruler strip below stays on the page colour, as Voice Memos' does. */}
-        <View style={styles.zoomRegion}>
-          <Animated.View
-            style={[styles.strip, { width: windowWidth }, stripStyle]}
-          >
-            {/* The panel rides INSIDE the strip, so it spans exactly the
-                track's extent — before 0:00 and past the end the page colour
-                shows, which is what Voice Memos draws there. */}
-            <View
-              pointerEvents="none"
-              style={[
-                styles.waveBand,
-                { backgroundColor: colors.surfaceContainer },
-              ]}
-            />
-            <Svg width={windowWidth} height={WAVE_HEIGHT + RULER_HEIGHT}>
-              <Path d={wavePath} fill={colors.onSurface} />
-              {/* APPLE'S ORDER: the tick marks hang directly off the wave's
+        {/* The WRAPPER is unclipped — it exists so the playhead's dots can
+            protrude past the card's edge the way Voice Memos' do; inside it
+            the CARD clips its content to the rounded corner. The band's
+            ground is `surfaceContainer`, the house's one art-less-box
+            material, and inside a rounded card it runs behind the ruler too —
+            one card, one interior. */}
+        <View style={[styles.zoomWrap, { width: cardWidth }]}>
+          <View style={styles.zoomCard}>
+            <Animated.View
+              style={[styles.strip, { width: windowWidth }, stripStyle]}
+            >
+              {/* The panel rides INSIDE the strip, so it spans exactly the
+                  track's extent — before 0:00 and past the end the page
+                  colour shows, which is what Voice Memos draws there. */}
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.waveBand,
+                  { backgroundColor: colors.surfaceContainer },
+                ]}
+              />
+              <Svg width={windowWidth} height={WAVE_HEIGHT + RULER_HEIGHT}>
+                <Path d={wavePath} fill={colors.onSurface} />
+                {/* APPLE'S ORDER: the tick marks hang directly off the wave's
                   bottom edge and the time labels sit BELOW them — Voice Memos
                   draws it that way (Juan's screenshots), and the first cut
                   had it inverted. */}
-              <Path
-                d={rulerTicks
-                  .map(
-                    tick =>
-                      `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
-                  )
-                  .join('')}
-                stroke={colors.onSurfaceMuted}
-                strokeWidth={1}
-              />
-              {rulerTicks.map(tick =>
-                tick.major ? (
-                  <SvgText
-                    key={`l${tick.x}`}
-                    x={tick.x}
-                    y={WAVE_HEIGHT + 23}
-                    fontSize={11}
-                    textAnchor="middle"
-                    fill={colors.onSurfaceMuted}
-                  >
-                    {tick.label}
-                  </SvgText>
-                ) : null,
-              )}
-            </Svg>
+                <Path
+                  d={rulerTicks
+                    .map(
+                      tick =>
+                        `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
+                    )
+                    .join('')}
+                  stroke={colors.onSurfaceMuted}
+                  strokeWidth={1}
+                />
+                {rulerTicks.map(tick =>
+                  tick.major ? (
+                    <SvgText
+                      key={`l${tick.x}`}
+                      x={tick.x}
+                      y={WAVE_HEIGHT + 23}
+                      fontSize={11}
+                      textAnchor="middle"
+                      fill={colors.onSurfaceMuted}
+                    >
+                      {tick.label}
+                    </SvgText>
+                  ) : null,
+                )}
+              </Svg>
 
-            {/* Selection wash + edges ride the strip. */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.wash,
-                {
-                  backgroundColor: withAlpha(colors.primary, RANGE_FILL_ALPHA),
-                },
-                washStyle,
-              ]}
-            />
-            <GestureDetector gesture={startEdgePan}>
-              <Animated.View style={[styles.edgeTouch, startEdgeStyle]}>
-                <View
-                  style={[styles.edgeLine, { backgroundColor: colors.primary }]}
-                />
-                <View
-                  style={[
-                    styles.edgeDot,
-                    styles.edgeDotTop,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.edgeDot,
-                    styles.edgeDotBottom,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-              </Animated.View>
-            </GestureDetector>
-            <GestureDetector gesture={endEdgePan}>
-              <Animated.View style={[styles.edgeTouch, endEdgeStyle]}>
-                <View
-                  style={[styles.edgeLine, { backgroundColor: colors.primary }]}
-                />
-                <View
-                  style={[
-                    styles.edgeDot,
-                    styles.edgeDotTop,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.edgeDot,
-                    styles.edgeDotBottom,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-              </Animated.View>
-            </GestureDetector>
-          </Animated.View>
+              {/* Selection wash + edges ride the strip. */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.wash,
+                  {
+                    backgroundColor: withAlpha(
+                      colors.primary,
+                      RANGE_FILL_ALPHA,
+                    ),
+                  },
+                  washStyle,
+                ]}
+              />
+              {/* The edges are plain full-height lines — their Voice Memos
+                dots went with the rounded card (they would clip against it),
+                and the loss is a gain: only the PLAYHEAD is a lollipop now,
+                so the two can never be read as one another even in a
+                one-accent palette. */}
+              <GestureDetector gesture={startEdgePan}>
+                <Animated.View style={[styles.edgeTouch, startEdgeStyle]}>
+                  <View
+                    style={[
+                      styles.edgeLine,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
+                </Animated.View>
+              </GestureDetector>
+              <GestureDetector gesture={endEdgePan}>
+                <Animated.View style={[styles.edgeTouch, endEdgeStyle]}>
+                  <View
+                    style={[
+                      styles.edgeLine,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
+                </Animated.View>
+              </GestureDetector>
+            </Animated.View>
+          </View>
 
           {/* THE PLAYHEAD IS ITS OWN COLOUR, DISTINCT FROM THE SELECTION'S
               EDGES TOO (Juan, 2026-08-26) — Voice Memos can split cursor
@@ -644,20 +664,30 @@ const styles = StyleSheet.create({
    * sheet's first content stands below its own top edge (the 84 rule), and
    * the zoomed view is this sheet's first content.
    */
-  zoomRegion: {
+  zoomWrap: {
+    alignSelf: 'center',
     height: WAVE_HEIGHT + RULER_HEIGHT,
     marginTop: SHEET_CONTENT_TOP,
-    overflow: 'hidden',
-    width: '100%',
   },
-  /** The panel behind the WAVE only — the ruler stays on the page colour. */
+  zoomCard: {
+    borderRadius: CARD_RADIUS,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    ...CONTINUOUS_CURVE,
+  },
+  /** The card's interior ground, spanning exactly the track's extent. */
   waveBand: {
-    height: WAVE_HEIGHT,
+    bottom: 0,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
+
   strip: {
     bottom: 0,
     left: 0,
@@ -685,8 +715,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 9,
   },
-  edgeDotTop: { top: -4.5 },
-  edgeDotBottom: { bottom: -4.5 },
   playheadWrap: {
     alignItems: 'center',
     bottom: RULER_HEIGHT,
