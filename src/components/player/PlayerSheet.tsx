@@ -254,8 +254,37 @@ const BANNER_GLASS_FLOOR = GLASS_FLOOR;
  */
 const ANDROID_ONLY_HAIRLINE = Platform.OS === 'ios' ? 0 : HAIRLINE;
 
-// The wash starts appearing only this far into the expansion.
-const BACKDROP_FADE_START = 0.8;
+/**
+ * WHERE THE CONSOLE FADES IN, as a window of the expansion — and the window is
+ * EARLY on purpose (Juan, 2026-08-25). It was [0.45 → 1.0], which left roughly
+ * the first half of every open showing nothing but the cover travelling over a
+ * growing surface; the content then materialised into a screen that was
+ * already mostly there. Correct, but flat — the animation's whole middle
+ * carried one element.
+ *
+ * The console does not need to wait, because it MOVES with the container: its
+ * title, transport and footer are laid out at their final places inside the
+ * full-height sheet, so mid-expansion they sit low and ride up with the rise.
+ * Fading them in early therefore does not pop a finished screen over the
+ * banner — it puts the content IN the motion, arriving from below as the
+ * surface grows, with the lower elements entering later than the title by
+ * construction. That distribution is the richness; no per-element
+ * choreography is needed.
+ *
+ * Fully in by 0.65 rather than 1.0 for the same reason in reverse: a spring's
+ * last stretch is its settle, and an opacity still crawling through the
+ * settle reads as the screen never quite finishing.
+ */
+const CONSOLE_FADE_START = 0.18;
+const CONSOLE_FADE_END = 0.65;
+
+// The wash starts appearing only this far into the expansion. It was 0.8 —
+// "held back until the sheet is nearly open", because mid-drag the surface
+// still read as the banner growing and a visible wash looked like a stray
+// layer. With the console now riding in from CONSOLE_FADE_START, the surface
+// reads as the player well before that point, so the atmosphere follows the
+// content instead of popping in at the settle.
+const BACKDROP_FADE_START = 0.6;
 
 /**
  * OPENING AND CLOSING ARE SPRINGS, not eased timings.
@@ -917,7 +946,12 @@ export function PlayerSheet() {
   }));
 
   const expandedStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.max(0, (progress.value - 0.45) * 1.8)),
+    opacity: interpolate(
+      progress.value,
+      [CONSOLE_FADE_START, CONSOLE_FADE_END],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
   }));
 
   // Held back until the sheet is nearly open. Mid-drag the surface is still
