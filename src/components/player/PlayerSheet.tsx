@@ -1098,19 +1098,25 @@ export function PlayerSheet() {
    * clip's END meant sitting through the whole thing each time — "if a clip
    * is 50 secs this may get annoying" (Juan, 2026-08-25, on device). With the
    * scrubber live during framing, the playhead is the person's own cursor:
-   * scrub near the moment in question, press play, hear it land on the end
-   * cap. The boundary parks the playhead back where this press started
+   * scrub INTO the selection near the moment in question, press play, hear
+   * it land on the end cap. The boundary parks the playhead back where this press started
    * (`playClip` stores its own start), so pressing play again repeats the
    * exact passage — the listen-nudge-listen loop framing actually is.
    *
-   * At or past the end cap there is nothing left to hear, so the press
-   * replays the whole clip — which is also what makes the parked-after-entry
-   * default do the right thing without a special case.
+   * OUTSIDE THE SELECTION — before the start cap as well as past the end —
+   * the press previews the WHOLE clip, jumping the playhead to the start
+   * cap. The first cut of this rule played from any playhead short of the
+   * end, and it made a clip framed ahead of the playhead unreachable: park
+   * at 0:30, frame 2:00–2:30, and play served two minutes of lead-in
+   * instead of the clip (Juan, 2026-08-25, on device). Photos is the model
+   * here: play plays the selection. Only a playhead the person has placed
+   * INSIDE the clip changes where it starts.
    */
   const onPreviewClip = () => {
     const { position } = usePlayerStore.getState();
     const { startS, endS } = clipRange;
-    const fromS = position < endS - 0.5 ? Math.max(position, 0) : startS;
+    const fromS =
+      position >= startS && position < endS - 0.5 ? position : startS;
     playClip('preview', fromS * 1000, endS * 1000);
   };
 
