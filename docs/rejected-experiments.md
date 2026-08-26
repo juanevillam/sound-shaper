@@ -377,6 +377,12 @@ in full force exactly as written.
 
 ## A ZOOMED window in the clip trim strip — REJECTED 2026-08-23, same day it shipped
 
+**2026-08-26 postscript.** The clip editor's zoomed view does not reopen
+this: its scale is FIXED (100pt/s, always) and the waveform PANS under a
+fixed playhead, so the coordinate system never moves while a finger is down —
+which was the whole objection. What stays rejected is a window that
+recomputes or recentres itself during a drag.
+
 The strip first framed `selection ± max(5s, 0.75 × clip)` instead of the whole
 track — edge-pan when a cap reached the strip's margin, a 4pt full-track
 overview bar, the window recomputing and recentring on every release. It solved
@@ -397,6 +403,16 @@ accepted knowingly, by the person who uses it — do not rebuild the zoom to win
 it back.
 
 ## The WAVEFORM STRIP itself — REJECTED 2026-08-23, hours after going static
+
+**2026-08-26 postscript — the waveform is BACK, in a different place, at
+Juan's direction.** He asked for Voice Memos' trim anatomy by name ("for
+audio trimming this is the proper ux"), and the piece of this rejection that
+holds is the piece about WHERE: the strip died for standing beside the
+player's own scrubber — "two diff progress sliders… out of place" — and the
+new surface is a DEDICATED editor sheet (`clip-trim`) with no other progress
+surface on it. The player console itself stays waveform-free, and this
+rejection still bars putting one there. The decode pipeline was restored
+from git exactly as this entry predicted it might be.
 
 With the zoom gone the strip was a static whole-track waveform — real RMS bars
 decoded from the mp3 (downloaded to cache, `decodeAudioData` at 8 kHz, bucketed

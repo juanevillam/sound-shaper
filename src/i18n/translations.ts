@@ -124,6 +124,8 @@ export const translations = {
         selection: 'Clip',
         startHandle: 'Clip start',
         endHandle: 'Clip end',
+        skipBack: 'Skip back 15 seconds',
+        skipForward: 'Skip forward 15 seconds',
       },
     },
     soundEdit: {
@@ -391,6 +393,8 @@ export const translations = {
         selection: 'Clip',
         startHandle: 'Inicio del clip',
         endHandle: 'Fin del clip',
+        skipBack: 'Retroceder 15 segundos',
+        skipForward: 'Avanzar 15 segundos',
       },
     },
     soundEdit: {
@@ -655,6 +659,8 @@ export const translations = {
         selection: '片段',
         startHandle: '片段起点',
         endHandle: '片段终点',
+        skipBack: '后退15秒',
+        skipForward: '前进15秒',
       },
     },
     soundEdit: {

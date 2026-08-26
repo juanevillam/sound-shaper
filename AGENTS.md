@@ -190,158 +190,68 @@ in the file's header; the ones worth knowing before touching it:
   It was 24, sized while that gap was still standing in for the removed bar
   row; nothing shares the band now, so the only job left is keeping the cover
   off the Dynamic Island's own shadow (Juan, 2026-08-25).
-- **FRAMING IS A TRIM FRAME ON THE REAL SLIDER** (2026-08-23,
-  `ClipTrimFrameIos`), and it took four generations in three days to land —
-  read this before proposing any of the other three again. Gen 1 was two
-  grip-barred pills that read as switches. Gen 2 was a proper frame on the
-  slider, faulted in review for SCALE (a fifteen-second clip is ~30pt of a
-  three-minute track). Gen 3 built the zoomed waveform strip that note asked
-  for — RMS bars, a window of `selection ± max(5s, 0.75 × clip)`, edge-pan,
-  an overview bar — and Juan rejected the zoom the same day ("the more i
-  drag it the more it expands"); made STATIC, the waveform still died, as
-  "two diff progress sliders… out of place" on one screen. Both are in
-  docs/rejected-experiments.md. The standing conclusion: **the player has
-  ONE progress surface and framing is a MODE of it** — the slider stays
-  visible and interactive, its thumb stays the playhead, and the fine-trim
-  cost of whole-track scale is accepted knowingly, by the person who uses
-  it.
+- **A CLIP IS MADE IN THE DEDICATED EDITOR, NOT ON THE SCRUBBER**
+  (2026-08-26, Juan's direction, from Voice Memos screenshots: "for audio
+  trimming this is the proper ux"). The Clips sheet's + pushes `clip-trim` —
+  a full-height sheet stacking over the list the way trophies stacks over
+  account — and the in-player framing mode is GONE from iOS: no trim frame on
+  the scrubber, no range readout in its label row, no Cancel/Save bar swap,
+  no framing transport rules. Android's in-place framing is untouched.
 
-  **FINE SCRUBBING IS HOW THAT COST WAS FINALLY PAID DOWN** (2026-08-25),
-  and it is Apple's own slider idiom rather than a fifth generation of the
-  surface: slide the finger AWAY from the frame vertically while dragging
-  and the same horizontal travel moves the edge at 50% / 25% / 10% speed
-  (bands at 50/100/150pt — the system scrubbers' ladder), full speed
-  returning with the finger. The coordinate system never moves — the gain
-  is felt, not watched — which is precisely what separates it from the
-  rejected zoom. All three drags take it (both caps and the clip-slide
-  middle). Verified with injected touch paths: +100pt moved the end cap
-  46s flat and 13s with the finger 150pt below (the injected path landed
-  exactly on the band boundary; a real finger crosses into 10%). The drags
-  also activate on ANY movement now (`minDistance(2)` instead of
-  `activeOffsetX([-8, 8])`, which swallowed 8pt ≈ 4s of every drag and
-  never activated on a finger that slid down first), cap hitSlop is ±15
-  horizontal (a 44pt-wide target; it was 34), and each of the three frame
-  elements is a VoiceOver ADJUSTABLE with increment/decrement stepping a
-  second — the trait a `UISlider` carries, and the first way the mode has
-  ever been operable without a drag.
+  **THE EDITOR IS VOICE MEMOS' TRIM ANATOMY, PRODUCING A CLIP**
+  (`ClipTrimEditorIos`): a ZOOMED waveform that pans under a fixed centred
+  playhead (100pt/s, measured off the screenshots), a ruler that pans with
+  it, the selection as an accent wash with two draggable edge lines, a
+  full-track OVERVIEW strip carrying the selection frame, a large
+  centisecond timecode (mm:ss,cc — the comma is what Voice Memos draws), and
+  a ±15s + play transport. The commit is the sheet bar's ✕/✓ commit-modal
+  pair, NOT Voice Memos' Trim/Delete pills — those exist there because
+  destructive trimming has two verbs; a clip has one.
 
-  **THE MODE CHANGE IS ONE 200ms TRANSITION, THREE PARTS**: the frame
-  fades in, the time row drops (as it already did), and the glass bar's
-  CONTENTS cross-fade (Cancel/Save in, Shape/Clips/Edit back on exit) —
-  the bar's box, corner and material never change, so the swap reads as
-  the standing bar changing what it says. All fades skip under Reduce
-  Motion, and all are opacity-only, so the band-scan invariant (entering
-  framing moves nothing) holds by construction.
+  **WHY THE WAVEFORM IS ALLOWED BACK, in one sentence:** the 2026-08-23
+  rejection was about the PLAYER CONSOLE — a second track-shaped surface
+  beside the live scrubber — and a dedicated editor has no competing
+  progress surface. The ZOOM rejection does not transfer either: that zoom
+  recomputed its window under the drag; the editor's scale is FIXED and the
+  waveform pans. Both readings are recorded as postscripts in
+  docs/rejected-experiments.md.
 
-  **THE SCRUBBER STAYS LIVE WHILE FRAMING, AND PLAY RUNS FROM THE
-  PLAYHEAD TO THE END CAP** (Juan, 2026-08-25, on device: finding a
-  clip's end by replaying a 50s selection from its start every time "may
-  get annoying"). Voice Memos' trim is the model — playhead free,
-  handles mark the selection. Scrub anywhere, press play: it sounds from
-  the playhead and STOPS on the end cap (at or past the cap it replays
-  the whole clip), and the boundary parks the playhead back where that
-  press started, so play-again repeats the exact passage — the
-  listen-nudge-listen loop framing actually is. A seek mid-preview
-  clears the end-stop (a seek always clears `activeClip`), which is why
-  the transport's glyph and press now key off `playing`, never off "is
-  the preview sounding" — the flag went stale over live audio. The caps
-  keep winning their touches by GEOMETRY, not by the scrubber standing
-  down: each owns a transparent 44 × 72 touch wrapper (its old gesture
-  slop, as a view), so hit-testing resolves every touch deterministically
-  and the scrubber only ever sees the bare track. Verified on simulator:
-  track scrub moves only the playhead, cap drag moves only its edge, and
-  the boundary stop lands with the glyph truthful both ways.
+  **WHAT CARRIED OVER, because it was already right:** `ClipTrimFrameIos` —
+  the Photos-measured caps and rails, the fine-scrub gain, the explicit
+  gesture arbitration, the VoiceOver adjustables — IS the overview strip's
+  frame, reused with its props unchanged. The selection is ONE pair of
+  shared values drawn by three surfaces (frame, wash, edge lines), committed
+  through one `onChange`. Play follows the player's own rule: from the
+  playhead when it sits inside the selection, else the whole clip, stopping
+  on the end cap and parking back where the press started. Entry pauses and
+  defaults the selection to playhead−7 … +8, exactly as framing did.
 
-  What survived every generation is the FRAME'S TREATMENT, measured from
-  Photos' video trimmer (iPhone 17 / iOS 26.5: outer 51pt, rails 5, caps
-  ~14.7 wide, ~7pt outer corners, chevron ink 6 × 24 at a 3pt stroke):
-  full-height caps carrying `chevron.compact.left/right` — the affordance
-  gens 1–2 lacked — joined by 4pt rails, with gen 2's faint `primary` wash
-  (0.16) inside as the middle drag zone's body. The box is **44pt** centred
-  on the 32pt slider host (`IOS_SLIDER_HOST_HEIGHT`, in `chrome.ts`): it
-  shipped at 36, the caps were fiddly to catch, and 44 is Apple's minimum
-  touch target — height is the only axis a 14pt cap can grow in without the
-  frame mis-stating the range it covers. NO scrim outside the selection — the
-  2026-08-21 rejection is back in full force now the surface under the
-  frame is a bare slider track again. NO haptics in the drag — the
-  per-second buzz was rejected with the zoom ("makes the clipping
-  un-usable"); Save keeps its one `haptics.selection()` at the save site.
+  **THE WAVEFORM PIPELINE IS RESTORED FROM f5b4117** (`lib/waveform.ts`,
+  `hooks/useWaveform.ts`) at 50ms buckets (was 250 — the zoomed view draws
+  ~5pt per bucket at its scale; cache key bumped to v2, count capped at
+  12000). Decode is still by local file path at 8 kHz, cached as JSON,
+  placeholder bars until it lands so geometry never waits on the network.
 
-  **ENTERING FRAMING MOVES NOTHING**, as every generation: the frame is an
-  ABSOLUTE overlay on the slider block, and the range readout is absolutely
-  centred inside the elapsed/total row. Verified by band-scanning bursts
-  across the mode change at every generation, most recently: transport ink
-  654.33 and footer top 772.00, identical resting and framing, in both
-  appearances.
+  **THE STRIP RENDERS IN CHUNKS** — three 12s windows, re-centred when the
+  playhead crosses a boundary (the neighbour-pager idiom) — because a
+  3-minute track at 100pt/s is an 18,000pt SVG nobody should rasterise
+  whole. The pan itself is a pure transform; the wash and edge lines live in
+  STRIP coordinates so they pan for free.
 
-  **The one thing that DOES move is the time row, on purpose, by
-  TRANSFORM.** The frame's box bottom lands on the labels' ink, so a cap
-  parked near a track end stood on the time under it. The row translates
-  down `CLIP_LABELS_DROP` (12, for the 44pt frame — it was 8 at 36) while
-  framing, animated 200ms — a designed making-room transition, not reflow: a
-  transform costs no layout, so the transport and footer cannot move with
-  it, and the resting row keeps its exact position. Measured after the frame
-  grew: frame box 548.00–591.67, label ink top 601.67, a 10.00pt band.
+  **A NO-OP SEEK KILLS PLAYBACK, and the editor is what finally exposed it**
+  (fixed in the store's `playClip`): `seekToTime` to the position the engine
+  is already at leaves the decoder's `pendingOffloadedSeeks` standing, the
+  render path stays silent, and the following `play()` starts nothing —
+  every press whose start WAS the playhead did exactly nothing, which is
+  also the shape of the old on-device "press play and the clip doesn't
+  react" reports. `playClip` now seeks only when the target differs from the
+  playhead by more than 50ms.
 
-  **THE RANGE READOUT IS LIVE, AND IT IS A LEAF** (`ClipRangeLabelIos`). It
-  was rendered from committed `clipRange` state, so it held its old value
-  for the whole drag and jumped on release — you cannot land a clip on
-  1:40–2:00 when the feedback arrives after you let go. The frame's edges
-  are shared values OWNED BY THE CONSOLE (two children draw from them), and
-  the readout reacts to those at the leaf, so the console never re-renders —
-  the same rule `PlayerScrubberLive` follows for the playhead, applied at
-  gesture rate. It reacts on the ROUNDED second, which is not a throttle but
-  what the label says: it re-renders only when the string would change, and
-  the number you watch land is the number that saves. Verified by recording
-  the screen through one continuous drag and reading the frames: 0:00–0:15 →
-  0:20–0:35 → 0:48–1:03 → 1:19–1:34 → 2:18–2:33, all before the commit.
-
-  **AND IT TAKES THE ELAPSED/TOTAL LABELS' STYLE OBJECT, FOR THE TABULAR
-  FIGURES.** SF's proportional digits differ in width, so a CENTRED readout
-  re-centres itself on every digit change — several times a second under a
-  drag. The elapsed label was fixed for this long ago; the range label,
-  written later, never picked the term up, which is the retrofit trap the
-  root `AGENTS.md` names. It is handed the style OBJECT rather than
-  re-declaring `fontVariant`, so the three readouts cannot drift. Measured
-  across a recorded drag: ink width spread **5.00pt before, 1.00pt after**.
-  What tabular figures do NOT fix is a change in digit COUNT — a sound over
-  ten minutes would widen once at the 9:59 → 10:00 boundary, exactly as the
-  elapsed label already does, and that is left alone.
-
-- **THE FRAMING BAR IS CANCEL AND SAVE, AND NOTHING ELSE** (2026-08-23), in
-  the same glass box (`MINI_PLAYER_HEIGHT`, `FLOATING_RADIUS`): Cancel as a
-  plain word leading, Save as the filled brand pill trailing.
-
-  **IT HELD A THIRD CONTROL FOR A DAY AND THAT WAS THE DEFECT.** A preview
-  play glyph sat dead centre here while the TRANSPORT's own play sat ~130pt
-  directly above it — the same triangle, on the same centre line, meaning two
-  different things. Juan read it as "seeing the player controls twice", which
-  is what it was. **PREVIEW IS NOW WHAT THE TRANSPORT'S PLAY DOES WHILE
-  FRAMING**, so the screen carries exactly one play control, and this bar is
-  left with the two actions that are genuinely its own. Apple ships the same
-  split: Photos and Voice Memos put a single play beside the trim surface and
-  leave the bar to Cancel and the commit.
-
-  Two things that fall out of it, neither of which needed new state. The two
-  SKIPS fade out for the mode — they would leave it anyway, since a sound
-  change drops the frame — and the row keeps its height, so the fade cannot
-  move the play button beside them. And the GLYPH already tracks `playing`,
-  which a preview sets too, so the rule is simply "sounding → pause it,
-  silent → play the clip"; that stays honest when framing is entered
-  mid-song, where a play glyph over audible sound would have been a lie.
-  Band-scanned across mode entry, 7 frames: play ink 654.00–689.67, bar top
-  772.00, identical resting and framing.
-
-  A GIGA GLASS BAR swallowing the transport was the other proposal and was
-  rejected: it moves the transport on mode entry (the invariant), makes a
-  ~180pt panel out of a toolbar the floating-surface family sizes as a bar,
-  and does not remove the duplicate play by itself. What it replaced mixed four treatments in
-  one row — grey ✕, muted "New Clip" caption, tinted word, filled pill — and
-  the muted caption read as disabled text. Photos titles its trim mode
-  nowhere: the frame on the slider explains the mode, so the caption went with
-  the ✕. The glyph answers the preview's own state read at the leaf
-  (`playing && activeClip 'preview'`), so it pauses a running preview; the
-  `player.clips.new` key survives — Android's row and the Clips sheet read it.
+  **The four in-player framing generations and their verdicts** (grip pills,
+  frame-on-slider, zoomed strip, frame + live scrubber + fine scrub) remain
+  in git history and docs/rejected-experiments.md; the fine-scrub and
+  arbitration write-ups above survive inside `ClipTrimFrameIos` itself,
+  which is where that behaviour now lives.
 
 Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst with no
 interaction: bar glyph ink 79.00, artwork 119.00 (inset 62 + target 43 + gap

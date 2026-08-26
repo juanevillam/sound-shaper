@@ -31,11 +31,9 @@ import { usePlayerStore } from '@/store/player';
 
 const NO_CLIPS: never[] = [];
 
-// iOS-only route: the saved-clips manager as a content-hugging native form
-// sheet (Android presents the Compose `ClipsSheet` in place). "New clip"
-// dismisses the sheet and bumps the framing nonce — the PlayerSheet (still
-// mounted under this native presentation) picks it up and drops the trim
-// brackets on its scrubber.
+// iOS-only route: the saved-clips manager as a native form sheet (Android
+// presents the Compose `ClipsSheet` in place). "New clip" pushes the Voice
+// Memos-style editor sheet on top; it saves and pops back here.
 function ClipsSheetScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -44,7 +42,6 @@ function ClipsSheetScreen() {
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
-  const requestClipFraming = usePlayerStore(s => s.requestClipFraming);
 
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
@@ -59,10 +56,11 @@ function ClipsSheetScreen() {
       .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
   };
 
-  const onNewClip = () => {
-    router.back();
-    requestClipFraming();
-  };
+  // The editor stacks OVER this sheet (trophies-over-account), so saving or
+  // cancelling lands back on the list — with the new clip already in it.
+  // Framing-on-the-scrubber was the old iOS entry; the nonce path it used
+  // stays for Android's in-place sheet.
+  const onNewClip = () => router.push('/clip-trim');
 
   return (
     // `SheetScreen` for the toast — see `SnackbarOutlet`. Deleting a clip

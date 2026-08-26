@@ -119,6 +119,20 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
     titleKey: 'player.clips.title',
   },
   { name: 'trophy-detail', detents: 'fitToContents' },
+  /**
+   * FULL HEIGHT — the Voice Memos-style clip editor, pushed OVER `clips` the
+   * way trophies stacks over account. A zoomed waveform, an overview strip
+   * and a transport are a primary editing surface, not a quick form; and the
+   * fractional-detent dimming would grey the very waveform being aimed.
+   * The commit-modal bar (✕ / title / ✓) is stated by the screen through
+   * `sheetCommitBarOptionsIos`, so `titled` supplies only the fallback.
+   */
+  {
+    name: 'clip-trim',
+    detents: [1],
+    titled: true,
+    titleKey: 'player.clips.new',
+  },
 ];
 
 /**
