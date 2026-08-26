@@ -86,15 +86,21 @@ const RANGE_FILL_ALPHA = 0.16;
 
 const MIN_GAP_S = 1;
 /**
- * A cap is 14pt of ink, so the slop is what makes it a target: ±15 horizontal
- * brings the touch box to 44 wide — Apple's minimum, the same number that
- * sized the frame's height — and ±14 vertical rides the 44pt box to 72. It
- * was ±10, i.e. a 34pt-wide target on the one control this mode is about.
- * When the clip is short the two caps' slops overlap the middle zone; the
- * caps are rendered after the frame, so they win those touches, which is the
- * right priority — edges are what framing adjusts.
+ * A cap is 14pt of ink; its TARGET is a transparent wrapper VIEW around it —
+ * ±15 horizontal (44 wide, Apple's minimum, the same number that sized the
+ * frame's height) and ±14 vertical (72 tall). It was RNGH `hitSlop` on the
+ * gesture, and that stopped being enough the moment the scrubber underneath
+ * came back to life for framing: slop is a GESTURE-arena expansion, so a
+ * touch inside it still lands on the scrubber's view and the two pans race.
+ * A wrapper the caps' pans own is resolved by hit-testing instead — topmost
+ * view wins, deterministically, and the scrubber simply never sees a touch
+ * aimed at an edge. When the clip is short the wrappers overlap the middle
+ * zone; they are rendered after it, so the edges win, which is the right
+ * priority — edges are what framing adjusts.
  */
-const EDGE_SLOP = { bottom: 14, left: 15, right: 15, top: 14 };
+const CAP_TOUCH_PAD_X = 15;
+const CAP_TOUCH_PAD_Y = 14;
+const CAP_TOUCH_WIDTH = CAP_WIDTH + CAP_TOUCH_PAD_X * 2;
 
 /**
  * FINE SCRUBBING — Apple's own answer to precision on a control that must not
@@ -126,9 +132,10 @@ const scrubGain = (translationY: number): number => {
  * `activeOffsetX([-8, 8])`, which cost twice: 8pt of travel was swallowed
  * before the first change arrived (4 seconds at whole-track scale), and a
  * finger that slid DOWN first — the fine-scrub entry — never activated at
- * all, because vertical movement is not an X offset. Nothing else claims
- * touches in this band (the slider underneath is disabled while framing), so
- * there is no gesture to disambiguate against and no reason to wait.
+ * all, because vertical movement is not an X offset. The live scrubber
+ * underneath is no reason to wait either: the frame's views OWN their touch
+ * boxes (see the cap wrapper above), so by the time one of these pans sees a
+ * touch there is nothing left to disambiguate against.
  */
 const DRAG_MIN_DISTANCE = 2;
 
@@ -183,7 +190,6 @@ export function ClipTrimFrameIos({
 
   const dragStart = Gesture.Pan()
     .minDistance(DRAG_MIN_DISTANCE)
-    .hitSlop(EDGE_SLOP)
     .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const max = endSv.value - MIN_GAP_S;
@@ -204,7 +210,6 @@ export function ClipTrimFrameIos({
 
   const dragEnd = Gesture.Pan()
     .minDistance(DRAG_MIN_DISTANCE)
-    .hitSlop(EDGE_SLOP)
     .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const min = startSv.value + MIN_GAP_S;
@@ -294,11 +299,15 @@ export function ClipTrimFrameIos({
     left: startSv.value * pxPerS,
     width: Math.max((endSv.value - startSv.value) * pxPerS, 0),
   }));
+  // The WRAPPER is positioned, and the ink sits at a fixed inset inside it —
+  // so the touch box and the visible cap can never drift apart.
   const startCapStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: startSv.value * pxPerS - CAP_WIDTH }],
+    transform: [
+      { translateX: startSv.value * pxPerS - CAP_WIDTH - CAP_TOUCH_PAD_X },
+    ],
   }));
   const endCapStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: endSv.value * pxPerS }],
+    transform: [{ translateX: endSv.value * pxPerS - CAP_TOUCH_PAD_X }],
   }));
 
   return (
@@ -351,24 +360,27 @@ export function ClipTrimFrameIos({
               {...adjustable('start')}
               accessibilityLabel={t('player.clips.startHandle')}
               accessibilityValue={{ text: formatTime(startS) }}
-              style={[
-                styles.cap,
-                styles.capStart,
-                { backgroundColor: colors.primary },
-                startCapStyle,
-              ]}
+              style={[styles.capTouch, startCapStyle]}
             >
-              <SwiftUIHost
-                ignoreSafeArea="all"
-                pointerEvents="none"
-                style={styles.chevronHost}
+              <View
+                style={[
+                  styles.cap,
+                  styles.capStart,
+                  { backgroundColor: colors.primary },
+                ]}
               >
-                <Image
-                  systemName="chevron.compact.left"
-                  size={CHEVRON_SIZE}
-                  color={colors.onPrimary}
-                />
-              </SwiftUIHost>
+                <SwiftUIHost
+                  ignoreSafeArea="all"
+                  pointerEvents="none"
+                  style={styles.chevronHost}
+                >
+                  <Image
+                    systemName="chevron.compact.left"
+                    size={CHEVRON_SIZE}
+                    color={colors.onPrimary}
+                  />
+                </SwiftUIHost>
+              </View>
             </Animated.View>
           </GestureDetector>
           <GestureDetector gesture={dragEnd}>
@@ -376,24 +388,27 @@ export function ClipTrimFrameIos({
               {...adjustable('end')}
               accessibilityLabel={t('player.clips.endHandle')}
               accessibilityValue={{ text: formatTime(endS) }}
-              style={[
-                styles.cap,
-                styles.capEnd,
-                { backgroundColor: colors.primary },
-                endCapStyle,
-              ]}
+              style={[styles.capTouch, endCapStyle]}
             >
-              <SwiftUIHost
-                ignoreSafeArea="all"
-                pointerEvents="none"
-                style={styles.chevronHost}
+              <View
+                style={[
+                  styles.cap,
+                  styles.capEnd,
+                  { backgroundColor: colors.primary },
+                ]}
               >
-                <Image
-                  systemName="chevron.compact.right"
-                  size={CHEVRON_SIZE}
-                  color={colors.onPrimary}
-                />
-              </SwiftUIHost>
+                <SwiftUIHost
+                  ignoreSafeArea="all"
+                  pointerEvents="none"
+                  style={styles.chevronHost}
+                >
+                  <Image
+                    systemName="chevron.compact.right"
+                    size={CHEVRON_SIZE}
+                    color={colors.onPrimary}
+                  />
+                </SwiftUIHost>
+              </View>
             </Animated.View>
           </GestureDetector>
         </Animated.View>
@@ -412,13 +427,21 @@ const styles = StyleSheet.create({
     top: 0,
   },
   rangeFill: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-  cap: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
+  // The transparent touch box; the visible cap sits at a fixed inset inside.
+  capTouch: {
+    bottom: -CAP_TOUCH_PAD_Y,
     left: 0,
     position: 'absolute',
-    top: 0,
+    top: -CAP_TOUCH_PAD_Y,
+    width: CAP_TOUCH_WIDTH,
+  },
+  cap: {
+    alignItems: 'center',
+    bottom: CAP_TOUCH_PAD_Y,
+    justifyContent: 'center',
+    left: CAP_TOUCH_PAD_X,
+    position: 'absolute',
+    top: CAP_TOUCH_PAD_Y,
     width: CAP_WIDTH,
   },
   capStart: {

@@ -233,6 +233,25 @@ in the file's header; the ones worth knowing before touching it:
   Motion, and all are opacity-only, so the band-scan invariant (entering
   framing moves nothing) holds by construction.
 
+  **THE SCRUBBER STAYS LIVE WHILE FRAMING, AND PLAY RUNS FROM THE
+  PLAYHEAD TO THE END CAP** (Juan, 2026-08-25, on device: finding a
+  clip's end by replaying a 50s selection from its start every time "may
+  get annoying"). Voice Memos' trim is the model — playhead free,
+  handles mark the selection. Scrub anywhere, press play: it sounds from
+  the playhead and STOPS on the end cap (at or past the cap it replays
+  the whole clip), and the boundary parks the playhead back where that
+  press started, so play-again repeats the exact passage — the
+  listen-nudge-listen loop framing actually is. A seek mid-preview
+  clears the end-stop (a seek always clears `activeClip`), which is why
+  the transport's glyph and press now key off `playing`, never off "is
+  the preview sounding" — the flag went stale over live audio. The caps
+  keep winning their touches by GEOMETRY, not by the scrubber standing
+  down: each owns a transparent 44 × 72 touch wrapper (its old gesture
+  slop, as a view), so hit-testing resolves every touch deterministically
+  and the scrubber only ever sees the bare track. Verified on simulator:
+  track scrub moves only the playhead, cap drag moves only its edge, and
+  the boundary stop lands with the glyph truthful both ways.
+
   What survived every generation is the FRAME'S TREATMENT, measured from
   Photos' video trimmer (iPhone 17 / iOS 26.5: outer 51pt, rails 5, caps
   ~14.7 wide, ~7pt outer corners, chevron ink 6 × 24 at a 3pt stroke):
