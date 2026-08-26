@@ -804,9 +804,13 @@ export function PlayerSheet() {
   }, [current?.id, queue, readNeighbours, recentre]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
+  // DISABLED WHILE FRAMING, like the skip buttons it mirrors: a sound change
+  // drops the mode and the clip's edits with it, and the buttons already fade
+  // out for exactly that reason — an accidental horizontal swipe on the
+  // artwork was the one path left that could throw the frame away silently.
   const makeSkipSwipe = () =>
     Gesture.Pan()
-      .enabled(expanded)
+      .enabled(expanded && !clipMode)
       .activeOffsetX([-SKIP_ACTIVATE_X, SKIP_ACTIVATE_X])
       .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
       .onUpdate(event => {
@@ -1017,6 +1021,23 @@ export function PlayerSheet() {
   const [clipMode, setClipMode] = useState(false);
   const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
 
+  /**
+   * LEAVING FRAMING RELEASES THE PREVIEW'S END-STOP. `activeClip` survives
+   * the mode otherwise, and both halves of the trap were reachable: cancel
+   * while a preview is sounding and the resting player pauses itself at the
+   * old end cap minutes later, playhead jumping backwards; or pause
+   * mid-preview, cancel, and a later resume from the banner hits the same
+   * phantom boundary. The music itself is left alone — only the stop is
+   * disarmed. A track change needs none of this (`loadReset` clears the
+   * clip), which is why the `current?.id` effect below stays a plain
+   * `setClipMode`.
+   */
+  const exitFraming = useCallback(() => {
+    setClipMode(false);
+    const { activeClip, clearActiveClip } = usePlayerStore.getState();
+    if (activeClip?.clipId === 'preview') clearActiveClip();
+  }, []);
+
   useEffect(() => {
     setClipMode(false);
   }, [current?.id]);
@@ -1122,7 +1143,7 @@ export function PlayerSheet() {
 
   const onSaveClip = () => {
     haptics.selection();
-    setClipMode(false);
+    exitFraming();
     createClip({
       soundId: current.id,
       startMs: clipRange.startS * 1000,
@@ -1398,9 +1419,13 @@ export function PlayerSheet() {
             contentTop={contentTop}
             expanded={expanded}
             neighbours={neighbours}
-            onClipCancel={() => setClipMode(false)}
+            onClipCancel={exitFraming}
             onClipPreview={onPreviewClip}
-            onClipRangeChange={(startS, endS) => setClipRange({ startS, endS })}
+            onClipRangeChange={(startS, endS) => {
+              setClipRange({ startS, endS });
+              // A sounding preview follows the end cap live — see the store.
+              usePlayerStore.getState().retargetClipEnd(endS);
+            }}
             onClipSave={onSaveClip}
             onCollapse={collapse}
             onEdit={() =>

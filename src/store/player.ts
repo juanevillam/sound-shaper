@@ -76,6 +76,8 @@ type PlayerState = {
   /** Jump-play a saved range of the CURRENT sound. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
+  /** Follow a live end-cap edit while the framing preview is sounding. */
+  retargetClipEnd: (endS: number) => void;
   toggle: () => void;
   /** Stop playback in place, idempotent — entering clip framing uses it. */
   pause: () => void;
@@ -180,6 +182,20 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (get().activeClip) set({ activeClip: null });
   },
 
+  /**
+   * A LIVE EDIT OF THE END CAP MOVES A SOUNDING PREVIEW'S STOP. The boundary
+   * is armed with the range at the moment play was pressed, so dragging the
+   * cap outward while listening still stopped at the stale edge — the one
+   * moment the person is demonstrably watching that edge. Dragging it back
+   * past the playhead makes the boundary fire on the next tick, which is
+   * also right: the selection no longer contains the playhead. Preview only:
+   * a SAVED clip's replay means the stored range, not the trimmer's.
+   */
+  retargetClipEnd: endS => {
+    const clip = get().activeClip;
+    if (clip?.clipId === 'preview') set({ activeClip: { ...clip, endS } });
+  },
+
   // Pause/resume the loaded sound in place (no reload).
   toggle: () => {
     if (!get().current) return;
@@ -194,12 +210,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   /**
-   * ENTERING CLIP FRAMING USES THIS. Framing is a quiet mode: the only thing
-   * that should sound in it is the clip preview, so the song stops on the way
-   * in — which is what Photos and Voice Memos do when you open their trimmer,
-   * and what keeps the transport's glyph honest (a play glyph over audible
-   * sound is a lie, and the alternative — leaving the song running — made the
-   * first press pause the SONG instead of previewing the clip).
+   * ENTERING CLIP FRAMING USES THIS. Framing starts quiet: the song stops on
+   * the way in — which is what Photos and Voice Memos do when you open their
+   * trimmer, and what keeps the transport's glyph honest (a play glyph over
+   * audible sound is a lie, and the alternative — leaving the song running —
+   * made the first press pause the SONG instead of previewing the clip).
+   * Sound DURING framing is then the person's own doing: the preview, or
+   * plain playback scrubbed to and started by hand now that the scrubber
+   * stays live in the mode.
    */
   pause: () => {
     if (!get().playing) return;
