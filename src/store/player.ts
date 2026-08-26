@@ -61,6 +61,14 @@ type PlayerState = {
   position: number;
   duration: number;
   playing: boolean;
+  /**
+   * Bumped whenever the playhead JUMPS rather than ticks — a scrub, a clip
+   * start, a boundary park, a restart. The Now Playing bridge keys its
+   * elapsed-time pushes off this, because iOS interpolates the lock-screen
+   * playhead itself from one (elapsedTime, rate) pair: the 10Hz position
+   * tick must never re-publish the info dictionary, only discontinuities.
+   */
+  seekNonce: number;
   // A clip being replayed: playback auto-pauses at `endS`. Cleared by a manual
   // scrub, a track change, or the clip running out. Keyed by the clip id so
   // the clips list can highlight the active row.
@@ -124,8 +132,22 @@ const restartLoaded = (set: (partial: Partial<PlayerState>) => void): void => {
   // `pendingStart` for the same reason a reload sets it: a position report can
   // already be in flight from before the seek, and letting it land would put
   // the playhead back where the restart just moved it away from.
-  set({ activeClip: null, pendingStart: true, position: 0, playing: true });
+  set({
+    activeClip: null,
+    pendingStart: true,
+    position: 0,
+    playing: true,
+    seekNonce: nextSeekNonce(),
+  });
 };
+
+/**
+ * See `seekNonce` — every discontinuous playhead move stamps a fresh value.
+ * A module counter rather than `state.seekNonce + 1` so `restartLoaded`,
+ * which only receives the partial `set`, can stamp one too.
+ */
+let seekNonceCounter = 0;
+const nextSeekNonce = () => ++seekNonceCounter;
 
 // The fresh-transport reset a (re)load shares.
 const loadReset = (nonce: number) => ({
@@ -148,6 +170,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   position: 0,
   duration: 0,
   playing: false,
+  seekNonce: 0,
   activeClip: null,
   sheetExpanded: false,
   setSheetExpanded: sheetExpanded => set({ sheetExpanded }),
@@ -173,6 +196,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({
       activeClip: { clipId, startS: startMs / 1000, endS: endMs / 1000 },
       playing: true,
+      // Optimistic: the engine reports the sought position ~100ms later, and
+      // both the scrubber and the Now Playing bridge want the jump now.
+      position: startMs / 1000,
+      seekNonce: nextSeekNonce(),
     });
     audioEngine.seek(startMs / 1000);
     audioEngine.play();
@@ -276,7 +303,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   seek: seconds => {
     audioEngine.seek(seconds);
     // A manual scrub ends any clip replay.
-    set({ position: seconds, activeClip: null });
+    set({ position: seconds, activeClip: null, seekNonce: nextSeekNonce() });
   },
 
   setRate: rate => set({ rate }),
@@ -340,7 +367,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (clip && get().playing && seconds >= clip.endS) {
       audioEngine.pause();
       audioEngine.seek(clip.startS);
-      set({ activeClip: null, playing: false, position: clip.startS });
+      set({
+        activeClip: null,
+        playing: false,
+        position: clip.startS,
+        seekNonce: nextSeekNonce(),
+      });
     }
   },
 
