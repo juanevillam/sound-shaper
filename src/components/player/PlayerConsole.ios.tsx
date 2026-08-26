@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
@@ -11,20 +9,9 @@ import {
   usePressSquash,
 } from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  FadeIn,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClipActionsRow } from '@/components/player/ClipActionsRow';
-import {
-  ClipTrimFrameIos,
-  TRIM_FRAME_HEIGHT,
-} from '@/components/player/ClipTrimFrameIos';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
@@ -36,13 +23,11 @@ import {
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { formatTime } from '@/lib/player';
 import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
-  IOS_SLIDER_TRACK_CENTER,
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
@@ -521,18 +506,20 @@ function GlassHalf({ card }: { card: PlayerCard }) {
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * FRAMING IS GONE FROM THIS CONSOLE (2026-08-26). A clip is made in the
+ * dedicated Voice Memos-style editor (`clip-trim`) now — the Clips sheet
+ * pushes it — so the trim frame, the range readout, the Cancel/Save bar and
+ * the framing transport rules all left with it. The shared prop type still
+ * carries the clip fields because ANDROID's console frames in place; this
+ * side simply does not read them.
+ */
 export function PlayerConsole({
   cards,
-  clipMode,
-  clipRange,
   consoleStyle,
   contentTop,
   expanded,
   neighbours,
-  onClipCancel,
-  onClipPreview,
-  onClipRangeChange,
-  onClipSave,
   onCollapse,
   onEdit,
   onNext,
@@ -545,7 +532,6 @@ export function PlayerConsole({
   title,
   titleGesture,
   topGesture,
-  trimmerDuration,
   winW,
 }: PlayerConsoleProps) {
   const { t } = useI18n();
@@ -569,44 +555,6 @@ export function PlayerConsole({
    * (56 against a home tile's 27), so the correction doubles to 12.
    */
   const copyInset = opticalTextInset(playerArtRadius(winW, 0));
-
-  /**
-   * THE TRIM FRAME'S LIVE EDGES, owned here because TWO children draw from
-   * them: the frame itself, and the range readout in the scrubber's label
-   * row. They are shared values rather than state for the console's standing
-   * reason (`chrome.ts`) — a drag moves them at gesture rate, and routing
-   * that through React would re-render this whole tree on every frame of
-   * every trim. `clipRange` state is still the committed truth; these follow
-   * it whenever it changes from outside a drag.
-   */
-  const clipStartSv = useSharedValue(clipRange.startS);
-  const clipEndSv = useSharedValue(clipRange.endS);
-  useEffect(() => {
-    clipStartSv.value = clipRange.startS;
-    clipEndSv.value = clipRange.endS;
-  }, [clipRange.startS, clipRange.endS, clipStartSv, clipEndSv]);
-
-  /**
-   * The two SKIPS fade out while framing — see the transport row. A
-   * TRANSFORM-free opacity, and the row keeps its height either way, so the
-   * fade cannot move the play button beside them or anything below.
-   */
-  /**
-   * WHILE FRAMING, `playing` DECIDES BOTH THE GLYPH AND THE PRESS — not
-   * "is the preview sounding". It used to be the preview flag, and with the
-   * scrubber live during framing that flag can go stale honest sound is
-   * still running: a scrub mid-preview clears `activeClip` (a seek always
-   * does) without pausing, so the preview flag read false while audio
-   * played and the glyph showed a play triangle over sound. `playing` is
-   * true whenever anything is audible, whatever started it, so the glyph
-   * cannot lie. The press rule stays one sentence: sounding → pause it,
-   * silent → play from the playhead to the end cap (`onClipPreview`).
-   */
-
-  const skipStyle = useAnimatedStyle(
-    () => ({ opacity: withTiming(clipMode ? 0 : 1, { duration: 200 }) }),
-    [clipMode],
-  );
 
   const copy = (sound: { artist: string; name: string }) => (
     <>
@@ -702,90 +650,29 @@ export function PlayerConsole({
           </View>
         </GestureDetector>
 
-        {/* THE scrubber — the native SwiftUI slider, tinted to the content
-            colour rather than the accent. While framing, the trim frame
-            rides ON it — the slider stays the screen's one progress surface
-            and its thumb stays the playhead: edges resize, the framed middle
-            slides the clip. */}
-        <View
-          // NO FRAMING-ONLY MARGIN. `CLIP_FRAMING_GAP` made room for a third
-          // line under the scrubber that iOS no longer draws — the range rides
-          // inside the elapsed/total row now — so applying it here would move
-          // the transport on entering framing for nothing.
-          style={styles.sliderBlock}
-        >
-          <PlayerScrubberLive
-            copyInset={copyInset}
-            clipLabel={
-              clipMode
-                ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
-                : null
-            }
-            clipRangeSv={
-              clipMode ? { endSv: clipEndSv, startSv: clipStartSv } : null
-            }
-            onSeek={onSeek}
-          />
-          {clipMode ? (
-            <View style={styles.trimFrameRegion} pointerEvents="box-none">
-              <ClipTrimFrameIos
-                durationS={trimmerDuration}
-                startS={clipRange.startS}
-                endS={clipRange.endS}
-                startSv={clipStartSv}
-                endSv={clipEndSv}
-                onChange={onClipRangeChange}
-              />
-            </View>
-          ) : null}
+        {/* THE scrubber — the native media scrubber, tinted to the content
+            colour rather than the accent. */}
+        <View style={styles.sliderBlock}>
+          <PlayerScrubberLive copyInset={copyInset} onSeek={onSeek} />
         </View>
 
         <View style={styles.spacer} />
 
-        {/* THE TRANSPORT IS THE ONLY PLAY CONTROL, IN BOTH MODES.
-
-            While framing, the two SKIPS fade out — they would leave the mode
-            (a sound change drops the frame), and they were competing for
-            attention with the thing being aimed. What stays is the play
-            button, which becomes the CLIP's: press it with nothing sounding
-            and it previews the selection.
-
-            The glass bar used to carry that preview as a third control, dead
-            centre, ~130pt directly below this one — the same triangle on the
-            same centre line, meaning something else. Juan read it as seeing
-            the player controls twice, which is exactly what it was.
-
-            The GLYPH needs no new state to do this: it already tracks
-            `playing`, and a preview sets that too. So the rule is simply
-            "sounding → pause it, silent → play the clip", which is honest in
-            every combination — including entering framing mid-song, where a
-            play glyph over audible sound would have been a lie. */}
         <View style={styles.transportRow}>
-          <Animated.View
-            pointerEvents={clipMode ? 'none' : 'auto'}
-            style={skipStyle}
-          >
-            <GlyphButton
-              onPress={onPrevious}
-              hitSlop={12}
-              accessibilityLabel={t('player.previous')}
-            >
-              <PreviousGlyph
-                color={colors.onSurface}
-                size={TRANSPORT_SKIP_SIZE}
-              />
-            </GlyphButton>
-          </Animated.View>
           <GlyphButton
-            onPress={clipMode && !playing ? onClipPreview : onToggle}
+            onPress={onPrevious}
             hitSlop={12}
-            accessibilityLabel={t(
-              playing
-                ? 'player.pause'
-                : clipMode
-                  ? 'player.clips.preview'
-                  : 'player.play',
-            )}
+            accessibilityLabel={t('player.previous')}
+          >
+            <PreviousGlyph
+              color={colors.onSurface}
+              size={TRANSPORT_SKIP_SIZE}
+            />
+          </GlyphButton>
+          <GlyphButton
+            onPress={onToggle}
+            hitSlop={12}
+            accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
           >
             {playing ? (
               <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
@@ -793,40 +680,24 @@ export function PlayerConsole({
               <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             )}
           </GlyphButton>
-          <Animated.View
-            pointerEvents={clipMode ? 'none' : 'auto'}
-            style={skipStyle}
+          <GlyphButton
+            onPress={onNext}
+            hitSlop={12}
+            accessibilityLabel={t('player.next')}
           >
-            <GlyphButton
-              onPress={onNext}
-              hitSlop={12}
-              accessibilityLabel={t('player.next')}
-            >
-              <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
-            </GlyphButton>
-          </Animated.View>
+            <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
+          </GlyphButton>
         </View>
 
         <View style={styles.spacerLower} />
 
-        {/* While framing a clip, the action row takes the footer's place —
-            whichever footer that is. */}
-        {clipMode ? (
-          <ClipActionsRow
-            onCancel={onClipCancel}
-            onPreview={onClipPreview}
-            onSave={onClipSave}
-            width={contentWidth}
-          />
-        ) : (
-          <GlassFooter
-            cards={cards}
-            editA11yLabel={t('player.menu.edit')}
-            editLabel={t('player.menu.editShort')}
-            onEdit={onEdit}
-            width={contentWidth}
-          />
-        )}
+        <GlassFooter
+          cards={cards}
+          editA11yLabel={t('player.menu.edit')}
+          editLabel={t('player.menu.editShort')}
+          onEdit={onEdit}
+          width={contentWidth}
+        />
       </View>
     </Animated.View>
   );
@@ -881,18 +752,6 @@ const styles = StyleSheet.create({
   },
   artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
   sliderBlock: { position: 'relative', width: '100%' },
-  // The frame's box is CENTRED ON THE TRACK'S INK, not on the slider host —
-  // the media scrubber draws its bar high in the box (centre 4.0 of 18,
-  // measured; see `IOS_SLIDER_TRACK_CENTER`), so half-height centring put
-  // the frame 5pt low against the bar it brackets. It stays an absolute
-  // overlay, so entering framing still costs no layout.
-  trimFrameRegion: {
-    height: TRIM_FRAME_HEIGHT,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: IOS_SLIDER_TRACK_CENTER - TRIM_FRAME_HEIGHT / 2,
-  },
   transportRow: {
     alignItems: 'center',
     flexDirection: 'row',

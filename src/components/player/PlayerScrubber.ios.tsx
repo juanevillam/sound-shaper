@@ -1,11 +1,5 @@
 import { StyleSheet, View } from 'react-native';
 
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-} from 'react-native-reanimated';
-
-import { ClipRangeLabelIos } from '@/components/player/ClipRangeLabelIos';
 import { MediaScrubberIos } from '@/components/player/MediaScrubberIos';
 import { Text } from '@/components/ui/Text';
 import { formatTime } from '@/lib/player';
@@ -42,43 +36,6 @@ import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
 // positions the trim frame against it, and a value cannot be imported OUT of a
 // platform-suffixed file (see that module's header).
 
-/**
- * How far the time row steps down while framing. Re-measured 2026-08-25,
- * after the frame recentred on the track's ink (`IOS_SLIDER_TRACK_CENTER`):
- * the frame's bottom lands at host + 26 and the resting ink top at
- * host + 21.8, so the row must clear 4.2 before it buys any air. At 12 the
- * rendered band was 2.8pt — Juan read the caps as standing on the numbers —
- * and 16 lands ~12pt of clear space, the gap the frame's own overhang set.
- */
-const CLIP_LABELS_DROP = 16;
-
-// THE RANGE COSTS NO LAYOUT — it is absolutely centred INSIDE the elapsed/total
-// row, which is already there and already the right width.
-//
-// It used to be its own line under that row, appearing only while framing, and
-// entering framing therefore pushed the transport and the footer down by the
-// line plus `CLIP_FRAMING_GAP` — a shift on the exact frame a mode changes,
-// which is the one kind of CLS this player must not have. Reserving the line
-// permanently was the obvious alternative and is worse: it buys the fix with
-// ~25pt of blank on the resting player, and clawing dead space back out of this
-// console is most of why it was rebuilt.
-//
-// The row is 370pt wide against ~30pt of elapsed, ~30 of total and ~75 of
-// range, so the three do not crowd; the range is not muted, because while
-// framing it is the number that matters.
-//
-// WHILE FRAMING, THE ROW STEPS DOWN — a TRANSFORM, not layout. The trim
-// frame's 36pt box reaches 2pt past the slider host's bottom edge, which is
-// exactly where the labels' ink starts (measured: box bottom +34, ink top
-// ~+34 in host coordinates) — so a cap parked near either end of the track
-// stood directly on the time under it (Juan, 2026-08-23). Resting, the row
-// is right where it should be, so it does not move permanently; it
-// translates down `CLIP_LABELS_DROP` for the mode, animated over 200ms so
-// it reads as the row MAKING ROOM for the frame — a designed transition,
-// not the mode-change reflow this console bans. A transform costs no
-// layout, so the transport and the footer cannot move with it, which keeps
-// the band-scan invariant intact by construction.
-
 // iOS counterpart of `PlayerScrubber` — SwiftUI's own Slider (so it drags,
 // tracks and feels exactly like the system one) with the elapsed/total labels
 // in plain RN below it. SwiftUI reports the drag end through
@@ -88,39 +45,16 @@ export function PlayerScrubber({
   position,
   duration,
   totalDuration,
-  clipLabel,
-  clipRangeSv,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
-  const framing = clipLabel != null;
-  // See the header: the row makes room for the trim frame, by transform.
-  const labelsDrop = useAnimatedStyle(
-    () => ({
-      transform: [
-        {
-          translateY: withTiming(framing ? CLIP_LABELS_DROP : 0, {
-            duration: 200,
-          }),
-        },
-      ],
-    }),
-    [framing],
-  );
-
   return (
     <View style={styles.block}>
       {/* APPLE'S MEDIA SCRUBBER, not a thumb slider — see
-          `MediaScrubberIos`. It stays LIVE while the trim frame is up
-          (2026-08-25): finding a clip's end means listening around it, and a
-          dead playhead forced a full preview from the start every time —
-          "if a clip is 50 secs this may get annoying" (Juan, on device). It
-          used to stand down so the caps would win this band's touches; the
-          caps now win by GEOMETRY instead — each owns a transparent wrapper
-          the size its slop used to be, so hit-testing resolves the overlap
-          deterministically and the scrubber only ever sees touches aimed at
-          the bare track. Voice Memos' trim is the model: playhead free,
-          handles mark the selection. */}
+          `MediaScrubberIos`. Framing left this surface for the dedicated
+          clip editor (2026-08-26), so the scrubber is plainly the player's
+          again — no trim frame rides it and no range readout shares its
+          label row. */}
       <View style={styles.host}>
         <MediaScrubberIos
           position={position}
@@ -129,9 +63,7 @@ export function PlayerScrubber({
           onDragEnd={onDragEnd}
         />
       </View>
-      <Animated.View
-        style={[styles.labels, { paddingHorizontal: copyInset }, labelsDrop]}
-      >
+      <View style={[styles.labels, { paddingHorizontal: copyInset }]}>
         <Text
           doNotTranslate
           muted
@@ -146,28 +78,7 @@ export function PlayerScrubber({
           text={formatTime(totalDuration)}
           variant="labelMedium"
         />
-        {clipLabel ? (
-          <View pointerEvents="none" style={styles.clipLabelSlot}>
-            {/* The LIVE readout when the frame is up: it re-renders itself
-                off the drag's shared values, so the number tracks the finger
-                without the console hearing about it. */}
-            {clipRangeSv ? (
-              <ClipRangeLabelIos
-                startSv={clipRangeSv.startSv}
-                endSv={clipRangeSv.endSv}
-                style={styles.time}
-              />
-            ) : (
-              <Text
-                doNotTranslate
-                style={styles.time}
-                text={clipLabel}
-                variant="labelMedium"
-              />
-            )}
-          </View>
-        ) : null}
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -193,14 +104,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-  },
-  clipLabelSlot: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
 });

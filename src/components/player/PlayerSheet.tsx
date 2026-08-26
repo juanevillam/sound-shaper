@@ -447,7 +447,6 @@ export function PlayerSheet() {
    */
   const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
-  const clipFramingNonce = usePlayerStore(s => s.clipFramingNonce);
 
   const activePreset = useShaperStore(s => s.activePreset);
 
@@ -1063,22 +1062,10 @@ export function PlayerSheet() {
     setClipMode(false);
   }, [current?.id]);
 
-  // iOS: the Clips ROUTE's "New clip" bumps this nonce as it dismisses — drop
-  // the trim brackets exactly as Android's in-place sheet callback does.
-  const lastFramingNonce = useRef(clipFramingNonce);
-  useEffect(() => {
-    if (clipFramingNonce === lastFramingNonce.current) return;
-    lastFramingNonce.current = clipFramingNonce;
-
-    const { position, duration } = usePlayerStore.getState();
-    const total = Math.floor(duration);
-    const start = Math.max(0, Math.round(position - 7));
-    const end = Math.min(total || 15, start + 15);
-    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
-    // Framing is a quiet mode — see the store's `pause`.
-    usePlayerStore.getState().pause();
-    setClipMode(true);
-  }, [clipFramingNonce]);
+  // iOS framing-on-the-scrubber is GONE — a clip is made in the dedicated
+  // Voice Memos-style editor (`clip-trim`), which the Clips sheet pushes.
+  // `clipMode` below survives for ANDROID, whose in-place sheet still frames
+  // on the scrubber through `onStartFraming`.
   const [clipsVisible, setClipsVisible] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);

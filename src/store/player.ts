@@ -26,10 +26,6 @@ type PlayerState = {
   // Bumped when a surface wants the full player OPENED (tapping a sound tile
   // plays it and expands the sheet, YT-Music style). The PlayerSheet watches it.
   expandNonce: number;
-  // Bumped by the iOS Clips form-sheet's "New clip": the sheet is a separate
-  // ROUTE there, so it can't call into PlayerSheet's local framing state — the
-  // player watches this nonce instead (same idiom as expandNonce).
-  clipFramingNonce: number;
   rate: number;
   /**
    * Keep the original pitch while the rate changes (time-stretch). Off =
@@ -80,7 +76,6 @@ type PlayerState = {
 
   playSound: (sound: Sound, queue: Sound[]) => void;
   requestExpand: () => void;
-  requestClipFraming: () => void;
   /** Jump-play a saved range of the CURRENT sound. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   clearActiveClip: () => void;
@@ -164,7 +159,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   loadNonce: 0,
   pendingStart: false,
   expandNonce: 0,
-  clipFramingNonce: 0,
   rate: 1,
   keepPitch: true,
   position: 0,
@@ -187,21 +181,31 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
 
-  requestClipFraming: () =>
-    set(state => ({ clipFramingNonce: state.clipFramingNonce + 1 })),
-
   playClip: (clipId, startMs, endMs) => {
     if (!get().current) return;
 
+    const startS = startMs / 1000;
     set({
-      activeClip: { clipId, startS: startMs / 1000, endS: endMs / 1000 },
+      activeClip: { clipId, startS, endS: endMs / 1000 },
       playing: true,
       // Optimistic: the engine reports the sought position ~100ms later, and
       // both the scrubber and the Now Playing bridge want the jump now.
-      position: startMs / 1000,
+      position: startS,
       seekNonce: nextSeekNonce(),
     });
-    audioEngine.seek(startMs / 1000);
+    /**
+     * NEVER SEEK TO WHERE THE PLAYHEAD ALREADY IS. A no-op seek is not a
+     * no-op in the engine: `seekToTime` increments the decoder's
+     * `pendingOffloadedSeeks` and the render path outputs silence until the
+     * daemon resolves it — and a seek to the position it is already at can
+     * leave that count standing, so the following `play()` starts nothing
+     * and playback dies silently. Found in the clip editor (2026-08-26):
+     * every press whose start WAS the playhead — resuming a parked preview,
+     * pressing play right after entering — did exactly nothing, while the
+     * same press after moving the playhead worked. This is also the shape of
+     * the on-device "press play and the clip doesn't react" reports.
+     */
+    if (Math.abs(get().position - startS) > 0.05) audioEngine.seek(startS);
     audioEngine.play();
   },
 

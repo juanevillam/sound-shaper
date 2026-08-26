@@ -18,8 +18,14 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 
-// THE TRIM FRAME — clip framing drawn ON the real slider, which stays the
-// screen's ONE progress surface.
+// THE TRIM FRAME — the selection's caps, rails and wash.
+//
+// IT LIVES IN THE CLIP EDITOR'S OVERVIEW STRIP NOW (2026-08-26). It was built
+// to ride the player's scrubber, and everything it learned there carries
+// over unchanged: the Photos-measured treatment, the fine-scrub gain, the
+// gesture arbitration, the VoiceOver adjustables. Only the surface under it
+// changed — a full-track waveform in the Voice Memos-style editor instead of
+// the live scrubber.
 //
 // AUTHORED RN, AND HERE IS THE NATIVE COMPONENT THAT WAS REJECTED: there is
 // none. UIKit's only public trimmer is `UIVideoEditorController`, a
@@ -147,10 +153,10 @@ type ClipTrimFrameIosProps = {
   startS: number;
   endS: number;
   /**
-   * The live edges, OWNED BY THE CONSOLE. They are shared rather than local
-   * because the range readout under the slider draws from them too — it has
-   * to move while the finger is down, and the console is the nearest parent
-   * of both (`ClipRangeLabelIos`).
+   * The live edges, OWNED BY THE EDITOR. They are shared rather than local
+   * because the zoomed view's wash and edge lines draw from them too — both
+   * have to move while the finger is down, and the editor is the nearest
+   * parent of all three surfaces.
    */
   startSv: SharedValue<number>;
   endSv: SharedValue<number>;
