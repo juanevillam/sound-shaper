@@ -901,6 +901,18 @@ about the CONTRACT rather than the drawing** (2026-08-26):
   in its `NOW_PLAYING_INFO_KEYS` map, and `state` is not one, so its
   `playbackState` write is dead code upstream.
 
+**EVERY COMMAND THE LIBRARY CAN EMIT IS ANSWERED, INCLUDING THE ONES WE
+DISABLE** (2026-08-26). The disable above is a REQUEST about which buttons
+exist, not a guarantee: on device the ±15 pair survived it and then did
+nothing when pressed — a control the system draws and the app ignores, which
+is worse than either alternative and is the one state that must never ship.
+`skipForward` / `skipBackward` are handled now, seeking by the event's own
+`MPSkipIntervalCommandEvent.interval` so our number cannot disagree with the
+one iOS drew inside the glyph. If the disable does take, they simply never
+fire. The bridge listens for all seven events the library can emit; it
+listened for five, and the two it skipped were exactly the two iOS chose to
+draw.
+
 **NEITHER IS SIMULATOR-VERIFIABLE, AND THAT IS THE LESSON.** The sim draws no
 island, a blank Lock Screen player, and a Control Center card too blurred to
 read a glyph from — and it freezes the paused playhead correctly even when
