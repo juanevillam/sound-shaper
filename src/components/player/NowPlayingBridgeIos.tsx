@@ -63,6 +63,27 @@ const REMOTE_CONTROLS = [
   ['skipBackward', false],
 ] as const;
 
+/**
+ * WHAT THE SYSTEM'S ±15s BUTTONS DO — and they are wired even though the two
+ * commands above are disabled, on purpose.
+ *
+ * A control the system draws and the app ignores is the worst of the three
+ * possible outcomes, and it is the one that shipped: the buttons were there
+ * and pressing them did nothing (Juan's device, 2026-08-26). The disable is
+ * a request about which buttons EXIST; these handlers are the guarantee that
+ * whichever ones iOS ends up drawing, they work. If the disable takes, these
+ * never fire and cost nothing.
+ *
+ * The interval comes from the event rather than a constant of ours — it is
+ * `MPSkipIntervalCommandEvent.interval`, i.e. the number iOS actually drew
+ * inside the glyph, so the two can never disagree.
+ */
+const skipBy = (deltaS: number) => {
+  const { duration, position, seek } = usePlayerStore.getState();
+  const upper = duration > 0 ? duration : position + Math.abs(deltaS);
+  seek(Math.min(Math.max(position + deltaS, 0), upper));
+};
+
 export function NowPlayingBridgeIos() {
   const current = usePlayerStore(s => s.current);
   const playing = usePlayerStore(s => s.playing);
@@ -97,6 +118,16 @@ export function NowPlayingBridgeIos() {
       PlaybackNotificationManager.addEventListener(
         'playbackNotificationSeekTo',
         event => usePlayerStore.getState().seek(event.value),
+      ),
+      // See `skipBy`: answered even though the skip commands are disabled
+      // below, so the system can never draw a control this app ignores.
+      PlaybackNotificationManager.addEventListener(
+        'playbackNotificationSkipForward',
+        event => skipBy(event.value),
+      ),
+      PlaybackNotificationManager.addEventListener(
+        'playbackNotificationSkipBackward',
+        event => skipBy(-event.value),
       ),
     ];
 
