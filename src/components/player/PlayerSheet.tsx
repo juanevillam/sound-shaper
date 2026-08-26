@@ -305,6 +305,14 @@ const SETTLE_SPRING = { stiffness: 220, mass: 0.6, damping: 22 };
 const NO_CLIPS: never[] = [];
 
 /**
+ * How long a warm-mounted console outlives the touch that warmed it — long
+ * enough that a hesitation or a quick second tap never churns the mount, short
+ * enough that a play/pause tap on the banner does not leave the full console
+ * paying rent behind a 46pt pill (see `playerMounted`).
+ */
+const WARM_COOL_MS = 2000;
+
+/**
  * ANDROID'S BANNER PROGRESS — a full-bleed rule on the card's bottom edge.
  *
  * iOS HAS NONE, ON PURPOSE. It carried one until 2026-08-25, most recently as
@@ -471,7 +479,60 @@ export function PlayerSheet() {
     },
     [],
   );
-  const playerMounted = expanded || offRest;
+
+  /**
+   * WARM-MOUNTED ON TOUCH-DOWN, so the open animates over a tree that already
+   * exists. The gate above decides whether the console is on screen; this
+   * decides WHEN its mount commit happens, and the two used to be the same
+   * moment — the first frame of a drag, or the tap itself — which put a large
+   * React commit (several SwiftUI hosts, the glass footer, the blurred
+   * backdrop) in direct contention with the spring's own per-frame ShadowTree
+   * commits. That contention was the stutter at the start of every open,
+   * recorded on hardware as well as the simulator.
+   *
+   * A finger lands ~100ms before it lifts or drags far enough to move
+   * `progress`, and nothing is animating during that window — so the mount is
+   * moved there. `onBegin` fires on touch-down for the drag path, `onPressIn`
+   * covers the tap path, and both feed one timer: a touch that never opens the
+   * player cools back down after `WARM_COOL_MS`, so a play/pause tap does not
+   * leave the console mounted for good and the standing-cost decision the gate
+   * documents still holds.
+   *
+   * The same timer is what UNMOUNTS the console after a collapse — `offRest`
+   * flips false on the settle frame, and tearing the tree down right there put
+   * the teardown commit on the landing. Cooling through the timer instead
+   * moves it well past anything moving.
+   */
+  const [warm, setWarm] = useState(false);
+  const coolTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warmUp = useCallback(() => {
+    if (coolTimer.current) {
+      clearTimeout(coolTimer.current);
+      coolTimer.current = null;
+    }
+    setWarm(true);
+  }, []);
+  const cool = useCallback(() => {
+    if (coolTimer.current) clearTimeout(coolTimer.current);
+    coolTimer.current = setTimeout(() => {
+      coolTimer.current = null;
+      if (!expandedRef.current) setWarm(false);
+    }, WARM_COOL_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (coolTimer.current) clearTimeout(coolTimer.current);
+    },
+    [],
+  );
+  // A collapse that has settled starts the cool-down; while expanded the timer
+  // is irrelevant (the gate below is true on its own).
+  useEffect(() => {
+    if (!expanded && !offRest) cool();
+    else warmUp();
+  }, [expanded, offRest, cool, warmUp]);
+
+  const playerMounted = expanded || offRest || warm;
 
   // Warm the wash for whatever is loaded, so opening the player is a decode
   // rather than a fetch. See `prefetchPlayerBackdrop`.
@@ -552,10 +613,19 @@ export function PlayerSheet() {
     }
   }, [current, progress]);
 
-  // Drag the banner up to expand.
+  // Drag the banner up to expand. `onBegin` fires on touch-down — before the
+  // pan activates, before anything animates — which is what lets the console
+  // warm-mount during the finger's own dead time (see `warmUp`). `onFinalize`
+  // starts the cool-down for a touch that never opened the player.
   const dragUp = Gesture.Pan()
     .enabled(!expanded)
     .activeOffsetY([-12, 12])
+    .onBegin(() => {
+      runOnJS(warmUp)();
+    })
+    .onFinalize(() => {
+      runOnJS(cool)();
+    })
     .onUpdate(event => {
       progress.value = Math.min(Math.max(-event.translationY / travel, 0), 1);
     })
@@ -761,24 +831,39 @@ export function PlayerSheet() {
   // and to a full-bleed, square-cornered, unlifted surface at p = 1.
   const surfaceStyle = useAnimatedStyle(() => {
     const p = progress.value;
+
+    // The morph itself HAS to animate layout (height and the two insets close
+    // as the pill becomes the window), and on Fabric each of those writes is a
+    // ShadowTree commit per frame. So nothing rides along that does not need
+    // to: iOS's chrome is CONSTANT — no border, no elevation, per the edge
+    // rule above — and writing `borderWidth: 0` every frame was buying an
+    // extra layout commit for a value that never changes.
+    if (Platform.OS === 'ios') {
+      return {
+        // Same hue throughout, only the alpha moves: the glass carries the
+        // banner's surface at rest, and the opaque player takes over.
+        backgroundColor: interpolateColor(
+          p,
+          [0, BANNER_GLASS_FADE],
+          [glassFillStart, colors.background],
+        ),
+        borderRadius: BANNER_RADIUS * (1 - p),
+        height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
+        left: BANNER_SIDE_INSET * (1 - p),
+        right: BANNER_SIDE_INSET * (1 - p),
+      };
+    }
+
     // The floating-object chrome (outline, lift) goes early — by the time the
     // sheet reads as a screen there is nothing left for it to float above.
     const chrome = 1 - Math.min(p / BANNER_CHROME_FADE, 1);
 
     return {
-      backgroundColor: BANNER_GLASS
-        ? // Same hue throughout, only the alpha moves: the glass carries the
-          // banner's surface at rest, and the opaque player takes over.
-          interpolateColor(
-            p,
-            [0, BANNER_GLASS_FADE],
-            [glassFillStart, colors.background],
-          )
-        : interpolateColor(
-            p,
-            [0, BANNER_CHROME_FADE],
-            [colors.surfaceContainer, colors.background],
-          ),
+      backgroundColor: interpolateColor(
+        p,
+        [0, BANNER_CHROME_FADE],
+        [colors.surfaceContainer, colors.background],
+      ),
       borderRadius: BANNER_RADIUS * (1 - p),
       borderWidth: ANDROID_ONLY_HAIRLINE * chrome,
       elevation: BANNER_ELEVATION * chrome,
@@ -935,7 +1020,11 @@ export function PlayerSheet() {
    * re-opening a sound you have already looked at still shows its clips on the
    * first frame — the cache is what makes gating cost nothing.
    */
-  useClipsSubscription(playerMounted ? current?.id : undefined);
+  // NOT `playerMounted`: a warm mount is a touch on the banner, and a
+  // play/pause tap must not attach a Firestore listener. The listener follows
+  // the console being genuinely on screen, exactly as before the warm gate
+  // existed; while merely warm, the cards read the store's cache.
+  useClipsSubscription(expanded || offRest ? current?.id : undefined);
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
