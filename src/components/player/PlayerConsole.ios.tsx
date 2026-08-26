@@ -43,7 +43,7 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
-  IOS_SLIDER_HOST_HEIGHT,
+  IOS_SLIDER_TRACK_CENTER,
   PLAYER_SIDE_PADDING,
   playerArtRadius,
   playerArtSize,
@@ -885,15 +885,17 @@ const styles = StyleSheet.create({
   },
   artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
   sliderBlock: { position: 'relative', width: '100%' },
-  // The frame's box is CENTRED on the slider host — a 2pt overhang each
-  // side, so the rails clear the thumb — and it is an absolute overlay, so
-  // entering framing still costs no layout.
+  // The frame's box is CENTRED ON THE TRACK'S INK, not on the slider host —
+  // the media scrubber draws its bar high in the box (centre 4.0 of 18,
+  // measured; see `IOS_SLIDER_TRACK_CENTER`), so half-height centring put
+  // the frame 5pt low against the bar it brackets. It stays an absolute
+  // overlay, so entering framing still costs no layout.
   trimFrameRegion: {
     height: TRIM_FRAME_HEIGHT,
     left: 0,
     position: 'absolute',
     right: 0,
-    top: (IOS_SLIDER_HOST_HEIGHT - TRIM_FRAME_HEIGHT) / 2,
+    top: IOS_SLIDER_TRACK_CENTER - TRIM_FRAME_HEIGHT / 2,
   },
   transportRow: {
     alignItems: 'center',
