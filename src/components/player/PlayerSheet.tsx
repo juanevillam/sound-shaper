@@ -127,6 +127,23 @@ const MINI_ART_SIZE = 46;
 // box" did when both grew.
 const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 
+/** Taller than the ~4pt bar it holds: SwiftUI centres the bar in its box. */
+const BANNER_PROGRESS_BOX = 8;
+/** The bar's own drawn height inside the host — measured, not the box. */
+const BANNER_PROGRESS_BAR = 4;
+/**
+ * The bar CENTRES IN THE BAND BELOW THE ARTWORK rather than hugging the card's
+ * edge: that band is `BANNER_INSET` tall, since the art's bottom edge is one
+ * inset up from the card's, so this splits the difference.
+ *
+ * IT IS OFFSET BY THE BAR, NOT THE BOX. SwiftUI draws the bar at the BOTTOM of
+ * whatever box it is given rather than centred in it — measured on device: with
+ * the host bottom at 1.5 the bar landed 5.67 under the artwork and 1.67 above
+ * the card's edge, not the 3.5 either side the box maths predicted. Position
+ * the ink, not its container.
+ */
+const BANNER_PROGRESS_BOTTOM = (BANNER_INSET - BANNER_PROGRESS_BAR) / 2;
+
 /**
  * THE LIFT — Android's alone. iOS's was measured out of existence.
  *
@@ -170,8 +187,7 @@ const BANNER_CHROME_FADE = 0.35;
 const PROGRESS_HEIGHT = 4;
 // The unplayed remainder, as a tint of the content colour.
 const PROGRESS_TRACK_ALPHA = 0.2;
-const BANNER_PROGRESS_BOTTOM = 3;
-const BANNER_PROGRESS_BOX = 8;
+
 // How far into the expansion the progress bar is gone. Deliberately tiny: its
 // mask is the collapsed banner's shape, so it may only be seen while the
 // banner still HAS that shape.
