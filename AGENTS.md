@@ -206,6 +206,33 @@ in the file's header; the ones worth knowing before touching it:
   cost of whole-track scale is accepted knowingly, by the person who uses
   it.
 
+  **FINE SCRUBBING IS HOW THAT COST WAS FINALLY PAID DOWN** (2026-08-25),
+  and it is Apple's own slider idiom rather than a fifth generation of the
+  surface: slide the finger AWAY from the frame vertically while dragging
+  and the same horizontal travel moves the edge at 50% / 25% / 10% speed
+  (bands at 50/100/150pt — the system scrubbers' ladder), full speed
+  returning with the finger. The coordinate system never moves — the gain
+  is felt, not watched — which is precisely what separates it from the
+  rejected zoom. All three drags take it (both caps and the clip-slide
+  middle). Verified with injected touch paths: +100pt moved the end cap
+  46s flat and 13s with the finger 150pt below (the injected path landed
+  exactly on the band boundary; a real finger crosses into 10%). The drags
+  also activate on ANY movement now (`minDistance(2)` instead of
+  `activeOffsetX([-8, 8])`, which swallowed 8pt ≈ 4s of every drag and
+  never activated on a finger that slid down first), cap hitSlop is ±15
+  horizontal (a 44pt-wide target; it was 34), and each of the three frame
+  elements is a VoiceOver ADJUSTABLE with increment/decrement stepping a
+  second — the trait a `UISlider` carries, and the first way the mode has
+  ever been operable without a drag.
+
+  **THE MODE CHANGE IS ONE 200ms TRANSITION, THREE PARTS**: the frame
+  fades in, the time row drops (as it already did), and the glass bar's
+  CONTENTS cross-fade (Cancel/Save in, Shape/Clips/Edit back on exit) —
+  the bar's box, corner and material never change, so the swap reads as
+  the standing bar changing what it says. All fades skip under Reduce
+  Motion, and all are opacity-only, so the band-scan invariant (entering
+  framing moves nothing) holds by construction.
+
   What survived every generation is the FRAME'S TREATMENT, measured from
   Photos' video trimmer (iPhone 17 / iOS 26.5: outer 51pt, rails 5, caps
   ~14.7 wide, ~7pt outer corners, chevron ink 6 × 24 at a 3pt stroke):

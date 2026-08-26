@@ -7,6 +7,7 @@ import {
   MINI_PLAYER_HEIGHT,
   PRESSED_OPACITY,
 } from '@portfolio/mobile-ui';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -45,9 +46,17 @@ export function ClipActionsRow({
   width = 0,
 }: ClipActionsRowProps) {
   const { colors } = useAppTheme();
+  const reduceMotion = useReducedMotion();
 
   return (
-    <View style={[styles.bar, { height: MINI_PLAYER_HEIGHT, width }]}>
+    // The bar's CONTENTS fade in over the mode change — the box, corner and
+    // material are the resting glass bar's exactly, so only what the bar says
+    // should read as changing. Same 200ms as the trim frame's own entrance
+    // and the time row's drop: one transition, three parts.
+    <Animated.View
+      entering={reduceMotion ? undefined : FadeIn.duration(200)}
+      style={[styles.bar, { height: MINI_PLAYER_HEIGHT, width }]}
+    >
       <GlassSurfaceIos
         width={width}
         height={MINI_PLAYER_HEIGHT}
@@ -89,7 +98,7 @@ export function ClipActionsRow({
           />
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

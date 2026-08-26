@@ -7,12 +7,16 @@ import { withAlpha } from '@portfolio/core';
 import { SwiftUIHost } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  FadeIn,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/i18n';
+import { formatTime } from '@/lib/player';
 
 // THE TRIM FRAME — clip framing drawn ON the real slider, which stays the
 // screen's ONE progress surface.
@@ -81,7 +85,55 @@ const CHEVRON_SIZE = 17;
 const RANGE_FILL_ALPHA = 0.16;
 
 const MIN_GAP_S = 1;
-const EDGE_SLOP = { bottom: 14, left: 10, right: 10, top: 14 };
+/**
+ * A cap is 14pt of ink, so the slop is what makes it a target: ±15 horizontal
+ * brings the touch box to 44 wide — Apple's minimum, the same number that
+ * sized the frame's height — and ±14 vertical rides the 44pt box to 72. It
+ * was ±10, i.e. a 34pt-wide target on the one control this mode is about.
+ * When the clip is short the two caps' slops overlap the middle zone; the
+ * caps are rendered after the frame, so they win those touches, which is the
+ * right priority — edges are what framing adjusts.
+ */
+const EDGE_SLOP = { bottom: 14, left: 15, right: 15, top: 14 };
+
+/**
+ * FINE SCRUBBING — Apple's own answer to precision on a control that must not
+ * zoom, taken from the platform's scrubbers (Music, Podcasts, UISlider's
+ * scrubbing rates): the track never moves, the FINGER's gain does. Slide
+ * vertically off the frame while dragging and the same horizontal travel
+ * moves the edge at half, quarter, then a tenth speed; come back up and full
+ * speed returns. At whole-track scale a second is ~2pt, so the fine band
+ * turns it into ~20pt — second-accurate placement with a thumb.
+ *
+ * This is the precision the zoom was built to buy and rejected for
+ * (docs/rejected-experiments.md): a coordinate system that moves under the
+ * finger is not simple. This one's coordinate system is static — the gain is
+ * felt, not watched, and someone who never discovers it loses nothing. The
+ * bands are Apple's ladder (100% / 50% / 25% / 10%), at the distances the
+ * system scrubbers use.
+ */
+const scrubGain = (translationY: number): number => {
+  'worklet';
+  const away = Math.abs(translationY);
+  if (away >= 150) return 0.1;
+  if (away >= 100) return 0.25;
+  if (away >= 50) return 0.5;
+  return 1;
+};
+
+/**
+ * The drags activate on ANY movement, immediately. They carried
+ * `activeOffsetX([-8, 8])`, which cost twice: 8pt of travel was swallowed
+ * before the first change arrived (4 seconds at whole-track scale), and a
+ * finger that slid DOWN first — the fine-scrub entry — never activated at
+ * all, because vertical movement is not an X offset. Nothing else claims
+ * touches in this band (the slider underneath is disabled while framing), so
+ * there is no gesture to disambiguate against and no reason to wait.
+ */
+const DRAG_MIN_DISTANCE = 2;
+
+/** VoiceOver's increment/decrement step, and the label's own granularity. */
+const A11Y_STEP_S = 1;
 
 type ClipTrimFrameIosProps = {
   durationS: number;
@@ -107,6 +159,8 @@ export function ClipTrimFrameIos({
   onChange,
 }: ClipTrimFrameIosProps) {
   const { colors } = useAppTheme();
+  const { t } = useI18n();
+  const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);
 
   const pxPerS = durationS > 0 ? trackWidth / durationS : 0;
@@ -128,13 +182,17 @@ export function ClipTrimFrameIos({
   };
 
   const dragStart = Gesture.Pan()
-    .activeOffsetX([-8, 8])
+    .minDistance(DRAG_MIN_DISTANCE)
     .hitSlop(EDGE_SLOP)
     .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const max = endSv.value - MIN_GAP_S;
       startSv.value = Math.min(
-        Math.max(startSv.value + event.changeX / pxPerS, 0),
+        Math.max(
+          startSv.value +
+            (event.changeX / pxPerS) * scrubGain(event.translationY),
+          0,
+        ),
         max,
       );
     })
@@ -145,13 +203,17 @@ export function ClipTrimFrameIos({
     });
 
   const dragEnd = Gesture.Pan()
-    .activeOffsetX([-8, 8])
+    .minDistance(DRAG_MIN_DISTANCE)
     .hitSlop(EDGE_SLOP)
     .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const min = startSv.value + MIN_GAP_S;
       endSv.value = Math.max(
-        Math.min(endSv.value + event.changeX / pxPerS, durationS),
+        Math.min(
+          endSv.value +
+            (event.changeX / pxPerS) * scrubGain(event.translationY),
+          durationS,
+        ),
         min,
       );
     })
@@ -161,14 +223,19 @@ export function ClipTrimFrameIos({
       runOnJS(commit)(Math.round(startSv.value), seconds);
     });
 
-  // The framed middle slides the whole clip — length preserved.
+  // The framed middle slides the whole clip — length preserved. It takes the
+  // same fine-scrub gain as the caps: one drag language for the whole frame.
   const dragClip = Gesture.Pan()
-    .activeOffsetX([-8, 8])
+    .minDistance(DRAG_MIN_DISTANCE)
     .onBegin(() => runOnJS(setDragging)(true))
     .onChange(event => {
       const length = endSv.value - startSv.value;
       const next = Math.min(
-        Math.max(startSv.value + event.changeX / pxPerS, 0),
+        Math.max(
+          startSv.value +
+            (event.changeX / pxPerS) * scrubGain(event.translationY),
+          0,
+        ),
         durationS - length,
       );
       startSv.value = next;
@@ -184,6 +251,44 @@ export function ClipTrimFrameIos({
       endSv.value = seconds + lengthS;
       runOnJS(commit)(seconds, seconds + lengthS);
     });
+
+  /**
+   * VOICEOVER'S OWN TRIM. Each cap is an ADJUSTABLE element — the trait a
+   * `UISlider` carries — so swipe up/down nudges its edge by a second, spoken
+   * back through `accessibilityValue`. Without it the mode's whole point was
+   * three unlabeled views only a drag could operate, and VoiceOver cannot
+   * drag. The middle is adjustable too: it slides the clip whole, exactly as
+   * its pan does.
+   */
+  const nudge = (edge: 'start' | 'end' | 'clip', direction: 1 | -1) => {
+    const deltaS = direction * A11Y_STEP_S;
+    if (edge === 'start') {
+      onChange(Math.min(Math.max(startS + deltaS, 0), endS - MIN_GAP_S), endS);
+      return;
+    }
+    if (edge === 'end') {
+      onChange(
+        startS,
+        Math.max(Math.min(endS + deltaS, durationS), startS + MIN_GAP_S),
+      );
+      return;
+    }
+    const length = endS - startS;
+    const next = Math.min(Math.max(startS + deltaS, 0), durationS - length);
+    onChange(next, next + length);
+  };
+
+  const adjustable = (edge: 'start' | 'end' | 'clip') =>
+    ({
+      accessible: true,
+      accessibilityActions: [
+        { name: 'increment' as const },
+        { name: 'decrement' as const },
+      ],
+      accessibilityRole: 'adjustable' as const,
+      onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) =>
+        nudge(edge, event.nativeEvent.actionName === 'increment' ? 1 : -1),
+    }) as const;
 
   const frameStyle = useAnimatedStyle(() => ({
     left: startSv.value * pxPerS,
@@ -203,9 +308,24 @@ export function ClipTrimFrameIos({
       onLayout={event => setTrackWidth(event.nativeEvent.layout.width)}
     >
       {trackWidth > 0 && durationS > 0 ? (
-        <>
+        // The frame FADES IN over the mode change — the same 200ms the time
+        // row takes to make room below it, so the two read as one transition
+        // rather than a pop and a slide. It is an inner wrapper because the
+        // outer view is the measuring overlay and must never animate; the
+        // band-scan invariant (entering framing moves nothing) is untouched,
+        // since opacity is not layout.
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(200)}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="box-none"
+        >
           <GestureDetector gesture={dragClip}>
             <Animated.View
+              {...adjustable('clip')}
+              accessibilityLabel={t('player.clips.selection')}
+              accessibilityValue={{
+                text: `${formatTime(startS)} – ${formatTime(endS)}`,
+              }}
               style={[
                 styles.frame,
                 { borderColor: colors.primary },
@@ -228,6 +348,9 @@ export function ClipTrimFrameIos({
 
           <GestureDetector gesture={dragStart}>
             <Animated.View
+              {...adjustable('start')}
+              accessibilityLabel={t('player.clips.startHandle')}
+              accessibilityValue={{ text: formatTime(startS) }}
               style={[
                 styles.cap,
                 styles.capStart,
@@ -250,6 +373,9 @@ export function ClipTrimFrameIos({
           </GestureDetector>
           <GestureDetector gesture={dragEnd}>
             <Animated.View
+              {...adjustable('end')}
+              accessibilityLabel={t('player.clips.endHandle')}
+              accessibilityValue={{ text: formatTime(endS) }}
               style={[
                 styles.cap,
                 styles.capEnd,
@@ -270,7 +396,7 @@ export function ClipTrimFrameIos({
               </SwiftUIHost>
             </Animated.View>
           </GestureDetector>
-        </>
+        </Animated.View>
       ) : null}
     </View>
   );
