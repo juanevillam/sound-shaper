@@ -12,7 +12,9 @@ import {
 } from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  FadeIn,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
@@ -346,9 +348,17 @@ function GlassFooter({
   width,
 }: FooterProps) {
   const { colors } = useAppTheme();
+  const reduceMotion = useReducedMotion();
 
   return (
-    <View style={[styles.glassFooter, { height: GLASS_FOOTER_HEIGHT, width }]}>
+    // Fades in when it returns from framing, mirroring `ClipActionsRow`'s
+    // own entrance — the swap is a content change inside one standing bar,
+    // and it read as a pop. On the console's first mount the fade runs under
+    // the console's own opacity and is invisible.
+    <Animated.View
+      entering={reduceMotion ? undefined : FadeIn.duration(200)}
+      style={[styles.glassFooter, { height: GLASS_FOOTER_HEIGHT, width }]}
+    >
       <GlassSurfaceIos
         width={width}
         height={GLASS_FOOTER_HEIGHT}
@@ -383,7 +393,7 @@ function GlassFooter({
           />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

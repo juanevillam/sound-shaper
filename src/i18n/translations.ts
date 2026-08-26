@@ -120,6 +120,10 @@ export const translations = {
         noneSummary: 'None',
         count: '{n} saved',
         delete: 'Delete Clip',
+        // VoiceOver only — the trim frame's three adjustable elements.
+        selection: 'Clip',
+        startHandle: 'Clip start',
+        endHandle: 'Clip end',
       },
     },
     soundEdit: {
@@ -384,6 +388,9 @@ export const translations = {
         noneSummary: 'Ninguno',
         count: '{n} guardados',
         delete: 'Eliminar clip',
+        selection: 'Clip',
+        startHandle: 'Inicio del clip',
+        endHandle: 'Fin del clip',
       },
     },
     soundEdit: {
@@ -645,6 +652,9 @@ export const translations = {
         noneSummary: '无',
         count: '已存储 {n} 个',
         delete: '删除片段',
+        selection: '片段',
+        startHandle: '片段起点',
+        endHandle: '片段终点',
       },
     },
     soundEdit: {
