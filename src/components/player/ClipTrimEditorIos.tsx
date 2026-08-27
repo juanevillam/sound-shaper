@@ -86,10 +86,20 @@ const PPS = 100;
 const CHUNK_S = 12;
 /**
  * Wave band height — grown from 148 with the space-distribution pass (Juan,
- * 2026-08-26): the sheet ran out of content half-way down, and the band is
- * the surface that deserves the room.
+ * 2026-08-26), then again from 200 alongside `WAVE_INK_RATIO` (2026-08-27):
+ * the sheet ran out of content half-way down, and the band is the surface
+ * that deserves the room.
  */
-const WAVE_HEIGHT = 200;
+const WAVE_HEIGHT = 224;
+/**
+ * THE INK'S CEILING INSIDE THE BAND. A full-level bar used to run the whole
+ * band height, so the loudest bars touched the container's edges and the
+ * card read cramped (Juan, 2026-08-27). Voice Memos' bars keep clear air
+ * above and below their tallest peaks; 0.78 leaves ~24pt of it at this
+ * band height. A ratio of the band, not a fixed margin — the geometry rule
+ * (`artworkRadius`'s class): resize the band and the air scales with it.
+ */
+const WAVE_INK_RATIO = 0.78;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 /**
@@ -185,7 +195,7 @@ function barsPath(
       level = n > 0 ? sum / n : 0;
     }
     const x = k * pitchS * pps;
-    const h = Math.max(2, level * bandHeight);
+    const h = Math.max(2, level * bandHeight * WAVE_INK_RATIO);
     const y = (bandHeight - h) / 2;
     parts.push(
       `M${x.toFixed(1)},${y.toFixed(1)}h${width}v${h.toFixed(1)}h-${width}z`,
