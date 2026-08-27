@@ -171,7 +171,39 @@ function ClipsSheetScreen() {
                       ) : null}
                     </HStack>
                   </Button>
-                  <SwipeActions.Actions edge="trailing">
+                  {/* EDIT RE-FRAMES — it pushes the same editor New Clip
+                      uses, seeded with this clip's range: one anatomy for
+                      framing and re-framing. On the LEADING edge, which is
+                      the portfolio's standard for opposed verbs on one row:
+                      `TopItemListIos` (edit leading / delete trailing) and
+                      `TrashListIos` (recover leading / delete trailing) both
+                      split them, so the two directions cannot be mistaken
+                      for each other — stacking Edit beside Delete on one
+                      edge was built first and is exactly the misclick
+                      adjacency Juan called (2026-08-27). `allowsFullSwipe`
+                      off, the reference's own setting: a full swipe is a
+                      committed gesture and editing is not a commitment. A
+                      non-destructive swipe action KEEPS THE ACCENT (root
+                      AGENTS.md: its label draws white whatever the tint, and
+                      the greys read as disabled). */}
+                  <SwipeActions.Actions edge="leading" allowsFullSwipe={false}>
+                    <Button
+                      label={t('player.clips.editAction')}
+                      systemImage="pencil"
+                      modifiers={[tint(colors.primary)]}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/clip-trim',
+                          params: {
+                            clipId: clip.id,
+                            startMs: String(clip.startMs),
+                            endMs: String(clip.endMs),
+                          },
+                        })
+                      }
+                    />
+                  </SwipeActions.Actions>
+                  <SwipeActions.Actions edge="trailing" allowsFullSwipe>
                     {/* LABELLED, like every swipe action in the portfolio.
                       This was glyph-only on the grounds that a worded action
                       pushes this row's short time range off the leading edge
@@ -191,32 +223,6 @@ function ClipsSheetScreen() {
                       systemImage="trash"
                       modifiers={[tint(colors.danger)]}
                       onPress={() => onDelete(clip.id)}
-                    />
-                    {/* EDIT RE-FRAMES: it pushes the same editor New Clip
-                        uses, seeded with this clip's range — one anatomy for
-                        framing and re-framing. Declared AFTER Delete because
-                        SwiftUI gives the FIRST-declared trailing action the
-                        OUTER edge and the full swipe — measured on sim: with
-                        Edit first, a full swipe opened the editor instead of
-                        deleting, which is Mail's order inverted. A
-                        non-destructive swipe action KEEPS THE ACCENT (the
-                        root AGENTS.md rule: its label draws white whatever
-                        the tint, and the greys read as disabled) — stated
-                        explicitly, the same reason Delete states its red. */}
-                    <Button
-                      label={t('player.clips.editAction')}
-                      systemImage="pencil"
-                      modifiers={[tint(colors.primary)]}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/clip-trim',
-                          params: {
-                            clipId: clip.id,
-                            startMs: String(clip.startMs),
-                            endMs: String(clip.endMs),
-                          },
-                        })
-                      }
                     />
                   </SwipeActions.Actions>
                 </SwipeActions>
