@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
@@ -245,10 +245,16 @@ export function ClipTrimEditorIos({
     onRangeChange(Math.round(startSv.value), Math.round(endSv.value));
   }, [onRangeChange, startSv, endSv]);
 
-  // --- Chunked strip ------------------------------------------------------
-  // The strip renders [chunk-1, chunk, chunk+1] and re-centres when the
-  // playhead crosses into a neighbour — the pager idiom, so the pan itself is
-  // a pure transform.
+  // --- Tiled strip ---------------------------------------------------------
+  // The strip lives in ABSOLUTE track coordinates (translateX derives from
+  // the playhead alone) and its waveform renders as per-chunk TILES, keyed by
+  // chunk index and memoised. Re-centring therefore mounts and unmounts only
+  // the EDGE tiles, off-screen, while everything visible keeps its exact
+  // native views — the first cut rebuilt one three-chunk SVG on every
+  // boundary crossing, and a ±15 skip (which always crosses, 15 > 12)
+  // remounted the whole band under the playhead: Juan saw the flicker on
+  // device. Five tiles cover ±24s around the playhead, so no jump the
+  // transport can make outruns the window.
   const [chunk, setChunk] = useState(() =>
     Math.floor(usePlayerStore.getState().position / CHUNK_S),
   );
@@ -260,68 +266,28 @@ export function ClipTrimEditorIos({
     [],
   );
 
-  const windowStartS = Math.max(0, (chunk - 1) * CHUNK_S);
-  const windowEndS = Math.min(durationS, (chunk + 2) * CHUNK_S);
-  const windowWidth = (windowEndS - windowStartS) * PPS;
+  const lastChunk = Math.max(0, Math.ceil(durationS / CHUNK_S) - 1);
+  const tiles: number[] = [];
+  for (let i = chunk - 2; i <= chunk + 2; i += 1) {
+    if (i >= 0 && i <= lastChunk) tiles.push(i);
+  }
 
-  const wavePath = useMemo(
-    () =>
-      barsPath(
-        waveform?.buckets ?? null,
-        waveform?.bucketMs ?? 50,
-        windowStartS,
-        windowEndS,
-        PPS,
-        WAVE_HEIGHT,
-        BAR_PITCH,
-        BAR_WIDTH,
-      ),
-    [waveform, windowStartS, windowEndS],
-  );
-
-  const rulerTicks = useMemo(() => {
-    const ticks: { x: number; label: string; major: boolean }[] = [];
-    for (let s = Math.ceil(windowStartS); s <= windowEndS; s += 1) {
-      const x = (s - windowStartS) * PPS;
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
-      ticks.push({
-        x,
-        label: `${m}:${String(sec).padStart(2, '0')}`,
-        major: true,
-      });
-      for (let q = 1; q < 4; q += 1) {
-        ticks.push({ x: x + (q * PPS) / 4, label: '', major: false });
-      }
-    }
-    return ticks;
-  }, [windowStartS, windowEndS]);
+  const trackWidth = durationS * PPS;
 
   const stripStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: centerX - (playheadSv.value - windowStartS) * PPS },
-    ],
+    transform: [{ translateX: centerX - playheadSv.value * PPS }],
   }));
 
   // Selection wash + edges, in STRIP coordinates so they pan for free.
-  const washStyle = useAnimatedStyle(() => {
-    const left = (startSv.value - windowStartS) * PPS;
-    return {
-      transform: [{ translateX: left }],
-      width: Math.max(0, (endSv.value - startSv.value) * PPS),
-    };
-  });
+  const washStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: startSv.value * PPS }],
+    width: Math.max(0, (endSv.value - startSv.value) * PPS),
+  }));
   const startEdgeStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: (startSv.value - windowStartS) * PPS - EDGE_TOUCH_WIDTH / 2,
-      },
-    ],
+    transform: [{ translateX: startSv.value * PPS - EDGE_TOUCH_WIDTH / 2 }],
   }));
   const endEdgeStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: (endSv.value - windowStartS) * PPS - EDGE_TOUCH_WIDTH / 2 },
-    ],
+    transform: [{ translateX: endSv.value * PPS - EDGE_TOUCH_WIDTH / 2 }],
   }));
 
   // --- Gestures -----------------------------------------------------------
@@ -512,11 +478,13 @@ export function ClipTrimEditorIos({
         <View style={[styles.zoomWrap, { width: cardWidth }]}>
           <View style={styles.zoomCard}>
             <Animated.View
-              style={[styles.strip, { width: windowWidth }, stripStyle]}
+              style={[styles.strip, { width: trackWidth }, stripStyle]}
             >
               {/* The panel rides INSIDE the strip, so it spans exactly the
                   track's extent — before 0:00 and past the end the page
-                  colour shows, which is what Voice Memos draws there. */}
+                  colour shows, which is what Voice Memos draws there. A
+                  plain background at this width is a single solid CALayer,
+                  not a rasterised bitmap, so the size costs nothing. */}
               <View
                 pointerEvents="none"
                 style={[
@@ -524,38 +492,17 @@ export function ClipTrimEditorIos({
                   { backgroundColor: colors.surfaceContainer },
                 ]}
               />
-              <Svg width={windowWidth} height={WAVE_HEIGHT + RULER_HEIGHT}>
-                <Path d={wavePath} fill={colors.onSurface} />
-                {/* APPLE'S ORDER: the tick marks hang directly off the wave's
-                  bottom edge and the time labels sit BELOW them — Voice Memos
-                  draws it that way (Juan's screenshots), and the first cut
-                  had it inverted. */}
-                <Path
-                  d={rulerTicks
-                    .map(
-                      tick =>
-                        `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
-                    )
-                    .join('')}
-                  stroke={colors.onSurfaceMuted}
-                  strokeWidth={1}
+              {tiles.map(index => (
+                <WaveTile
+                  key={index}
+                  index={index}
+                  buckets={waveform?.buckets ?? null}
+                  bucketMs={waveform?.bucketMs ?? 50}
+                  durationS={durationS}
+                  barColor={colors.onSurface}
+                  mutedColor={colors.onSurfaceMuted}
                 />
-                {rulerTicks.map(tick =>
-                  tick.major ? (
-                    <SvgText
-                      key={`l${tick.x}`}
-                      x={tick.x}
-                      y={WAVE_HEIGHT + 23}
-                      fontSize={11}
-                      textAnchor="middle"
-                      fill={colors.onSurfaceMuted}
-                    >
-                      {tick.label}
-                    </SvgText>
-                  ) : null,
-                )}
-              </Svg>
-
+              ))}
               {/* Selection wash + edges ride the strip. */}
               <Animated.View
                 pointerEvents="none"
@@ -723,6 +670,102 @@ export function ClipTrimEditorIos({
 }
 
 /**
+ * ONE CHUNK OF THE WAVEFORM — bars plus its stretch of ruler, positioned by
+ * ABSOLUTE track time and memoised, so a window re-centre never re-renders
+ * or remounts a tile that is already on screen; only the far edges of the
+ * five-tile window come and go, and those are off-screen by construction.
+ */
+const WaveTile = memo(function WaveTile({
+  index,
+  buckets,
+  bucketMs,
+  durationS,
+  barColor,
+  mutedColor,
+}: {
+  index: number;
+  buckets: number[] | null;
+  bucketMs: number;
+  durationS: number;
+  barColor: string;
+  mutedColor: string;
+}) {
+  const fromS = index * CHUNK_S;
+  const toS = Math.min(durationS, fromS + CHUNK_S);
+  const width = (toS - fromS) * PPS;
+
+  const wavePath = useMemo(
+    () =>
+      barsPath(
+        buckets,
+        bucketMs,
+        fromS,
+        toS,
+        PPS,
+        WAVE_HEIGHT,
+        BAR_PITCH,
+        BAR_WIDTH,
+      ),
+    [buckets, bucketMs, fromS, toS],
+  );
+
+  const ticks = useMemo(() => {
+    const list: { x: number; label: string; major: boolean }[] = [];
+    for (let second = Math.ceil(fromS); second < toS; second += 1) {
+      const x = (second - fromS) * PPS;
+      const m = Math.floor(second / 60);
+      const sec = second % 60;
+      list.push({
+        x,
+        label: `${m}:${String(sec).padStart(2, '0')}`,
+        major: true,
+      });
+      for (let q = 1; q < 4; q += 1) {
+        list.push({ x: x + (q * PPS) / 4, label: '', major: false });
+      }
+    }
+    return list;
+  }, [fromS, toS]);
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.tile, { left: fromS * PPS, width }]}
+    >
+      <Svg width={width} height={WAVE_HEIGHT + RULER_HEIGHT}>
+        <Path d={wavePath} fill={barColor} />
+        {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
+            BELOW them (Voice Memos, Juan's screenshots). */}
+        <Path
+          d={ticks
+            .map(
+              tick =>
+                `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
+            )
+            .join('')}
+          stroke={mutedColor}
+          strokeWidth={1}
+        />
+        {ticks.map(tick =>
+          tick.major ? (
+            <SvgText
+              key={`l${tick.x}`}
+              x={tick.x}
+              y={WAVE_HEIGHT + 23}
+              fontSize={11}
+              textAnchor="middle"
+              fill={mutedColor}
+            >
+              {tick.label}
+            </SvgText>
+          ) : null,
+        )}
+      </Svg>
+    </View>
+  );
+});
+
+/**
  * The timecode re-renders itself off the shared playhead — the leaf-reader
  * rule (`PlayerScrubberLive`), reacting on the SECOND the label draws so it
  * never renders a frame that reads the same. It showed centiseconds first,
@@ -790,6 +833,11 @@ const styles = StyleSheet.create({
   strip: {
     bottom: 0,
     left: 0,
+    position: 'absolute',
+    top: 0,
+  },
+  tile: {
+    bottom: 0,
     position: 'absolute',
     top: 0,
   },
