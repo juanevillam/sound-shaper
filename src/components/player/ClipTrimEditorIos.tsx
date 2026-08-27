@@ -1,19 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
-import {
-  AppIcon,
-  FLOATING_RADIUS,
-  GlassSurfaceIos,
-  MINI_PLAYER_HEIGHT,
-  SHEET_CONTENT_TOP,
-  SwiftUIHost,
-  usePressSquash,
-} from '@portfolio/mobile-ui';
-import { router } from 'expo-router';
+import { SHEET_CONTENT_TOP, SwiftUIHost } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -40,7 +31,6 @@ import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
 
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
@@ -576,7 +566,6 @@ export function ClipTrimEditorIos({
   }));
 
   const insets = useSafeAreaInsets();
-  const shapeSummary = useShapeSummary();
 
   if (!current) return null;
 
@@ -809,91 +798,15 @@ export function ClipTrimEditorIos({
         </GlyphButton>
       </View>
 
+      {/* Trailing air, then the sheet's edge — the transport rides high for a
+          resting thumb, and the sheet's ACTIONS live in the bar now: Shape
+          and Save share the trailing merged pill (home's own arrangement),
+          Cancel leads. A content-level Shape entry was built three ways —
+          capsule, full glass bar, hugging glass pill — and each read as one
+          object too many on a sheet that wants to be two groups (Juan,
+          2026-08-26). */}
       <View style={styles.airSmall} />
-
-      {/* THE SHAPE ENTRY IS THE CONSOLE'S OWN GLASS CARD (Juan, 2026-08-26,
-          third pass) — a bordered capsule at any control size still read
-          "like an easter egg", because the capsule is the wrong RANK: in
-          this app Shape is a glass-bar card with an icon, a label and its
-          LIVE summary, and the editor's footer slot mirrors the console's.
-          Full content width, the banner's own bar height, the shared
-          summary hook — shaping and clipping as one workflow: the sheet
-          stacks over this one, applies live, and the preview plays through
-          it. */}
-      <ShapeCard
-        label={t('player.shape.title')}
-        summary={shapeSummary}
-        onPress={() => router.push('/shaper')}
-      />
     </View>
-  );
-}
-
-/**
- * THE CONSOLE'S GLASS CARD, on the editor's footer slot — icon, label, live
- * summary on `GlassSurfaceIos`, squashing like every card. The arrangement
- * is `PlayerConsole.ios`'s `GlassHalf` (same paddings, same 31pt icon host,
- * same Body-over-Footnote pair); a third surface drawing it is the
- * rule-of-three moment to extract the component itself.
- */
-const SHAPE_CARD_ICON = 24;
-const SHAPE_CARD_ICON_BOX = Math.round(SHAPE_CARD_ICON * 1.3);
-
-function ShapeCard({
-  label,
-  summary,
-  onPress,
-}: {
-  label: string;
-  summary: string;
-  onPress: () => void;
-}) {
-  const { colors } = useAppTheme();
-  const squash = usePressSquash();
-  /**
-   * THE CARD HUGS ITS CONTENT AND CENTRES (Juan, 2026-08-26, fourth pass —
-   * full width read wrong on this sheet). `GlassSurfaceIos` takes a real
-   * box, so the pill measures its own row once and draws the glass to fit;
-   * the height is reserved either way, so nothing below moves when the
-   * material lands a frame later.
-   */
-  const [measuredWidth, setMeasuredWidth] = useState(0);
-
-  return (
-    <Animated.View style={[styles.shapeCard, squash.style]}>
-      {measuredWidth > 0 ? (
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <GlassSurfaceIos
-            width={measuredWidth}
-            height={MINI_PLAYER_HEIGHT}
-            cornerRadius={FLOATING_RADIUS}
-          />
-        </View>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}, ${summary}`}
-        onPress={onPress}
-        onPressIn={squash.onPressIn}
-        onPressOut={squash.onPressOut}
-        style={styles.shapeCardPress}
-        onLayout={event =>
-          setMeasuredWidth(Math.ceil(event.nativeEvent.layout.width))
-        }
-      >
-        <SwiftUIHost
-          ignoreSafeArea="all"
-          pointerEvents="none"
-          style={styles.shapeCardIconHost}
-        >
-          <AppIcon name="tune" size={SHAPE_CARD_ICON} tint={colors.onSurface} />
-        </SwiftUIHost>
-        <View style={styles.shapeCardCopy}>
-          <AppText doNotTranslate text={label} variant="bodyLarge" />
-          <AppText doNotTranslate muted text={summary} variant="bodySmall" />
-        </View>
-      </Pressable>
-    </Animated.View>
   );
 }
 
@@ -1223,26 +1136,5 @@ const styles = StyleSheet.create({
    */
   airLarge: { flexGrow: 1, minHeight: GROUP_GAP },
   airSmall: { flexGrow: 1.5, minHeight: GROUP_GAP / 2 },
-  shapeCard: {
-    alignSelf: 'center',
-    borderRadius: FLOATING_RADIUS,
-    height: MINI_PLAYER_HEIGHT,
-    ...CONTINUOUS_CURVE,
-  },
-  /** Wider side padding than the full-width card's 16: a hugging pill's
-      copy sits nearer its own corners, and 20 keeps the first and last ink
-      clear of the curve. */
-  shapeCardPress: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    height: '100%',
-    paddingHorizontal: 20,
-  },
-  shapeCardIconHost: {
-    height: SHAPE_CARD_ICON_BOX,
-    width: SHAPE_CARD_ICON_BOX,
-  },
-  shapeCardCopy: { gap: 1 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });

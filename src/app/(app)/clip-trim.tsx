@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 
 import { View } from 'react-native';
 
-import { sheetCommitBarOptionsIos } from '@portfolio/mobile-ui';
+import {
+  HeaderGlyphButtonIos,
+  HeaderGlyphGroupIos,
+} from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
 import { router, Stack } from 'expo-router';
 
@@ -79,15 +82,41 @@ function ClipTrimScreen() {
     // `SheetScreen` for the toast — the save/failure snackbars must draw over
     // this native presentation, not behind it.
     <SheetScreen>
+      {/* ✕ | title | [shape ✓] — the trailing slot is ONE merged pill
+          (HeaderGlyphGroupIos, home's own arrangement; Calendar carries
+          three glyphs the same way). Shape moved up here from a content
+          pill: the bar is where a sheet's primary actions live, and the
+          content column below reads as two calm groups instead of five
+          objects (Juan, 2026-08-26). The commit is a plain checkmark glyph
+          here — the group's language — disabled while the save runs. */}
       <Stack.Screen
-        options={sheetCommitBarOptionsIos({
+        options={{
           title: t('player.clips.new'),
-          cancelLabel: t('common.cancel'),
-          onCancel: () => router.back(),
-          actionLabel: t('player.clips.saveClip'),
-          busy: saving,
-          onAction: onSave,
-        })}
+          headerLeft: () => (
+            <HeaderGlyphButtonIos
+              systemName="xmark"
+              label={t('common.cancel')}
+              onPress={() => router.back()}
+            />
+          ),
+          headerRight: () => (
+            <HeaderGlyphGroupIos
+              glyphs={[
+                {
+                  systemName: 'slider.horizontal.3',
+                  label: t('player.shape.title'),
+                  onPress: () => router.push('/shaper'),
+                },
+                {
+                  systemName: 'checkmark',
+                  label: t('player.clips.saveClip'),
+                  onPress: onSave,
+                  disabled: saving,
+                },
+              ]}
+            />
+          ),
+        }}
       />
       <ClipTrimEditorIos
         range={range}
