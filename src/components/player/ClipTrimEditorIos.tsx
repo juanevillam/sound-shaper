@@ -1130,11 +1130,12 @@ const styles = StyleSheet.create({
   controlGroupGap: { marginTop: GROUP_GAP },
   /**
    * The slack BELOW the control group outweighs the slack above it
-   * (1 : 1.5), so the timecode and transport ride HIGH enough for a resting
-   * thumb — Juan had to reach down for them when the weights ran the other
-   * way (2026-08-26). Same mechanism, opposite bias to the first cut.
+   * (1 : 3.2), so the timecode and transport ride HIGH enough for a resting
+   * thumb — Juan had to reach down for them at 1 : 1 and AGAIN at 1 : 1.5
+   * (2026-08-26, twice). Same mechanism, bias stepped until the thumb
+   * agreed.
    */
   airLarge: { flexGrow: 1, minHeight: GROUP_GAP },
-  airSmall: { flexGrow: 1.5, minHeight: GROUP_GAP / 2 },
+  airSmall: { flexGrow: 3.2, minHeight: GROUP_GAP / 2 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
