@@ -192,6 +192,32 @@ function ClipsSheetScreen() {
                       modifiers={[tint(colors.danger)]}
                       onPress={() => onDelete(clip.id)}
                     />
+                    {/* EDIT RE-FRAMES: it pushes the same editor New Clip
+                        uses, seeded with this clip's range — one anatomy for
+                        framing and re-framing. Declared AFTER Delete because
+                        SwiftUI gives the FIRST-declared trailing action the
+                        OUTER edge and the full swipe — measured on sim: with
+                        Edit first, a full swipe opened the editor instead of
+                        deleting, which is Mail's order inverted. A
+                        non-destructive swipe action KEEPS THE ACCENT (the
+                        root AGENTS.md rule: its label draws white whatever
+                        the tint, and the greys read as disabled) — stated
+                        explicitly, the same reason Delete states its red. */}
+                    <Button
+                      label={t('player.clips.editAction')}
+                      systemImage="pencil"
+                      modifiers={[tint(colors.primary)]}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/clip-trim',
+                          params: {
+                            clipId: clip.id,
+                            startMs: String(clip.startMs),
+                            endMs: String(clip.endMs),
+                          },
+                        })
+                      }
+                    />
                   </SwipeActions.Actions>
                 </SwipeActions>
               );

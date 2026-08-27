@@ -9,6 +9,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   type QueryDocumentSnapshot,
   type Timestamp,
 } from '@react-native-firebase/firestore';
@@ -41,6 +42,13 @@ type CreateClipParams = {
 type DeleteClipParams = {
   clipId: string;
   soundId: string;
+};
+
+type UpdateClipParams = {
+  clipId: string;
+  endMs: number;
+  soundId: string;
+  startMs: number;
 };
 
 type SubscribeToClipsParams = {
@@ -108,6 +116,35 @@ export const createClip = reported(
     });
 
     return docRef.id;
+  },
+);
+
+/**
+ * Re-frame an existing clip — the editor opened on it commits here. Only the
+ * RANGE moves; `label` and `createdAt` stay what they were (a re-framed clip
+ * is the same bookmark, not a new one — which is also why editing never
+ * counts toward the saved-clips trophy).
+ */
+export const updateClip = reported(
+  'clips.updateClip',
+  async ({
+    clipId,
+    endMs,
+    soundId,
+    startMs,
+  }: UpdateClipParams): Promise<void> => {
+    await updateDoc(
+      doc(
+        getFirestore(),
+        USERS_COLLECTION,
+        requireUid(),
+        SOUNDS_SUBCOLLECTION,
+        soundId,
+        CLIPS_SUBCOLLECTION,
+        clipId,
+      ),
+      { endMs, startMs },
+    );
   },
 );
 

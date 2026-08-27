@@ -7,7 +7,7 @@ import {
   HeaderGlyphGroupIos,
 } from '@portfolio/mobile-ui';
 import { awardTrophy } from '@portfolio/trophies';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { ClipTrimEditorIos } from '@/components/player/ClipTrimEditorIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
@@ -17,7 +17,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { createClip } from '@/services/firebase/clips';
+import { createClip, updateClip } from '@/services/firebase/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { usePlayerStore } from '@/store/player';
 
@@ -32,9 +32,31 @@ function ClipTrimScreen() {
   const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
+  /**
+   * EDITING AN EXISTING CLIP — the Clips list's Edit swipe pushes this same
+   * sheet with the clip's identity and range as params; without them the
+   * sheet is New Clip exactly as before. One editor, two commits: the
+   * anatomy of re-framing a clip IS the anatomy of framing one (Juan,
+   * 2026-08-27).
+   */
+  const params = useLocalSearchParams<{
+    clipId?: string;
+    startMs?: string;
+    endMs?: string;
+  }>();
+  const editingClipId =
+    typeof params.clipId === 'string' && params.clipId.length > 0
+      ? params.clipId
+      : null;
   const [range, setRange] = useState(() => {
     const { position, duration } = usePlayerStore.getState();
     const total = Math.floor(duration);
+    if (editingClipId) {
+      const startS = Math.max(0, Math.round(Number(params.startMs) / 1000));
+      const endS = Math.round(Number(params.endMs) / 1000);
+      if (Number.isFinite(startS) && Number.isFinite(endS) && endS > startS)
+        return { startS, endS };
+    }
     const startS = Math.max(0, Math.round(position - 7));
     const endS = Math.min(total || 15, startS + 15);
     return { startS, endS: Math.max(endS, startS + 1) };
@@ -43,6 +65,21 @@ function ClipTrimScreen() {
 
   useEffect(() => {
     usePlayerStore.getState().pause();
+    /**
+     * Editing opens ON the clip: the band centres the playhead, and a clip
+     * saved three minutes from wherever the playhead happens to rest would
+     * open the editor on empty track with the selection off-screen in the
+     * overview. A real seek (position differs — the store's own no-op guard
+     * covers the parked-on-start case), and it also stamps `seekNonce`, which
+     * is what jumps the editor's line there on the first frame.
+     */
+    if (editingClipId) {
+      const startS = Math.round(Number(params.startMs) / 1000);
+      if (Number.isFinite(startS))
+        usePlayerStore.getState().seek(Math.max(0, startS));
+    }
+    // Entry-only effect: params are stable for the life of the sheet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The sound changed under the editor (skip from the island, deletion):
@@ -57,21 +94,36 @@ function ClipTrimScreen() {
   const onSave = () => {
     haptics.selection();
     setSaving(true);
-    createClip({
-      soundId: current.id,
-      startMs: range.startS * 1000,
-      endMs: range.endS * 1000,
-      label: '',
-    })
+    const commit = editingClipId
+      ? // Re-framing moves the RANGE and nothing else — no trophy, no
+        // saved-clips count: the same bookmark, not a new one.
+        updateClip({
+          clipId: editingClipId,
+          soundId: current.id,
+          startMs: range.startS * 1000,
+          endMs: range.endS * 1000,
+        })
+      : createClip({
+          soundId: current.id,
+          startMs: range.startS * 1000,
+          endMs: range.endS * 1000,
+          label: '',
+        }).then(() => {
+          // Awarded here rather than from a store — the clips cache only
+          // holds sounds you have opened, so it cannot answer "have you ever
+          // saved one". Same sites the in-player save used.
+          awardTrophy(TROPHY_IDS.firstClip);
+          useClipsSavedStore.getState().saved();
+        });
+    commit
       .then(() => {
-        // Awarded here rather than from a store — the clips cache only holds
-        // sounds you have opened, so it cannot answer "have you ever saved
-        // one". Same sites the in-player save used.
-        awardTrophy(TROPHY_IDS.firstClip);
-        useClipsSavedStore.getState().saved();
         // `scope: 'app'` — fired as part of CLOSING this sheet, addressed
         // to the Clips list behind it. See `SnackbarScope`.
-        showSnackbar(t('snackbar.clip-created'), undefined, { scope: 'app' });
+        showSnackbar(
+          t(editingClipId ? 'snackbar.clip-updated' : 'snackbar.clip-created'),
+          undefined,
+          { scope: 'app' },
+        );
         router.back();
       })
       .catch(() => {
@@ -93,7 +145,7 @@ function ClipTrimScreen() {
           here — the group's language — disabled while the save runs. */}
       <Stack.Screen
         options={{
-          title: t('player.clips.new'),
+          title: t(editingClipId ? 'player.clips.edit' : 'player.clips.new'),
           headerLeft: () => (
             <HeaderGlyphButtonIos
               systemName="xmark"
