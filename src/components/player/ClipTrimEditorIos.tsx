@@ -746,6 +746,22 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
+      {/* THE SELECTION'S OWN CAPTION — start on the left corner, length in
+          the middle, end on the right: the exact label row the player's
+          scrubber stands under its slider, on the object those numbers
+          describe. It used to be one centred line under the timecode
+          ("0:37 – 0:52 · 0:15"), and Juan read it as disrupting the sheet's
+          flow there (2026-08-27) — a technical string floating in the
+          middle of the column. Split to the overview's corners the same
+          facts read as the strip's own furniture, and the big timecode
+          stands alone, which is Voice Memos' arrangement exactly. */}
+      <ClipRangeCaption
+        startSv={startSv}
+        endSv={endSv}
+        width={overviewWidth}
+        color={colors.onSurfaceMuted}
+      />
+
       {/* The one LARGE air on the sheet — it separates the wave group from
           the control group, which is what makes each read as a group at
           all. Even spacers everywhere was tried and read as
@@ -753,16 +769,8 @@ export function ClipTrimEditorIos({
           clustering plus chosen slack, not equidistance. */}
       <View style={styles.airLarge} />
 
-      {/* THE TIMECODE — Voice Memos' centrepiece — with the CLIP'S OWN LINE
-          under it: where the selection stands and how long it is, live under
-          an edge drag (Juan, 2026-08-26 — the playhead number alone said
-          nothing about the thing being made). */}
+      {/* THE TIMECODE — Voice Memos' centrepiece, standing alone. */}
       <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
-      <ClipRangeLine
-        startSv={startSv}
-        endSv={endSv}
-        color={colors.onSurfaceMuted}
-      />
 
       {/* THE TRANSPORT — ±15 and play, the editor's own loop. FIXED gap to
           the readout above: the timecode is this transport's own caption
@@ -940,19 +948,21 @@ const WaveTile = memo(function WaveTile({
 });
 
 /**
- * THE CLIP'S OWN LINE — its range and its duration, in the clips list's own
- * format plus the house's mid-dot: "0:12 – 0:27 · 0:15". A leaf reacting on
- * the ROUNDED edges (the only values this editor deals in), so an edge drag
- * moves the numbers live without the editor re-rendering — the
+ * THE SELECTION'S CAPTION ROW — start, length, end on the overview's own
+ * corners, the scrubber-label idiom (see the render site). A leaf reacting
+ * on the ROUNDED edges (the only values this editor deals in), so an edge
+ * drag moves the numbers live without the editor re-rendering — the
  * `ClipRangeLabelIos` idea, rebuilt on this surface's shared values.
  */
-const ClipRangeLine = memo(function ClipRangeLine({
+const ClipRangeCaption = memo(function ClipRangeCaption({
   startSv,
   endSv,
+  width,
   color,
 }: {
   startSv: SharedValue<number>;
   endSv: SharedValue<number>;
+  width: number;
   color: string;
 }) {
   const [edges, setEdges] = useState(() => ({
@@ -977,13 +987,23 @@ const ClipRangeLine = memo(function ClipRangeLine({
   );
 
   return (
-    <AppText
-      doNotTranslate
-      text={`${formatTime(edges.start)} – ${formatTime(edges.end)} · ${formatTime(
-        Math.max(0, edges.end - edges.start),
-      )}`}
-      style={[styles.clipLine, { color }]}
-    />
+    <View style={[styles.rangeCaption, { width }]}>
+      <AppText
+        doNotTranslate
+        text={formatTime(edges.start)}
+        style={[styles.rangeCaptionText, { color }]}
+      />
+      <AppText
+        doNotTranslate
+        text={formatTime(Math.max(0, edges.end - edges.start))}
+        style={[styles.rangeCaptionText, { color }]}
+      />
+      <AppText
+        doNotTranslate
+        text={formatTime(edges.end)}
+        style={[styles.rangeCaptionText, { color }]}
+      />
+    </View>
   );
 });
 
@@ -1138,12 +1158,23 @@ const styles = StyleSheet.create({
    * GROUP_GAP stays between blocks. Subheadline's own metrics; tabular for
    * the same reason every readout here is.
    */
-  clipLine: {
-    fontSize: 15,
+  /**
+   * The scrubber's label row, on the overview: `PlayerScrubber.ios`'s own
+   * arrangement (space-between corners, `labelMedium`-scale ink, tabular
+   * digits so a ticking edge never shifts its neighbours). Three labels, not
+   * two — the middle one is the clip's LENGTH, the fact the corner pair
+   * cannot say by itself.
+   */
+  rangeCaption: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  rangeCaptionText: {
+    fontSize: 13,
     fontVariant: ['tabular-nums'],
-    lineHeight: 20,
-    marginTop: 4,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   transport: {
     alignItems: 'center',
