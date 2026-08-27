@@ -205,8 +205,11 @@ in the file's header; the ones worth knowing before touching it:
   full-track OVERVIEW strip carrying the selection frame, a large timecode,
   and a ±15s + play transport. (It rendered Voice Memos' centiseconds first;
   Juan cut them 2026-08-26 — MOTION IS CONTINUOUS, VALUES ARE WHOLE SECONDS
-  is the editor's settled policy: drags track the finger 1:1, releases and
-  labels round to the second.) The commit lives in the sheet BAR: ✕ leads,
+  was the editor's settled policy, and it was NARROWED 2026-08-27 to the
+  PLAYHEAD and the LABELS: a trim CAP commits exactly where it is dropped,
+  because whole-second snapping made a start "just in between 2:22 and 2:23"
+  unsettable — the labels still floor to the second, which is also
+  `formatTime`'s own semantics.) The commit lives in the sheet BAR: ✕ leads,
   and the trailing slot is ONE merged pill — Shape (`slider.horizontal.3`,
   stacking the Shape sheet over the editor) beside a ✓ tinted
   `colors.primary` exactly as `SheetCommitGlyphIos` tints it everywhere else

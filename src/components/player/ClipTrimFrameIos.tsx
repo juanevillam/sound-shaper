@@ -229,9 +229,16 @@ export function ClipTrimFrameIos({
       );
     })
     .onFinalize(() => {
-      const seconds = Math.round(startSv.value);
-      startSv.value = seconds;
-      runOnJS(commit)(seconds, Math.round(endSv.value));
+      /**
+       * THE CAP COMMITS EXACTLY WHERE IT WAS DROPPED — no snap. Whole-second
+       * rounding lived here first, as part of the editor's values policy, and
+       * it cost the one thing a trim cap exists for: a start "just in
+       * between 2:22 and 2:23" snapped to either side and could not be set
+       * at all (Juan, 2026-08-27). The whole-second rule survives where it
+       * was actually aimed — the PLAYHEAD's releases and the LABELS' display
+       * — and the caps are continuous underneath it.
+       */
+      runOnJS(commit)(startSv.value, endSv.value);
     });
 
   const dragEnd = Gesture.Pan()
@@ -249,9 +256,8 @@ export function ClipTrimFrameIos({
       );
     })
     .onFinalize(() => {
-      const seconds = Math.round(endSv.value);
-      endSv.value = seconds;
-      runOnJS(commit)(Math.round(startSv.value), seconds);
+      // Unrounded, like the start cap above.
+      runOnJS(commit)(startSv.value, endSv.value);
     });
 
   // The framed middle slides the whole clip — length preserved. It takes the
@@ -273,14 +279,8 @@ export function ClipTrimFrameIos({
       endSv.value = next + length;
     })
     .onFinalize(() => {
-      const lengthS = Math.round(endSv.value - startSv.value);
-      const seconds = Math.min(
-        Math.round(startSv.value),
-        Math.max(durationS - lengthS, 0),
-      );
-      startSv.value = seconds;
-      endSv.value = seconds + lengthS;
-      runOnJS(commit)(seconds, seconds + lengthS);
+      // Unrounded, like the caps — the slide preserves the exact length.
+      runOnJS(commit)(startSv.value, endSv.value);
     });
 
   /**

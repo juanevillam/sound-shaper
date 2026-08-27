@@ -350,7 +350,7 @@ export function ClipTrimEditorIos({
 
   const commitEdges = useCallback(() => {
     edgeDraggingRef.current = false;
-    onRangeChange(Math.round(startSv.value), Math.round(endSv.value));
+    onRangeChange(startSv.value, endSv.value);
   }, [onRangeChange, startSv, endSv]);
 
   // --- Tiled strip ---------------------------------------------------------
@@ -533,8 +533,10 @@ export function ClipTrimEditorIos({
         }
       })
       .onFinalize(() => {
-        startSv.value = Math.round(startSv.value);
-        endSv.value = Math.round(endSv.value);
+        // Unrounded — the cap commits exactly where it was dropped. The
+        // whole-second policy is the playhead's and the labels'; see
+        // `ClipTrimFrameIos`'s start cap for the full note (Juan,
+        // 2026-08-27).
         runOnJS(commitEdges)();
       });
   const startEdgePan = makeEdgePan('start');
@@ -1033,13 +1035,16 @@ const ClipRangeCaption = memo(function ClipRangeCaption({
   color: string;
 }) {
   const [edges, setEdges] = useState(() => ({
-    start: Math.round(startSv.value),
-    end: Math.round(endSv.value),
+    start: Math.floor(startSv.value),
+    end: Math.floor(endSv.value),
   }));
   useAnimatedReaction(
+    // FLOORED, not rounded: the caps are continuous now and `formatTime`
+    // floors, so keying the reaction on the floored second is what keeps the
+    // label and the re-render schedule telling the same story.
     () => ({
-      start: Math.round(startSv.value),
-      end: Math.round(endSv.value),
+      start: Math.floor(startSv.value),
+      end: Math.floor(endSv.value),
     }),
     (next, previous) => {
       if (
