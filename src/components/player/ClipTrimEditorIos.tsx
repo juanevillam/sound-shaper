@@ -86,14 +86,14 @@ const WAVE_HEIGHT = 148;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 /**
- * Bars: one per 75ms, each aggregating the decode buckets it spans. Tuned by
- * eye in two passes (Juan, 2026-08-26): one bar per 50ms bucket read as a
- * thicket ("too many lines"), one per 100ms overshot ("way less than i
- * wanted") — the midpoint is the one that landed. Density is a drawing
- * choice; the decode cache keeps its own resolution.
+ * Bars: one per 65ms, each aggregating the decode buckets it spans. Tuned by
+ * eye across three passes (Juan, 2026-08-26): 50ms read as a thicket, 100ms
+ * overshot, 75ms was still short of it — this sits just under the original
+ * density with the gaps that keep it legible. Density is a drawing choice;
+ * the decode cache keeps its own resolution.
  */
-const BAR_PITCH = 7.5;
-const BAR_WIDTH = 3.5;
+const BAR_PITCH = 6.5;
+const BAR_WIDTH = 3;
 /**
  * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
  * sized the trim frame's own box. The line inside is 3pt.
