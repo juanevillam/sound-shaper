@@ -4,7 +4,11 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
-import { SHEET_CONTENT_TOP, SwiftUIHost } from '@portfolio/mobile-ui';
+import {
+  SHEET_CONTENT_TOP,
+  SwiftUIHost,
+  useSheetLanded,
+} from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -375,24 +379,38 @@ export function ClipTrimEditorIos({
   );
 
   const lastChunk = Math.max(0, Math.ceil(durationS / CHUNK_S) - 1);
+  /**
+   * THE TILE WINDOW WAITS FOR THE SHEET TO LAND. The editor's first render
+   * happens DURING the sheet's presentation, and it used to mount the full
+   * five-tile window plus the clip's pinned chunks right there — SVG path
+   * builds and native commits riding the present animation's own frames.
+   * Until `transitionEnd` (+ the settle frame) only ±1 chunk mounts, which
+   * already covers ~6× the visible band; the rest follows one frame after
+   * the sheet stops moving, off-screen and invisible by construction.
+   */
+  const landed = useSheetLanded();
+  const reach = landed ? 2 : 1;
   const tileSet = new Set<number>();
-  for (let i = chunk - 2; i <= chunk + 2; i += 1) {
+  for (let i = chunk - reach; i <= chunk + reach; i += 1) {
     if (i >= 0 && i <= lastChunk) tileSet.add(i);
   }
   /**
-   * THE SELECTION'S OWN CHUNKS STAY MOUNTED ALWAYS — the clip is this
-   * editor's subject, and play-from-outside jumps the playhead to its
-   * start: if those tiles had to mount on arrival, the band blinked exactly
-   * on that press (Juan, 2026-08-26 — "the flicker happens when the red
-   * line is not in the clip dragger"). A clip is a handful of chunks;
-   * keeping them is nearly free, and memoisation makes them inert.
+   * THE SELECTION'S OWN CHUNKS STAY MOUNTED ALWAYS (once the sheet has
+   * landed) — the clip is this editor's subject, and play-from-outside
+   * jumps the playhead to its start: if those tiles had to mount on
+   * arrival, the band blinked exactly on that press (Juan, 2026-08-26 —
+   * "the flicker happens when the red line is not in the clip dragger").
+   * A clip is a handful of chunks; keeping them is nearly free, and
+   * memoisation makes them inert.
    */
-  for (
-    let i = Math.floor(range.startS / CHUNK_S);
-    i <= Math.min(Math.ceil(range.endS / CHUNK_S), lastChunk);
-    i += 1
-  ) {
-    if (i >= 0) tileSet.add(i);
+  if (landed) {
+    for (
+      let i = Math.floor(range.startS / CHUNK_S);
+      i <= Math.min(Math.ceil(range.endS / CHUNK_S), lastChunk);
+      i += 1
+    ) {
+      if (i >= 0) tileSet.add(i);
+    }
   }
   const tiles = [...tileSet].sort((a, b) => a - b);
 
@@ -934,6 +952,19 @@ export function ClipTrimEditorIos({
  * or remounts a tile that is already on screen; only the far edges of the
  * five-tile window come and go, and those are off-screen by construction.
  */
+/**
+ * BUILT TILE PATHS ARE CACHED — a tile's path is a pure function of the
+ * decode result and the chunk, so remounting a tile (the window sliding back
+ * over a chunk it dropped, the landed expansion above) must not rebuild a
+ * ~270-rect string. Keyed by the BUCKETS ARRAY'S IDENTITY (a WeakMap, so a
+ * new decode simply starts a new map and the old one collects) — the
+ * cache-audit's home table: render-scoped value, module-memo home. The
+ * placeholder path depends only on the tile's WIDTH, so its cache is a tiny
+ * width-keyed map.
+ */
+const wavePathCache = new WeakMap<number[], Map<number, string>>();
+const placeholderPathCache = new Map<number, string>();
+
 const WaveTile = memo(function WaveTile({
   index,
   buckets,
@@ -953,8 +984,8 @@ const WaveTile = memo(function WaveTile({
   const toS = Math.min(durationS, fromS + CHUNK_S);
   const width = (toS - fromS) * PPS;
 
-  const wavePath = useMemo(
-    () =>
+  const wavePath = useMemo(() => {
+    const build = () =>
       barsPath(
         buckets,
         bucketMs,
@@ -964,9 +995,25 @@ const WaveTile = memo(function WaveTile({
         WAVE_HEIGHT,
         BAR_PITCH,
         BAR_WIDTH,
-      ),
-    [buckets, bucketMs, fromS, toS],
-  );
+      );
+    if (buckets) {
+      let byChunk = wavePathCache.get(buckets);
+      if (!byChunk) {
+        byChunk = new Map();
+        wavePathCache.set(buckets, byChunk);
+      }
+      const hit = byChunk.get(index);
+      if (hit !== undefined) return hit;
+      const built = build();
+      byChunk.set(index, built);
+      return built;
+    }
+    const hit = placeholderPathCache.get(width);
+    if (hit !== undefined) return hit;
+    const built = build();
+    placeholderPathCache.set(width, built);
+    return built;
+  }, [buckets, bucketMs, fromS, toS, index, width]);
 
   const ticks = useMemo(() => {
     const list: { x: number; label: string; major: boolean }[] = [];
