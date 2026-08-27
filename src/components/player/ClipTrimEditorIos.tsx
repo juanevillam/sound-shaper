@@ -100,6 +100,16 @@ const WAVE_HEIGHT = 224;
  * (`artworkRadius`'s class): resize the band and the air scales with it.
  */
 const WAVE_INK_RATIO = 0.78;
+/**
+ * THE BARS ARE NOT LABEL INK. Full `onSurface` bars under the fixed red
+ * cursor made a moving high-contrast grating — bar, gap, bar, gap sweeping
+ * beneath a stationary saturated line — which vibrates optically and reads
+ * as dizzying (Juan, 2026-08-27; it is also a real vestibular/visual-stress
+ * accessibility concern, not taste). Voice Memos' own bars sit near
+ * secondaryLabel for the same reason: the WAVE is content, the CURSOR is
+ * the instrument, and only one of them gets full contrast.
+ */
+const WAVE_BAR_ALPHA = 0.6;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 /**
@@ -641,7 +651,7 @@ export function ClipTrimEditorIos({
                   buckets={waveform?.buckets ?? null}
                   bucketMs={waveform?.bucketMs ?? 50}
                   durationS={durationS}
-                  barColor={colors.onSurface}
+                  barColor={withAlpha(colors.onSurface, WAVE_BAR_ALPHA)}
                   mutedColor={colors.onSurfaceMuted}
                 />
               ))}
@@ -701,6 +711,20 @@ export function ClipTrimEditorIos({
             pointerEvents="none"
             style={[styles.playheadWrap, { left: centerX - 1.25 }]}
           >
+            {/* THE HALO — a stripe of the band's own ground behind the red
+                line, so the cursor never sits directly against a passing
+                bar: its immediate neighbours are constant whatever slides
+                underneath, which is the other half of killing the grating
+                vibration (the treatment Photos gives its white trim
+                playhead, in this band's own colour). Invisible over the
+                unwashed band by construction; a quiet carved slot over the
+                wash. */}
+            <View
+              style={[
+                styles.playheadHalo,
+                { backgroundColor: colors.surfaceContainer },
+              ]}
+            />
             <View
               style={[styles.playheadLine, { backgroundColor: colors.danger }]}
             />
@@ -1128,6 +1152,14 @@ const styles = StyleSheet.create({
     width: 2.5,
   },
   playheadLine: { bottom: 0, position: 'absolute', top: 0, width: 2.5 },
+  playheadHalo: {
+    borderRadius: 4,
+    bottom: 0,
+    left: -2.75,
+    position: 'absolute',
+    top: 0,
+    width: 8,
+  },
   playheadDotTop: { top: -4.5 },
   playheadDotBottom: { bottom: -4.5 },
   overview: {
