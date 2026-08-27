@@ -108,6 +108,15 @@ const SKIP_S = 15;
 const SKIP_HOST_BOX = Math.round(IOS_TRANSPORT_SKIP_SIZE * 1.3);
 
 /**
+ * The band overhangs the track's extent at both ENDS, with its own rounded
+ * corners — at 0:00 the container used to start dead on the first bar's
+ * edge, a hard cut mid-card ("de repente empieza", Juan 2026-08-26). Now the
+ * shape leads the content: rounded band edge, then this much empty panel,
+ * then the first bar.
+ */
+const TRACK_EDGE_PAD = 20;
+
+/**
  * ONE GAP BETWEEN THE EDITOR'S GROUPS — wave card, overview, timecode,
  * transport. The first cut used three invented numbers (28/40/36); the
  * console's own block gap is 30 (`titleBlock`), and one value close to it
@@ -299,28 +308,34 @@ export function ClipTrimEditorIos({
   // Pan the waveform to scrub — the finger moves the TAPE, so the playhead
   // value moves opposite the drag, exactly Voice Memos' feel. Scrubbing
   // pauses first: the finger owns the transport while it is down.
+  /**
+   * WHOLE SECONDS, LIVE — not merely on release. The first cut kept the drag
+   * continuous and snapped the landing, and Juan called it again: the tape
+   * still sat at fractional offsets under the finger, which is exactly the
+   * surgical handling this editor renounces. The FINGER's travel stays
+   * continuous (tracked against the gesture's own base), the VALUE steps
+   * second by second — a detent per second, 100pt apart at this scale.
+   */
+  const scrubBaseSv = useSharedValue(0);
   const scrubPan = Gesture.Pan()
     .minDistance(2)
     .onBegin(() => {
       // The finger owns the value now — an in-flight tick tween would keep
       // writing under it.
       cancelAnimation(playheadSv);
+      scrubBaseSv.value = playheadSv.value;
       runOnJS(setPanning)(true);
       runOnJS(pause)();
     })
     .onChange(event => {
-      playheadSv.value = Math.min(
-        Math.max(playheadSv.value - event.changeX / PPS, 0),
-        durationS,
+      playheadSv.value = Math.round(
+        Math.min(
+          Math.max(scrubBaseSv.value - event.translationX / PPS, 0),
+          durationS,
+        ),
       );
     })
     .onFinalize(() => {
-      // WHOLE SECONDS, END TO END (Juan, 2026-08-26): clips are marked
-      // second by second — Voice Memos' surgical precision is for trimming
-      // a recording, and a clip does not need it. The drag itself stays
-      // continuous (that is the fluidity); the RELEASE lands on the second,
-      // so the line, the timecode and the seek all agree.
-      playheadSv.value = Math.round(playheadSv.value);
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
@@ -358,39 +373,42 @@ export function ClipTrimEditorIos({
       cancelAnimation(playheadSv);
       runOnJS(setPanning)(true);
       runOnJS(pause)();
-      playheadSv.value = Math.min(
-        Math.max(event.x / overviewPps, 0),
-        durationS,
+      // Live whole-second quantisation, like every drag here.
+      playheadSv.value = Math.round(
+        Math.min(Math.max(event.x / overviewPps, 0), durationS),
       );
     })
     .onChange(event => {
       if (overviewRejected.value) return;
-      playheadSv.value = Math.min(
-        Math.max(event.x / overviewPps, 0),
-        durationS,
+      playheadSv.value = Math.round(
+        Math.min(Math.max(event.x / overviewPps, 0), durationS),
       );
     })
     .onFinalize(() => {
       if (overviewRejected.value) return;
-      playheadSv.value = Math.round(playheadSv.value);
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
 
+  // Live whole-second quantisation here too — the edges place whole seconds,
+  // so they step them, tracked against the gesture's own base.
+  const edgeBaseSv = useSharedValue(0);
   const makeEdgePan = (edge: 'start' | 'end') =>
     Gesture.Pan()
       .minDistance(2)
-      .onBegin(() => runOnJS(setEdgeDragging)(true))
+      .onBegin(() => {
+        edgeBaseSv.value = edge === 'start' ? startSv.value : endSv.value;
+        runOnJS(setEdgeDragging)(true);
+      })
       .onChange(event => {
+        const raw = edgeBaseSv.value + event.translationX / PPS;
         if (edge === 'start') {
-          startSv.value = Math.min(
-            Math.max(startSv.value + event.changeX / PPS, 0),
-            endSv.value - MIN_GAP_S,
+          startSv.value = Math.round(
+            Math.min(Math.max(raw, 0), endSv.value - MIN_GAP_S),
           );
         } else {
-          endSv.value = Math.max(
-            Math.min(endSv.value + event.changeX / PPS, durationS),
-            startSv.value + MIN_GAP_S,
+          endSv.value = Math.round(
+            Math.max(Math.min(raw, durationS), startSv.value + MIN_GAP_S),
           );
         }
       })
@@ -403,8 +421,11 @@ export function ClipTrimEditorIos({
 
   // --- Transport ----------------------------------------------------------
   const onSkip = (deltaS: number) => {
+    // From the ROUNDED playhead: live playback sits at fractional seconds,
+    // and 92.3 + 15 = 107.3 was how fractions leaked back into a surface
+    // that speaks whole seconds.
     const { position } = usePlayerStore.getState();
-    seekTo(Math.min(Math.max(position + deltaS, 0), durationS));
+    seekTo(Math.min(Math.max(Math.round(position) + deltaS, 0), durationS));
   };
 
   /** Play from the playhead, stopping on the end cap — the player's rule. */
@@ -821,13 +842,19 @@ const styles = StyleSheet.create({
     top: 0,
     ...CONTINUOUS_CURVE,
   },
-  /** The card's interior ground, spanning exactly the track's extent. */
+  /**
+   * The card's interior ground — the track's extent plus `TRACK_EDGE_PAD` of
+   * lead-in/out at each end, with its own rounded corners so the ends read
+   * as a shape, not a cut.
+   */
   waveBand: {
+    borderRadius: CARD_RADIUS,
     bottom: 0,
-    left: 0,
+    left: -TRACK_EDGE_PAD,
     position: 'absolute',
-    right: 0,
+    right: -TRACK_EDGE_PAD,
     top: 0,
+    ...CONTINUOUS_CURVE,
   },
 
   strip: {
