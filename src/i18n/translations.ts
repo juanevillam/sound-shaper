@@ -108,6 +108,8 @@ export const translations = {
       clips: {
         title: 'Clips',
         new: 'New Clip',
+        edit: 'Edit Clip',
+        editAction: 'Edit',
         preview: 'Preview',
         saveClip: 'Save',
         empty: 'Frame your favorite part above and save it.',
@@ -269,6 +271,7 @@ export const translations = {
       'sound-deleted': 'Sound deleted',
       'sound-delete-failed': "Couldn't delete the sound. Try again.",
       'clip-created': 'Clip saved',
+      'clip-updated': 'Clip updated',
       'clip-save-failed': "Couldn't save the clip. Try again.",
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': "Couldn't delete the clip. Try again.",
@@ -383,6 +386,8 @@ export const translations = {
       clips: {
         title: 'Clips',
         new: 'Nuevo clip',
+        edit: 'Editar clip',
+        editAction: 'Editar',
         preview: 'Previsualizar',
         saveClip: 'Guardar',
         empty: 'Encuadra tu parte favorita arriba y guárdala.',
@@ -536,6 +541,7 @@ export const translations = {
       'sound-delete-failed':
         'No se pudo eliminar el sonido. Vuelve a intentarlo.',
       'clip-created': 'Clip guardado',
+      'clip-updated': 'Clip actualizado',
       'clip-save-failed': 'No se pudo guardar el clip. Vuelve a intentarlo.',
       'clip-deleted': 'Clip eliminado',
       'clip-delete-failed': 'No se pudo eliminar el clip. Vuelve a intentarlo.',
@@ -649,6 +655,8 @@ export const translations = {
       clips: {
         title: '片段',
         new: '新建片段',
+        edit: '编辑片段',
+        editAction: '编辑',
         preview: '预览',
         saveClip: '存储',
         empty: '在上方框选你最喜欢的部分并存储。',
@@ -794,6 +802,7 @@ export const translations = {
       'sound-deleted': '音频已删除',
       'sound-delete-failed': '无法删除音频。请再试一次。',
       'clip-created': '片段已存储',
+      'clip-updated': '片段已更新',
       'clip-save-failed': '无法存储片段。请再试一次。',
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段。请再试一次。',
