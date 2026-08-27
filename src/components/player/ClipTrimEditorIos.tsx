@@ -158,6 +158,14 @@ const TRACK_EDGE_PAD = 20;
  * keeps the sheet reading as that family.
  */
 const GROUP_GAP = 28;
+/**
+ * The measured half-delta that makes the timecode's INK gaps equal under the
+ * two equal `airEven` spacers: box-symmetric, the ink read 49.5 above / 61.3
+ * below (the digits' line box carries more bearing under the baseline than
+ * over the caps, and the transport's play triangle starts well inside its
+ * glyph box). A pure translate, so layout never moves.
+ */
+const TIMECODE_OPTICAL_DROP = 6;
 
 /** Placeholder amplitude while the decode is in flight — geometry never waits. */
 const PLACEHOLDER_LEVEL = 0.18;
@@ -824,7 +832,7 @@ export function ClipTrimEditorIos({
           all. Even spacers everywhere was tried and read as
           justifyContent: space-between (Juan, 2026-08-26): rhythm is
           clustering plus chosen slack, not equidistance. */}
-      <View style={styles.airLarge} />
+      <View style={styles.airEven} />
 
       {/* THE TIMECODE — Voice Memos' centrepiece, standing alone. */}
       <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
@@ -833,7 +841,9 @@ export function ClipTrimEditorIos({
           the readout above: the timecode is this transport's own caption
           (read where you are, act on it), so the two are one control
           group. */}
-      <View style={[styles.transport, styles.controlGroupGap]}>
+      <View style={styles.airEven} />
+
+      <View style={styles.transport}>
         <GlyphButton
           onPress={() => onSkip(-SKIP_S)}
           hitSlop={12}
@@ -1211,6 +1221,7 @@ const styles = StyleSheet.create({
    * body-sized, and large glyphs in it render clipped.
    */
   timecode: {
+    transform: [{ translateY: TIMECODE_OPTICAL_DROP }],
     fontSize: 34,
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
@@ -1256,7 +1267,7 @@ const styles = StyleSheet.create({
    * with weighted spacers rather than centring it.
    */
   waveGroupGap: { height: 20 },
-  controlGroupGap: { marginTop: GROUP_GAP },
+
   /**
    * The slack BELOW the control group outweighs the slack above it
    * (1 : 3.2), so the timecode and transport ride HIGH enough for a resting
@@ -1264,7 +1275,15 @@ const styles = StyleSheet.create({
    * (2026-08-26, twice). Same mechanism, bias stepped until the thumb
    * agreed.
    */
-  airLarge: { flexGrow: 1, minHeight: GROUP_GAP },
+  /**
+   * THE TIMECODE'S AIR IS EVEN — the same flexible spacer above and below it
+   * (Juan, 2026-08-27: the number should sit centred in its slack, not
+   * closer to one neighbour). It replaced a flexible air above plus a fixed
+   * GROUP_GAP below, which read 59.0 / 51.8 in ink. Box symmetry alone is
+   * not ink symmetry — the digits' bearings and the transport's glyph
+   * bearings differ — so the label carries a small measured translate too.
+   */
+  airEven: { flexGrow: 1, minHeight: GROUP_GAP },
   airSmall: { flexGrow: 3.2, minHeight: GROUP_GAP / 2 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
