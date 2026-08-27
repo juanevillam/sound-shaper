@@ -52,8 +52,10 @@ function ClipTrimScreen() {
     const { position, duration } = usePlayerStore.getState();
     const total = Math.floor(duration);
     if (editingClipId) {
-      const startS = Math.max(0, Math.round(Number(params.startMs) / 1000));
-      const endS = Math.round(Number(params.endMs) / 1000);
+      // Exact — a clip whose cap was set between two seconds must reopen on
+      // that exact cap, not on the nearest whole second.
+      const startS = Math.max(0, Number(params.startMs) / 1000);
+      const endS = Number(params.endMs) / 1000;
       if (Number.isFinite(startS) && Number.isFinite(endS) && endS > startS)
         return { startS, endS };
     }
@@ -74,7 +76,7 @@ function ClipTrimScreen() {
      * is what jumps the editor's line there on the first frame.
      */
     if (editingClipId) {
-      const startS = Math.round(Number(params.startMs) / 1000);
+      const startS = Number(params.startMs) / 1000;
       if (Number.isFinite(startS))
         usePlayerStore.getState().seek(Math.max(0, startS));
     }
@@ -100,13 +102,13 @@ function ClipTrimScreen() {
         updateClip({
           clipId: editingClipId,
           soundId: current.id,
-          startMs: range.startS * 1000,
-          endMs: range.endS * 1000,
+          startMs: Math.round(range.startS * 1000),
+          endMs: Math.round(range.endS * 1000),
         })
       : createClip({
           soundId: current.id,
-          startMs: range.startS * 1000,
-          endMs: range.endS * 1000,
+          startMs: Math.round(range.startS * 1000),
+          endMs: Math.round(range.endS * 1000),
           label: '',
         }).then(() => {
           // Awarded here rather than from a store — the clips cache only
