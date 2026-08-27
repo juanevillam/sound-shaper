@@ -151,11 +151,14 @@ const restartLoaded = (
 let seekNonceCounter = 0;
 const nextSeekNonce = () => ++seekNonceCounter;
 
-// The fresh-transport reset a (re)load shares.
-const loadReset = (nonce: number) => ({
+// The fresh-transport reset a (re)load shares. Duration SEEDS from the
+// sound's banked value (see `Sound.durationMs`) instead of zeroing — the
+// engine's own report still lands over it and wins — so skipping between
+// known sounds never flashes the scrubber's `-:--` placeholder.
+const loadReset = (nonce: number, sound?: Sound | null) => ({
   activeClip: null,
   position: 0,
-  duration: 0,
+  duration: sound?.durationMs ? sound.durationMs / 1000 : 0,
   loadNonce: nonce + 1,
   pendingStart: true,
 });
@@ -183,7 +186,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       current: sound,
       queue,
       playing: true,
-      ...loadReset(state.loadNonce),
+      ...loadReset(state.loadNonce, sound),
     })),
 
   requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
@@ -290,7 +293,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set(state => ({
       current: nextSound,
       playing: true,
-      ...loadReset(state.loadNonce),
+      ...loadReset(state.loadNonce, nextSound),
     }));
   },
 
@@ -318,7 +321,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set(state => ({
       current: previousSound,
       playing: true,
-      ...loadReset(state.loadNonce),
+      ...loadReset(state.loadNonce, previousSound),
     }));
   },
 
@@ -421,7 +424,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     if (isLast) {
       audioEngine.pause();
-      set(state => ({ playing: false, ...loadReset(state.loadNonce) }));
+      set(state => ({
+        playing: false,
+        ...loadReset(state.loadNonce, current),
+      }));
       return;
     }
 
