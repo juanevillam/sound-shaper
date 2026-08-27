@@ -85,9 +85,15 @@ const CHUNK_S = 12;
 const WAVE_HEIGHT = 148;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
-/** Bars: one per waveform bucket (50ms), VM's density at this scale. */
-const BAR_PITCH = 5;
-const BAR_WIDTH = 3;
+/**
+ * Bars: one per 100ms, each AGGREGATING its two 50ms buckets — half Voice
+ * Memos' density. One per bucket (5pt pitch) read as a thicket ("too many
+ * lines", Juan 2026-08-26); at 10pt pitch with a 4pt bar the band reads as
+ * a waveform rather than a texture, and the decode cache is untouched — the
+ * aggregation happens at draw time.
+ */
+const BAR_PITCH = 10;
+const BAR_WIDTH = 4;
 /**
  * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
  * sized the trim frame's own box. The line inside is 3pt.
@@ -135,7 +141,11 @@ type ClipTrimEditorIosProps = {
   onRangeChange: (startS: number, endS: number) => void;
 };
 
-/** Builds one SVG path of bars for the buckets in [fromS, toS). */
+/**
+ * Builds one SVG path of bars for [fromS, toS) — one bar per PITCH of screen,
+ * each bar the MEAN of the decode buckets it spans, so the display density is
+ * a drawing choice and the cached decode stays at its own resolution.
+ */
 function barsPath(
   buckets: number[] | null,
   bucketMs: number,
@@ -148,15 +158,24 @@ function barsPath(
 ): string {
   const parts: string[] = [];
   const bucketS = bucketMs / 1000;
-  const first = Math.max(0, Math.floor(fromS / bucketS));
-  const last = buckets
-    ? Math.min(buckets.length, Math.ceil(toS / bucketS))
-    : Math.ceil(toS / bucketS);
-  for (let i = first; i < last; i += 1) {
-    const t = i * bucketS;
-    const x = (t - fromS) * pps;
-    if (x + pitch < 0 || x > (toS - fromS) * pps) continue;
-    const level = buckets ? (buckets[i] ?? 0) : PLACEHOLDER_LEVEL;
+  const pitchS = pitch / pps;
+  const slots = Math.ceil((toS - fromS) / pitchS);
+  for (let k = 0; k < slots; k += 1) {
+    const t = fromS + k * pitchS;
+    if (t >= toS) break;
+    let level = PLACEHOLDER_LEVEL;
+    if (buckets) {
+      const from = Math.max(0, Math.floor(t / bucketS));
+      const to = Math.min(buckets.length, Math.ceil((t + pitchS) / bucketS));
+      let sum = 0;
+      let n = 0;
+      for (let i = from; i < to; i += 1) {
+        sum += buckets[i];
+        n += 1;
+      }
+      level = n > 0 ? sum / n : 0;
+    }
+    const x = k * pitchS * pps;
     const h = Math.max(2, level * bandHeight);
     const y = (bandHeight - h) / 2;
     parts.push(
