@@ -79,8 +79,14 @@ import { formatTime } from '@/lib/player';
 // generation before it: entering framing must move nothing (the band-scan
 // invariant), and an overlay costs no layout.
 
-/** The frame's box — the 32pt slider host plus a 6pt overhang each side. */
-export const TRIM_FRAME_HEIGHT = 44;
+/**
+ * The frame's box. 44 was its whole life on the player's scrubber — the 32pt
+ * slider host plus overhang, and Apple's minimum touch target. On the
+ * editor's overview (its only home now) the box grows to 56: the overview is
+ * a MAP, and Juan asked the editor's surfaces to hold more of the sheet
+ * (2026-08-26) — a taller map reads more, and the caps' targets only gain.
+ */
+export const TRIM_FRAME_HEIGHT = 56;
 
 /** Photos' trimmer, mapped onto the 36pt box. */
 const CAP_WIDTH = 14;
