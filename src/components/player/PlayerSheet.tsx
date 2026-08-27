@@ -1089,6 +1089,15 @@ export function PlayerSheet() {
 
   // Nothing loaded yet: the banner still holds its place (YT Music keeps it
   // parked), primed with the first sound — or saying the library is empty.
+  // Card summaries: live settings at a glance. ONE summary, two surfaces —
+  // the clip editor's route reads the same hook. IT MUST SIT ABOVE THE EARLY
+  // RETURN BELOW: as an inline expression the summary cost no hooks and could
+  // live with the cards, but the extraction gave it four, and computing it
+  // after `return <IdleBanner/>` threw "Rendered more hooks than during the
+  // previous render" on the exact transition a cold launch performs — idle
+  // first, then the persisted sound lands (found on sim, 2026-08-26).
+  const shapeSummary = useShapeSummary();
+
   if (!current) return <IdleBanner bottomInset={bottomInset} />;
 
   // Icon buttons signal presses with their RIPPLE, never vibration.
@@ -1166,10 +1175,6 @@ export function PlayerSheet() {
   };
 
   const subtitle = current.artist || ' ';
-
-  // Card summaries: live settings at a glance.
-  // ONE summary, two surfaces — the editor's Shape card reads the same hook.
-  const shapeSummary = useShapeSummary();
 
   const clipsSummary =
     clips.length === 0
