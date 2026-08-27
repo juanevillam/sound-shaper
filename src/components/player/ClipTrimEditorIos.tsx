@@ -273,9 +273,11 @@ export function ClipTrimEditorIos({
    * tween used to finish — the line visibly settled onto the next tick
    * after the pause, "involuntary… i feel im not in control". Cancelling
    * without re-syncing leaves the line at the exact pixel the eye locked;
-   * the ≤0.25s drift from the engine's parked position is repaid smoothly
-   * on resume, and any drag release seeks to the LINE, so the line is the
-   * truth the person owns.
+   * RESUME then plays from the LINE (see `onTogglePlay`), so the ≤0.25s
+   * drift from the engine's parked position is never seen or heard — it
+   * used to be repaid as a visible catch-up on resume (Juan, 2026-08-27).
+   * Any drag release seeks to the LINE too: the line is the truth the
+   * person owns.
    *
    * SEEKS: a `seekNonce` change (skip, clip start, boundary park) lands
    * directly even while paused — a jump is a jump.
@@ -538,10 +540,23 @@ export function ClipTrimEditorIos({
       store.pause();
       return;
     }
+    /**
+     * RESUME FROM THE LINE, NOT FROM THE ENGINE. The pause froze the line
+     * where the EYE locked (the follower's PAUSED regime) — deliberately
+     * behind the engine's parked position by up to one tick's tween.
+     * Resuming from `store.position` therefore started audibly and visibly
+     * AHEAD of the line and the bars flickered catching up (Juan,
+     * 2026-08-27). Playing from the line instead makes `playClip`'s guard
+     * see line ≠ engine and issue a REAL seek in the same call as play() —
+     * the one pattern the engine's pending-seek daemon handles. (Seeking the
+     * engine onto the line AT PAUSE TIME was tried first and is the trap:
+     * a seek with no play behind it leaves `pendingOffloadedSeeks` standing
+     * on a paused graph, and the next play() starts nothing — measured on
+     * sim, the resume went completely dead.)
+     */
+    const lineS = playheadSv.value;
     const fromS =
-      store.position >= range.startS && store.position < range.endS - 0.5
-        ? store.position
-        : range.startS;
+      lineS >= range.startS && lineS < range.endS - 0.5 ? lineS : range.startS;
     store.playClip('preview', fromS * 1000, range.endS * 1000);
   };
 
@@ -936,9 +951,9 @@ const WaveTile = memo(function WaveTile({
         label: `${m}:${String(sec).padStart(2, '0')}`,
         major: true,
       });
-      for (let q = 1; q < 4; q += 1) {
-        list.push({ x: x + (q * PPS) / 4, label: '', major: false });
-      }
+      // ONE minor tick, at the half second — three quarter ticks separated
+      // the seconds more than the band wants (Juan, 2026-08-27).
+      list.push({ x: x + PPS / 2, label: '', major: false });
     }
     return list;
   }, [fromS, toS]);
