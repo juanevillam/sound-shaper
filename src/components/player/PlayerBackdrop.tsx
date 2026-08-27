@@ -1,6 +1,14 @@
+import { useEffect, useState } from 'react';
+
 import { StyleSheet, View } from 'react-native';
 
 import { Image } from 'expo-image';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, {
   Defs,
   LinearGradient as SvgLinearGradient,
@@ -104,8 +112,26 @@ const BACKDROP_OPACITY = 0.75;
  * — treat 0.55 as a ceiling rather than a starting point.
  */
 const STANDIN_ALPHA_NEAR = 0.55;
-const STANDIN_ALPHA_MID = 0.3;
-const STANDIN_ALPHA_FAR = 0.1;
+const STANDIN_ALPHA_MID = 0.34;
+const STANDIN_ALPHA_LOW = 0.16;
+const STANDIN_ALPHA_FAR = 0.02;
+/**
+ * THE SECOND, CROSSING RAMP — top-right toward bottom-left, under the main
+ * one. A single diagonal read as a tilted panel: one bright side, one dark
+ * side, done — while a real blurred cover has LOBES, pools of light that
+ * overlap from different directions. Two ramps crossing is the cheapest
+ * structure that reproduces that (Juan, 2026-08-27: the art-less wash has to
+ * hold its own beside covered sounds). Kept faint: it exists to break the
+ * flatness, not to be seen as a shape. The main ramp also runs STEEPER now
+ * (0.55 → 0.34 → 0.16 → 0.02 against the old 0.55/0.3/0.1) — more travel
+ * across the same box is what "more contrast" means for a monochrome wash.
+ *
+ * The top-left corner composites both ramps: 1−(1−0.55)(1−a). The cross ramp
+ * is ~0.03 there (it decays along its own axis), so the worst band pixel
+ * moves ~0.56–0.57 — inside the measured headroom (5.33:1 light / 4.35:1
+ * dark at 0.55, against the 3:1 a bar glyph needs). Re-band-scanned below.
+ */
+const STANDIN_CROSS_ALPHA = 0.14;
 
 type PlayerBackdropProps = {
   artUrl?: string;
@@ -136,57 +162,127 @@ export const prefetchPlayerBackdrop = (artUrl?: string): void => {
 
 export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
+  const reduceMotion = useReducedMotion();
+
+  /**
+   * CROSSFADE THE SOURCES, NOT JUST THE IMAGES. expo-image's `transition`
+   * only dissolves art-to-art; stepping to or from an ART-LESS sound
+   * unmounted the image and popped the stand-in in one frame — the most
+   * violent thing on a screen this layer exists to keep calm (Juan,
+   * 2026-08-27). So presence is an animated value: the image layer holds the
+   * LAST cover while it fades out, and the stand-in fades opposite, over the
+   * same `BACKDROP_FADE_MS` the art-to-art dissolve takes.
+   */
+  const [renderUrl, setRenderUrl] = useState(artUrl);
+  useEffect(() => {
+    if (artUrl) setRenderUrl(artUrl);
+  }, [artUrl]);
+  const artPresence = useSharedValue(artUrl ? 1 : 0);
+  useEffect(() => {
+    artPresence.value = withTiming(artUrl ? 1 : 0, {
+      duration: reduceMotion ? 0 : BACKDROP_FADE_MS,
+    });
+  }, [artPresence, artUrl, reduceMotion]);
+  const artStyle = useAnimatedStyle(() => ({
+    opacity: artPresence.value * BACKDROP_OPACITY,
+  }));
+  const standInStyle = useAnimatedStyle(() => ({
+    opacity: 1 - artPresence.value,
+  }));
 
   return (
     <View style={styles.bleed} pointerEvents="none">
-      {artUrl ? (
-        <Image
-          source={{ uri: thumbUrl(artUrl, BACKDROP_SOURCE_WIDTH) }}
-          style={[StyleSheet.absoluteFill, { opacity: BACKDROP_OPACITY }]}
-          contentFit="cover"
-          blurRadius={BACKDROP_BLUR}
-          // NO recyclingKey: this is one long-lived view, not a recycled row,
-          // and a changing recyclingKey CLEARS the old image instead of letting
-          // expo-image cross-dissolve into the new one — which is exactly what
-          // made the wash snap from one sound's colour to the next.
-          transition={BACKDROP_FADE_MS}
-          cachePolicy="memory-disk"
-        />
+      {renderUrl ? (
+        <Animated.View style={[StyleSheet.absoluteFill, artStyle]}>
+          <Image
+            source={{ uri: thumbUrl(renderUrl, BACKDROP_SOURCE_WIDTH) }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            blurRadius={BACKDROP_BLUR}
+            // NO recyclingKey: this is one long-lived view, not a recycled row,
+            // and a changing recyclingKey CLEARS the old image instead of letting
+            // expo-image cross-dissolve into the new one — which is exactly what
+            // made the wash snap from one sound's colour to the next.
+            transition={BACKDROP_FADE_MS}
+            cachePolicy="memory-disk"
+          />
+        </Animated.View>
       ) : null}
+      {/* THE STAND-IN, always mounted and faded by presence — mounting it on
+          `!artUrl` was the hard cut the crossfade above exists to remove. Its
+          own Svg, so the fade layer below stays a static tree. */}
+      <Animated.View style={[StyleSheet.absoluteFill, standInStyle]}>
+        <Svg style={StyleSheet.absoluteFill}>
+          <Defs>
+            <SvgLinearGradient
+              id="playerBackdropStandIn"
+              x1="0"
+              y1="0.18"
+              x2="1"
+              y2="0.78"
+            >
+              {/* `stopOpacity`, NOT an alpha baked into `stopColor` —
+                  react-native-svg parses the colour and DROPS its alpha
+                  channel, so an `rgba()` stop renders fully opaque. */}
+              <Stop
+                offset="0"
+                stopColor={colors.onSurface}
+                stopOpacity={STANDIN_ALPHA_NEAR}
+              />
+              <Stop
+                offset="0.35"
+                stopColor={colors.onSurface}
+                stopOpacity={STANDIN_ALPHA_MID}
+              />
+              <Stop
+                offset="0.65"
+                stopColor={colors.onSurface}
+                stopOpacity={STANDIN_ALPHA_LOW}
+              />
+              <Stop
+                offset="1"
+                stopColor={colors.onSurface}
+                stopOpacity={STANDIN_ALPHA_FAR}
+              />
+            </SvgLinearGradient>
+            <SvgLinearGradient
+              id="playerBackdropStandInCross"
+              x1="1"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <Stop
+                offset="0"
+                stopColor={colors.onSurface}
+                stopOpacity={STANDIN_CROSS_ALPHA}
+              />
+              <Stop
+                offset="0.55"
+                stopColor={colors.onSurface}
+                stopOpacity={0.03}
+              />
+              <Stop offset="1" stopColor={colors.onSurface} stopOpacity={0} />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#playerBackdropStandIn)"
+          />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#playerBackdropStandInCross)"
+          />
+        </Svg>
+      </Animated.View>
       <Svg style={StyleSheet.absoluteFill}>
         <Defs>
-          {/* THE STAND-IN, declared whether or not it is drawn — a `Defs` entry
-              costs nothing unused, and keeping both ramps side by side is what
-              makes it obvious they are one layer with two sources. */}
-          <SvgLinearGradient
-            id="playerBackdropStandIn"
-            x1="0"
-            y1="0.18"
-            x2="1"
-            y2="0.78"
-          >
-            {/* `stopOpacity`, NOT an alpha baked into `stopColor` —
-                react-native-svg parses the colour and DROPS its alpha channel,
-                so an `rgba()` stop renders fully opaque. Measured: the top band
-                came out at (58,58,59) in LIGHT mode, i.e. exactly the fade's own
-                0.24 × 242, with black status-bar glyphs on it. The fade stops
-                below split the two for the same reason. */}
-            <Stop
-              offset="0"
-              stopColor={colors.onSurface}
-              stopOpacity={STANDIN_ALPHA_NEAR}
-            />
-            <Stop
-              offset="0.5"
-              stopColor={colors.onSurface}
-              stopOpacity={STANDIN_ALPHA_MID}
-            />
-            <Stop
-              offset="1"
-              stopColor={colors.onSurface}
-              stopOpacity={STANDIN_ALPHA_FAR}
-            />
-          </SvgLinearGradient>
           <SvgLinearGradient
             id="playerBackdropFade"
             x1="0"
@@ -263,15 +359,6 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
             <Stop offset="1" stopColor={colors.background} stopOpacity="0.9" />
           </SvgLinearGradient>
         </Defs>
-        {artUrl ? null : (
-          <Rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            fill="url(#playerBackdropStandIn)"
-          />
-        )}
         {/* The fade runs over BOTH sources — the stand-in gets the same bar-band
             protection and the same fall-off under the console, so an art-less
             player differs from a covered one only in what is being washed. */}
