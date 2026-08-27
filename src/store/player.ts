@@ -121,8 +121,15 @@ const START_EPSILON_S = 1;
  * on one does nothing, which is the whole reason `loadNonce` exists. This is
  * the other case: the element is alive, so the playhead just moves.
  */
-const restartLoaded = (set: (partial: Partial<PlayerState>) => void): void => {
-  audioEngine.seek(0);
+const restartLoaded = (
+  set: (partial: Partial<PlayerState>) => void,
+  positionNowS: number,
+): void => {
+  // The no-op-seek trap `playClip` documents: parked AT zero (a fresh load,
+  // or a clip whose start is 0 parked by its boundary), an unguarded seek(0)
+  // leaves `pendingOffloadedSeeks` standing and the play() below starts
+  // nothing.
+  if (positionNowS > 0.05) audioEngine.seek(0);
   audioEngine.play();
   // `pendingStart` for the same reason a reload sets it: a position report can
   // already be in flight from before the seek, and letting it land would put
@@ -185,6 +192,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (!get().current) return;
 
     const startS = startMs / 1000;
+    /**
+     * READ BEFORE THE OPTIMISTIC WRITE. The no-op-seek guard below compares
+     * against where the ENGINE's playhead is, and the store's last engine
+     * report is the best statement of that — but the optimistic `set` under
+     * this line overwrites it with `startS` itself, so a guard that reads
+     * `get().position` AFTER the set compares `startS` to `startS` and never
+     * seeks at all. That shipped: play a clip, pause, scrub away, play the
+     * clip again — it lit up as selected while the engine kept playing from
+     * the scrub position (Juan, on device, 2026-08-26).
+     */
+    const enginePositionS = get().position;
     set({
       activeClip: { clipId, startS, endS: endMs / 1000 },
       playing: true,
@@ -205,7 +223,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
      * same press after moving the playhead worked. This is also the shape of
      * the on-device "press play and the clip doesn't react" reports.
      */
-    if (Math.abs(get().position - startS) > 0.05) audioEngine.seek(startS);
+    if (Math.abs(enginePositionS - startS) > 0.05) audioEngine.seek(startS);
     audioEngine.play();
   },
 
@@ -282,7 +300,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     // Deep into a sound, "previous" restarts it — the universal player idiom.
     if (position > RESTART_THRESHOLD_S) {
-      restartLoaded(set);
+      restartLoaded(set, position);
       return;
     }
 
@@ -293,7 +311,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         : undefined;
 
     if (!previousSound) {
-      restartLoaded(set);
+      restartLoaded(set, position);
       return;
     }
 
@@ -305,7 +323,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   seek: seconds => {
-    audioEngine.seek(seconds);
+    // Same no-op-seek trap `playClip` documents. This one is reachable from
+    // a scrub released on the second it started on, and from a ±15 skip
+    // already clamped at either edge — paused, each left the engine's
+    // pending-seek count standing and the next play started nothing.
+    if (Math.abs(get().position - seconds) > 0.05) audioEngine.seek(seconds);
     // A manual scrub ends any clip replay.
     set({ position: seconds, activeClip: null, seekNonce: nextSeekNonce() });
   },
