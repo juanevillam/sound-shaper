@@ -49,7 +49,9 @@ export function PlayerScrubber({
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelMedium' }}
           >
-            {formatTime(totalDuration)}
+            {/* `-:--` while unknown - see the iOS twin. UNVERIFIED on
+                device (Android is frozen); re-check when Android resumes. */}
+            {totalDuration > 0 ? formatTime(totalDuration) : '-:--'}
           </Text>
         </Row>
         {/* The clip range gets its OWN line under the playhead/total pair,
