@@ -269,15 +269,18 @@ export function ClipTrimEditorIos({
    * expected wall gap (delta ÷ rate), clamped so a stall cannot animate
    * forever.
    *
-   * PAUSED: the line FREEZES WHERE IT IS. Ticks stop, but an in-flight
-   * tween used to finish — the line visibly settled onto the next tick
-   * after the pause, "involuntary… i feel im not in control". Cancelling
-   * without re-syncing leaves the line at the exact pixel the eye locked;
-   * RESUME then plays from the LINE (see `onTogglePlay`), so the ≤0.25s
-   * drift from the engine's parked position is never seen or heard — it
-   * used to be repaid as a visible catch-up on resume (Juan, 2026-08-27).
-   * Any drag release seeks to the LINE too: the line is the truth the
-   * person owns.
+   * PAUSED: the tween is cancelled and the line SETTLES onto the engine's
+   * parked position with one short glide (~140ms, ≤ one tick of travel).
+   * Third answer, each previous one rejected on device: letting the
+   * in-flight tween FINISH overshot to the next tick ("involuntary… i feel
+   * im not in control"); freezing in place kept the line ≤0.25s behind the
+   * engine, and repaying that on resume either flickered (resume from the
+   * engine) or REPLAYED AUDIO already heard (resume seeked back to the
+   * line — Juan, 2026-08-27). Settling to the engine's truth at pause time
+   * is honest both ways: the line rests where the sound actually stopped,
+   * and resume starts there with no seek at all — the console's own
+   * semantics. A drag release still seeks to the LINE: while a finger owns
+   * it, the line is the truth.
    *
    * SEEKS: a `seekNonce` change (skip, clip start, boundary park) lands
    * directly even while paused — a jump is a jump.
@@ -297,6 +300,14 @@ export function ClipTrimEditorIos({
         }
         if (!state.playing) {
           cancelAnimation(playheadSv);
+          // Settle onto the engine's parked position — see the PAUSED regime
+          // above. ≤ one tick away, so this is a ~140ms glide, not a jump.
+          if (Math.abs(state.position - playheadSv.value) > 0.001) {
+            playheadSv.value = withTiming(state.position, {
+              duration: 140,
+              easing: Easing.out(Easing.quad),
+            });
+          }
           return;
         }
         const delta = state.position - playheadSv.value;
@@ -541,22 +552,19 @@ export function ClipTrimEditorIos({
       return;
     }
     /**
-     * RESUME FROM THE LINE, NOT FROM THE ENGINE. The pause froze the line
-     * where the EYE locked (the follower's PAUSED regime) — deliberately
-     * behind the engine's parked position by up to one tick's tween.
-     * Resuming from `store.position` therefore started audibly and visibly
-     * AHEAD of the line and the bars flickered catching up (Juan,
-     * 2026-08-27). Playing from the line instead makes `playClip`'s guard
-     * see line ≠ engine and issue a REAL seek in the same call as play() —
-     * the one pattern the engine's pending-seek daemon handles. (Seeking the
-     * engine onto the line AT PAUSE TIME was tried first and is the trap:
-     * a seek with no play behind it leaves `pendingOffloadedSeeks` standing
-     * on a paused graph, and the next play() starts nothing — measured on
-     * sim, the resume went completely dead.)
+     * RESUME FROM THE ENGINE, LIKE THE CONSOLE DOES. Playing from the frozen
+     * LINE was tried (2026-08-27) and REPLAYED AUDIO: the line freezes up to
+     * one tick behind the engine, so seeking back onto it made the resume
+     * repeat words already heard — "visually looks good, but soundly i hear
+     * something that already happened" (Juan). Audio truth outranks visual
+     * continuity, so resume never seeks; the LINE is brought to the truth
+     * instead, by the follower's pause-settle (its PAUSED regime), and by
+     * the time a finger reaches play the two agree.
      */
-    const lineS = playheadSv.value;
     const fromS =
-      lineS >= range.startS && lineS < range.endS - 0.5 ? lineS : range.startS;
+      store.position >= range.startS && store.position < range.endS - 0.5
+        ? store.position
+        : range.startS;
     store.playClip('preview', fromS * 1000, range.endS * 1000);
   };
 
