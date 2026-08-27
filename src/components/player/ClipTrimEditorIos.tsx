@@ -328,16 +328,20 @@ export function ClipTrimEditorIos({
   // value moves opposite the drag, exactly Voice Memos' feel. Scrubbing
   // pauses first: the finger owns the transport while it is down.
   /**
-   * WHOLE SECONDS, LIVE — not merely on release. The first cut kept the drag
-   * continuous and snapped the landing, and Juan called it again: the tape
-   * still sat at fractional offsets under the finger, which is exactly the
-   * surgical handling this editor renounces. The FINGER's travel stays
-   * continuous (tracked against the gesture's own base), the VALUE steps
-   * second by second — a detent per second, 100pt apart at this scale.
+   * MOTION IS CONTINUOUS, VALUES ARE WHOLE SECONDS — the settlement of two
+   * directives that collided (Juan, 2026-08-26). "Second by second" was
+   * first read as live detents, and a 100pt step under the finger is what
+   * made the drag feel heavy against Voice Memos' "really fast and
+   * flawless": VM's tape follows the finger exactly and quantises nothing
+   * you can SEE mid-drag. So the tape tracks the finger 1:1 here too —
+   * `minDistance(0)`, so the grab is instant — while everything that
+   * PERSISTS stays whole-second: the timecode and clip line only ever read
+   * whole seconds by construction, and the release rounds before it seeks.
+   * No landing can carry milliseconds; no drag can feel them.
    */
   const scrubBaseSv = useSharedValue(0);
   const scrubPan = Gesture.Pan()
-    .minDistance(2)
+    .minDistance(0)
     .onBegin(() => {
       // The finger owns the value now — an in-flight tick tween would keep
       // writing under it.
@@ -347,14 +351,13 @@ export function ClipTrimEditorIos({
       runOnJS(pause)();
     })
     .onChange(event => {
-      playheadSv.value = Math.round(
-        Math.min(
-          Math.max(scrubBaseSv.value - event.translationX / PPS, 0),
-          durationS,
-        ),
+      playheadSv.value = Math.min(
+        Math.max(scrubBaseSv.value - event.translationX / PPS, 0),
+        durationS,
       );
     })
     .onFinalize(() => {
+      playheadSv.value = Math.round(playheadSv.value);
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
@@ -392,29 +395,32 @@ export function ClipTrimEditorIos({
       cancelAnimation(playheadSv);
       runOnJS(setPanning)(true);
       runOnJS(pause)();
-      // Live whole-second quantisation, like every drag here.
-      playheadSv.value = Math.round(
-        Math.min(Math.max(event.x / overviewPps, 0), durationS),
+      // Continuous under the finger; the release rounds (see scrubPan).
+      playheadSv.value = Math.min(
+        Math.max(event.x / overviewPps, 0),
+        durationS,
       );
     })
     .onChange(event => {
       if (overviewRejected.value) return;
-      playheadSv.value = Math.round(
-        Math.min(Math.max(event.x / overviewPps, 0), durationS),
+      playheadSv.value = Math.min(
+        Math.max(event.x / overviewPps, 0),
+        durationS,
       );
     })
     .onFinalize(() => {
       if (overviewRejected.value) return;
+      playheadSv.value = Math.round(playheadSv.value);
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
 
-  // Live whole-second quantisation here too — the edges place whole seconds,
-  // so they step them, tracked against the gesture's own base.
+  // Continuous like the scrubs — the wash tracks the finger exactly, and
+  // `commitEdges` rounds what persists (see scrubPan's settlement note).
   const edgeBaseSv = useSharedValue(0);
   const makeEdgePan = (edge: 'start' | 'end') =>
     Gesture.Pan()
-      .minDistance(2)
+      .minDistance(0)
       .onBegin(() => {
         edgeBaseSv.value = edge === 'start' ? startSv.value : endSv.value;
         runOnJS(setEdgeDragging)(true);
@@ -422,16 +428,19 @@ export function ClipTrimEditorIos({
       .onChange(event => {
         const raw = edgeBaseSv.value + event.translationX / PPS;
         if (edge === 'start') {
-          startSv.value = Math.round(
-            Math.min(Math.max(raw, 0), endSv.value - MIN_GAP_S),
-          );
+          startSv.value = Math.min(Math.max(raw, 0), endSv.value - MIN_GAP_S);
         } else {
-          endSv.value = Math.round(
-            Math.max(Math.min(raw, durationS), startSv.value + MIN_GAP_S),
+          endSv.value = Math.max(
+            Math.min(raw, durationS),
+            startSv.value + MIN_GAP_S,
           );
         }
       })
-      .onFinalize(() => runOnJS(commitEdges)());
+      .onFinalize(() => {
+        startSv.value = Math.round(startSv.value);
+        endSv.value = Math.round(endSv.value);
+        runOnJS(commitEdges)();
+      });
   const startEdgePan = makeEdgePan('start');
   const endEdgePan = makeEdgePan('end');
   // The strip's scrub yields to an edge grab, the same priority the overview
