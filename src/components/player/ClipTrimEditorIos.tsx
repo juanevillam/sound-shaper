@@ -649,7 +649,9 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
-      <View style={styles.spacer} />
+      {/* Tight to the band: the overview is the band's MAP — one wave
+          group, two scales. */}
+      <View style={styles.waveGroupGap} />
 
       {/* THE OVERVIEW — the whole track, carrying the selection frame, and
           a full-track scrubber on its bare regions. */}
@@ -681,7 +683,12 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
-      <View style={styles.spacer} />
+      {/* The one LARGE air on the sheet — it separates the wave group from
+          the control group, which is what makes each read as a group at
+          all. Even spacers everywhere was tried and read as
+          justifyContent: space-between (Juan, 2026-08-26): rhythm is
+          clustering plus chosen slack, not equidistance. */}
+      <View style={styles.airLarge} />
 
       {/* THE TIMECODE — Voice Memos' centrepiece — with the CLIP'S OWN LINE
           under it: where the selection stands and how long it is, live under
@@ -694,10 +701,11 @@ export function ClipTrimEditorIos({
         color={colors.onSurfaceMuted}
       />
 
-      <View style={styles.spacer} />
-
-      {/* THE TRANSPORT — ±15 and play, the editor's own loop. */}
-      <View style={styles.transport}>
+      {/* THE TRANSPORT — ±15 and play, the editor's own loop. FIXED gap to
+          the readout above: the timecode is this transport's own caption
+          (read where you are, act on it), so the two are one control
+          group. */}
+      <View style={[styles.transport, styles.controlGroupGap]}>
         <GlyphButton
           onPress={() => onSkip(-SKIP_S)}
           hitSlop={12}
@@ -749,7 +757,7 @@ export function ClipTrimEditorIos({
         </GlyphButton>
       </View>
 
-      <View style={styles.spacer} />
+      <View style={styles.airSmall} />
 
       {/* THE SHAPE ENTRY (Juan, 2026-08-26) — shaping and clipping are one
           workflow: set the sound, mark the clip, hear both together. The
@@ -1086,8 +1094,18 @@ const styles = StyleSheet.create({
     gap: IOS_TRANSPORT_GAP,
     justifyContent: 'center',
   },
-  /** The slack between blocks — the console's fill mechanism. */
-  spacer: { flexGrow: 1, minHeight: GROUP_GAP / 2 },
+  /**
+   * THE SHEET'S RHYTHM — two clustered groups and a footer, with slack in
+   * two CHOSEN places instead of four equal ones. In-group gaps are fixed
+   * (20 band→overview, GROUP_GAP readout→transport); the large air carries
+   * 1.4× the small one, so the wave group visually owns the top of the
+   * sheet and the controls sit low, the way the console lifts its transport
+   * with weighted spacers rather than centring it.
+   */
+  waveGroupGap: { height: 20 },
+  controlGroupGap: { marginTop: GROUP_GAP },
+  airLarge: { flexGrow: 1.4, minHeight: GROUP_GAP },
+  airSmall: { flexGrow: 1, minHeight: GROUP_GAP / 2 },
   shapeHost: { alignSelf: 'center', height: 40, width: 200 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
