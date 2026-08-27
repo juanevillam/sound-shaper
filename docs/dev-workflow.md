@@ -46,6 +46,14 @@ tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
 - **New `.ios.tsx`/`.android.tsx` files are not picked up live** — Metro keeps
   resolving the old non-platform file across reloads. Full
   `expo start --clear` restart required.
+- **Fast Refresh red-screens on shape changes that are not bugs** — changing
+  an export's SHAPE (`function Foo` → `export const Foo = memo(...)`) or a
+  component's hook COUNT can throw "Object is not a function" / "Rendered
+  more hooks than during the previous render" purely as an HMR artifact.
+  Cold-relaunch the app BEFORE debugging either message; both burned real
+  time on 2026-08-27 chasing errors a fresh bundle didn't have. (The hooks
+  message is only real when it reproduces from a cold start — it did once,
+  for a hook placed after an early return.)
 - **DNS down ⇒ manifest hangs while bundles work**: `expo start` calls
   `api.expo.dev` when serving `/`; with DNS failing the client shows "Failed
   to load app" though `/status` is 200. Fix: `npx expo start --offline`. On
