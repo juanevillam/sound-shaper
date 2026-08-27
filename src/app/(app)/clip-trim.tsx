@@ -112,6 +112,11 @@ function ClipTrimScreen() {
                   label: t('player.clips.saveClip'),
                   onPress: onSave,
                   disabled: saving,
+                  // The commit ✓ is tinted exactly as `SheetCommitGlyphIos`
+                  // tints it on every editor sheet — the accent that says
+                  // "this one acts" (Juan, 2026-08-26: same ✓, same blue,
+                  // whichever capsule it stands in).
+                  tint: colors.primary,
                 },
               ]}
             />

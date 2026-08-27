@@ -107,6 +107,14 @@ export type HeaderGlyphButtonProps = {
    * control in the portfolio is handled.
    */
   disabled?: boolean;
+  /**
+   * Ink override for the ONE glyph whose colour carries information — the
+   * commit ✓ in a merged pill takes `colors.primary`, exactly as
+   * `SheetCommitGlyphIos` tints it when it stands alone (the accent-stays
+   * rule: a bar action's tint is what says "this one acts"). Everything else
+   * takes the default `onSurface` label ink.
+   */
+  tint?: string;
 };
 
 export function HeaderGlyphButtonIos({
@@ -114,9 +122,13 @@ export function HeaderGlyphButtonIos({
   label,
   onPress,
   size = HEADER_GLYPH_SIZE,
+  disabled,
+  tint,
 }: HeaderGlyphButtonProps) {
   return (
-    <HeaderGlyphGroupIos glyphs={[{ systemName, label, onPress, size }]} />
+    <HeaderGlyphGroupIos
+      glyphs={[{ systemName, label, onPress, size, disabled, tint }]}
+    />
   );
 }
 
@@ -194,7 +206,7 @@ export function HeaderGlyphGroupIos({
 
   return (
     <View style={styles.row}>
-      {glyphs.map(({ systemName, label, onPress, size, disabled }) => (
+      {glyphs.map(({ systemName, label, onPress, size, disabled, tint }) => (
         <SwiftUIHost
           key={systemName}
           matchContents
@@ -226,7 +238,7 @@ export function HeaderGlyphGroupIos({
             <Image
               systemName={systemName}
               size={size ?? HEADER_GLYPH_SIZE}
-              color={colors.onSurface}
+              color={tint ?? colors.onSurface}
               modifiers={[
                 // The glyph keeps its own size; the BOX around it is the target.
                 ...(expand
