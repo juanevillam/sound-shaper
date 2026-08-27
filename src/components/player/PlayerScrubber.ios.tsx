@@ -75,7 +75,14 @@ export function PlayerScrubber({
           doNotTranslate
           muted
           style={styles.time}
-          text={formatTime(totalDuration)}
+          // `-:--` WHILE THE DURATION IS UNKNOWN - a sound change resets the
+          // store's duration until the fresh stream reports its own, and
+          // rendering that 0 flashed "3:09 -> 0:00 -> 2:50" on every skip
+          // (Juan, 2026-08-27). A placeholder is Apple's own answer (Podcasts
+          // streams show --:-- while loading); holding the PREVIOUS sound's
+          // number would be the one thing worse than the flash - a wrong
+          // value that looks right.
+          text={totalDuration > 0 ? formatTime(totalDuration) : '-:--'}
           variant="labelMedium"
         />
       </View>
