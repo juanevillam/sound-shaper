@@ -13,6 +13,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
+  FadeIn,
+  FadeOut,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -705,7 +707,11 @@ export function ClipTrimEditorIos({
               />
               {tiles.map(index => (
                 <WaveTile
-                  key={index}
+                  // The suffix REMOUNTS a tile when the decode lands, which
+                  // is what lets the placeholder CROSSFADE into the real
+                  // bars (see WaveTile's root) instead of swapping in one
+                  // frame — the last hard cut this surface had.
+                  key={`${index}:${waveform ? 'wave' : 'bone'}`}
                   index={index}
                   buckets={waveform?.buckets ?? null}
                   bucketMs={waveform?.bucketMs ?? 50}
@@ -1034,8 +1040,14 @@ const WaveTile = memo(function WaveTile({
   }, [fromS, toS]);
 
   return (
-    <View
+    // The decode's arrival is a CROSSFADE, not a swap: the call site keys the
+    // tile on whether real buckets exist, so the placeholder tile fades out
+    // while the real one fades in over it. Opacity-only, which is exactly
+    // what Reduce Motion asks transitions to become — so it is not gated.
+    <Animated.View
       pointerEvents="none"
+      entering={FadeIn.duration(220)}
+      exiting={FadeOut.duration(180)}
       style={[styles.tile, { left: fromS * PPS, width }]}
     >
       <Svg width={width} height={WAVE_HEIGHT + RULER_HEIGHT}>
@@ -1067,7 +1079,7 @@ const WaveTile = memo(function WaveTile({
           ) : null,
         )}
       </Svg>
-    </View>
+    </Animated.View>
   );
 });
 
