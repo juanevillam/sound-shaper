@@ -33,6 +33,16 @@ export type Sound = {
   audioPublicId: string;
   audioUrl: string;
   createdAt: number | null;
+  /**
+   * LEARNED FROM PLAYBACK, NOT FROM UPLOAD. A sound's duration never changes,
+   * but nothing computes it at upload time (that would mean decoding the
+   * audio there); the engine reports it on the first play and
+   * `bankSoundDuration` writes it back once. Until then it is `null` and the
+   * scrubber's total reads `-:--` for the sound's very first load — every
+   * load after that seeds from here, so skipping between known sounds never
+   * flashes a placeholder at all (Juan, 2026-08-27).
+   */
+  durationMs: number | null;
   id: string;
   name: string;
   releaseYear: number | null;
@@ -135,12 +145,29 @@ const soundToModel = (snapshot: QueryDocumentSnapshot): Sound => {
     audioPublicId: (data.audioPublicId as string) ?? '',
     audioUrl: (data.audioUrl as string) ?? '',
     createdAt: createdAt ? createdAt.toMillis() : null,
+    durationMs:
+      typeof data.durationMs === 'number' && data.durationMs > 0
+        ? data.durationMs
+        : null,
     id: snapshot.id,
     name: (data.name as string) ?? '',
     releaseYear: typeof releaseYear === 'number' ? releaseYear : null,
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
   };
 };
+
+/**
+ * Bank a sound's duration the first time the engine reports it — a one-time,
+ * fire-and-forget metadata write (see `Sound.durationMs`). No `updatedAt`
+ * bump: nothing a person edited changed.
+ */
+export const bankSoundDuration = (
+  soundId: string,
+  durationMs: number,
+): Promise<void> =>
+  updateDoc(soundDoc(soundId), { durationMs }).catch(
+    reportedOnError('sounds.bankDuration', () => {}),
+  );
 
 /**
  * The whole personal library, newest upload first.

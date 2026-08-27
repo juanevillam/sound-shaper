@@ -7,6 +7,7 @@ import {
 } from 'react-native-audio-api';
 
 import { audioEngine } from '@/lib/audioEngine';
+import { bankSoundDuration } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
 
 // ---------------------------------------------------------------------------
@@ -24,6 +25,21 @@ function AudioStateBridge() {
 
   useEffect(() => {
     usePlayerStore.getState().setDuration(duration);
+    /**
+     * BANK IT — a sound's duration never changes, so the first engine report
+     * writes it onto the document (`Sound.durationMs`) and every later load
+     * seeds the scrubber from there instead of flashing `-:--`. The 1s
+     * tolerance keeps a once-banked value from being re-written over
+     * container-metadata jitter; a genuinely wrong banked value (a replaced
+     * upload) still corrects itself on the next play.
+     */
+    const current = usePlayerStore.getState().current;
+    if (
+      duration > 0 &&
+      current &&
+      Math.abs((current.durationMs ?? 0) / 1000 - duration) > 1
+    )
+      void bankSoundDuration(current.id, Math.round(duration * 1000));
   }, [duration]);
 
   useEffect(() => {
