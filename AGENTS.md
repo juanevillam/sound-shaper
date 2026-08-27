@@ -202,11 +202,34 @@ in the file's header; the ones worth knowing before touching it:
   (`ClipTrimEditorIos`): a ZOOMED waveform that pans under a fixed centred
   playhead (100pt/s, measured off the screenshots), a ruler that pans with
   it, the selection as an accent wash with two draggable edge lines, a
-  full-track OVERVIEW strip carrying the selection frame, a large
-  centisecond timecode (mm:ss,cc — the comma is what Voice Memos draws), and
-  a ±15s + play transport. The commit is the sheet bar's ✕/✓ commit-modal
-  pair, NOT Voice Memos' Trim/Delete pills — those exist there because
-  destructive trimming has two verbs; a clip has one.
+  full-track OVERVIEW strip carrying the selection frame, a large timecode,
+  and a ±15s + play transport. (It rendered Voice Memos' centiseconds first;
+  Juan cut them 2026-08-26 — MOTION IS CONTINUOUS, VALUES ARE WHOLE SECONDS
+  is the editor's settled policy: drags track the finger 1:1, releases and
+  labels round to the second.) The commit lives in the sheet BAR: ✕ leads,
+  and the trailing slot is ONE merged pill — Shape (`slider.horizontal.3`,
+  stacking the Shape sheet over the editor) beside a ✓ tinted
+  `colors.primary` exactly as `SheetCommitGlyphIos` tints it everywhere else
+  (`HeaderGlyphGroupIos` grew a per-glyph `tint` for it). NOT Voice Memos'
+  Trim/Delete pills — those exist there because destructive trimming has two
+  verbs; a clip has one. A content-level Shape entry was built three ways
+  (capsule, full glass bar, hugging pill) and each read as one object too
+  many: the sheet is two calm groups — the wave group (band + overview +
+  its corner caption: start left, length centred, end right, the scrubber-
+  label idiom) and the control group (timecode + transport).
+
+  **THE 2026-08-27 REFINEMENT PASS, in the terms that survived it:** the
+  transport stands on the PLAYER'S OWN SPOT — the console measures its play
+  row when the expand settles and the editor pins its row from the screen
+  bottom to that anchor (`chrome.ts`), zero shift between the two surfaces;
+  the band's bars cap at `WAVE_INK_RATIO` 0.78 of the band and draw at
+  `WAVE_BAR_ALPHA` 0.6 with a ground-coloured halo slot behind the red
+  playhead (full-contrast bars under a fixed saturated line are a moving
+  grating — a visual-stress accessibility problem, not taste); the ruler
+  carries ONE minor tick at the half second; and PAUSE SETTLES THE LINE ONTO
+  THE ENGINE (~140ms glide), so resume needs no seek — the two prior designs
+  are recorded in the follower's own doc and in rejected-experiments (freeze
+  left the line lying; seeking the engine back onto it replayed audio).
 
   **WHY THE WAVEFORM IS ALLOWED BACK, in one sentence:** the 2026-08-23
   rejection was about the PLAYER CONSOLE — a second track-shaped surface
@@ -223,7 +246,8 @@ in the file's header; the ones worth knowing before touching it:
   shared values drawn by three surfaces (frame, wash, edge lines), committed
   through one `onChange`. Play follows the player's own rule: from the
   playhead when it sits inside the selection, else the whole clip, stopping
-  on the end cap and parking back where the press started. Entry pauses and
+  on the end cap and parking back on the clip's START so a plain play
+  replays it. Entry pauses and
   defaults the selection to playhead−7 … +8, exactly as framing did.
 
   **THE WAVEFORM PIPELINE IS RESTORED FROM f5b4117** (`lib/waveform.ts`,
@@ -245,7 +269,26 @@ in the file's header; the ones worth knowing before touching it:
   every press whose start WAS the playhead did exactly nothing, which is
   also the shape of the old on-device "press play and the clip doesn't
   react" reports. `playClip` now seeks only when the target differs from the
-  playhead by more than 50ms.
+  playhead by more than 50ms — reading the engine's position BEFORE its own
+  optimistic write (the guard once read it after, compared `startS` to
+  itself and never seeked at all: play a clip, pause, scrub, play it again
+  and the engine kept playing from the scrub point). `seek()` and
+  `restartLoaded` carry the same guard; the other half of the trap is that a
+  seek must travel WITH a play — a seek issued on a paused graph with no
+  play behind it (the pause-time park that was tried first) leaves the
+  pending count standing and the next play dies.
+
+  **A SOUND'S DURATION IS BANKED METADATA** (2026-08-27): nothing stored
+  it, so every skip flashed "3:09 → 0:00 → 2:50". The engine's first report
+  writes `durationMs` onto the sound's document (`bankSoundDuration`,
+  fire-and-forget, no `updatedAt` bump), `loadReset` seeds from it, the
+  engine's report still wins over the seed past a 1s tolerance, and the
+  scrubber's total reads `-:--` only on a sound's very first play — never
+  `0:00`. The same pass gave the ART-LESS BACKDROP a crossfade (presence is
+  an animated value; the image layer holds the last cover while it fades,
+  the stand-in fades opposite) and depth (steeper ink ramp + a faint
+  crossing ramp — lobes, not a tilted panel; bar band re-scanned at 5.66:1
+  dark / 6.60:1 light).
 
   **The four in-player framing generations and their verdicts** (grip pills,
   frame-on-slider, zoomed strip, frame + live scrubber + fine scrub) remain

@@ -459,6 +459,29 @@ also rejected — the glass bar's compartments would be its only caller, and a
 press that differs between a tile and a card for no reason a person can see is
 what one shared spring exists to prevent.
 
+## Two pause/resume designs for the clip editor's playhead — BOTH REJECTED 2026-08-27, on device
+
+The follower's line freezes where the eye locks on pause, deliberately up to
+one tick's tween behind the engine. Two ways of squaring that were built and
+killed the same day, in order:
+
+1. **Park the engine on the line at PAUSE time** (`parkAt`): a seek issued on
+   a paused graph with no play behind it leaves the engine's
+   `pendingOffloadedSeeks` standing, and the next play starts NOTHING —
+   measured on sim, the resume went completely dead. A seek must travel WITH
+   a play.
+2. **Resume FROM the line** (seek+play together, the safe engine pattern): it
+   worked mechanically and REPLAYED AUDIO — the line sits behind the engine,
+   so seeking back onto it repeated words already heard. Juan: "visually
+   looks good, but soundly i hear something that already happened." Audio
+   truth outranks visual continuity.
+
+What shipped is the third design: pausing SETTLES the line onto the engine's
+parked position with one ~140ms glide, and resume plays from there with no
+seek at all — the console's own semantics, which is why the console never had
+the bug. Do not re-walk either rejected leg; the follower's doc block in
+`ClipTrimEditorIos` records all three.
+
 ## Turning Preserve Pitch OFF automatically at any speed ≠ 1× — REJECTED 2026-08-21, reasoned down (not built)
 
 The one entry here that was never rendered: it was proposed by Juan, argued
