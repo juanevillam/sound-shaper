@@ -44,6 +44,7 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import {
+  measurePlayerTransportIos,
   playerArtRadius,
   playerArtSize,
   playerArtTop,
@@ -520,6 +521,21 @@ export function PlayerSheet() {
     () => progress.value > 0,
     (isOff, wasOff) => {
       if (isOff !== wasOff) runOnJS(setOffRest)(isOff);
+    },
+    [],
+  );
+
+  /**
+   * THE TRANSPORT ANCHOR'S TRIGGER — see `chrome.ts`. Fired when the expand
+   * spring actually SETTLES, never on `expanded` (which flips on frame 0 of
+   * the spring — a measurement there would bake the in-flight transform into
+   * the anchor). On Android nothing registers a measurer and the call is a
+   * no-op.
+   */
+  useAnimatedReaction(
+    () => progress.value >= 0.999,
+    (atRest, wasAtRest) => {
+      if (atRest && !wasAtRest) runOnJS(measurePlayerTransportIos)();
     },
     [],
   );

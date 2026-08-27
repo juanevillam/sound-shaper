@@ -41,7 +41,9 @@ import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
 import {
   IOS_TRANSPORT_GAP,
   IOS_TRANSPORT_PLAY_SIZE,
+  IOS_TRANSPORT_ROW_HEIGHT,
   IOS_TRANSPORT_SKIP_SIZE,
+  usePlayerTransportAnchorIos,
 } from './chrome';
 
 // ---------------------------------------------------------------------------
@@ -198,7 +200,7 @@ export function ClipTrimEditorIos({
 }: ClipTrimEditorIosProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
-  const { width: winW } = useWindowDimensions();
+  const { width: winW, height: winH } = useWindowDimensions();
 
   const current = usePlayerStore(s => s.current);
   const playing = usePlayerStore(s => s.playing);
@@ -567,6 +569,26 @@ export function ClipTrimEditorIos({
 
   const insets = useSafeAreaInsets();
 
+  /**
+   * NO CLS AGAINST THE PLAYER — the editor's play/pause stands at EXACTLY the
+   * screen point the expanded console's does (Juan, 2026-08-26), so moving
+   * between the two surfaces never moves the control under the thumb. The
+   * anchor is the console's own measurement (see `chrome.ts`); the row is
+   * pinned from the SCREEN BOTTOM, the one edge a full-height sheet shares
+   * with the fullscreen player, so the sheet's top offset never enters into
+   * it. The editor is only reachable through the expanded player, so the
+   * anchor is always set by the time this renders; the fallback keeps the
+   * sheet standing if that invariant ever breaks.
+   */
+  const transportAnchorY = usePlayerTransportAnchorIos();
+  const anchorBottomPad =
+    transportAnchorY == null
+      ? null
+      : Math.max(
+          insets.bottom + 8,
+          winH - transportAnchorY - IOS_TRANSPORT_ROW_HEIGHT / 2,
+        );
+
   if (!current) return null;
 
   return (
@@ -576,7 +598,7 @@ export function ClipTrimEditorIos({
     // "meaningful" for holding its space, and this surface now does the
     // same: band, overview, timecode, transport and the Shape entry share
     // the column, with the slack distributed as air between them.
-    <View style={[styles.screen, { paddingBottom: insets.bottom + 8 }]}>
+    <View style={styles.screen}>
       {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
       <GestureDetector gesture={scrubPan}>
         {/* The WRAPPER is unclipped — it exists so the playhead's dots can
@@ -798,14 +820,25 @@ export function ClipTrimEditorIos({
         </GlyphButton>
       </View>
 
-      {/* Trailing air, then the sheet's edge — the transport rides high for a
-          resting thumb, and the sheet's ACTIONS live in the bar now: Shape
-          and Save share the trailing merged pill (home's own arrangement),
-          Cancel leads. A content-level Shape entry was built three ways —
-          capsule, full glass bar, hugging glass pill — and each read as one
-          object too many on a sheet that wants to be two groups (Juan,
-          2026-08-26). */}
-      <View style={styles.airSmall} />
+      {/* THE TAIL IS THE ANCHOR'S — a fixed spacer that puts the play/pause
+          on the console's own measured spot (see `anchorBottomPad` above),
+          with all remaining slack absorbed by the one flexible air higher up.
+          The sheet's ACTIONS live in the bar: Shape and Save share the
+          trailing merged pill (home's own arrangement), Cancel leads. A
+          content-level Shape entry was built three ways — capsule, full glass
+          bar, hugging glass pill — and each read as one object too many on a
+          sheet that wants to be two groups (Juan, 2026-08-26). The weighted
+          air the fallback keeps is what this replaced: two rounds of "higher,
+          for the thumb" (1 → 1.5 → 3.2) were converging by feel on the spot
+          the player's transport already occupied. */}
+      {anchorBottomPad == null ? (
+        <>
+          <View style={styles.airSmall} />
+          <View style={{ height: insets.bottom + 8 }} />
+        </>
+      ) : (
+        <View style={{ height: anchorBottomPad }} />
+      )}
     </View>
   );
 }
