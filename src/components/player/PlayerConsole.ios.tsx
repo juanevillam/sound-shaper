@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
@@ -32,6 +34,8 @@ import {
   IOS_TRANSPORT_PLAY_SIZE,
   IOS_TRANSPORT_SKIP_SIZE,
   PLAYER_SIDE_PADDING,
+  registerPlayerTransportMeasurerIos,
+  setPlayerTransportAnchorIos,
   playerArtRadius,
   playerArtSize,
   type PlayerCard,
@@ -559,6 +563,28 @@ export function PlayerConsole({
     </>
   );
 
+  /**
+   * THE TRANSPORT ANCHOR'S WRITER — see `chrome.ts`. The sheet calls
+   * `measurePlayerTransportIos()` when the expand spring settles; this is the
+   * function it reaches. Double rAF before measuring, `useSheetLanded`'s own
+   * reasoning: the spring reporting done is not the same instant as the final
+   * layout pass, and a measurement taken between the two bakes a stale
+   * transform into the anchor.
+   */
+  const transportRowRef = useRef<View>(null);
+  useEffect(() => {
+    registerPlayerTransportMeasurerIos(() => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          transportRowRef.current?.measureInWindow((_x, y, _w, h) => {
+            if (h > 0) setPlayerTransportAnchorIos(y + h / 2);
+          });
+        }),
+      );
+    });
+    return () => registerPlayerTransportMeasurerIos(null);
+  }, [transportRowRef]);
+
   return (
     <Animated.View
       onAccessibilityEscape={onCollapse}
@@ -643,7 +669,7 @@ export function PlayerConsole({
 
         <View style={styles.spacer} />
 
-        <View style={styles.transportRow}>
+        <View ref={transportRowRef} style={styles.transportRow}>
           <GlyphButton
             onPress={onPrevious}
             hitSlop={12}

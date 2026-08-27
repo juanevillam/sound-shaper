@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 import { type StyleProp, type ViewStyle, Platform } from 'react-native';
 
 import { artworkRadius, type IconName } from '@portfolio/mobile-ui';
@@ -98,6 +100,73 @@ export const IOS_TRANSPORT_SKIP_SIZE = 34;
 export const IOS_TRANSPORT_PLAY_SIZE = 52;
 /** Between the boxes, so the three read as one group rather than a spread row. */
 export const IOS_TRANSPORT_GAP = 34;
+
+/**
+ * The box a transport glyph's Host reserves, as a multiple of its POINT SIZE —
+ * `TransportGlyphs.ios`'s ratio, moved here the day the row's HEIGHT became a
+ * shared term too (see `IOS_TRANSPORT_ROW_HEIGHT`). The full reasoning — why a
+ * ratio, why 1.45 — stays with the glyphs.
+ */
+export const IOS_TRANSPORT_GLYPH_BOX_RATIO = 1.45;
+
+/**
+ * A transport ROW's height — its tallest child, the play glyph's box. The clip
+ * editor needs it on the LAYOUT PATH (below), so it cannot be an onLayout
+ * answer: a row that reports its height a frame late moves the very control
+ * this anchoring exists to hold still.
+ */
+export const IOS_TRANSPORT_ROW_HEIGHT = Math.round(
+  IOS_TRANSPORT_PLAY_SIZE * IOS_TRANSPORT_GLYPH_BOX_RATIO,
+);
+
+/* -------------------------------------------------------------------------- */
+/*  THE TRANSPORT ANCHOR — one play button, two surfaces, ZERO shift          */
+/* -------------------------------------------------------------------------- */
+/**
+ * The clip editor's play/pause must stand in EXACTLY the spot the expanded
+ * player's does — same screen point, no CLS between the two surfaces (Juan,
+ * 2026-08-26). The console's transport Y cannot be stated statically: it sits
+ * between two flexible spacers, below a title block whose height is font
+ * metrics. So the console MEASURES it — `measureInWindow` on its transport
+ * row, fired by the sheet when the expand spring settles (a mid-flight
+ * measurement would bake the transform into the anchor) — and the editor
+ * reads the anchor to pin its own row from the SCREEN BOTTOM, the one edge
+ * both surfaces share whatever the sheet's top offset is.
+ *
+ * A module-level store, not context: the console and the editor live in
+ * different navigation trees (the editor is its own sheet route), and the
+ * value is one number with one writer. The editor is only reachable THROUGH
+ * the expanded player, so the anchor is always set before it is read; the
+ * `null` fallback keeps the editor standing if that invariant ever breaks.
+ */
+let transportAnchorY: number | null = null;
+let transportMeasurer: (() => void) | null = null;
+const transportAnchorListeners = new Set<() => void>();
+
+export function registerPlayerTransportMeasurerIos(fn: (() => void) | null) {
+  transportMeasurer = fn;
+}
+
+/** Called by the sheet when the expand settles; no-op until a console registers. */
+export function measurePlayerTransportIos() {
+  transportMeasurer?.();
+}
+
+export function setPlayerTransportAnchorIos(y: number) {
+  if (y === transportAnchorY) return;
+  transportAnchorY = y;
+  transportAnchorListeners.forEach(l => l());
+}
+
+const subscribeTransportAnchor = (l: () => void) => {
+  transportAnchorListeners.add(l);
+  return () => transportAnchorListeners.delete(l);
+};
+const readTransportAnchor = () => transportAnchorY;
+
+export function usePlayerTransportAnchorIos(): number | null {
+  return useSyncExternalStore(subscribeTransportAnchor, readTransportAnchor);
+}
 
 export type PlayerScrubberProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
