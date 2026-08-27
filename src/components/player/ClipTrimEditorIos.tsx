@@ -241,27 +241,57 @@ export function ClipTrimEditorIos({
   };
 
   /**
-   * SMOOTH BETWEEN TICKS. The engine reports position roughly every 250ms,
-   * and writing the value straight in stepped the strip ~25pt per tick —
-   * "a trancones" (Juan, on device). A linear tween spanning one tick
-   * interval turns the steps into continuous tape motion; a JUMP (a seek, a
-   * boundary park — anything over 1.5s) still lands directly, because
-   * tweening across a discontinuity would animate travel that never
-   * happened.
+   * THE TICK FOLLOWER — three regimes, each earned on device (Juan,
+   * 2026-08-26):
+   *
+   * PLAYING: a linear tween per tick turns ~250ms position steps into
+   * continuous tape motion. Its duration is RATE-AWARE: the engine ticks per
+   * SOURCE frames consumed, so at 0.5× the wall gap between ticks doubles —
+   * a fixed 260ms tween finished early and HELD, which is the
+   * move-stop-move chunking shaped playback showed. The tween now spans the
+   * expected wall gap (delta ÷ rate), clamped so a stall cannot animate
+   * forever.
+   *
+   * PAUSED: the line FREEZES WHERE IT IS. Ticks stop, but an in-flight
+   * tween used to finish — the line visibly settled onto the next tick
+   * after the pause, "involuntary… i feel im not in control". Cancelling
+   * without re-syncing leaves the line at the exact pixel the eye locked;
+   * the ≤0.25s drift from the engine's parked position is repaid smoothly
+   * on resume, and any drag release seeks to the LINE, so the line is the
+   * truth the person owns.
+   *
+   * SEEKS: a `seekNonce` change (skip, clip start, boundary park) lands
+   * directly even while paused — a jump is a jump.
    */
+  const lastSeekNonceRef = useRef(usePlayerStore.getState().seekNonce);
   useEffect(
     () =>
       usePlayerStore.subscribe(state => {
         if (panningRef.current) return;
-        const delta = Math.abs(state.position - playheadSv.value);
-        if (state.playing && delta < 1.5) {
-          playheadSv.value = withTiming(state.position, {
-            duration: 260,
-            easing: Easing.linear,
-          });
-        } else {
+        const seeked = state.seekNonce !== lastSeekNonceRef.current;
+        lastSeekNonceRef.current = state.seekNonce;
+
+        if (seeked) {
+          cancelAnimation(playheadSv);
           playheadSv.value = state.position;
+          return;
         }
+        if (!state.playing) {
+          cancelAnimation(playheadSv);
+          return;
+        }
+        const delta = state.position - playheadSv.value;
+        if (Math.abs(delta) >= 1.5) {
+          playheadSv.value = state.position;
+          return;
+        }
+        playheadSv.value = withTiming(state.position, {
+          duration: Math.min(
+            700,
+            Math.max(80, (Math.abs(delta) / Math.max(state.rate, 0.25)) * 1000),
+          ),
+          easing: Easing.linear,
+        });
       }),
     [playheadSv],
   );
@@ -307,10 +337,26 @@ export function ClipTrimEditorIos({
   );
 
   const lastChunk = Math.max(0, Math.ceil(durationS / CHUNK_S) - 1);
-  const tiles: number[] = [];
+  const tileSet = new Set<number>();
   for (let i = chunk - 2; i <= chunk + 2; i += 1) {
-    if (i >= 0 && i <= lastChunk) tiles.push(i);
+    if (i >= 0 && i <= lastChunk) tileSet.add(i);
   }
+  /**
+   * THE SELECTION'S OWN CHUNKS STAY MOUNTED ALWAYS — the clip is this
+   * editor's subject, and play-from-outside jumps the playhead to its
+   * start: if those tiles had to mount on arrival, the band blinked exactly
+   * on that press (Juan, 2026-08-26 — "the flicker happens when the red
+   * line is not in the clip dragger"). A clip is a handful of chunks;
+   * keeping them is nearly free, and memoisation makes them inert.
+   */
+  for (
+    let i = Math.floor(range.startS / CHUNK_S);
+    i <= Math.min(Math.ceil(range.endS / CHUNK_S), lastChunk);
+    i += 1
+  ) {
+    if (i >= 0) tileSet.add(i);
+  }
+  const tiles = [...tileSet].sort((a, b) => a - b);
 
   const trackWidth = durationS * PPS;
 
@@ -778,7 +824,9 @@ export function ClipTrimEditorIos({
             tintColor: colors.primary,
             labelColor: colors.background,
             variant: 'bordered',
-            size: 'regular',
+            // `large` — Shape is a main feature of this workflow, and at
+            // `regular` it read "like an easter egg" (Juan, 2026-08-26).
+            size: 'large',
           })}
         />
       </SwiftUIHost>
@@ -1104,8 +1152,14 @@ const styles = StyleSheet.create({
    */
   waveGroupGap: { height: 20 },
   controlGroupGap: { marginTop: GROUP_GAP },
-  airLarge: { flexGrow: 1.4, minHeight: GROUP_GAP },
-  airSmall: { flexGrow: 1, minHeight: GROUP_GAP / 2 },
-  shapeHost: { alignSelf: 'center', height: 40, width: 200 },
+  /**
+   * The slack BELOW the control group outweighs the slack above it
+   * (1 : 1.5), so the timecode and transport ride HIGH enough for a resting
+   * thumb — Juan had to reach down for them when the weights ran the other
+   * way (2026-08-26). Same mechanism, opposite bias to the first cut.
+   */
+  airLarge: { flexGrow: 1, minHeight: GROUP_GAP },
+  airSmall: { flexGrow: 1.5, minHeight: GROUP_GAP / 2 },
+  shapeHost: { alignSelf: 'center', height: 56, width: 240 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
