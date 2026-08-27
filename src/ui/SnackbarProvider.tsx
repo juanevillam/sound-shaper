@@ -32,7 +32,12 @@ import {
   GlassSurfaceIos,
 } from './GlassSurfaceIos';
 import { NOW_PLAYING_BANNER_BOX } from './nowPlayingBanner';
-import { SnackbarContext, type SnackbarAction } from './snackbar';
+import {
+  SnackbarContext,
+  type SnackbarAction,
+  type SnackbarOptions,
+  type SnackbarScope,
+} from './snackbar';
 import { PRESSED_OPACITY } from './SquashPressable';
 
 type SnackbarProviderProps = {
@@ -114,6 +119,11 @@ const SnackbarProvider = ({
     onCommit?: () => void;
     resolved: boolean;
   } | null>(null);
+  // Mirrors of the live toast's state for `releaseOutlet`, which must decide
+  // synchronously inside a state updater whether a toast is up and whose it
+  // is — see the outlet registry below.
+  const messageRef = useRef<string | null>(null);
+  const scopeRef = useRef<SnackbarScope>('host');
   const { colors } = useAppTheme();
   // Respect the OS "remove animations" setting: show/hide instantly, no slide.
   const reduceMotion = useReducedMotion();
@@ -136,6 +146,7 @@ const SnackbarProvider = ({
 
   // Drop the visible bar (after its exit animation). Runs on the JS thread.
   const clearMessage = useCallback(() => {
+    messageRef.current = null;
     setMessage(null);
     setAction(null);
   }, []);
@@ -170,14 +181,103 @@ const SnackbarProvider = ({
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
+  /**
+   * THE OUTLET REGISTRY — ids in claim order (so the LAST one is the topmost
+   * surface; sheets stack account → Recently Deleted), each with the bottom
+   * clearance its surface stated at claim time. A ref, not state: the
+   * registry is read at SHOW time (to bind) and at RELEASE time (to decide a
+   * bound toast's fate), and neither read wants to be a render behind.
+   *
+   * The toast renders in its BOUND outlet, not the topmost one. Binding
+   * happens once, in `showSnackbar`; a surface mounting above a live toast
+   * does not steal it (it gets covered, like any overlay under a new window),
+   * and a surface unmounting UNDER it changes nothing. Only the bound
+   * surface's own dismissal acts, per `SnackbarScope`: `host` toasts die with
+   * it — committing their transaction, exactly as unmount always has — and
+   * `app` toasts re-home to the new top with a fresh entrance. Re-parenting
+   * silently was the old behaviour, and it read as a flicker-and-jump on
+   * every sheet close (Juan, 2026-08-27).
+   */
+  const outletsRef = useRef<{ id: number; inset?: number }[]>([]);
+  const [boundOutlet, setBoundOutletState] = useState<number | null>(null);
+  // Mirror for `releaseOutlet`, which must read the binding synchronously —
+  // and NOT via a setState updater, whose double-invocation under StrictMode
+  // would run the release side effects twice.
+  const boundOutletRef = useRef<number | null>(null);
+  const setBoundOutlet = useCallback((id: number | null) => {
+    boundOutletRef.current = id;
+    setBoundOutletState(id);
+  }, []);
+  const [boundInset, setBoundInset] = useState<number | undefined>(undefined);
+  const claimOutlet = useCallback((id: number, inset?: number) => {
+    outletsRef.current = [...outletsRef.current, { id, inset }];
+  }, []);
+  const rehome = useCallback(() => {
+    const top = outletsRef.current.at(-1) ?? null;
+    setBoundOutlet(top?.id ?? null);
+    setBoundInset(top?.inset);
+    if (reduceMotion) {
+      translateY.value = 0;
+      opacity.value = 1;
+    } else {
+      translateY.value = HIDDEN_OFFSET;
+      opacity.value = 0;
+      translateY.value = withSpring(0, SETTLE_SPRING);
+      opacity.value = withTiming(1, { duration: 180 });
+    }
+    startTimer();
+  }, [opacity, reduceMotion, setBoundOutlet, startTimer, translateY]);
+  const releaseOutlet = useCallback(
+    (id: number) => {
+      const index = outletsRef.current.findLastIndex(entry => entry.id === id);
+      if (index !== -1)
+        outletsRef.current = [
+          ...outletsRef.current.slice(0, index),
+          ...outletsRef.current.slice(index + 1),
+        ];
+
+      if (boundOutletRef.current !== id) return;
+      if (messageRef.current === null) {
+        setBoundOutlet(null);
+
+        return;
+      }
+      if (scopeRef.current === 'app') {
+        rehome();
+
+        return;
+      }
+      // `host`: the surface this toast belonged to is gone — so is the
+      // toast, instantly (its surface is mid-dismissal; an exit animation
+      // would play on whatever is behind, which is the very flicker this
+      // exists to remove). Unmount semantics: the transaction commits.
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      finalize(true);
+      clearMessage();
+      setBoundOutlet(null);
+    },
+    [clearMessage, finalize, rehome, setBoundOutlet],
+  );
+  const bottomClearance =
+    boundOutlet !== null && boundInset !== undefined
+      ? boundInset
+      : iosBottomInset;
+
   const showSnackbar = useCallback(
-    (next: string, nextAction?: SnackbarAction) => {
+    (next: string, nextAction?: SnackbarAction, options?: SnackbarOptions) => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       // A new snackbar ends the previous one's undo window — commit it.
       finalize(true);
       pendingRef.current = nextAction
         ? { onCommit: nextAction.onCommit, resolved: false }
         : null;
+      // BIND to the surface this is fired on — the topmost outlet right now,
+      // or the root. See `SnackbarScope`.
+      scopeRef.current = options?.scope ?? 'host';
+      const topOutlet = outletsRef.current.at(-1) ?? null;
+      setBoundOutlet(topOutlet?.id ?? null);
+      setBoundInset(topOutlet?.inset);
+      messageRef.current = next;
       setMessage(next);
       setAction(nextAction ?? null);
       if (reduceMotion) {
@@ -191,7 +291,7 @@ const SnackbarProvider = ({
       }
       startTimer();
     },
-    [finalize, opacity, translateY, reduceMotion, startTimer],
+    [finalize, opacity, translateY, reduceMotion, setBoundOutlet, startTimer],
   );
 
   // Plain dismiss (no action): a passive close, so commit the transaction.
@@ -294,35 +394,6 @@ const SnackbarProvider = ({
     ],
   );
 
-  /**
-   * THE OUTLET REGISTRY — ids in claim order, so the LAST one mounted wins.
-   * Sheets stack (account → Recently Deleted), and without "topmost only" the
-   * toast drew once per stacked sheet.
-   */
-  const [outlets, setOutlets] = useState<number[]>([]);
-  const claimOutlet = useCallback(
-    (id: number) => setOutlets(current => [...current, id]),
-    [],
-  );
-  const releaseOutlet = useCallback(
-    (id: number) =>
-      setOutlets(current => {
-        const last = current.lastIndexOf(id);
-
-        return last === -1
-          ? current
-          : [...current.slice(0, last), ...current.slice(last + 1)];
-      }),
-    [],
-  );
-  const activeOutlet = outlets.length > 0 ? outlets[outlets.length - 1] : null;
-  // The active outlet's clearance, when it states one — see `SnackbarOutlet`.
-  const [outletInset, setOutletInset] = useState<number | undefined>(undefined);
-  const bottomClearance =
-    activeOutlet !== null && outletInset !== undefined
-      ? outletInset
-      : iosBottomInset;
-
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }],
@@ -415,17 +486,17 @@ const SnackbarProvider = ({
   return (
     <SnackbarContext.Provider
       value={{
-        activeOutlet,
+        boundOutlet,
         claimOutlet,
         releaseOutlet,
-        setOutletInset,
         showSnackbar,
         toast,
       }}
     >
       {children}
-      {/* The ROOT renders it only when nothing above it has claimed it. */}
-      {activeOutlet === null ? toast : null}
+      {/* The ROOT renders the toast bound to it — a sheet's stays in the
+          sheet (see the outlet registry above). */}
+      {boundOutlet === null ? toast : null}
     </SnackbarContext.Provider>
   );
 };
