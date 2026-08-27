@@ -3,18 +3,21 @@ import { useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
-import { TrophiesScreen, useTrophies } from '@portfolio/trophies';
+import {
+  TrophiesScreen,
+  TrophyDetailSheet,
+  useTrophies,
+} from '@portfolio/trophies';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { TrophyDetailSheet } from '@/components/trophies/TrophyDetailSheet';
 import { Screen } from '@/components/ui/Screen';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 
 export default function TrophiesRoute() {
-  const { colors } = useAppTheme();
+  const { colors, scheme, seedColor } = useAppTheme();
   const { t, locale } = useI18n();
   const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total } = useTrophies(copy);
@@ -81,6 +84,14 @@ export default function TrophiesRoute() {
           lockedLabel={screenStrings.lockedLabel}
           formatDate={formatDate}
           onClose={() => setSelectedId(null)}
+          // The package takes the palette and the Host theming as props — the
+          // app's ThemedHost is app code (see the lifted sheet's header).
+          colors={{
+            onSurface: colors.onSurface,
+            onSurfaceMuted: colors.onSurfaceMuted,
+          }}
+          colorScheme={scheme}
+          seedColor={seedColor}
         />
       ) : null}
     </Screen>
