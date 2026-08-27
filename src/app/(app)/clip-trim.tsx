@@ -69,7 +69,9 @@ function ClipTrimScreen() {
         // one". Same sites the in-player save used.
         awardTrophy(TROPHY_IDS.firstClip);
         useClipsSavedStore.getState().saved();
-        showSnackbar(t('snackbar.clip-created'));
+        // `scope: 'app'` — fired as part of CLOSING this sheet, addressed
+        // to the Clips list behind it. See `SnackbarScope`.
+        showSnackbar(t('snackbar.clip-created'), undefined, { scope: 'app' });
         router.back();
       })
       .catch(() => {

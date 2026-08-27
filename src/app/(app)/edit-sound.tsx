@@ -176,7 +176,11 @@ function EditSoundSheetScreen() {
             soundId,
           });
 
-          showSnackbar(t('snackbar.sound-updated'));
+          // `scope: 'app'` on every toast that rides this sheet's own
+          // dismissal — see `SnackbarScope`.
+          showSnackbar(t('snackbar.sound-updated'), undefined, {
+            scope: 'app',
+          });
           router.back();
         } catch {
           showSnackbar(t('snackbar.sound-save-failed'));
@@ -196,8 +200,16 @@ function EditSoundSheetScreen() {
         // metadata path's instant close and trailing snackbar.
         ...(artCleared ? { cover: null } : {}),
       })
-        .then(() => showSnackbar(t('snackbar.sound-updated')))
-        .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
+        .then(() =>
+          showSnackbar(t('snackbar.sound-updated'), undefined, {
+            scope: 'app',
+          }),
+        )
+        .catch(() =>
+          showSnackbar(t('snackbar.sound-save-failed'), undefined, {
+            scope: 'app',
+          }),
+        );
 
       router.back();
       return;
@@ -228,7 +240,7 @@ function EditSoundSheetScreen() {
         name: trimmedName,
       });
 
-      showSnackbar(t('snackbar.sound-created'));
+      showSnackbar(t('snackbar.sound-created'), undefined, { scope: 'app' });
       router.back();
     } catch {
       showSnackbar(t('snackbar.sound-save-failed'));

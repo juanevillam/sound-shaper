@@ -39,18 +39,26 @@ import { useSnackbar } from './snackbar';
  * (That the banner had an answer and the snackbar did not is the drift this
  * repo keeps finding: two things with one problem, one of them fixed.)
  *
- * TOPMOST WINS. Sheets stack (account → Recently Deleted), so every outlet
- * claims an increasing id and only the highest renders; the root renders only
- * when no outlet is mounted at all. Without that the toast drew once per
- * stacked sheet.
+ * THE TOAST RENDERS IN THE OUTLET IT WAS FIRED ON — its BOUND outlet, chosen
+ * at show time, never re-pointed by surfaces mounting above or unmounting
+ * below. When the bound surface itself is dismissed the provider decides the
+ * toast's fate (`SnackbarScope`): die with it, or re-home with a fresh
+ * entrance. "Topmost outlet wins, and re-parent on every change" was the old
+ * rule, and every sheet close under a live toast was a flicker-and-jump
+ * (Juan, 2026-08-27).
+ *
+ * A SHEET HAS NO TAB BAR TO CLEAR, so an outlet states the bottom clearance
+ * ITS surface needs at claim time (the provider's own `iosBottomInset` clears
+ * the app's floating chrome; over a sheet that chrome is not there). At claim
+ * rather than by effect, so a toast's first frame already stands at the right
+ * height.
  */
 export function SnackbarOutlet({
   iosBottomInset,
 }: {
   iosBottomInset?: number;
 }) {
-  const { activeOutlet, claimOutlet, releaseOutlet, setOutletInset, toast } =
-    useSnackbar();
+  const { boundOutlet, claimOutlet, releaseOutlet, toast } = useSnackbar();
   // A stable per-mount id. `useId` is unique per component instance, and the
   // provider orders claims by arrival rather than by this value.
   const reactId = useId();
@@ -59,27 +67,12 @@ export function SnackbarOutlet({
 
   useEffect(() => {
     const id = idRef.current;
-    claimOutlet(id);
+    claimOutlet(id, iosBottomInset);
 
     return () => releaseOutlet(id);
-  }, [claimOutlet, releaseOutlet]);
+  }, [claimOutlet, iosBottomInset, releaseOutlet]);
 
-  /**
-   * A SHEET HAS NO TAB BAR TO CLEAR. The provider's `iosBottomInset` exists so
-   * the toast clears a floating Liquid Glass tab bar; over a sheet that bar is
-   * not there, so the toast would float 76pt above nothing. An outlet states
-   * the clearance ITS surface needs, and the provider falls back to the app's
-   * when none is given.
-   */
-  useEffect(() => {
-    if (activeOutlet !== idRef.current) return;
-
-    setOutletInset(iosBottomInset);
-
-    return () => setOutletInset(undefined);
-  }, [activeOutlet, iosBottomInset, setOutletInset]);
-
-  return activeOutlet === idRef.current ? <>{toast}</> : null;
+  return boundOutlet === idRef.current ? <>{toast}</> : null;
 }
 
 // `useId` returns a string; the registry keys on numbers so "most recently
