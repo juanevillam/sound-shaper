@@ -71,15 +71,14 @@ import { Text as AppText } from '@/components/ui/Text';
 import { TROPHY_IDS } from '@/constants/trophies';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
+import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { rateLabel } from '@/lib/player';
 import { createClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
-import { useShaperStore } from '@/store/shaper';
 import { useSoundsStore } from '@/store/sounds';
 import {
   CONTINUOUS_CURVE,
@@ -400,7 +399,7 @@ function BannerProgressFill({ color }: { color: string }) {
 }
 
 export function PlayerSheet() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   // Android hands back a bottom inset of 0 on some cold starts, resumes and
@@ -426,8 +425,6 @@ export function PlayerSheet() {
   const toggle = usePlayerStore(s => s.toggle);
   const nextSound = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
-  const rate = usePlayerStore(s => s.rate);
-  const keepPitch = usePlayerStore(s => s.keepPitch);
   const playClip = usePlayerStore(s => s.playClip);
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
@@ -447,8 +444,6 @@ export function PlayerSheet() {
    */
   const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
-
-  const activePreset = useShaperStore(s => s.activePreset);
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is moderate (~58% width) so the whole console fits without scrolling.
@@ -1173,58 +1168,9 @@ export function PlayerSheet() {
   const subtitle = current.artist || ' ';
 
   // Card summaries: live settings at a glance.
-  const presetSummary = (() => {
-    switch (activePreset) {
-      case 'flat':
-        return t('player.eq.presets.flat');
-      case 'bass':
-        return t('player.eq.presets.bass');
-      case 'vocal':
-        return t('player.eq.presets.vocal');
-      case 'treble':
-        return t('player.eq.presets.treble');
-      case 'warm':
-        return t('player.eq.presets.warm');
-      case 'bright':
-        return t('player.eq.presets.bright');
-      default:
-        return t('player.shape.custom');
-    }
-  })();
-  /**
-   * IT STATES WHAT IS NOT DEFAULT, AND NOTHING ELSE.
-   *
-   * It used to state everything — "Flat · 1×" on a sound nobody had touched,
-   * which is a sentence saying "nothing is applied" the long way round. Apple
-   * writes the exception and leaves the default silent; Settings shows
-   * "Ringtone: None", not "Ringtone: Default, Vibration: Default".
-   *
-   * It also has to FIT. The bar gained a third cell, so each card's copy box
-   * came down to ~65 and a two-attribute summary overruns it. Dropping the
-   * defaults makes the long form rare rather than constant — and when
-   * everything IS default the summary is "None", the same word the Clips card
-   * uses for the same idea.
-   *
-   * The long form can still overrun the box ("Bright · 1.5×"); it truncates,
-   * which is what `numberOfLines={1}` is for.
-   */
-  const shapeSummary =
-    [
-      activePreset === 'flat' ? null : presetSummary,
-      rate === 1 ? null : rateLabel(rate, locale),
-      // THE PITCH NOTE FOLLOWS THE RULE ABOVE — state what is not default —
-      // so it inverts whenever the default does (it has twice now; see
-      // `keepPitch` in the store). Keeping pitch is the default again, so
-      // varispeed is the exception worth printing: "pitch off".
-      //
-      // AND IT IS SILENT AT 1×, at either setting: there the engine passes the
-      // audio through untouched, so the switch describes nothing that is
-      // happening. A note that appears on a sound nobody has sped up is exactly
-      // the "Flat · 1×" noise this summary was rebuilt to stop.
-      rate === 1 || keepPitch ? null : t('player.shape.pitchOff'),
-    ]
-      .filter(Boolean)
-      .join(' · ') || t('player.shape.none');
+  // ONE summary, two surfaces — the editor's Shape card reads the same hook.
+  const shapeSummary = useShapeSummary();
+
   const clipsSummary =
     clips.length === 0
       ? t('player.clips.noneSummary')

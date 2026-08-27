@@ -1,13 +1,17 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { Button, Image } from '@expo/ui/swift-ui';
+import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
 import {
-  actionButtonModifiersIos,
+  AppIcon,
+  FLOATING_RADIUS,
+  GlassSurfaceIos,
+  MINI_PLAYER_HEIGHT,
   SHEET_CONTENT_TOP,
   SwiftUIHost,
+  usePressSquash,
 } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -36,6 +40,7 @@ import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
 
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
@@ -571,6 +576,7 @@ export function ClipTrimEditorIos({
   }));
 
   const insets = useSafeAreaInsets();
+  const shapeSummary = useShapeSummary();
 
   if (!current) return null;
 
@@ -805,31 +811,93 @@ export function ClipTrimEditorIos({
 
       <View style={styles.airSmall} />
 
-      {/* THE SHAPE ENTRY (Juan, 2026-08-26) — shaping and clipping are one
-          workflow: set the sound, mark the clip, hear both together. The
-          Shape sheet stacks over this one (trophies-over-account), applies
-          live, and the preview under this editor plays through it. It sits
-          where the console keeps Shape too — the bottom slot — as the house
-          bordered action, whose tint the monochrome rule's carve-out keeps.
+      {/* THE SHAPE ENTRY IS THE CONSOLE'S OWN GLASS CARD (Juan, 2026-08-26,
+          third pass) — a bordered capsule at any control size still read
+          "like an easter egg", because the capsule is the wrong RANK: in
+          this app Shape is a glass-bar card with an icon, a label and its
+          LIVE summary, and the editor's footer slot mirrors the console's.
+          Full content width, the banner's own bar height, the shared
+          summary hook — shaping and clipping as one workflow: the sheet
+          stacks over this one, applies live, and the preview plays through
+          it. */}
+      <ShapeCard
+        label={t('player.shape.title')}
+        summary={shapeSummary}
+        width={cardWidth}
+        onPress={() => router.push('/shaper')}
+      />
+    </View>
+  );
+}
 
-          A STATED BOX, per the async-answer family in AGENTS.md: this is
-          `EmptyState.ios`'s arrangement — the raw SwiftUI `Button` with the
-          house's own modifiers inside a host that states its box; the pill
-          hugs its label inside the transparent host either way. */}
-      <SwiftUIHost ignoreSafeArea="all" style={styles.shapeHost}>
-        <Button
-          label={t('player.shape.title')}
-          onPress={() => router.push('/shaper')}
-          modifiers={actionButtonModifiersIos({
-            tintColor: colors.primary,
-            labelColor: colors.background,
-            variant: 'bordered',
-            // `large` — Shape is a main feature of this workflow, and at
-            // `regular` it read "like an easter egg" (Juan, 2026-08-26).
-            size: 'large',
-          })}
-        />
-      </SwiftUIHost>
+/**
+ * THE CONSOLE'S GLASS CARD, on the editor's footer slot — icon, label, live
+ * summary on `GlassSurfaceIos`, squashing like every card. The arrangement
+ * is `PlayerConsole.ios`'s `GlassHalf` (same paddings, same 31pt icon host,
+ * same Body-over-Footnote pair); a third surface drawing it is the
+ * rule-of-three moment to extract the component itself.
+ */
+const SHAPE_CARD_ICON = 24;
+const SHAPE_CARD_ICON_BOX = Math.round(SHAPE_CARD_ICON * 1.3);
+
+function ShapeCard({
+  label,
+  summary,
+  width,
+  onPress,
+}: {
+  label: string;
+  summary: string;
+  width: number;
+  onPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+  const squash = usePressSquash();
+
+  return (
+    <View style={[styles.shapeCard, { width }]}>
+      <GlassSurfaceIos
+        width={width}
+        height={MINI_PLAYER_HEIGHT}
+        cornerRadius={FLOATING_RADIUS}
+      />
+      <Animated.View style={[styles.shapeCardFill, squash.style]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label}, ${summary}`}
+          onPress={onPress}
+          onPressIn={squash.onPressIn}
+          onPressOut={squash.onPressOut}
+          style={styles.shapeCardPress}
+        >
+          <SwiftUIHost
+            ignoreSafeArea="all"
+            pointerEvents="none"
+            style={styles.shapeCardIconHost}
+          >
+            <AppIcon
+              name="tune"
+              size={SHAPE_CARD_ICON}
+              tint={colors.onSurface}
+            />
+          </SwiftUIHost>
+          <View style={styles.shapeCardCopy}>
+            <AppText
+              doNotTranslate
+              text={label}
+              variant="bodyLarge"
+              numberOfLines={1}
+            />
+            <AppText
+              doNotTranslate
+              muted
+              text={summary}
+              variant="bodySmall"
+              numberOfLines={1}
+            />
+          </View>
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -1160,6 +1228,24 @@ const styles = StyleSheet.create({
    */
   airLarge: { flexGrow: 1, minHeight: GROUP_GAP },
   airSmall: { flexGrow: 1.5, minHeight: GROUP_GAP / 2 },
-  shapeHost: { alignSelf: 'center', height: 56, width: 240 },
+  shapeCard: {
+    alignSelf: 'center',
+    borderRadius: FLOATING_RADIUS,
+    height: MINI_PLAYER_HEIGHT,
+    ...CONTINUOUS_CURVE,
+  },
+  shapeCardFill: { height: '100%', width: '100%' },
+  shapeCardPress: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    height: '100%',
+    paddingHorizontal: 16,
+  },
+  shapeCardIconHost: {
+    height: SHAPE_CARD_ICON_BOX,
+    width: SHAPE_CARD_ICON_BOX,
+  },
+  shapeCardCopy: { flex: 1, gap: 1 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
