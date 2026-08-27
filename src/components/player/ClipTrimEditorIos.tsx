@@ -631,8 +631,16 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
-      {/* THE TIMECODE — Voice Memos' centrepiece. */}
+      {/* THE TIMECODE — Voice Memos' centrepiece — with the CLIP'S OWN LINE
+          under it: where the selection stands and how long it is, live under
+          an edge drag (Juan, 2026-08-26 — the playhead number alone said
+          nothing about the thing being made). */}
       <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
+      <ClipRangeLine
+        startSv={startSv}
+        endSv={endSv}
+        color={colors.onSurfaceMuted}
+      />
 
       {/* THE TRANSPORT — ±15 and play, the editor's own loop. */}
       <View style={styles.transport}>
@@ -787,6 +795,54 @@ const WaveTile = memo(function WaveTile({
 });
 
 /**
+ * THE CLIP'S OWN LINE — its range and its duration, in the clips list's own
+ * format plus the house's mid-dot: "0:12 – 0:27 · 0:15". A leaf reacting on
+ * the ROUNDED edges (the only values this editor deals in), so an edge drag
+ * moves the numbers live without the editor re-rendering — the
+ * `ClipRangeLabelIos` idea, rebuilt on this surface's shared values.
+ */
+const ClipRangeLine = memo(function ClipRangeLine({
+  startSv,
+  endSv,
+  color,
+}: {
+  startSv: SharedValue<number>;
+  endSv: SharedValue<number>;
+  color: string;
+}) {
+  const [edges, setEdges] = useState(() => ({
+    start: Math.round(startSv.value),
+    end: Math.round(endSv.value),
+  }));
+  useAnimatedReaction(
+    () => ({
+      start: Math.round(startSv.value),
+      end: Math.round(endSv.value),
+    }),
+    (next, previous) => {
+      if (
+        previous === null ||
+        next.start !== previous.start ||
+        next.end !== previous.end
+      ) {
+        runOnJS(setEdges)(next);
+      }
+    },
+    [],
+  );
+
+  return (
+    <AppText
+      doNotTranslate
+      text={`${formatTime(edges.start)} – ${formatTime(edges.end)} · ${formatTime(
+        Math.max(0, edges.end - edges.start),
+      )}`}
+      style={[styles.clipLine, { color }]}
+    />
+  );
+});
+
+/**
  * The timecode re-renders itself off the shared playhead — the leaf-reader
  * rule (`PlayerScrubberLive`), reacting on the SECOND the label draws so it
  * never renders a frame that reads the same. It showed centiseconds first,
@@ -931,6 +987,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 41,
     marginTop: GROUP_GAP,
+    textAlign: 'center',
+  },
+  /**
+   * Tight under the timecode — the two lines are one block (the moment, and
+   * the thing being made), so the space WITHIN the block is small and the
+   * GROUP_GAP stays between blocks. Subheadline's own metrics; tabular for
+   * the same reason every readout here is.
+   */
+  clipLine: {
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    lineHeight: 20,
+    marginTop: 4,
     textAlign: 'center',
   },
   transport: {
