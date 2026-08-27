@@ -114,6 +114,15 @@ const CAP_TOUCH_PAD_Y = 14;
 const CAP_TOUCH_WIDTH = CAP_WIDTH + CAP_TOUCH_PAD_X * 2;
 
 /**
+ * How far the frame's TOUCH territory reaches past a selection edge, in px —
+ * the cap's ink (14) plus its wrapper pad (15). Exported for the editor's
+ * overview scrub, which yields to any touch starting inside the frame's
+ * reach: that yield is done by GEOMETRY against this number, not by gesture
+ * arbitration, so it cannot drift from the wrappers it describes.
+ */
+export const CAP_TOUCH_OVERHANG = CAP_WIDTH + CAP_TOUCH_PAD_X;
+
+/**
  * FINE SCRUBBING — Apple's own answer to precision on a control that must not
  * zoom, taken from the platform's scrubbers (Music, Podcasts, UISlider's
  * scrubbing rates): the track never moves, the FINGER's gain does. Slide

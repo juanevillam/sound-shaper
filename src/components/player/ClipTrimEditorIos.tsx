@@ -19,6 +19,7 @@ import Animated, {
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import {
+  CAP_TOUCH_OVERHANG,
   ClipTrimFrameIos,
   MIN_GAP_S,
   RANGE_FILL_ALPHA,
@@ -179,6 +180,15 @@ export function ClipTrimEditorIos({
    */
   const cardWidth = winW - SCREEN_PADDING * 2;
   const centerX = cardWidth / 2;
+  /**
+   * DECLARED BEFORE THE GESTURES THAT CAPTURE IT. A worklet serialises its
+   * captures where it is DEFINED, and a `const` still in its dead zone
+   * captures as undefined — the overview scrub read `overviewPps` that way
+   * and wrote NaN into the playhead on first touch (caught on simulator,
+   * 2026-08-26: the whole editor collapsed to NaN geometry).
+   */
+  const overviewWidth = winW - SCREEN_PADDING * 2;
+  const overviewPps = overviewWidth / durationS;
 
   // --- The playhead -------------------------------------------------------
   // One shared value, written by the position tick while sounding and by the
@@ -349,6 +359,58 @@ export function ClipTrimEditorIos({
       runOnJS(seekTo)(playheadSv.value);
     });
 
+  /**
+   * SCRUB THE WHOLE TRACK FROM THE OVERVIEW (Juan, 2026-08-26) — the small
+   * strip maps the full sound to one screen width, so it is the fast way to
+   * anywhere; the zoomed view stays the precise way. The jump is ABSOLUTE
+   * (the playhead goes to the finger, scrubber-style), and the release snaps
+   * to the second like every landing here.
+   *
+   * IT YIELDS TO THE FRAME BY GEOMETRY. The frame's middle slides the clip
+   * and its cap wrappers reach `CAP_TOUCH_OVERHANG` past each edge; a scrub
+   * STARTING in that territory no-ops instead of racing the frame's own
+   * pans — the arbitration lesson in `ClipTrimFrameIos`: overlapping
+   * handlers on different views are not guaranteed exclusive, so the loser
+   * is decided by arithmetic, not by the gesture system. A drag that starts
+   * on bare track and then crosses the frame keeps scrubbing — ownership is
+   * taken at touch-down, like every drag in the player.
+   */
+  const overviewRejected = useSharedValue(false);
+  const overviewScrub = Gesture.Pan()
+    .minDistance(0)
+    .onBegin(event => {
+      const startPx = startSv.value * overviewPps;
+      const endPx = endSv.value * overviewPps;
+      if (
+        event.x >= startPx - CAP_TOUCH_OVERHANG &&
+        event.x <= endPx + CAP_TOUCH_OVERHANG
+      ) {
+        overviewRejected.value = true;
+        return;
+      }
+      overviewRejected.value = false;
+      cancelAnimation(playheadSv);
+      runOnJS(setPanning)(true);
+      runOnJS(pause)();
+      playheadSv.value = Math.min(
+        Math.max(event.x / overviewPps, 0),
+        durationS,
+      );
+    })
+    .onChange(event => {
+      if (overviewRejected.value) return;
+      playheadSv.value = Math.min(
+        Math.max(event.x / overviewPps, 0),
+        durationS,
+      );
+    })
+    .onFinalize(() => {
+      if (overviewRejected.value) return;
+      playheadSv.value = Math.round(playheadSv.value);
+      runOnJS(setPanning)(false);
+      runOnJS(seekTo)(playheadSv.value);
+    });
+
   const makeEdgePan = (edge: 'start' | 'end') =>
     Gesture.Pan()
       .minDistance(2)
@@ -394,8 +456,6 @@ export function ClipTrimEditorIos({
   };
 
   // --- Overview -----------------------------------------------------------
-  const overviewWidth = winW - SCREEN_PADDING * 2;
-  const overviewPps = overviewWidth / durationS;
   const overviewPath = useMemo(() => {
     const pitchS = OVERVIEW_BAR_PITCH / overviewPps;
     const bars = Math.floor(overviewWidth / OVERVIEW_BAR_PITCH);
@@ -573,32 +633,35 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
-      {/* THE OVERVIEW — the whole track, carrying the selection frame. */}
-      <View style={[styles.overview, { width: overviewWidth }]}>
-        <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
-          {/* The rest of the track, in the house's muted ink — the frame's
+      {/* THE OVERVIEW — the whole track, carrying the selection frame, and
+          a full-track scrubber on its bare regions. */}
+      <GestureDetector gesture={overviewScrub}>
+        <View style={[styles.overview, { width: overviewWidth }]}>
+          <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
+            {/* The rest of the track, in the house's muted ink — the frame's
               wash is what marks the selection over it. */}
-          <Path d={overviewPath} fill={colors.onSurfaceMuted} />
-        </Svg>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.overviewPlayhead,
-            { backgroundColor: colors.danger },
-            overviewPlayheadStyle,
-          ]}
-        />
-        <View style={styles.overviewFrame} pointerEvents="box-none">
-          <ClipTrimFrameIos
-            durationS={durationS}
-            startS={range.startS}
-            endS={range.endS}
-            startSv={startSv}
-            endSv={endSv}
-            onChange={onRangeChange}
+            <Path d={overviewPath} fill={colors.onSurfaceMuted} />
+          </Svg>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.overviewPlayhead,
+              { backgroundColor: colors.danger },
+              overviewPlayheadStyle,
+            ]}
           />
+          <View style={styles.overviewFrame} pointerEvents="box-none">
+            <ClipTrimFrameIos
+              durationS={durationS}
+              startS={range.startS}
+              endS={range.endS}
+              startSv={startSv}
+              endSv={endSv}
+              onChange={onRangeChange}
+            />
+          </View>
         </View>
-      </View>
+      </GestureDetector>
 
       {/* THE TIMECODE — Voice Memos' centrepiece. */}
       <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
