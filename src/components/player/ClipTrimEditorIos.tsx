@@ -2,9 +2,14 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { Image } from '@expo/ui/swift-ui';
+import { Button, Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
-import { SHEET_CONTENT_TOP, SwiftUIHost } from '@portfolio/mobile-ui';
+import {
+  actionButtonModifiersIos,
+  SHEET_CONTENT_TOP,
+  SwiftUIHost,
+} from '@portfolio/mobile-ui';
+import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -16,6 +21,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import {
@@ -81,19 +87,25 @@ import {
 const PPS = 100;
 /** One chunk of the pan strip, in seconds (1200pt at PPS). */
 const CHUNK_S = 12;
-/** Wave band height in the zoomed view. */
-const WAVE_HEIGHT = 148;
+/**
+ * Wave band height — grown from 148 with the space-distribution pass (Juan,
+ * 2026-08-26): the sheet ran out of content half-way down, and the band is
+ * the surface that deserves the room.
+ */
+const WAVE_HEIGHT = 200;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 /**
- * Bars: one per 65ms, each aggregating the decode buckets it spans. Tuned by
- * eye across three passes (Juan, 2026-08-26): 50ms read as a thicket, 100ms
- * overshot, 75ms was still short of it — this sits just under the original
- * density with the gaps that keep it legible. Density is a drawing choice;
- * the decode cache keeps its own resolution.
+ * Bars: one per 45ms — DENSER than the decode's own 50ms grid, interpolated
+ * by the same aggregation — with a THIN 2pt bar. The by-eye passes kept
+ * circling because density and weight were moving together: the original
+ * "thicket" was 3pt bars with 2pt gaps (more ink than air), while Voice
+ * Memos is dense AND airy because its bars are thinner than their gaps.
+ * Density up, weight down — the pairing Juan's VM screenshots actually
+ * show.
  */
-const BAR_PITCH = 6.5;
-const BAR_WIDTH = 3;
+const BAR_PITCH = 4.5;
+const BAR_WIDTH = 2;
 /**
  * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
  * sized the trim frame's own box. The line inside is 3pt.
@@ -512,10 +524,18 @@ export function ClipTrimEditorIos({
     ],
   }));
 
+  const insets = useSafeAreaInsets();
+
   if (!current) return null;
 
   return (
-    <View style={styles.screen}>
+    // THE COLUMN FILLS THE SHEET — the console's own rule, its own mechanism
+    // (flex spacers between blocks). The sheet's content used to end mid-way
+    // and the lower half sat empty; Juan read the Shape sheet as
+    // "meaningful" for holding its space, and this surface now does the
+    // same: band, overview, timecode, transport and the Shape entry share
+    // the column, with the slack distributed as air between them.
+    <View style={[styles.screen, { paddingBottom: insets.bottom + 8 }]}>
       {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
       <GestureDetector gesture={scrubPan}>
         {/* The WRAPPER is unclipped — it exists so the playhead's dots can
@@ -629,6 +649,8 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
+      <View style={styles.spacer} />
+
       {/* THE OVERVIEW — the whole track, carrying the selection frame, and
           a full-track scrubber on its bare regions. */}
       <GestureDetector gesture={overviewScrub}>
@@ -659,6 +681,8 @@ export function ClipTrimEditorIos({
         </View>
       </GestureDetector>
 
+      <View style={styles.spacer} />
+
       {/* THE TIMECODE — Voice Memos' centrepiece — with the CLIP'S OWN LINE
           under it: where the selection stands and how long it is, live under
           an edge drag (Juan, 2026-08-26 — the playhead number alone said
@@ -669,6 +693,8 @@ export function ClipTrimEditorIos({
         endSv={endSv}
         color={colors.onSurfaceMuted}
       />
+
+      <View style={styles.spacer} />
 
       {/* THE TRANSPORT — ±15 and play, the editor's own loop. */}
       <View style={styles.transport}>
@@ -722,6 +748,32 @@ export function ClipTrimEditorIos({
           </SwiftUIHost>
         </GlyphButton>
       </View>
+
+      <View style={styles.spacer} />
+
+      {/* THE SHAPE ENTRY (Juan, 2026-08-26) — shaping and clipping are one
+          workflow: set the sound, mark the clip, hear both together. The
+          Shape sheet stacks over this one (trophies-over-account), applies
+          live, and the preview under this editor plays through it. It sits
+          where the console keeps Shape too — the bottom slot — as the house
+          bordered action, whose tint the monochrome rule's carve-out keeps.
+
+          A STATED BOX, per the async-answer family in AGENTS.md: this is
+          `EmptyState.ios`'s arrangement — the raw SwiftUI `Button` with the
+          house's own modifiers inside a host that states its box; the pill
+          hugs its label inside the transparent host either way. */}
+      <SwiftUIHost ignoreSafeArea="all" style={styles.shapeHost}>
+        <Button
+          label={t('player.shape.title')}
+          onPress={() => router.push('/shaper')}
+          modifiers={actionButtonModifiersIos({
+            tintColor: colors.primary,
+            labelColor: colors.background,
+            variant: 'bordered',
+            size: 'regular',
+          })}
+        />
+      </SwiftUIHost>
     </View>
   );
 }
@@ -986,7 +1038,6 @@ const styles = StyleSheet.create({
   overview: {
     alignSelf: 'center',
     height: OVERVIEW_HEIGHT,
-    marginTop: GROUP_GAP,
   },
   overviewPlayhead: {
     bottom: 0,
@@ -1014,7 +1065,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
     lineHeight: 41,
-    marginTop: GROUP_GAP,
     textAlign: 'center',
   },
   /**
@@ -1035,7 +1085,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: IOS_TRANSPORT_GAP,
     justifyContent: 'center',
-    marginTop: GROUP_GAP,
   },
+  /** The slack between blocks — the console's fill mechanism. */
+  spacer: { flexGrow: 1, minHeight: GROUP_GAP / 2 },
+  shapeHost: { alignSelf: 'center', height: 40, width: 200 },
   skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
 });
