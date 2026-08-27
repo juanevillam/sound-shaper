@@ -1,25 +1,27 @@
 import { useRef } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ColorSchemeName } from 'react-native';
 
 import {
   Column,
+  Host,
   ModalBottomSheet,
   RNHostView,
   Text,
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
-import {
-  tierColor,
-  TrophyIcon,
-  type ResolvedTrophy,
-} from '@portfolio/trophies';
 
-import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { tierColor } from './tierColors';
+import { TrophyIcon } from './TrophyIcon';
+import { type ResolvedTrophy } from './types';
 
 const ICON_SIZE = 64;
+
+export type TrophyDetailSheetColors = {
+  onSurface: string;
+  onSurfaceMuted: string;
+};
 
 export type TrophyDetailSheetProps = {
   trophy: ResolvedTrophy;
@@ -29,13 +31,24 @@ export type TrophyDetailSheetProps = {
   lockedLabel: string;
   formatDate: (achievedAt: number) => string;
   onClose: () => void;
+  /** The app's palette — a package takes colors as props, never a theme hook. */
+  colors: TrophyDetailSheetColors;
+  /** The app's RESOLVED scheme, for the sheet's own Host (each app's
+   *  `ThemedHost` is app code; the Host props are what it forwards). */
+  colorScheme?: ColorSchemeName;
+  seedColor?: string;
 };
 
-// Native bottom sheet for one trophy: the tier-colored glyph (or a padlock when
-// locked) shown BARE, matching the list rows rather than sitting in a badge, a
-// title, a `tier · status` caption, and the objective — which reads the same
-// whether the trophy is earned or still locked. Gets its OWN Host: a sheet
-// mounted beside other Compose content flickers its siblings. The glyph is the
+// ANDROID-ONLY: the native Compose bottom sheet for one trophy — iOS presents
+// the same content as the `trophy-detail` form-sheet ROUTE, whose body is
+// `TrophyDetailContent` beside this file. Lifted here 2026-08-27: Topper and
+// Sound Shaper each carried a 97.6%-identical copy, differing only in comment
+// wording — the exact second-app re-implementation the shared-code audit hunts.
+// Content: the tier-colored glyph (or a padlock when locked) shown BARE,
+// matching the list rows rather than sitting in a badge, a title, a
+// `tier · status` caption, and the objective — which reads the same whether
+// the trophy is earned or still locked. Gets its OWN Host: a sheet mounted
+// beside other Compose content flickers its siblings. The glyph is this
 // package's RN SVG, bridged back into Compose via RNHostView.
 export function TrophyDetailSheet({
   trophy,
@@ -44,9 +57,11 @@ export function TrophyDetailSheet({
   lockedLabel,
   formatDate,
   onClose,
+  colors,
+  colorScheme,
+  seedColor,
 }: TrophyDetailSheetProps) {
   const sheetRef = useRef<ModalBottomSheetRef>(null);
-  const { colors } = useAppTheme();
 
   // Same description whether earned or locked; only the caption's date/lock differs.
   const body = trophy.description;
@@ -60,7 +75,7 @@ export function TrophyDetailSheet({
     : colors.onSurfaceMuted;
 
   return (
-    <ThemedHost matchContents>
+    <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
       <ModalBottomSheet
         ref={sheetRef}
         onDismissRequest={onClose}
@@ -103,7 +118,7 @@ export function TrophyDetailSheet({
           </Text>
         </Column>
       </ModalBottomSheet>
-    </ThemedHost>
+    </Host>
   );
 }
 
