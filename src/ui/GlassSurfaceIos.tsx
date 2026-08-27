@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 
 import {
   Platform,
@@ -164,7 +164,18 @@ export type GlassSurfaceIosProps = {
  * layering reasons: idle #2B2A28 floor-under vs loaded #2D2C2A floor-over, L*
  * sd 3.32 vs 3.26), so this takes the one that is physically what it says.
  */
-export function GlassSurfaceIos({
+/**
+ * MEMOIZED, AND THAT IS PART OF THE MATERIAL'S CONTRACT. iOS 26's `regular`
+ * glass is ADAPTIVE — it picks a light or dark treatment from the backdrop
+ * under it — and re-sending the `glassEffect` modifier makes it PICK AGAIN.
+ * Every parent re-render rebuilt the modifier array, so a play/pause press or
+ * a seek under the console's footer re-applied the effect and the glass
+ * sometimes flipped to its other treatment mid-interaction (Juan, 2026-08-27,
+ * plainest in dark). The surface is purely decorative and its props are
+ * primitives at every call site, so a memo simply stops the re-send — the
+ * native effect keeps the treatment it mounted with.
+ */
+export const GlassSurfaceIos = memo(function GlassSurfaceIos({
   width,
   height,
   shape = 'roundedRectangle',
@@ -223,7 +234,7 @@ export function GlassSurfaceIos({
       </SwiftUIHost>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   floor: { left: 0, position: 'absolute', top: 0 },
