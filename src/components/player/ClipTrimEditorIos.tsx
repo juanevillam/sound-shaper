@@ -424,16 +424,18 @@ export function ClipTrimEditorIos({
   // value moves opposite the drag, exactly Voice Memos' feel. Scrubbing
   // pauses first: the finger owns the transport while it is down.
   /**
-   * MOTION IS CONTINUOUS, VALUES ARE WHOLE SECONDS — the settlement of two
-   * directives that collided (Juan, 2026-08-26). "Second by second" was
-   * first read as live detents, and a 100pt step under the finger is what
-   * made the drag feel heavy against Voice Memos' "really fast and
-   * flawless": VM's tape follows the finger exactly and quantises nothing
-   * you can SEE mid-drag. So the tape tracks the finger 1:1 here too —
-   * `minDistance(0)`, so the grab is instant — while everything that
-   * PERSISTS stays whole-second: the timecode and clip line only ever read
-   * whole seconds by construction, and the release rounds before it seeks.
-   * No landing can carry milliseconds; no drag can feel them.
+   * MOTION IS CONTINUOUS, AND ONLY THE LABELS SPEAK WHOLE SECONDS — the
+   * policy in its third and narrowest form. "Second by second" (Juan,
+   * 2026-08-26) was first read as live detents, and a 100pt step under the
+   * finger made the drag heavy against Voice Memos' "really fast and
+   * flawless"; the 2026-08-26 settlement kept motion 1:1 and rounded every
+   * RELEASE — which then made a cap or a line placed "just in between 2:22
+   * and 2:23" unsettable (Juan, 2026-08-27, twice: the caps, then "same
+   * exact problem goes for the red line"). So nothing snaps any more: drags
+   * track the finger (`minDistance(0)`), releases seek and commit EXACTLY
+   * where they were dropped, and the whole-second rule lives only in what
+   * is DISPLAYED — the timecode and the caption floor to the second,
+   * `formatTime`'s own semantics.
    */
   const scrubBaseSv = useSharedValue(0);
   const scrubPan = Gesture.Pan()
@@ -453,7 +455,12 @@ export function ClipTrimEditorIos({
       );
     })
     .onFinalize(() => {
-      playheadSv.value = Math.round(playheadSv.value);
+      /**
+       * UNROUNDED — the line rests exactly where the finger left it, the
+       * same narrowing the trim caps took (Juan, 2026-08-27: "same exact
+       * problem goes for the red line"). The whole-second rule is the
+       * LABELS' now, nothing else's: the timecode floors what it displays.
+       */
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
@@ -506,13 +513,14 @@ export function ClipTrimEditorIos({
     })
     .onFinalize(() => {
       if (overviewRejected.value) return;
-      playheadSv.value = Math.round(playheadSv.value);
+      // Unrounded, like the band scrub above.
       runOnJS(setPanning)(false);
       runOnJS(seekTo)(playheadSv.value);
     });
 
   // Continuous like the scrubs — the wash tracks the finger exactly, and
-  // `commitEdges` rounds what persists (see scrubPan's settlement note).
+  // `commitEdges` commits exactly where it was dropped (the settlement note
+  // above: only labels round).
   const edgeBaseSv = useSharedValue(0);
   const makeEdgePan = (edge: 'start' | 'end') =>
     Gesture.Pan()
@@ -547,11 +555,11 @@ export function ClipTrimEditorIos({
 
   // --- Transport ----------------------------------------------------------
   const onSkip = (deltaS: number) => {
-    // From the ROUNDED playhead: live playback sits at fractional seconds,
-    // and 92.3 + 15 = 107.3 was how fractions leaked back into a surface
-    // that speaks whole seconds.
+    // From the EXACT playhead — a skip moves ±15 from where you are, the way
+    // Apple's does; rounding first made it also snap a line the person had
+    // placed between seconds (the trim-cap narrowing, 2026-08-27).
     const { position } = usePlayerStore.getState();
-    seekTo(Math.min(Math.max(Math.round(position) + deltaS, 0), durationS));
+    seekTo(Math.min(Math.max(position + deltaS, 0), durationS));
   };
 
   /** Play from the playhead, stopping on the end cap — the player's rule. */
@@ -1094,9 +1102,12 @@ function TimecodeLabel({
   playheadSv: SharedValue<number>;
   color: string;
 }) {
-  const [seconds, setSeconds] = useState(() => Math.round(playheadSv.value));
+  const [seconds, setSeconds] = useState(() => Math.floor(playheadSv.value));
   useAnimatedReaction(
-    () => Math.round(playheadSv.value),
+    // FLOORED to match `formatTime`'s own semantics — the playhead is
+    // continuous now, and a rounded reaction re-rendered a label that then
+    // floored to a different second half the time.
+    () => Math.floor(playheadSv.value),
     (next, previous) => {
       if (next !== previous) runOnJS(setSeconds)(next);
     },
