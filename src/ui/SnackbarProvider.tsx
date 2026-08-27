@@ -43,6 +43,16 @@ import { PRESSED_OPACITY } from './SquashPressable';
 type SnackbarProviderProps = {
   children: React.ReactNode;
   /**
+   * ANDROID ONLY — the constant action slot's label when a snackbar carries no
+   * real action (iOS renders no dismiss control at all; auto-dismiss and the
+   * swipe are the dismissal there). Already translated, since the package has
+   * no translator. Defaults to 'OK' — the one hardcoded English string this
+   * file shipped with — so an app that has not wired it yet is unchanged.
+   * WRITTEN UNDER THE ANDROID FREEZE, so any app passing this ships it
+   * unverified until Android resumes.
+   */
+  dismissLabel?: string;
+  /**
    * iOS clearance between the toast and the bottom safe-area edge.
    *
    * ONLY A PRESENTED SURFACE PASSES THIS — see `SnackbarOutlet`, where a sheet
@@ -106,6 +116,7 @@ const SWIPE_ACTIVATION_OFFSET = 8;
  */
 const SnackbarProvider = ({
   children,
+  dismissLabel = 'OK',
   iosBottomInset = SNACKBAR_BOTTOM_CLEARANCE,
 }: SnackbarProviderProps) => {
   const [message, setMessage] = useState<string | null>(null);
@@ -461,7 +472,8 @@ const SnackbarProvider = ({
                     the old always-there "OK" was Material's always-has-an-
                     action rule leaking across the split, and a hardcoded
                     untranslated string besides. Android keeps its constant
-                    action slot (labels arrive translated via `action`). */}
+                    action slot: a real action's label arrives via `action`,
+                    the plain dismiss via `dismissLabel`. */}
             {action || Platform.OS !== 'ios' ? (
               <Pressable
                 hitSlop={8}
@@ -473,7 +485,7 @@ const SnackbarProvider = ({
                 })}
               >
                 <RNText style={[styles.action, { color: colors.primary }]}>
-                  {action ? action.label : 'OK'}
+                  {action ? action.label : dismissLabel}
                 </RNText>
               </Pressable>
             ) : null}
