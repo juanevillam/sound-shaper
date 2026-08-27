@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { StyleSheet } from 'react-native';
 
 import { HStack } from '@expo/ui/swift-ui';
@@ -18,7 +20,15 @@ import { type BannerGlassProps } from './BannerGlass';
 //
 // Purely decorative and explicitly non-interactive: the banner's own row of
 // controls sits above this, and a Host that swallowed touches would eat them.
-export function BannerGlass({ width, height, radius }: BannerGlassProps) {
+//
+// MEMOIZED for the same reason `GlassSurfaceIos` is: adaptive glass re-picks
+// its treatment when the modifier is re-sent, and the sheet re-renders far
+// more often than this box changes.
+export const BannerGlass = memo(function BannerGlass({
+  width,
+  height,
+  radius,
+}: BannerGlassProps) {
   return (
     // `ignoreSafeArea`: a Host insets its SwiftUI content for the safe area by
     // default, which shifts the material off the box it is supposed to fill
@@ -47,4 +57,4 @@ export function BannerGlass({ width, height, radius }: BannerGlassProps) {
       </HStack>
     </SwiftUIHost>
   );
-}
+});
