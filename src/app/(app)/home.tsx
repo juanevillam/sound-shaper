@@ -265,7 +265,8 @@ export default function HomeScreen() {
           glyphs staying put in the bar the whole way. Same bar Topper's iOS
           home runs, which is what makes the two read as one family; it
           replaced a hand-built Reanimated collapse (`CollapsingHeaderBar` +
-          `CollapsingHeaderTitle`, still shared with Android) whose bar buttons
+          `CollapsingHeaderTitle` — deleted from @portfolio/mobile-ui
+          2026-08-27; Android's home never used it either) whose bar buttons
           had to ask SwiftUI for `.glassEffect` by hand because there was no
           real navigation bar to take the material from.
 

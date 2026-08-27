@@ -1,9 +1,4 @@
 export { AnimatedEntrance } from './AnimatedEntrance';
-export {
-  CollapsingHeaderBar,
-  CollapsingHeaderTitle,
-  useCollapsingHeader,
-} from './CollapsingHeader';
 export { AppIcon, type AppIconProps } from './AppIcon';
 export {
   CARD_RADIUS,

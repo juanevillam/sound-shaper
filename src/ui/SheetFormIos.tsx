@@ -98,8 +98,6 @@ const BODY_PULL_BACK_FULL_HEIGHT = SHEET_EMPTY_HEADER_SLOT;
  */
 
 const styles = StyleSheet.create({
-  // The native form owns the whole sheet, so its host fills it.
-  formHost: { flex: 1 },
   /**
    * THE EMPTY SECTION-HEADER SLOT, pulled back — the same 21pt every other
    * sheet in the portfolio takes off, and taken the same way.
@@ -116,9 +114,6 @@ const styles = StyleSheet.create({
    * layout and the scroller gains 21pt of empty travel, while moving the
    * hosting VIEW makes UIKit recompute with it. Confirmed here too — negative
    * padding on this Form was a no-op.
-   *
-   * `formHost` above keeps NO pull-back on purpose: `SheetFormIos` draws its
-   * own header inside the Host, so shifting the box would move the header too.
    */
   bodyHost: { flex: 1, marginTop: -BODY_PULL_BACK },
   /** The same box on a `[1]` sheet, which takes no residual — see above. */
