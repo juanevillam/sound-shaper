@@ -86,14 +86,14 @@ const WAVE_HEIGHT = 148;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 /**
- * Bars: one per 100ms, each AGGREGATING its two 50ms buckets — half Voice
- * Memos' density. One per bucket (5pt pitch) read as a thicket ("too many
- * lines", Juan 2026-08-26); at 10pt pitch with a 4pt bar the band reads as
- * a waveform rather than a texture, and the decode cache is untouched — the
- * aggregation happens at draw time.
+ * Bars: one per 75ms, each aggregating the decode buckets it spans. Tuned by
+ * eye in two passes (Juan, 2026-08-26): one bar per 50ms bucket read as a
+ * thicket ("too many lines"), one per 100ms overshot ("way less than i
+ * wanted") — the midpoint is the one that landed. Density is a drawing
+ * choice; the decode cache keeps its own resolution.
  */
-const BAR_PITCH = 10;
-const BAR_WIDTH = 4;
+const BAR_PITCH = 7.5;
+const BAR_WIDTH = 3.5;
 /**
  * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
  * sized the trim frame's own box. The line inside is 3pt.
