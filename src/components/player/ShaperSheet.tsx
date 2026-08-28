@@ -20,6 +20,9 @@ import {
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 
+import { composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -49,6 +52,9 @@ const RATE_MAX = 1.5;
 const RATE_STEP = 0.1;
 const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
 
+/** Breathing room under the last control, on top of the navigation bar. */
+const SHEET_BOTTOM_GAP = 16;
+
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 export type ShaperSheetProps = {
@@ -58,6 +64,7 @@ export type ShaperSheetProps = {
 export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t, locale } = useI18n();
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
 
   const rate = usePlayerStore(s => s.rate);
@@ -90,11 +97,28 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
 
   return (
     <ThemedHost matchContents>
-      {/* No skipPartiallyExpanded: this sheet's content is tall (the chips
-          row, five bands, speed, pitch), and forcing the expanded state made
-          it swallow the whole screen. It now rests half-height — drag up for
-          the rest. */}
-      <ModalBottomSheet ref={sheetRef} onDismissRequest={onClose}>
+      {/* FULL HEIGHT, which is what iOS decided for the same surface: `shaper`
+          is `[1]` in `IOS_FORM_SHEETS` because it is a PRIMARY surface, like
+          Settings and Account. Same vocabulary, said in Material.
+
+          It rested half-height on a note reading "forcing the expanded state
+          made it swallow the whole screen" — written while this sheet still
+          carried the saved-shapes chips row, a Save pill and a delete button.
+          Those went 2026-08-22 and the note did not, so the sheet had been
+          resting at a detent sized for content it no longer holds.
+
+          THE RESTING DETENT WAS ALSO WHERE THE NAVIGATION BAR ATE A CONTROL.
+          Band-scanned on the A54 (3-button nav): at ~50% the 4k band's slider
+          drew from 793.24dp to 809.24 against a bar starting at 784.00 — under
+          the Back/Home glyphs. `@expo/ui` 57 exposes no `contentWindowInsets`
+          (its `ModalBottomSheetView.kt` names no insets at all) and M3's own
+          default applies the TOP side only, so trailing content padding is the
+          available lever and full height is what removes the collision. */}
+      <ModalBottomSheet
+        ref={sheetRef}
+        onDismissRequest={onClose}
+        skipPartiallyExpanded
+      >
         <Column
           verticalArrangement={{ spacedBy: 4 }}
           // Horizontal padding lives on each SECTION, not here — the chips row
@@ -102,7 +126,21 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // both ends mid-scroll). verticalScroll is a safety net for short
           // screens — the sheet's own drag wins over it at this height, so the
           // content is also sized to fit outright.
-          modifiers={[fillMaxWidth(), verticalScroll(), padding(0, 0, 0, 16)]}
+          //
+          // THE BOTTOM CLEARS THE NAVIGATION BAR. A Compose sheet's window runs
+          // to the screen edge, so a bare 16 put the 4k band's slider under the
+          // Back/Home glyphs at this sheet's resting detent — measured on the
+          // A54. See `composeSheetBottomPadding`.
+          modifiers={[
+            fillMaxWidth(),
+            verticalScroll(),
+            padding(
+              0,
+              0,
+              0,
+              composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
+            ),
+          ]}
         >
           {/* The sheet's title. NOT `SheetBar`: that bar pairs a title with a
               filled Save pill, and there is nothing here to commit. The sheet

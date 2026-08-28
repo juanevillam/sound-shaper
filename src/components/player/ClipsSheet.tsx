@@ -15,7 +15,8 @@ import {
   padding,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
-import { AppIcon } from '@portfolio/mobile-ui';
+import { AppIcon, composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -43,6 +44,9 @@ const CLIP_ROW_SHAPE = Shape.RoundedCorner({
 
 const NO_CLIPS: never[] = [];
 
+/** Breathing room under the last row, on top of the navigation bar. */
+const SHEET_BOTTOM_GAP = 28;
+
 export type ClipsSheetProps = {
   /** Close the sheet and drop the trim brackets on the player's scrubber. */
   onNewClip: () => void;
@@ -53,6 +57,7 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
+  const insets = useSafeAreaInsets();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
 
   const current = usePlayerStore(s => s.current);
@@ -98,7 +103,17 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
       >
         <Column
           verticalArrangement={{ spacedBy: 12 }}
-          modifiers={[padding(24, 0, 24, 28), fillMaxWidth()]}
+          // The bottom clears the navigation bar — a Compose sheet's window
+          // runs to the screen edge. See `composeSheetBottomPadding`.
+          modifiers={[
+            padding(
+              24,
+              0,
+              24,
+              composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
+            ),
+            fillMaxWidth(),
+          ]}
         >
           {/* The shared sheet header — same bar as every other sheet. */}
           <SheetBar
