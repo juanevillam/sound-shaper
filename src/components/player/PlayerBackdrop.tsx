@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
@@ -160,7 +160,19 @@ export const prefetchPlayerBackdrop = (artUrl?: string): void => {
   );
 };
 
-export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
+/**
+ * MEMOIZED, because its only input is one url and its output is two SVG
+ * gradient trees.
+ *
+ * `PlayerSheet` re-renders on `playing`, so every play/pause tap — the most
+ * used control in the app — re-ran this whole body and had react-native-svg
+ * rebuild both `<Defs>` and their stops, for a layer that had not changed and
+ * cannot change unless the sound does. The wash is also the largest thing on
+ * screen, so it is the worst candidate for a free rebuild.
+ */
+export const PlayerBackdrop = memo(function PlayerBackdrop({
+  artUrl,
+}: PlayerBackdropProps) {
   const { colors } = useAppTheme();
   const reduceMotion = useReducedMotion();
 
@@ -372,7 +384,7 @@ export function PlayerBackdrop({ artUrl }: PlayerBackdropProps) {
       </Svg>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   bleed: {
