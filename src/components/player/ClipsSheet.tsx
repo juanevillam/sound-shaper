@@ -62,6 +62,23 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
+  /**
+   * SETTLED, because an unloaded sound and a sound with no clips look
+   * identical in `clips` — see the iOS twin (`app/(app)/clips.tsx`), which
+   * carries the full write-up. `settledBySoundId` was put in the store for
+   * this branch and had never been read by either platform.
+   *
+   * WRITTEN UNVERIFIED, under the Android freeze: the feature spans both twins
+   * and leaving this one asserting "no clips" while iOS waits would be exactly
+   * the drift this repo hates, but nothing Android is installed or run.
+   * Re-check on device when Android resumes. Android shows the plain waiting
+   * line rather than iOS's spinner — a Compose bottom sheet that has just
+   * animated in has no empty box to centre a control in, and this text sits
+   * where the empty-state line already does.
+   */
+  const settled = useClipsStore(s =>
+    current ? (s.settledBySoundId[current.id] ?? false) : false,
+  );
 
   if (!current) return null;
 
@@ -91,7 +108,14 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
             onSave={onNewClip}
           />
 
-          {clips.length === 0 ? (
+          {!settled ? (
+            <Text
+              color={colors.onSurfaceMuted}
+              style={{ typography: 'bodySmall' }}
+            >
+              {t('player.clips.loading')}
+            </Text>
+          ) : clips.length === 0 ? (
             <Text
               color={colors.onSurfaceMuted}
               style={{ typography: 'bodySmall' }}
