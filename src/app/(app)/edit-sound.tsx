@@ -352,7 +352,15 @@ function EditSoundSheetScreen() {
                 captionColor={isSaving ? colors.onSurfaceMuted : colors.primary}
                 preview={
                   artPreviewUri ? (
-                    <ArtImage uri={artPreviewUri} style={styles.mediaPreview} />
+                    // `sheet`, exactly as the slot's own `surfaceColor` above
+                    // — the picture's loading box is the same material as the
+                    // empty slot it sits in, and in dark a form sheet steps it
+                    // up one.
+                    <ArtImage
+                      container="sheet"
+                      uri={artPreviewUri}
+                      style={styles.mediaPreview}
+                    />
                   ) : null
                 }
               />

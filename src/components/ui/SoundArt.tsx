@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { type StyleProp, type ViewStyle } from 'react-native';
 
-import { InitialArt } from '@portfolio/mobile-ui';
+import { InitialArt, type MediaContainer } from '@portfolio/mobile-ui';
 
 import { ArtImage } from '@/components/ui/ArtImage';
 
@@ -11,6 +11,13 @@ type SoundArtProps = {
   style?: StyleProp<ViewStyle>;
   /** Cover art URL (Cloudinary); when empty the initial fallback shows. */
   artUrl?: string;
+  /**
+   * WHERE THE SLOT SITS. Both branches take it — the loading box and the
+   * initial's box are the same material, and in dark a form sheet steps every
+   * grouped colour up one, so an unstepped box lands on its own row and there
+   * is no box at all (see `emptyMediaColor`).
+   */
+  container?: MediaContainer;
   /** Layout width (dp) of the slot — fetches a display-sized Cloudinary art. */
   displayWidth?: number;
   /**
@@ -38,6 +45,7 @@ type SoundArtProps = {
 export function SoundArt({
   style,
   artUrl,
+  container,
   displayWidth,
   size,
   title,
@@ -52,6 +60,7 @@ export function SoundArt({
     return (
       <ArtImage
         uri={artUrl}
+        container={container}
         displayWidth={displayWidth}
         fadeMs={fadeMs}
         style={style}
@@ -59,5 +68,7 @@ export function SoundArt({
       />
     );
 
-  return <InitialArt size={size} style={style} title={title} />;
+  return (
+    <InitialArt container={container} size={size} style={style} title={title} />
+  );
 }
