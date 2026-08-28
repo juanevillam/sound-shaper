@@ -14,6 +14,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { forgetWaveform } from '@/lib/waveform';
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
 import { deleteClipsOfSound } from '@/services/firebase/clips';
 import {
@@ -281,11 +282,18 @@ export const updateSound = reported(
  * The Cloudinary audio/art assets are still left behind — destroying them
  * needs a signed API call (a backend this app deliberately doesn't have), so
  * orphaned assets are a known gap, same as Topper's pre-Functions state.
+ *
+ * The LOCAL waveform cache is not a gap, though, and used to be: the decoded
+ * buckets outlived the document they describe, with nothing left that could
+ * ever ask for them again. `forgetWaveform` drops the JSON and the session's
+ * in-memory promise. It is fire-and-forget and deliberately NOT awaited — a
+ * cache file is not worth failing a delete over.
  */
 export const deleteSound = reported(
   'sounds.deleteSound',
   async (soundId: string): Promise<void> => {
     await deleteClipsOfSound(soundId);
     await deleteDoc(soundDoc(soundId));
+    forgetWaveform(soundId);
   },
 );
