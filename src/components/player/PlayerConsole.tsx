@@ -23,6 +23,7 @@ import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 
 import {
+  CARDS_HEIGHT,
   CLIP_FRAMING_GAP,
   HANDLES_REGION_HEIGHT,
   type PlayerConsoleProps,
@@ -324,8 +325,11 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
+  // The cards' own height, from the term `PlayerCards` already imports — it was
+  // a re-typed 96 beside it, which is the same value on Android and the wrong
+  // way to say it.
   cardHost: {
-    height: 96,
+    height: CARDS_HEIGHT,
     marginTop: 12,
     width: '100%',
   },

@@ -46,6 +46,7 @@ import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
 
 import {
   IOS_TRANSPORT_GAP,
+  IOS_TRANSPORT_GLYPH_BOX_RATIO,
   IOS_TRANSPORT_PLAY_SIZE,
   IOS_TRANSPORT_ROW_HEIGHT,
   IOS_TRANSPORT_SKIP_SIZE,
@@ -145,8 +146,17 @@ const OVERVIEW_BAR_PITCH = 2.5;
 const OVERVIEW_BAR_WIDTH = 1.5;
 
 const SKIP_S = 15;
-/** The skip glyphs take the transport's own skip size — one app, one transport. */
-const SKIP_HOST_BOX = Math.round(IOS_TRANSPORT_SKIP_SIZE * 1.3);
+/**
+ * The skip glyphs take the transport's own skip size AND its own box ratio —
+ * one app, one transport. The ratio was a re-declared 1.3, which is precisely
+ * the value `TransportGlyphs.ios` records having MOVED OFF (a double-triangle
+ * skip needs 1.45, measured); nothing clipped here only because Apple's ±15
+ * glyphs are narrower than `forward.fill`. Taking the exported term is the
+ * grep-the-term rule — the constant existing is half the job.
+ */
+const SKIP_HOST_BOX = Math.round(
+  IOS_TRANSPORT_SKIP_SIZE * IOS_TRANSPORT_GLYPH_BOX_RATIO,
+);
 
 /**
  * The band overhangs the track's extent at both ENDS, with its own rounded
