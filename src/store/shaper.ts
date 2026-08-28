@@ -57,8 +57,6 @@ type ShaperState = {
   activePreset: string | null; // i18nKey while gains match a preset, else null
   setBandGain: (index: number, db: number) => void;
   applyPreset: (i18nKey: string) => void;
-  reset: () => void;
-  isFlat: () => boolean;
 };
 
 const flat = (): number[] => EQ_BANDS.map(() => 0);
@@ -86,12 +84,4 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     set({ gains, activePreset: i18nKey });
     audioEngine.apply(gains);
   },
-
-  reset: () => {
-    const gains = flat();
-    set({ gains, activePreset: 'flat' });
-    audioEngine.apply(gains);
-  },
-
-  isFlat: () => get().gains.every(db => db === 0),
 }));
