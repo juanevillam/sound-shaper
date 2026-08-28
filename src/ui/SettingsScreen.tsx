@@ -148,6 +148,16 @@ export type SettingsScreenProps = {
    * `colors.primary`.
    */
   seedColor?: string;
+  /**
+   * Scroll handlers from the host app's app-bar hook, spread onto this
+   * screen's scroller. OPTIONAL: an app that does not lift its bar on scroll
+   * (or a platform with no such idiom) passes nothing and nothing changes.
+   *
+   * This screen owns the scroller, so the app cannot wire it from outside —
+   * which is why Android's Settings bar sat permanently at the SCROLLED colour
+   * while every screen with its own `ScrollView` lifted properly.
+   */
+  scrollProps?: object;
 };
 
 const DIALOG_WIDTH = 312;
@@ -362,6 +372,7 @@ export const SettingsScreen = ({
   colors,
   colorScheme,
   seedColor,
+  scrollProps,
 }: SettingsScreenProps) => {
   const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
   const [accountDialog, setAccountDialog] = useState<
@@ -389,7 +400,7 @@ export const SettingsScreen = ({
   return (
     <Screen backgroundColor={colors.background}>
       <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView {...scrollProps} contentContainerStyle={styles.scroll}>
           <Host
             matchContents={{ vertical: true }}
             colorScheme={colorScheme}
