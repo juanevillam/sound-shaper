@@ -886,6 +886,88 @@ mp3 is deleted in a `finally`. It is once per sound per cache generation;
 `cacheDirectory` being OS-purgeable is the correct trade, since it self-heals
 and cannot grow without bound.
 
+## What it relearns — audited 2026-08-28
+
+`/portfolio-cache-audit` read every compute path the day after the data audit
+read every network one. Most of what it looked at was already right, and the
+list is worth knowing so nobody churns it: the versioned waveform cache, the
+banked `durationMs` with seed-then-override past a 1s tolerance,
+`prefetchPlayerBackdrop` fetching the exact transformed url the layer will
+request, the transport anchor in a module store, the neighbour covers mounted
+so a page is a transform on an already-decoded bitmap, `audioEngine`'s
+`settings.gains` surviving a graph rebuild, `NO_CLIPS` as a module constant so
+a zustand selector cannot hand back a fresh array. The 10Hz transport tick is
+genuinely at the leaves — `useListeningTime` subscribes to `position`, but from
+inside `AuthenticatedSubscriptions`, which renders `null`.
+
+**A MEASUREMENT ON THE LAYOUT PATH OF ITS OWN FIRST FRAME, ONE MORE TIME.**
+`SoundTile` sized its artwork with `useState(0)` + `onLayout`, so frame one
+passed `displayWidth: undefined` and `ArtImage`
+(`displayWidth ? thumbUrl(...) : uri`) pointed the native view at the raw
+Cloudinary original before the measurement landed. `GRID_CELL` was a frozen
+178 whose own comment promised that making it dynamic was the one change
+"everything below follows"; a window width is available synchronously, so the
+cell, the corner, the caption inset and the add tile's plus now derive from it
+through `soundTileMetrics`, and the skeleton takes the same
+`useSoundTileMetrics` hook rather than a copy.
+
+**THE SIZE OF THAT ONE WAS OVER-CLAIMED FIRST, AND THE CORRECTION IS THE
+LESSON.** A day-old image cache held 5.12 MB of raw originals beside 118 KB of
+`w_356` tiles, and the audit reported the grid as the fetcher. It is not.
+Clearing expo-image's disk cache, cold-starting on the OLD code and matching
+every file by MD5 against each candidate url returned 19 files / 192,754 bytes
+— every one a `w_356` tile or a `w_92` banner, **not one raw original**.
+expo-image cancels the in-flight load when the source prop changes, and the
+second render lands within milliseconds. The originals came from the three
+slots that passed no `displayWidth` at all, fixed hours earlier in f125517.
+**Finding a symptom and a plausible cause in the same cache is not the same as
+proving the link** — the fix removes an abandoned request, a `recyclingKey`
+churn and a second render, and its real value is correctness on every width
+that is not 402pt.
+
+**THE EQ CURVE WAS THE THIRD USER-SCOPED STORE, AND THE ONE THE SWEEP KEPT
+MISSING.** `useTrophyTriggers` awards `first-shape` on
+`rate !== 1 || gains.some(gain => gain !== 0)`. `rate` is in the player store,
+which sign-out already reset; `gains` is in the shaper store, which nothing
+reset — so a second account signing in on this device was handed First Shape
+off the first one's activity. `useShaperStore.reset()` is back in that list and
+applies the flat curve through `audioEngine`, because the engine's own
+module-scope copy is just as user-scoped. **The instructive part: 1bd1895
+DELETED that `reset()` for having no callers, and 0f5260d added the two sibling
+resets six hours later.** The passes crossed, and "uncalled" meant "missing a
+call site". Code-verified only — signing out now also clears the two persisted
+counters, i.e. real Listener/Splicer progress.
+
+**"NO CLIPS" WAS A CLAIM MADE BEFORE THE ANSWER ARRIVED.** Both twins branched
+on `clips.length === 0`, which is also what an unloaded sound looks like.
+`settledBySoundId` had been in the store for exactly this since it was written
+and had never been read by either platform. iOS takes `ProgressViewIos` behind
+the standard 400ms delay — a spinner and not a bone, the call Explore's search
+already made, because nothing knows how many clips a sound has until the
+snapshot lands. Android takes the same gate with a waiting line and is
+UNVERIFIED.
+
+**Two smaller ones.** The neighbours' _washes_ were never prefetched though
+their covers were, so a skip left the 420ms crossfade covering a cold fetch;
+steady state is unchanged (one new fetch per skip, taken a sound earlier).
+And `PlayerBackdrop` is memoized — its only input is a url, its output is two
+SVG gradient trees, and `PlayerSheet` re-renders on `playing`, so every
+play/pause tap rebuilt the largest layer on screen.
+
+**A VERSIONED CACHE HAS TO DELETE, NOT ONLY REFUSE TO READ.** `CACHE_VERSION`
+kept stale buckets from being read and nothing ever removed the superseded
+files: the device held two `v1-` waveforms beside their v2 replacements,
+stranded by the 250 → 50ms change. Pruned once per session off the first
+`getWaveform`; `deleteSound` now calls `forgetWaveform`. Deliberately NOT wired
+into the account sweep, which deletes sound docs directly — see that comment.
+
+**Confirmed sound, so nobody re-opens them:** `toGridRows` un-memoized (O(n)
+over a personal library, and FlashList wants a fresh `data` identity when the
+playing tile changes anyway), `eqResponse`'s 128-point sweep (~0.02 ms, run per
+drag tick on purpose), the scrubber and trim-frame `onLayout` widths (genuinely
+variable, and they feed gesture math rather than a fetch), and the transport
+anchor re-measuring per expand (equality-guarded, and insets move).
+
 **The build plan is the source of truth:**
 [`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) — scope,
 data model, phases, and the copyright rule (owner hears the full song, the
