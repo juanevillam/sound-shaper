@@ -81,6 +81,7 @@ export {
   SHEET_HERO_SYMBOL_SIZE,
 } from './sheetHero';
 export {
+  composeSheetBottomPadding,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
   SHEET_TITLE_TO_CONTENT,
@@ -198,3 +199,4 @@ export { useSheetKeyboardInset } from './useSheetKeyboardInset';
 export { setSplashHidden, useSplashHidden } from './useSplashHidden';
 export * from './tokens';
 export { useSheetLanded } from './useSheetLanded';
+export { useHeaderScroll, type HeaderScrollColors } from './useHeaderScroll';
