@@ -55,3 +55,28 @@ export const SHEET_CONTENT_TOP = 84;
  * account 38.67, trophies 38.33.
  */
 export const SHEET_TITLE_TO_CONTENT = 38.5;
+
+/**
+ * WHAT A COMPOSE `ModalBottomSheet`'S CONTENT MUST CLEAR AT THE BOTTOM.
+ *
+ * A Compose bottom sheet's window runs to the SCREEN's bottom edge, not to the
+ * top of the system navigation bar, so anything the sheet's last rows draw
+ * lands underneath it. With 3-button navigation that is a 48dp band holding
+ * Back / Home / Recents.
+ *
+ * Band-scanned on a Galaxy A54 (Android 16, `navigation_mode=0`): Sound
+ * Shaper's Shape sheet at its RESTING half-height detent drew the 4k EQ band's
+ * slider from 784.36dp to 818.49dp against a navigation bar starting at
+ * 784.00 — the control sat under the system glyphs and could not be dragged.
+ * The two content-sized sheets beside it cleared only by their own 16dp
+ * padding, i.e. by luck rather than by saying so.
+ *
+ * Pass `useSafeAreaInsets().bottom`; the caller adds whatever breathing room
+ * that sheet wants on top. It is a FUNCTION rather than a constant because the
+ * inset is the device's, and a gesture-navigation phone reports a much smaller
+ * one — hard-coding 48 would open a hole there.
+ */
+export const composeSheetBottomPadding = (
+  insetBottom: number,
+  contentPadding: number,
+): number => insetBottom + contentPadding;

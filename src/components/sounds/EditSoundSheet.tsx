@@ -12,7 +12,11 @@ import {
   type TextFieldRef,
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
-import { DestructiveConfirmDialog } from '@portfolio/mobile-ui';
+import {
+  composeSheetBottomPadding,
+  DestructiveConfirmDialog,
+} from '@portfolio/mobile-ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtImage } from '@/components/ui/ArtImage';
 import {
@@ -35,6 +39,9 @@ import {
 } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
+
+/** Breathing room under the destructive row, on top of the navigation bar. */
+const SHEET_BOTTOM_GAP = 16;
 
 /** The picture fills the slot the package sized and clipped. */
 const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
@@ -71,6 +78,7 @@ export function EditSoundSheet({
 }: EditSoundSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
 
   const sounds = useSoundsStore(s => s.sounds);
@@ -243,8 +251,17 @@ export function EditSoundSheet({
           <Column
             verticalArrangement={{ spacedBy: 16 }}
             // No top padding: the sheet's native drag handle already supplies
-            // the gap above the content.
-            modifiers={[padding(16, 0, 16, 16), fillMaxWidth()]}
+            // the gap above the content. The bottom clears the navigation bar
+            // — see `composeSheetBottomPadding`.
+            modifiers={[
+              padding(
+                16,
+                0,
+                16,
+                composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
+              ),
+              fillMaxWidth(),
+            ]}
           >
             <SheetBar
               title={t(soundId ? 'app.soundEditExisting' : 'app.soundEdit')}
