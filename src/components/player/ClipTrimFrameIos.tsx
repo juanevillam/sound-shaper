@@ -53,22 +53,20 @@ import { formatTime } from '@/lib/player';
 // frame's edge (gen 2); the chevron is the platform's own word for "grab
 // me, I slide this way".
 //
-// THE BOX IS 44pt AROUND THE 32pt SLIDER HOST (±6 overhang), so the rails
-// clear the thumb's ~27pt disc and the frame reads as enclosing the
-// slider's travel rather than crowding its track. 44 is also Apple's
-// minimum touch target, which is the point: it shipped at 36 and the caps
-// were fiddly to catch (Juan, 2026-08-23), and a cap is only 14pt wide, so
-// the height is the only axis where the target can grow without the frame
-// mis-stating the range it covers. Inside the rails a faint
-// `primary` wash marks the selection and gives the middle drag zone a
-// visible body; there is NO scrim outside it — dimming a bare slider track
-// was rejected 2026-08-21 (it reads as a mask recolouring the player) and
-// with the waveform gone that rejection is fully back in force.
+// THE BOX GREW WITH THE MOVE — see `TRIM_FRAME_HEIGHT`. On the scrubber it
+// was 44 (the 32pt slider host plus overhang, and Apple's minimum touch
+// target, after shipping at 36 and being fiddly to catch — Juan, 2026-08-23);
+// on the overview strip it is 56, because that strip is a MAP and a taller one
+// reads more. The height is the only axis where the target can grow at all: a
+// cap is 14pt wide, and widening one would make the frame mis-state the range
+// it covers. Inside the rails a faint `primary` wash marks the selection and
+// gives the middle drag zone a visible body; there is NO scrim outside it —
+// dimming the track was rejected 2026-08-21 (it reads as a mask recolouring
+// the surface).
 //
-// THE MAPPING IS FULL-WIDTH LINEAR, seconds × (width / duration) — verified
-// against the slider's own track in the gen-2 audit (48.67 / 369 = 24 / 182,
-// AGENTS.md). At the track's ends a cap overhangs the content box into the
-// screen gutter; the gutter is 16pt and the cap 14, so it never clips.
+// THE MAPPING IS FULL-WIDTH LINEAR, seconds × (width / duration). At the
+// track's ends a cap overhangs the content box into the screen gutter; the
+// gutter is 16pt and the cap 14, so it never clips.
 //
 // NO HAPTICS IN THE DRAG — a per-second buzz shipped with the zoom and was
 // rejected with it ("makes the clipping un-usable"); RN's Vibration is a
@@ -88,7 +86,7 @@ import { formatTime } from '@/lib/player';
  */
 export const TRIM_FRAME_HEIGHT = 56;
 
-/** Photos' trimmer, mapped onto the 36pt box. */
+/** Photos' trimmer, measured (iPhone 17 / iOS 26.5) — see the header. */
 const CAP_WIDTH = 14;
 const CAP_RADIUS = 7;
 const RAIL_HEIGHT = 4;
