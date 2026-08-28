@@ -594,13 +594,6 @@ export function PlayerSheet() {
 
   const playerMounted = expanded || offRest || warm;
 
-  // Warm the wash for whatever is loaded, so opening the player is a decode
-  // rather than a fetch. See `prefetchPlayerBackdrop`.
-  const currentArtUrl = current?.artUrl;
-  useEffect(() => {
-    prefetchPlayerBackdrop(currentArtUrl || undefined);
-  }, [currentArtUrl]);
-
   /**
    * A surface asked for the full player (tapping a sound tile).
    *
@@ -743,6 +736,36 @@ export function PlayerSheet() {
   // the NEW next-sound into the centre slot (the pager is still offset by a
   // screen width), which flashes a third sound's title for a frame or two.
   const [neighbours, setNeighbours] = useState(readNeighbours);
+
+  /**
+   * Warm the wash for whatever is loaded, so opening the player is a decode
+   * rather than a fetch. See `prefetchPlayerBackdrop`.
+   *
+   * AND FOR BOTH NEIGHBOURS, which is the half this was missing. Their COVERS
+   * are already mounted and painted off-screen precisely so paging one in is a
+   * transform on an image that is ALREADY decoded — but the wash under them was
+   * never given the same treatment, so a skip left the 420ms crossfade covering
+   * a cold network fetch instead of a decode, on the layer that tints the whole
+   * screen.
+   *
+   * It costs less than it looks. Stepping forward, the new current and the new
+   * previous are both already in the cache from the last time this ran, so the
+   * steady state is one new fetch per skip exactly as before — just taken one
+   * sound earlier. Only entering a queue pays the extra two.
+   *
+   * Not gated on `expanded`: the banner carries its own previous/next transport,
+   * so a skip can happen collapsed and the player can be opened straight onto
+   * the result. That is the same "fetch early, render late" argument the current
+   * sound's prefetch already makes.
+   */
+  const currentArtUrl = current?.artUrl;
+  const previousArtUrl = neighbours.previous?.artUrl;
+  const nextArtUrl = neighbours.next?.artUrl;
+  useEffect(() => {
+    prefetchPlayerBackdrop(currentArtUrl || undefined);
+    prefetchPlayerBackdrop(previousArtUrl || undefined);
+    prefetchPlayerBackdrop(nextArtUrl || undefined);
+  }, [currentArtUrl, nextArtUrl, previousArtUrl]);
 
   // Snaps the pager back to centre. Called once the sound has actually changed:
   // the incoming cover is already sitting in the artwork slot, and the real
