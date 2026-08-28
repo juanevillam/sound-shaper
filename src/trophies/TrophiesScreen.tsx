@@ -44,6 +44,18 @@ export type TrophiesScreenProps = {
   /** Tapping a row — open the detail sheet. */
   onTrophyPress?: (id: string) => void;
   /**
+   * Scroll handlers from the host app's app-bar hook, spread onto this
+   * screen's scroller. OPTIONAL: an app that does not lift its bar on scroll
+   * (or a platform that has no such idiom) passes nothing and nothing changes.
+   *
+   * The screen owns the scroller, so the app cannot wire this itself — which
+   * is why Android's Settings and Trophies bars sat permanently at the
+   * SCROLLED colour while every screen with its own `ScrollView` lifted
+   * properly.
+   */
+  scrollProps?: object;
+
+  /**
    * iOS only. The awarded cache has not hydrated yet
    * (`useTrophies().hydrated` is false), so the lock states and the counts
    * passed above are not yet true: every trophy resolves LOCKED and the
@@ -166,11 +178,13 @@ export const TrophiesScreen = ({
   strings,
   formatDate,
   onTrophyPress,
+  scrollProps,
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
 
   return (
     <ScrollView
+      {...scrollProps}
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
