@@ -17,29 +17,24 @@ export type AppColors = {
   // grouped sheet, one ramp step up (#2C2C2E) on the dark elevated sheet.
   sheetField: string;
   surfaceContainer: string;
-  surfaceVariant: string;
   /**
-   * Fill for a SHAPE rather than a content area — a placeholder tile, an empty
-   * media slot. Apple splits these deliberately: background colors (systemGray5
-   * and friends) are for large content areas, FILL colors for elements filled
-   * with color, and this is iOS's `systemFill`.
+   * THE TONAL STEP THAT IS GUARANTEED TO SEPARATE FROM `surfaceContainer`.
    *
-   * It is TRANSLUCENT on purpose, which is the whole point. The opaque greys
-   * pair unevenly because the two ramps start in different places: systemGray5
-   * on light sits one step from the systemGray6 page and reads faint (measured
-   * separation 13.0), while on dark it sits against pure black and reads strong
-   * (44.1) — a 3.4x imbalance from one token. A translucent fill with a
-   * different alpha per appearance lands evenly on both.
+   * Read that contract, not the token's M3 name, before using it: on Android
+   * this is `m.surfaceVariant` only WHEN THE PALETTE SEPARATES THE TWO, and a
+   * measured substitute when it does not (see `emptyMediaMaterial`). Samsung
+   * One UI returns the same value for both, which is the whole reason.
    *
-   * TERTIARY, not `systemFill` itself. The fills are a ramp, and the level is a
-   * judgement about what the shape has to compete with. Everywhere this is used
-   * so far the shape is a PLACEHOLDER sitting beside real artwork — cover art
-   * runs 200+ separation from the page — so the fill has to stay clearly
-   * secondary or the empty slot starts drawing more attention than the content
-   * it sits next to. `systemFill` (0.20/0.36) measured 24.4/43.4 and read as a
-   * competing block; tertiary (0.12/0.24) measures 14.6/28.9 and recedes.
+   * It is not a bones-and-placeholders role, though that is what forced the
+   * derivation. Roughly twenty-five call sites across the three apps read it —
+   * a skeleton bone and an art-less box, but also a progress track, a slider's
+   * inactive track, a switch's unchecked track, a "Private" pill on a card, a
+   * text field's ground and the Android snackbar. Every one of them wants the
+   * same thing the contract states: to be visible against the surface it sits
+   * on. None of them wants the literal collapsed value, which is why the
+   * derivation is applied to the role rather than hidden behind a second one.
    */
-  fill: string;
+  surfaceVariant: string;
   // Elevation ink — the color shadows are cast in. Black in BOTH modes on
   // every platform (M3's shadow/scrim token, and Apple's shadows are black
   // too); a light-mode/dark-mode split here would be wrong. Callers apply
@@ -197,12 +192,16 @@ const mutedInk = (m: MaterialColors): string => {
 };
 
 /**
- * The material behind an ART-LESS BOX and inside a SKELETON BONE — the two
- * things that must never disappear into the card they sit on. `surfaceVariant`
- * normally is that step; when the palette makes it the same ink as
- * `surfaceContainer` (which is also `card`), take the container step that
- * separates FURTHEST from the card, whichever direction the ladder happens to
- * run on this OEM.
+ * THE VALUE BEHIND `surfaceVariant` — a tonal step that separates from
+ * `surfaceContainer` whatever the OEM ships.
+ *
+ * An art-less box and a skeleton bone are what exposed it, since those two
+ * disappear most obviously into the card they sit on, but the role has about
+ * twenty-five readers across the three apps and the substitution serves all of
+ * them — see the token's own note in `AppColors`. `surfaceVariant` normally IS
+ * that step; when the palette makes it the same ink as `surfaceContainer`
+ * (which is also `card`), take the container step that separates furthest,
+ * whichever direction the ladder happens to run on this OEM.
  */
 const emptyMediaMaterial = (m: MaterialColors): string => {
   if (!sameInk(m.surfaceVariant, m.surfaceContainer)) return m.surfaceVariant;
@@ -227,10 +226,6 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     sheetField: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
     surfaceVariant: emptyMediaMaterial(m),
-    // M3 has no translucent fill role; the tonal step is the honest analogue.
-    // Only iOS surfaces use `fill` today, so this is a sane value rather than a
-    // considered Material decision.
-    fill: m.surfaceVariant,
     // MaterialColors exposes no `shadow` field; M3's scrim shares the same
     // ink (black) so it stands in for the shadow token.
     shadow: m.scrim,
@@ -301,7 +296,6 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
-    fill: 'rgba(120, 120, 128, 0.12)', // tertiarySystemFill, light
     shadow: '#000000',
     onSurface: '#000000',
     onSurfaceMuted: '#3C3C4399',
@@ -335,7 +329,6 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
-    fill: 'rgba(120, 120, 128, 0.24)', // tertiarySystemFill, dark
     shadow: '#000000',
     onSurface: '#FFFFFF',
     onSurfaceMuted: '#EBEBF599',
@@ -372,7 +365,6 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
-    fill: '#E7E0EC',
     shadow: '#000000',
     onSurface: '#1D1B20',
     onSurfaceMuted: '#49454F',
@@ -407,7 +399,6 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
     surfaceVariant: '#49454F',
-    fill: '#49454F',
     shadow: '#000000',
     onSurface: '#E6E0E9',
     onSurfaceMuted: '#CAC4D0',
