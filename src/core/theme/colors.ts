@@ -109,6 +109,115 @@ export type AppColors = {
  * palette, so there are no custom/hardcoded colors. On Android 12+ the palette is
  * wallpaper-derived (Material You); otherwise it is the static Material 3 baseline.
  */
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  OEM PALETTES MAY COLLAPSE ROLES THAT M3 DIFFERENTIATES — MEASURE, DON'T TRUST
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * The M3 spec gives `onSurfaceVariant` and `surfaceVariant` their own values,
+ * and every AOSP/Pixel palette does. Samsung One UI does not: measured live on
+ * a Galaxy A54 (SM-A546E, Android 16 / API 36, 2026-08-28) via
+ * `getMaterialColors`, in BOTH schemes —
+ *
+ *   dark   onSurface #FCFCFF == onSurfaceVariant #FCFCFF
+ *          surfaceContainer #3A3A3D == surfaceVariant #3A3A3D
+ *   light  onSurface #010102 == onSurfaceVariant #010102
+ *          surfaceContainer #E4E4E7 == surfaceVariant #E4E4E7
+ *
+ * The app leans on both pairs to express hierarchy, so on that device it had
+ * NO muted text anywhere (every "quiet" string rendered at full primary ink —
+ * six pairs measured identical at (252,252,255) on Topper's home, settings and
+ * trophies) and NO visible placeholder or bone on any card (`InitialArt`'s box
+ * and `SkeletonBone`'s fill both resolve to `surfaceVariant`; a bone on a card
+ * measured a channel delta of 18 against the card, and 0 at the sweep's
+ * trough, versus 173 for the same bone on the page background).
+ *
+ * So the two roles are DERIVED when the palette does not separate them, and
+ * passed straight through when it does — a Pixel keeps exactly what it had.
+ *
+ * THE STEP IS CHOSEN BY MEASUREMENT, NOT BY NAME, because Samsung's container
+ * ladder is not monotonic: in dark `surfaceContainerHighest` (#23262E) is
+ * DARKER than `surfaceContainer` (#3A3A3D), so the highest-sounding token is
+ * the wrong one. The pick maximises the WORST-CASE separation from both
+ * grounds a box sits on — see `bestSeparated`, which landed #4D4D52 in dark
+ * and #CCCCCE in light on the A54, and takes the spec-ordered step on AOSP.
+ */
+
+/** sRGB relative luminance (WCAG), from an `#RRGGBB` or `#RRGGBBAA` string. */
+const luminance = (color: string): number => {
+  const hex = color.replace('#', '').slice(0, 6);
+  const channel = (i: number) => {
+    const v = parseInt(hex.slice(i * 2, i * 2 + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
+};
+
+/** Same rendered colour? Alpha is ignored — every role here is opaque, and the
+ *  native palette hands them over as 8-digit `#RRGGBBFF`. */
+const sameInk = (a: string, b: string): boolean =>
+  a.replace('#', '').slice(0, 6).toUpperCase() ===
+  b.replace('#', '').slice(0, 6).toUpperCase();
+
+/**
+ * The candidate that separates best from EVERY ground it has to sit on —
+ * maximising the SMALLEST of its distances, not the largest of any one.
+ *
+ * Both grounds matter because these boxes appear in two places: on the page
+ * background (a rail tile, a browse grid cell) and on a card or list row. A
+ * plain "furthest from the card" pick was written first and measured wrong on
+ * the A54 — it chose `surfaceDim` (#121318), which clears the card #3A3A3D
+ * well and then all but vanishes on the #010102 page. Worst-case separation is
+ * the property that actually has to hold.
+ */
+const bestSeparated = (grounds: string[], candidates: string[]): string => {
+  const targets = grounds.map(luminance);
+  const worstGap = (color: string) =>
+    Math.min(...targets.map(t => Math.abs(luminance(color) - t)));
+  return candidates.reduce((best, next) =>
+    worstGap(next) > worstGap(best) ? next : best,
+  );
+};
+
+/**
+ * The LOWER-EMPHASIS INK. `onSurfaceVariant` is M3's own answer and is used
+ * whenever the palette actually differentiates it.
+ *
+ * When it does not, `outline` is the next role down the same neutral ramp and
+ * is what Material spends on lower-emphasis content — measured distinct on the
+ * A54 (#A3A3A7 dark / #848487 light), and legible on both the page and a card
+ * in each scheme. The alpha step is a last resort for a palette that collapses
+ * BOTH, so there is always a hierarchy rather than a silent fall back to full
+ * ink — which is the bug this whole block exists to end.
+ */
+const mutedInk = (m: MaterialColors): string => {
+  if (!sameInk(m.onSurfaceVariant, m.onSurface)) return m.onSurfaceVariant;
+  if (!sameInk(m.outline, m.onSurface)) return m.outline;
+  return withAlpha(m.onSurface, 0.72);
+};
+
+/**
+ * The material behind an ART-LESS BOX and inside a SKELETON BONE — the two
+ * things that must never disappear into the card they sit on. `surfaceVariant`
+ * normally is that step; when the palette makes it the same ink as
+ * `surfaceContainer` (which is also `card`), take the container step that
+ * separates FURTHEST from the card, whichever direction the ladder happens to
+ * run on this OEM.
+ */
+const emptyMediaMaterial = (m: MaterialColors): string => {
+  if (!sameInk(m.surfaceVariant, m.surfaceContainer)) return m.surfaceVariant;
+  return bestSeparated(
+    [m.surfaceContainer, m.background],
+    [
+      m.surfaceContainerHigh,
+      m.surfaceContainerHighest,
+      m.surfaceContainerLow,
+      m.surfaceBright,
+      m.surfaceDim,
+    ],
+  );
+};
+
 export function materialToAppColors(m: MaterialColors): AppColors {
   return {
     background: m.background,
@@ -117,7 +226,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     sheet: m.surfaceContainer,
     sheetField: m.surfaceContainer,
     surfaceContainer: m.surfaceContainer,
-    surfaceVariant: m.surfaceVariant,
+    surfaceVariant: emptyMediaMaterial(m),
     // M3 has no translucent fill role; the tonal step is the honest analogue.
     // Only iOS surfaces use `fill` today, so this is a sane value rather than a
     // considered Material decision.
@@ -126,7 +235,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     // ink (black) so it stands in for the shadow token.
     shadow: m.scrim,
     onSurface: m.onSurface,
-    onSurfaceMuted: m.onSurfaceVariant,
+    onSurfaceMuted: mutedInk(m),
     border: m.outlineVariant,
     listSeparator: m.outlineVariant,
     primary: m.primary,
