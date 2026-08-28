@@ -805,6 +805,85 @@ shared `StateLab`. While it is on, the real account deletion is REFUSED
 (`dev/deleteAccountGuard`) — turn the flag off to delete for real. THERE ARE NO
 FIXTURES and none are to be added.
 
+## The data layer — audited 2026-08-28
+
+`/portfolio-data-audit` read every Firestore call site, every image site and
+every network call. The layer is small and most of it was already right:
+persistence on and nothing disabling it, TWO listeners in the whole app (the
+library, session-long in the layout; clips, mounted on the console rather than
+on `current?.id`), the profile a one-shot from the sheet that reads it, three
+`getDocs` and all three correct, the 10Hz tick already pushed to leaves. What
+follows is what it changed, and the rules those changes are instances of.
+
+**A PERSISTED STORE MUST NEVER TAKE A PER-TICK WRITE.** `useListeningStore` is
+`persist`-wrapped over AsyncStorage, and zustand's persist calls `setItem` on
+EVERY `set` with no debounce of its own — so `useListeningTime` banking each
+transport report meant a `JSON.stringify` plus a native store write ten times a
+second (the transport's `onPositionChangedInterval` default is 100ms and
+nothing here overrides it), foreground and background, on the one thing this
+app exists to do.
+
+Measured on iPhone 17 / iOS 26.5 off `RCTAsyncLocalStorage_V1/manifest.json`'s
+mtime while a track played: **80 rewrites in 20.0s** committing per tick, mean
+gap 0.25s, against **5.02s and 4.99s** spacing committing in 5s blocks. Twenty
+times fewer. The hook accumulates in a ref now and flushes on every boundary
+that ends a stretch of listening.
+
+**The file lands at ~4/s, not the tick's 10/s** — RN's AsyncStorage coalesces
+its own queue — so the JS half (stringify + a native module call per tick) was
+the larger share of the cost. Reasoning from a disk rate alone understates
+this class of bug; measure both ends. The threshold is chosen against the
+READER: the `listening` trophy's threshold is in MINUTES, so nothing can
+observe 5s granularity.
+
+**FIRESTORE DOES NOT DELETE A SUBCOLLECTION WITH ITS PARENT, AND THAT HAS NOW
+BITTEN THIS APP TWICE.** `account.ts` already said so about the user doc;
+`deleteSound` did it anyway, removing the sound document and leaving its
+`clips` standing underneath a document that was gone. The account sweep could
+not reach them either — it finds clips by walking the sounds that still EXIST —
+so a clip whose sound went first outlived the account, while the row promised
+"All of your sounds and clips will be deleted permanently". Same shape as the
+wrong-but-legal collection paths that sweep shipped with, different door.
+
+It was not hypothetical: a collection-group query over the developer account
+returned **10 clips, THREE of them orphans** under sound ids that no longer
+exist. `deleteClipsOfSound` (in `clips.ts`, which owns that path) runs first
+now, verified end to end with a throwaway sound written straight to Firestore,
+given a clip and then deleted from the app.
+
+**THE THREE EXISTING ORPHANS ARE LEFT, ON PURPOSE.** Nothing reaches them by
+path. A COLLECTION-GROUP query does — it is how they were found — but sweeping
+with one spans every user's clips and needs a `match /{path=**}/clips/{clipId}`
+rule to match, which is a wider read surface than this app has any other reason
+to open. Recorded rather than half-solved.
+
+**THE PLAYER HOLDS A COPY OF THE DOCUMENTS, AND SOMETHING HAS TO REFRESH IT.**
+`current` and `queue` were snapshots frozen at `playSound`. Deletion was the
+only library change wired up (`soundDeleted`); an EDIT reached nothing, so
+renaming the playing sound left the banner showing the old name — on home, the
+grid tile and the banner over it named the same sound differently. The banked
+duration was the same bug wearing a second hat: `AudioEngine` reads the
+player's own copy to decide whether to write `durationMs`, and a frozen copy
+never learns the write landed, so skipping away and back re-wrote it every
+load. `syncLibrary` takes each snapshot; it compares FIELD-WISE, because
+Firestore hands back new objects every time and a reference check would
+re-render the player whenever anything anywhere in the library moved.
+
+**Confirmed still intentional, so nobody re-opens them:** `subscribeToSounds`
+is unbounded (capping hides someone's own library; the honest fix is paging),
+`upsertOwnProfile`'s one extra `getDoc` per sign-in (Firestore has no
+set-if-absent for a field), and the Cloudinary orphans on delete, on cover
+replace and on account deletion — all three doors documented at their own
+sites, and nothing has widened them.
+
+**`lib/waveform.ts` downloading the whole mp3 is FINE, and was checked.** It is
+reached only from `ClipTrimEditorIos`, so only while the `clip-trim` sheet is
+open — not per sound played, not per player open. The JSON cache is consulted
+first, the in-memory map dedupes within a session and evicts failures, and the
+mp3 is deleted in a `finally`. It is once per sound per cache generation;
+`cacheDirectory` being OS-purgeable is the correct trade, since it self-heals
+and cannot grow without bound.
+
 **The build plan is the source of truth:**
 [`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) — scope,
 data model, phases, and the copyright rule (owner hears the full song, the
