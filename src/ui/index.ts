@@ -23,6 +23,7 @@ export {
 } from './author';
 export { type WelcomeLegal } from './LegalFooter';
 export { confirmDestructiveIos } from './confirmDestructiveIos';
+export { DisclosureChevron } from './DisclosureChevron';
 export {
   DestructiveConfirmDialog,
   type DestructiveConfirmDialogContent,
