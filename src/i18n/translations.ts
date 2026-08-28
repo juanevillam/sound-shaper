@@ -15,9 +15,16 @@ export const translations = {
       back: 'Back',
       cancel: 'Cancel',
       close: 'Close',
-      done: 'Done',
+      // The snackbar's action-less dismiss slot (Android). It is the ONE
+      // user-facing string that used to live outside this file, hardcoded
+      // English in `SnackbarProvider`'s default.
+      ok: 'OK',
       retry: 'Try Again',
-      pickMedia: 'Choose an Emoji',
+      // ARTWORK, the voice table's word for a picture that stands for a
+      // recording — and the same word this app's editor already uses. It read
+      // "Choose an Emoji", carried over from Topper's item editor before that
+      // app had a real picker, in an app that has never had an emoji feature.
+      pickMedia: 'Choose Artwork',
     },
     welcome: {
       features: {
@@ -95,7 +102,6 @@ export const translations = {
       eq: {
         title: 'Equalizer',
         hint: 'Bass on the left, treble on the right',
-        reset: 'Flat',
         presets: {
           flat: 'Flat',
           bass: 'Bass',
@@ -296,9 +302,9 @@ export const translations = {
       back: 'Atrás',
       cancel: 'Cancelar',
       close: 'Cerrar',
-      done: 'OK',
+      ok: 'OK',
       retry: 'Reintentar',
-      pickMedia: 'Elegir un emoji',
+      pickMedia: 'Elegir ilustración',
     },
     welcome: {
       features: {
@@ -373,7 +379,6 @@ export const translations = {
       eq: {
         title: 'Ecualizador',
         hint: 'Graves a la izquierda, agudos a la derecha',
-        reset: 'Plano',
         presets: {
           flat: 'Plano',
           bass: 'Graves',
@@ -567,9 +572,9 @@ export const translations = {
       back: '返回',
       cancel: '取消',
       close: '关闭',
-      done: '完成',
+      ok: '好',
       retry: '重试',
-      pickMedia: '选择表情符号',
+      pickMedia: '选择插图',
     },
     welcome: {
       features: {
@@ -642,7 +647,6 @@ export const translations = {
       eq: {
         title: '均衡器',
         hint: '左侧低音，右侧高音',
-        reset: '平坦',
         presets: {
           flat: '平坦',
           bass: '低音',
@@ -702,6 +706,7 @@ export const translations = {
       progress: '已获得 {earned}/{total}',
       locked: '未解锁',
       earned: '已获得',
+      available: '可获得',
       unlocked: '奖杯已解锁',
       tier: {
         bronze: '青铜',

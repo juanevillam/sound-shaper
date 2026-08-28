@@ -61,6 +61,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 export default function RootLayout() {
+  const { t } = useI18n();
   const layoutHydrated = useLayoutStore(s => s.hasHydrated);
   const authResolved = useAuthStore(s => s.hasResolved);
   const themeHydrated = useThemeStore(s => s.hasHydrated);
@@ -118,7 +119,13 @@ export default function RootLayout() {
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <ThemeProvider value={navigationTheme}>
           <KeyboardProvider>
-            <SnackbarProvider>
+            {/* `dismissLabel` is Android's action-less dismiss slot — it
+                shipped as a hardcoded English 'OK' inside the package's
+                default, the one user-facing string outside translations.ts.
+                Android is frozen, so this ships UNVERIFIED until the freeze
+                lifts (recorded in the 2026-08-28 craft audit); Topper carries
+                the identical line. */}
+            <SnackbarProvider dismissLabel={t('common.ok')}>
               <Stack
                 screenOptions={{
                   headerShown: false,
