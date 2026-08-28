@@ -12,6 +12,7 @@ import { useClipsSavedStore } from '@/store/clipsSaved';
 import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
+import { useShaperStore } from '@/store/shaper';
 import { useSoundsStore } from '@/store/sounds';
 
 /**
@@ -52,6 +53,16 @@ export const useAuthListener = () => {
          */
         useListeningStore.getState().reset();
         useClipsSavedStore.getState().reset();
+        /**
+         * AND THE CURVE, which is the third store feeding the same trophy and
+         * the one this list missed twice. `useTrophyTriggers` reads
+         * `rate !== 1 || gains.some(...)`: `rate` is cleared by the player
+         * reset above, `gains` lives in the shaper store and was cleared by
+         * nobody, so a second account inherited a shaped EQ and was handed
+         * First Shape for it. `reset` also puts the audio engine's own module
+         * copy of the curve back to flat — see the store.
+         */
+        useShaperStore.getState().reset();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
         return;
