@@ -1629,11 +1629,16 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
                 numberOfLines={1}
                 style={styles.miniTitle}
               />
+              {/* SUBHEADLINE, like the loaded banner — the idle banner IS
+                  that banner, parked, so the two cannot typeset one sound's
+                  name and artist differently. It paired Body with Footnote
+                  (17/13) and was left behind when the loaded row was stepped
+                  to 17/15 for being the app's one odd pair. */}
               <AppText
                 doNotTranslate
                 muted
                 text={first.artist || ' '}
-                variant="bodySmall"
+                variant="bodyMedium"
                 numberOfLines={1}
               />
             </>
