@@ -60,9 +60,17 @@ tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
   the simulator prefer `127.0.0.1` over `localhost` in deep links.
   (Also: Juan's OpenVPN kills mDNSResponder DNS — `dig` works, `curl`
   doesn't — which additionally breaks `pod install`.)
-- `expo prebuild --clean` wipes `android/local.properties` and `expo
-run:android` does NOT restore it → `SDK location not found`. Recreate:
-  `sdk.dir=/Users/juanevillam/Library/Android/sdk`.
+- `expo prebuild --clean` wipes `android/local.properties` and **nothing
+  restores it** — `@expo/cli` contains no reference to that file at all. Whether
+  that matters depends on the SHELL, which is what the two docs used to disagree
+  about (settled 2026-08-28 by building Topper for the A54):
+  - Gradle resolves the SDK from `local.properties` **or** from `ANDROID_HOME` /
+    `ANDROID_SDK_ROOT`. `~/.zshrc` exports `ANDROID_HOME`, so an interactive
+    build succeeds with the file absent — verified end to end, `BUILD
+SUCCESSFUL in 7m 17s`, the file still missing before and after.
+  - A shell WITHOUT that env var (CI, a bare `sh`, a GUI-launched tool) fails
+    with `SDK location not found`. Recreate it there:
+    `echo "sdk.dir=$HOME/Library/Android/sdk" > apps/<app>/android/local.properties`.
 
 ## `patches/` — a dependency's source, overlaid on every install
 
