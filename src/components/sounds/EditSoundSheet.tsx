@@ -15,7 +15,10 @@ import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import { DestructiveConfirmDialog } from '@portfolio/mobile-ui';
 
 import { ArtImage } from '@/components/ui/ArtImage';
-import { MediaPickerAvatar } from '@/components/ui/MediaPickerAvatar';
+import {
+  MEDIA_PICKER_SIZE,
+  MediaPickerAvatar,
+} from '@/components/ui/MediaPickerAvatar';
 import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
@@ -277,6 +280,11 @@ export function EditSoundSheet({
                     artPreviewUri ? (
                       <ArtImage
                         uri={artPreviewUri}
+                        // Display-sized fetch for an EXISTING sound's remote
+                        // cover; a local pick and the ID3 tag's `data:` bytes
+                        // pass through `thumbUrl` untouched.
+                        // ANDROID-UNVERIFIED under the freeze.
+                        displayWidth={MEDIA_PICKER_SIZE}
                         style={MEDIA_PREVIEW_FILL}
                       />
                     ) : null
