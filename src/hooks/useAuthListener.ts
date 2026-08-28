@@ -8,6 +8,8 @@ import {
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
 import { useClipsStore } from '@/store/clips';
+import { useClipsSavedStore } from '@/store/clipsSaved';
+import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import { useSoundsStore } from '@/store/sounds';
@@ -35,6 +37,21 @@ export const useAuthListener = () => {
         useSoundsStore.getState().clear();
         useClipsStore.getState().clear();
         useProfileStore.getState().clear();
+        /**
+         * THE TWO PERSISTED TROPHY COUNTERS ARE USER-SCOPED TOO, and they were
+         * the ones this wipe missed. Both are AsyncStorage-backed running
+         * totals — minutes listened, clips ever saved — and both feed
+         * `useTrophyTriggers`, so a second account signing in on this device
+         * inherited the first one's totals and was handed `Listener` and
+         * `Splicer` (and the platinum that needs them) off somebody else's
+         * activity. A device-local cache is not a device-local FACT: these
+         * count what a PERSON did.
+         *
+         * Same class as Topper's recent searches, which its own cache audit
+         * found in this exact list (2026-08-28).
+         */
+        useListeningStore.getState().reset();
+        useClipsSavedStore.getState().reset();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
         return;
