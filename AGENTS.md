@@ -309,31 +309,34 @@ top of 119.00 and two different cover widths. What is measurable today:
 - artwork top **74.00** — `insets.top` 62 + `IOS_ART_TOP_GAP` 12, the cover's
   own breathing room under the Dynamic Island, with nothing between them;
 - cover **370.00** wide (left edge 16.00, right 386.00), ONE width — `winW` 402
-  less `SCREEN_PADDING` × 2, identical playing and paused.
+  less `SCREEN_PADDING` × 2, identical playing and paused;
+- glass footer **764.00 → 832.00**, **370.00** wide (16.00 → 386.00), with its
+  ink at 782.33 → 814.00 — `MINI_PLAYER_HEIGHT` 68 standing on `insets.bottom`
+  34 + `NOW_PLAYING_BOTTOM_GAP_IOS` 8. That is the banner's OWN gap, not the
+  generic `FLOATING_EDGE_GAP`, and the box is the collapsed banner's exactly,
+  which is what makes expanding read as one bar staying put while its contents
+  change. Identical across an 8-frame burst and in BOTH appearances.
 
-**THE GLASS FOOTER COULD NOT BE MEASURED, BECAUSE IT DOES NOT RENDER** — see
-the defect note below. Its intended box is `MINI_PLAYER_HEIGHT` 68 standing on
-`insets.bottom` 34 + `NOW_PLAYING_BOTTOM_GAP_IOS` 8, i.e. 764.00 → 832.00, and
-that is what the code computes; nothing has confirmed it on screen. **Do not
-copy those three numbers forward as measurements** — they are the arithmetic,
-and the whole point of this block is that arithmetic is not evidence.
+**THAT LAST LINE WAS UNMEASURABLE FOR A WHILE, BECAUSE THE BAR DID NOT RENDER
+AT ALL** (found and fixed 2026-08-28, in the craft audit's verification pass).
+The console drew its artwork, copy, scrubber and transport and then nothing: a
+horizontal scan of the entire 700 → 874 band found only the backdrop's own
+gradient. Not the material failing — the compartments' RN labels were absent
+too, and a temporary solid `backgroundColor` on the wrapper did not appear
+either.
 
-**⚠️ THE SHAPE / CLIPS / EDIT BAR IS MISSING ON THE SIMULATOR** (found
-2026-08-28, during the craft audit's verification pass; NOT yet fixed). The
-expanded console renders its artwork, copy, scrubber and transport and then
-nothing at all: a horizontal scan across the whole 700 → 874 band finds only
-the backdrop's own gradient, in every frame of a burst. It is not the glass
-failing to draw — the compartments' RN labels ("Shape", "Clips", "Edit") are
-absent too, and a temporary solid `backgroundColor` on the footer's wrapper
-did not appear either, so the subtree is either unmounted or sitting at
-opacity 0 / zero height.
+The cause was the wrapper's `entering={FadeIn.duration(200)}` settling at
+opacity 0: it mounts inside a tree whose own opacity (`consoleStyle`) the
+expand spring is animating, and an entrance started under that does not
+reliably finish. **The fix is a deletion, not a repair**, and the reason is in
+the prop's own comment — it was there to cover the swap back from CLIP
+FRAMING, mirroring `ClipActionsRow`'s entrance. iOS framing left this console
+on 2026-08-26 for the `clip-trim` sheet, so nothing has swapped with this bar
+since: the entrance was animating an arrival that no longer happens, and
+failing at it. The console's own fade brings the bar in with everything else,
+which is what should carry it.
 
-The leading suspicion is the wrapper's own `entering={FadeIn.duration(200)}`:
-it mounts inside a tree whose opacity `consoleStyle` is animating, and a
-Reanimated entering animation that is interrupted there can settle at 0. That
-is a HYPOTHESIS, not a finding — the next session should confirm it before
-changing anything (drop the `entering` and see, or log the wrapper's measured
-frame). The audit's report has the full evidence.
+**The wrapper is a plain `View` now and must stay one.** See its comment.
 
 **The player's four sheets are on TOPPER'S bar** (2026-08-21). `shaper`,
 `clips` and `edit-sound` are `titled` in `IOS_FORM_SHEETS`. `edit-sound` states

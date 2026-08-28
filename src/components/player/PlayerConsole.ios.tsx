@@ -11,7 +11,7 @@ import {
   usePressSquash,
 } from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlyphButton } from '@/components/player/GlyphButton';
@@ -324,17 +324,37 @@ function GlassFooter({
   width,
 }: FooterProps) {
   const { colors } = useAppTheme();
-  const reduceMotion = useReducedMotion();
 
   return (
-    // Fades in when it returns from framing, mirroring `ClipActionsRow`'s
-    // own entrance — the swap is a content change inside one standing bar,
-    // and it read as a pop. On the console's first mount the fade runs under
-    // the console's own opacity and is invisible.
-    <Animated.View
-      entering={reduceMotion ? undefined : FadeIn.duration(200)}
-      style={[styles.glassFooter, { height: GLASS_FOOTER_HEIGHT, width }]}
-    >
+    /**
+     * A PLAIN VIEW, AND IT MUST STAY ONE — the whole bar was INVISIBLE for as
+     * long as it was not (found 2026-08-28).
+     *
+     * It carried `entering={FadeIn.duration(200)}` and rendered NOTHING on the
+     * expanded player: no glass, no Shape, no Clips, no Edit. Not a material
+     * that failed to draw — a horizontal scan of the entire 700 → 874 band
+     * found only the backdrop's gradient, and a temporary solid
+     * `backgroundColor` on this wrapper did not appear either. The entrance
+     * was settling at opacity 0 and never arriving: it mounts inside a tree
+     * whose own opacity (`consoleStyle`) is being animated by the expand
+     * spring, and an entering animation started under that does not
+     * necessarily finish.
+     *
+     * WHAT MAKES IT A DELETION RATHER THAN A FIX is why it was ever here. Its
+     * own comment said it: "fades in when it returns from framing, mirroring
+     * `ClipActionsRow`'s own entrance" — the bar used to be SWAPPED OUT for
+     * the clip-framing action row, and the fade covered that content change
+     * inside one standing bar. iOS framing left this console on 2026-08-26
+     * for the dedicated `clip-trim` sheet, and `ClipActionsRow` is Android's
+     * alone now. Nothing has swapped with this bar since, so the entrance had
+     * nothing left to enter for — it was animating an arrival that no longer
+     * happens, and failing at it.
+     *
+     * The console's own fade (`CONSOLE_FADE_START` → `_END`) is what brings
+     * this bar in with everything else, which is what should carry it: the
+     * footer arrives as part of the console, not as its own event.
+     */
+    <View style={[styles.glassFooter, { height: GLASS_FOOTER_HEIGHT, width }]}>
       <GlassSurfaceIos
         width={width}
         height={GLASS_FOOTER_HEIGHT}
@@ -369,7 +389,7 @@ function GlassFooter({
           />
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
