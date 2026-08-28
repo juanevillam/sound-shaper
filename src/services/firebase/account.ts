@@ -57,6 +57,11 @@ export const deleteAccountData = reported(
       collection(db, USERS_COLLECTION, user.uid, SOUNDS_SUBCOLLECTION),
     );
 
+    // The clips loop stays even though `deleteSound` now sweeps its own: this
+    // path deletes sounds that still EXIST, so their clips have never been
+    // through that door. What neither can reach is a clip orphaned by the old
+    // `deleteSound` — the client SDK cannot list a document's subcollections
+    // (see `clips.deleteClipsOfSound`).
     for (const sound of sounds.docs) {
       const clips = await getDocs(
         collection(

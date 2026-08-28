@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -145,6 +146,41 @@ export const updateClip = reported(
       ),
       { endMs, startMs },
     );
+  },
+);
+
+/**
+ * Every clip of one sound — what `deleteSound` calls before removing the sound
+ * document itself.
+ *
+ * FIRESTORE DOES NOT DELETE A SUBCOLLECTION WITH ITS PARENT, and this is the
+ * second door that fact has opened in this app. Deleting the sound doc alone
+ * left its clips standing under a document that no longer existed, and the
+ * account-deletion sweep could not reach them either: `account.ts` finds clips
+ * by enumerating the sounds that still EXIST, so a clip whose sound went first
+ * outlived the account it belonged to — while the row promised "All of your
+ * sounds and clips will be deleted permanently". Same shape as the
+ * wrong-but-legal paths that sweep shipped with, through a different door.
+ *
+ * IT HAD ALREADY HAPPENED, and it was measured rather than assumed: a
+ * collection-group query over the developer account on 2026-08-28 returned 10
+ * clips, THREE of them under sound ids that no longer exist. Those three would
+ * have outlived the account.
+ *
+ * Rows orphaned by the old behaviour are NOT cleaned up by this function —
+ * nothing can reach them by path, since the client cannot list a document's
+ * subcollections. A COLLECTION-GROUP query on `clips` can (that is how the
+ * three above were found), but sweeping with one spans every user's clips and
+ * needs a `match /{path=**}/clips/{clipId}` rule to match, which is a wider
+ * read surface than this app has any other reason to open. Left as a recorded
+ * gap rather than half-solved; see the app's AGENTS.md.
+ */
+export const deleteClipsOfSound = reported(
+  'clips.deleteClipsOfSound',
+  async (soundId: string): Promise<void> => {
+    const snapshot = await getDocs(clipsCollection(soundId));
+
+    await Promise.all(snapshot.docs.map(clip => deleteDoc(clip.ref)));
   },
 );
 

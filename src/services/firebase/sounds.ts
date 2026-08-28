@@ -15,6 +15,7 @@ import {
 } from '@react-native-firebase/firestore';
 
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
+import { deleteClipsOfSound } from '@/services/firebase/clips';
 import {
   SOUNDS_SUBCOLLECTION,
   USERS_COLLECTION,
@@ -160,6 +161,12 @@ const soundToModel = (snapshot: QueryDocumentSnapshot): Sound => {
  * Bank a sound's duration the first time the engine reports it — a one-time,
  * fire-and-forget metadata write (see `Sound.durationMs`). No `updatedAt`
  * bump: nothing a person edited changed.
+ *
+ * "ONE-TIME" RESTS ON `syncLibrary`. The caller decides whether to write by
+ * reading `usePlayerStore`'s own copy of the document, and that copy used to
+ * be frozen at play time — so it never learned this write had landed, and
+ * skipping away and back re-banked the same value on every load. The player
+ * takes each snapshot now; see `store/player.ts`.
  */
 export const bankSoundDuration = (
   soundId: string,
@@ -263,13 +270,22 @@ export const updateSound = reported(
 );
 
 /**
- * Remove a sound. The Cloudinary audio/art assets are left behind — destroying
- * them needs a signed API call (a backend this app deliberately doesn't have),
- * so orphaned assets are a known gap, same as Topper's pre-Functions state.
+ * Remove a sound — ITS CLIPS FIRST, then the document.
+ *
+ * The order is not a preference. Firestore does not delete a subcollection
+ * with its parent, so removing the sound doc alone left `clips` standing under
+ * a document that was gone, and beyond the reach of the account-deletion sweep
+ * (which finds clips by walking the sounds that still exist). `clips.ts` owns
+ * that path and carries the full write-up in `deleteClipsOfSound`.
+ *
+ * The Cloudinary audio/art assets are still left behind — destroying them
+ * needs a signed API call (a backend this app deliberately doesn't have), so
+ * orphaned assets are a known gap, same as Topper's pre-Functions state.
  */
 export const deleteSound = reported(
   'sounds.deleteSound',
   async (soundId: string): Promise<void> => {
+    await deleteClipsOfSound(soundId);
     await deleteDoc(soundDoc(soundId));
   },
 );
