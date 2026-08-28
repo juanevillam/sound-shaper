@@ -2,6 +2,7 @@ import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import {
   artworkRadius,
+  emptyMediaColor,
   emptyMediaPlusStyle,
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
@@ -16,11 +17,13 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Sound } from '@/services/firebase/sounds';
 import { opticalTextInset, SCREEN_PADDING, TILE_GAP } from '@/styles/metrics';
-import { CONTINUOUS_CURVE, HAIRLINE, SHAPE_MD } from '@/styles/shape';
+import { CONTINUOUS_CURVE, SHAPE_MD } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
 // language, one sound per tile. Tap = play, long-press = edit.
+
+const IS_IOS = Platform.OS === 'ios';
 
 /**
  * THE GRID CELL — DERIVED FROM THE WINDOW, NOT MEASURED AND NOT A CONSTANT.
@@ -106,10 +109,27 @@ export const soundGridCell = (winW: number): number =>
  * for both, 17/22 and 15/20. If either size moves off this pair, check the
  * leading against the real style rather than keeping the arithmetic.
  *
- * Android is frozen and keeps the Material scale untouched.
+ * ANDROID STEPS TOO, AND FOR THE SAME MEASURED REASON — it was left on the
+ * shared scale while iOS moved, and so sat at exactly the ratio this note
+ * records as the half-measure. Its cell is (384 − 32 − 16) / 2 = 168dp on the
+ * A54, and `bodyMedium`'s 14 under it is **0.083** — the 0.084 called out
+ * above, one device over.
+ *
+ * The move is the same shape as iOS's and lands in the same place: STEP UP THE
+ * PLATFORM'S OWN LADDER rather than scale. `bodyLarge` / `bodyMedium` (16 / 14)
+ * are named Material roles, Dynamic-Type-equivalent under Android's font-size
+ * setting, and 16/168 = **0.095** against iOS's 0.096 — the two twins now
+ * caption a large cover at the same proportion, each in its own type language.
  */
 const CAPTION_TITLE = 17;
 const CAPTION_SUB = 15;
+
+/**
+ * Android's caption steps, named once so the tile and its skeleton cannot
+ * disagree — `LINES` reads its line boxes straight off these.
+ */
+const ANDROID_CAPTION_TITLE = 'bodyLarge' as const;
+const ANDROID_CAPTION_SUB = 'bodyMedium' as const;
 
 /**
  * TYPE IS NOT GEOMETRY, so these do NOT follow the cell — see `CAPTION_TITLE`.
@@ -118,8 +138,8 @@ const CAPTION_SUB = 15;
 const LINES = Platform.select({
   ios: { title: CAPTION_TITLE + 5, subtitle: CAPTION_SUB + 5 },
   default: {
-    title: TEXT_VARIANTS.bodyMedium.lineHeight as number,
-    subtitle: TEXT_VARIANTS.bodySmall.lineHeight as number,
+    title: TEXT_VARIANTS[ANDROID_CAPTION_TITLE].lineHeight as number,
+    subtitle: TEXT_VARIANTS[ANDROID_CAPTION_SUB].lineHeight as number,
   },
 }) as { title: number; subtitle: number };
 
@@ -260,7 +280,7 @@ export function SoundTile({
       <Text
         doNotTranslate
         text={sound.name}
-        variant="bodyMedium"
+        variant={IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE}
         numberOfLines={1}
         style={[
           styles.name,
@@ -272,7 +292,7 @@ export function SoundTile({
         doNotTranslate
         muted
         text={sound.artist || ' '}
-        variant="bodySmall"
+        variant={IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB}
         numberOfLines={1}
         style={[styles.artist, { paddingLeft: captionInset }]}
       />
@@ -282,7 +302,7 @@ export function SoundTile({
 
 /** The trailing "add a sound" cell — a dashed square with a plus. */
 export function AddSoundTile({ onPress }: { onPress: () => void }) {
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { t } = useI18n();
   const { artRadius, captionInset, cell } = useSoundTileMetrics();
 
@@ -293,28 +313,38 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
           styles.art,
           styles.addBox,
           { borderRadius: artRadius },
-          // iOS: a FILLED placeholder. A dashed border reads as a web/Material
-          // dropzone; Apple's nearest equivalent — the iWork document manager's
-          // "Create Document" cell — is a filled tile, and a fill keeps the
-          // grid's rhythm by reading as "another tile, empty" rather than as a
-          // hole in it. Android keeps the dashed outline its frozen build
-          // ships. Matched with Topper's rail, which made the same move.
-          Platform.OS === 'ios'
-            ? // surfaceContainer, not `fill` — matched with Topper's create
-              // tile (2026-08-08): the fill composites within one hex step of
-              // the dark card surface, so filled-but-empty tiles read as
-              // cards. Both apps anchor the empty-media material on solid
-              // systemGray5.
-              { backgroundColor: colors.surfaceContainer }
-            : { borderColor: colors.border },
+          // A FILLED placeholder, on BOTH platforms now. A dashed border reads
+          // as a web/Material dropzone — Material has no dashed drop target in
+          // its own component set either — and Apple's nearest equivalent, the
+          // iWork document manager's "Create Document" cell, is a filled tile.
+          // A fill keeps the grid's rhythm by reading as "another tile, empty"
+          // rather than as a hole in it. Matched with Topper's rail, which made
+          // the same move.
+          //
+          // ANDROID'S DASHED OUTLINE WAS INVISIBLE IN LIGHT — a `border`
+          // hairline on the #F1F1F3 page, so the leading cell of the grid read
+          // as empty space rather than as the app's one create affordance. It
+          // survived only because this file was frozen while iOS moved.
+          //
+          // `emptyMediaColor` is the portfolio's ONE material for an art-less
+          // box, and it already answers per platform: `surfaceContainer` (the
+          // solid systemGray5) on iOS, `surfaceVariant` on Android. That is
+          // also exactly what the art-less SOUND tiles beside this one draw, so
+          // the two placeholders on one grid are now one material instead of
+          // two different ideas.
+          { backgroundColor: emptyMediaColor({ colors, scheme }) },
         ]}
       >
+        {/* THE SHARED PLUS SPEC, on both platforms. Android hard-coded 40 on a
+            cell that is now derived — 0.238 of a 168dp box, which is precisely
+            the 0.225 Topper's rail tile was moved OFF for reading as "a small
+            mark in a large empty square" (Juan, 2026-08-16). The ratio is 0.3
+            and it belongs to `emptyMediaPlusStyle`, which also carries the
+            explicit line height the glyph needs at this size. */}
         <Text
           doNotTranslate
           text={EMPTY_MEDIA_PLUS}
-          style={
-            Platform.OS === 'ios' ? emptyMediaPlusStyle(cell) : styles.plus
-          }
+          style={emptyMediaPlusStyle(cell)}
         />
       </View>
       {/* TWO CAPTION LINES, like every real tile — and the second one is not
@@ -327,12 +357,13 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
           the upload. Muted, like the artist line it stands in for. */}
       <Text
         text="home.addSound"
-        variant="bodyMedium"
+        variant={IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE}
         style={[styles.name, { paddingLeft: captionInset }]}
       />
       <Text
         muted
         text="home.addSoundFormat"
+        variant={IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB}
         style={[styles.artist, { paddingLeft: captionInset }]}
       />
     </SquashPressable>
@@ -350,34 +381,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...CONTINUOUS_CURVE,
-    // The dashed outline is Android's only now — see the fill above.
-    ...Platform.select({
-      android: { borderStyle: 'dashed' as const, borderWidth: HAIRLINE },
-      default: {},
-    }),
   },
-  /**
-   * ANDROID's plus only — iOS derives its own from the live cell at the call
-   * site (`emptyMediaPlusStyle`), since that ratio follows the box.
-   *
-   * THE SHARED "ADD MEDIA" PLUS is derived rather than hard-coded because a
-   * fixed 40 on a 178pt cell is a ratio of 0.225, precisely the value Topper's
-   * rail tile was moved OFF on 2026-08-16 for reading as "a small mark in a
-   * large empty square". Topper's number followed the spec and this one did
-   * not, so the two add tiles drifted apart on the one term a comment in
-   * `HomeRailTilesIos` claimed they shared. At 0.3 this renders 53 on a 402pt
-   * screen.
-   *
-   * The explicit line height comes with it: iOS clips a glyph this large to the
-   * font's line box and the plus renders as a "T". Android keeps its frozen
-   * layout, so it takes neither.
-   */
-  plus: { fontSize: 40, fontWeight: '300' as const },
-  // Sizes come from CAPTION_TITLE / CAPTION_SUB above.
-  // The optical nudge is iOS-only: the caption sits under the artwork's rounded
-  // bottom corners, which curve the edge inward right where the text starts, so
-  // flush to the true edge it reads as hanging past the cover. Android's layout
-  // is frozen and keeps the flush edge.
+  // iOS's sizes come from CAPTION_TITLE / CAPTION_SUB above; Android's come
+  // from its variant (`ANDROID_CAPTION_TITLE` / `_SUB`), so nothing is stated
+  // twice.
+  // The optical nudge stays iOS-only: the caption sits under the artwork's
+  // rounded bottom corners, which curve the edge inward right where the text
+  // starts, so flush to the true edge it reads as hanging past the cover.
+  // Android's corner is the flat M3 step rather than a continuous curve, so
+  // there is far less edge to compensate for and it keeps the flush edge.
   name: {
     marginBottom: 1,
     ...Platform.select({

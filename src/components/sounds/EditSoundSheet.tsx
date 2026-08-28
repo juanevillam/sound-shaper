@@ -13,6 +13,7 @@ import {
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import {
+  artworkRadius,
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
 } from '@portfolio/mobile-ui';
@@ -39,6 +40,7 @@ import {
 } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
+import { SHAPE_MD } from '@/styles/shape';
 
 /** Breathing room under the destructive row, on top of the navigation bar. */
 const SHEET_BOTTOM_GAP = 16;
@@ -66,11 +68,13 @@ export type EditSoundSheetProps = {
 const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
 
 // Create/edit a sound inside a Compose ModalBottomSheet — the analog of
-// Topper's EditItemSheet. Cover art sits at the TOP as a read-only preview:
-// it comes from the file's ID3 tag (or nothing), never hand-picked, so the
-// avatar doesn't open a chooser. Create-mode Save AWAITS the audio upload
-// behind the Save spinner (the one real network wait), then closes; edit-mode
-// metadata writes are latency-compensated, so they close immediately.
+// Topper's EditItemSheet. Cover art sits at the TOP, seeded from the file's ID3
+// tag and REPLACEABLE: the slot presses and opens the image picker
+// (`useCoverPicker`), in Topper's two-step deferred shape, so the upload waits
+// for save and cancelling never orphans a Cloudinary asset. Create-mode Save
+// AWAITS the audio upload behind the Save spinner (the one real network wait),
+// then closes; edit-mode metadata writes are latency-compensated, so they close
+// immediately — unless a new cover made it a real upload.
 export function EditSoundSheet({
   pickedFile,
   soundId,
@@ -273,10 +277,15 @@ export function EditSoundSheet({
               onSave={save}
             />
 
-            {/* Cover art at the TOP — a read-only preview of the file's
-                embedded picture (uploading a photo is not a thing: the art IS
-                the file's). RNHostView matchContents sizes the 72×72 avatar
-                without blanking the fields below it. */}
+            {/* Cover art at the TOP. A ROUNDED SQUARE, not a disc: this is
+                ARTWORK — a picture standing for a recording — and every other
+                place the app draws one (the grid cover, the player, the banner)
+                is a rounded square at `artworkRadius`. The slot defaults to a
+                full circle because that is the shape a PERSON'S photo takes in
+                Topper's editors, and this app inherited it; a disc crop of an
+                album cover is the one crop this app renders nowhere else.
+                RNHostView matchContents sizes the avatar without blanking the
+                fields below it. */}
             <Column
               horizontalAlignment="center"
               verticalArrangement={{ spacedBy: 8 }}
@@ -289,6 +298,10 @@ export function EditSoundSheet({
                   disabled={isSaving}
                   surfaceColor={colors.surfaceVariant}
                   contentColor={colors.onSurfaceMuted}
+                  // Android's own Material shape step — `artworkRadius` returns
+                  // the discrete step here rather than iOS's ratio, so the
+                  // corner stays on Material's 4/8/12/16/28 scale.
+                  radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
                   emoji="🎵"
                   // Same `ArtImage` the slot rendered internally before it
                   // moved to the package — ANDROID IS FROZEN and this keeps
@@ -300,7 +313,6 @@ export function EditSoundSheet({
                         // Display-sized fetch for an EXISTING sound's remote
                         // cover; a local pick and the ID3 tag's `data:` bytes
                         // pass through `thumbUrl` untouched.
-                        // ANDROID-UNVERIFIED under the freeze.
                         displayWidth={MEDIA_PICKER_SIZE}
                         style={MEDIA_PREVIEW_FILL}
                       />
@@ -355,10 +367,7 @@ export function EditSoundSheet({
                 no use for. "Artist" became "Subtitle" for the same reason
                 "song" became "sound": the second line under a cover is whatever
                 the person wants written there. The stored FIELD stays `artist`,
-                exactly as the Firestore subcollection stays `songs`.
-
-                UNVERIFIED — nothing Android is installed or run while the
-                portfolio is iOS-only (root AGENTS.md). Re-check on device. */}
+                exactly as the Firestore subcollection stays `songs`. */}
             <OutlinedTextField
               ref={artistFieldRef}
               value={artistState}

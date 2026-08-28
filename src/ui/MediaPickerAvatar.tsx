@@ -77,19 +77,27 @@ export type MediaPickerAvatarProps = {
    * — a create tile is one press target for art plus caption and this is the
    * same affordance.
    *
-   * Omit it where the caption is a STATUS rather than an action. Sound Shaper's
-   * cover art comes from the file's ID3 tag and is never hand-picked, so its
-   * disc does not press and its label ("Artwork from the file") belongs in
-   * `SheetFormMediaIos`'s own caption slot instead. A status inside a press
-   * target that cannot be pressed is worse than either arrangement.
+   * Omit it where the caption is a STATUS rather than an action — a status
+   * inside a press target is worse than either arrangement. Sound Shaper's slot
+   * used to be exactly that case, its art coming from the file's ID3 tag and
+   * from nowhere else; it gained a real picker on 2026-08-21, so its caption is
+   * an ACTION now ("Add Artwork" / "Change Artwork") and lives inside the press
+   * target like Topper's.
    */
   caption?: string;
   /** Caption ink — the accent (it labels an action), muted while disabled. */
   captionColor?: string;
   /**
-   * Corner radius of the preview. Defaults to the full circle the Android
-   * editors shipped with (frozen); iOS callers pass the shared artwork ratio,
-   * so the slot previews the crop the media will actually render in.
+   * Corner radius of the preview. Defaults to a full circle, which is right
+   * for a PERSON — Topper's editors name a top and a top item, and a disc is
+   * what a photo of a thing takes there.
+   *
+   * PASS THE ARTWORK RADIUS FOR ARTWORK. A picture standing for a recording is
+   * a rounded square everywhere the platforms draw one, so Sound Shaper's sound
+   * editor states `artworkRadius` on BOTH platforms; without it that sheet
+   * disc-cropped an album cover the app renders as a rounded square in every
+   * other slot. The slot should preview the crop the media will actually render
+   * in.
    */
   radius?: number;
 };
