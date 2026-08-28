@@ -47,16 +47,39 @@ export function createI18n<L extends string, K extends string = string>(
   useLocaleState: () => LocaleState<L>,
   defaultLocale = 'en',
 ) {
+  /**
+   * ONE TRANSLATOR PER LOCALE, AT CLOSURE SCOPE — never per component.
+   *
+   * `new I18n(translations)` deep-merges the app's ENTIRE translation tree
+   * (lodash `merge`) into a fresh instance. Built inside the hook's `useMemo`,
+   * that ran once per COMPONENT INSTANCE: every `useI18n` caller and every
+   * mounted `Text` paid a full-tree merge on mount, and paid it all again on a
+   * locale change — dozens to hundreds of identical merges per screen push,
+   * for an answer that only varies with (tree, locale). The instances are
+   * config-identical and stateless past construction, so all components on one
+   * locale share one.
+   */
+  const byLocale = new Map<L, Translator<K>>();
+
+  const translatorFor = (locale: L): Translator<K> => {
+    const hit = byLocale.get(locale);
+    if (hit) return hit;
+
+    const i18n = new I18n(translations);
+    i18n.enableFallback = true;
+    i18n.defaultLocale = defaultLocale;
+    i18n.locale = locale;
+    const t: Translator<K> = (key: K, options?: TranslateOptions) =>
+      i18n.t(key, options);
+    byLocale.set(locale, t);
+    return t;
+  };
+
   return function useI18n() {
     const { locale, setLocale } = useLocaleState();
 
-    const t = useMemo<Translator<K>>(() => {
-      const i18n = new I18n(translations);
-      i18n.enableFallback = true;
-      i18n.defaultLocale = defaultLocale;
-      i18n.locale = locale;
-      return (key: K, options?: TranslateOptions) => i18n.t(key, options);
-    }, [locale]);
+    // Stable per locale (the map), so consumers' memo deps still work.
+    const t = useMemo<Translator<K>>(() => translatorFor(locale), [locale]);
 
     return { locale, setLocale, t };
   };
