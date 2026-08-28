@@ -91,6 +91,8 @@ type PlayerState = {
   setKeepPitch: (keepPitch: boolean) => void;
   /** A sound was deleted: drop it from the queue, and if it's loaded, stop. */
   soundDeleted: (soundId: string) => void;
+  /** Re-point the loaded sound and the queue at a fresh library snapshot. */
+  syncLibrary: (sounds: Sound[]) => void;
   /** Stop and forget everything (sign-out, account wipe). */
   reset: () => void;
 
@@ -142,6 +144,25 @@ const restartLoaded = (
     seekNonce: nextSeekNonce(),
   });
 };
+
+/**
+ * Field-wise, because Firestore hands back NEW objects on every snapshot. A
+ * reference check would call every snapshot a change and re-render the whole
+ * player each time anything anywhere in the library moved.
+ */
+const sameSound = (a: Sound, b: Sound): boolean =>
+  a.id === b.id &&
+  a.album === b.album &&
+  a.artist === b.artist &&
+  a.artPublicId === b.artPublicId &&
+  a.artUrl === b.artUrl &&
+  a.audioPublicId === b.audioPublicId &&
+  a.audioUrl === b.audioUrl &&
+  a.createdAt === b.createdAt &&
+  a.durationMs === b.durationMs &&
+  a.name === b.name &&
+  a.releaseYear === b.releaseYear &&
+  a.updatedAt === b.updatedAt;
 
 /**
  * See `seekNonce` — every discontinuous playhead move stamps a fresh value.
@@ -361,6 +382,46 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       duration: 0,
       loadNonce: state.loadNonce + 1,
     }));
+  },
+
+  /**
+   * THIS STORE HOLDS A COPY OF THE DOCUMENTS, AND SOMETHING HAS TO REFRESH IT.
+   *
+   * `current` and `queue` are snapshots taken at `playSound`, so they froze the
+   * moment playback started. Deletion was the only library change anyone had
+   * wired up (`soundDeleted`); an EDIT reached nothing. Rename the playing
+   * sound or change its cover and the banner kept the old ones until it was
+   * re-picked — which on home meant the grid tile and the banner directly over
+   * it naming the same sound differently.
+   *
+   * The banked duration was the same bug wearing a second hat: `AudioEngine`
+   * decides whether to write `durationMs` by reading `current.durationMs`, and
+   * a frozen copy never learns that the write landed, so skipping away and
+   * back re-wrote it on every load. `bankSoundDuration` says "once"; this is
+   * what makes that true.
+   *
+   * A sound MISSING from the snapshot is left alone on purpose — that is
+   * `soundDeleted`'s job, and it tears playback down rather than swapping a
+   * field.
+   */
+  syncLibrary: sounds => {
+    const { current, queue } = get();
+    if (!current) return;
+
+    const fresh = sounds.find(sound => sound.id === current.id);
+    if (!fresh) return;
+
+    const nextQueue = queue.map(
+      queued => sounds.find(sound => sound.id === queued.id) ?? queued,
+    );
+
+    const changed =
+      !sameSound(current, fresh) ||
+      nextQueue.some((sound, index) => !sameSound(sound, queue[index]));
+
+    if (!changed) return;
+
+    set({ current: fresh, queue: nextQueue });
   },
 
   reset: () => {
