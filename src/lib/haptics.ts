@@ -1,12 +1,15 @@
 import { Vibration } from 'react-native';
 
-// Centralized haptic vocabulary so every tap/drag/toggle across the app speaks
-// the same language (mirrors Topper's). expo-haptics isn't in the dev-client
-// build, so these ride RN's built-in Vibration (VIBRATE is already in the
-// manifest — no native module).
+// ANDROID'S haptic vocabulary, so every tap/drag/toggle across the app speaks
+// the same language (mirrors Topper's). Durations ride RN's built-in
+// `Vibration` — VIBRATE is already in the manifest, so no native module.
+//
+// iOS TAKES ITS OWN (`./haptics.ios.ts`), and must: iOS ignores these durations
+// entirely and plays one fixed system buzz for every verb. This file used to be
+// both platforms', which is exactly how that shipped.
 
 // Light UI ticks — brief pulses for discrete one-off choices.
-const SELECTION_MS = 8; // tab switch, segmented toggle, emoji pick
+const SELECTION_MS = 8; // a saved clip, a picked preset
 const MEDIUM_MS = 12; // a committed action — deleting a sound
 
 // Reorder (drag) feedback is a touch firmer than the UI ticks above so a drag
