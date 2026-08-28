@@ -50,10 +50,69 @@ const cacheDir = () => `${FileSystem.cacheDirectory}waveforms/`;
 const bucketsPath = (soundId: string) =>
   `${cacheDir()}${CACHE_VERSION}-${soundId}.json`;
 
+/**
+ * A VERSION BUMP HAS TO TAKE THE OLD ENTRIES WITH IT.
+ *
+ * The key carries `CACHE_VERSION` so stale buckets can never be READ, which was
+ * the correctness half and was always right. The other half was missing: the
+ * superseded files just stayed. Found on device — the cache directory held
+ * `v1-1otjN10UymuRzSUF7hFC.json` and `v1-smExU3E7bAdVhFkCZ7hS.json` sitting
+ * beside their v2 replacements, stranded by the 250 → 50ms bucket change, and
+ * nothing would ever have removed them. A derived cache that only grows is a
+ * defect even when every entry in it is unreadable.
+ *
+ * Once per session, lazily, off the first `getWaveform` — the clip editor is
+ * the only caller, so an app that never opens it pays nothing. Fire-and-forget:
+ * a failed sweep just means the files are still there next time.
+ */
+let pruned = false;
+const pruneStaleVersions = async (): Promise<void> => {
+  const names = await FileSystem.readDirectoryAsync(cacheDir()).catch(
+    () => [] as string[],
+  );
+
+  await Promise.all(
+    names
+      // `.json` only — an in-flight `<soundId>.mp3` belongs to a decode that
+      // is still running, and its own `finally` deletes it.
+      .filter(name => name.endsWith('.json'))
+      .filter(name => !name.startsWith(`${CACHE_VERSION}-`))
+      .map(name =>
+        FileSystem.deleteAsync(`${cacheDir()}${name}`, {
+          idempotent: true,
+        }).catch(() => {}),
+      ),
+  );
+};
+
+/**
+ * Forget one sound's buckets — its document is gone, so they can never be
+ * asked for again. Both halves: the JSON on disk and the session's in-memory
+ * promise, since a re-uploaded file would be a NEW document with a new id and
+ * must never resolve to the deleted one's shape.
+ *
+ * NOT wired into the account-deletion sweep, deliberately. That path deletes
+ * sound documents directly rather than through `deleteSound`, and once the
+ * account is gone the leftovers are unreachable JSON in an OS-purgeable cache
+ * directory keyed by ids that can never recur — growing a destructive path to
+ * chase them would cost more than it saves.
+ */
+export function forgetWaveform(soundId: string): void {
+  memory.delete(soundId);
+  FileSystem.deleteAsync(bucketsPath(soundId), { idempotent: true }).catch(
+    () => {},
+  );
+}
+
 export function getWaveform(
   soundId: string,
   audioUrl: string,
 ): Promise<Waveform | null> {
+  if (!pruned) {
+    pruned = true;
+    void pruneStaleVersions();
+  }
+
   const inFlight = memory.get(soundId);
   if (inFlight) return inFlight;
 
