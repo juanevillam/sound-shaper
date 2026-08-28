@@ -851,11 +851,13 @@ exist. `deleteClipsOfSound` (in `clips.ts`, which owns that path) runs first
 now, verified end to end with a throwaway sound written straight to Firestore,
 given a clip and then deleted from the app.
 
-**THE THREE EXISTING ORPHANS ARE LEFT, ON PURPOSE.** Nothing reaches them by
-path. A COLLECTION-GROUP query does — it is how they were found — but sweeping
-with one spans every user's clips and needs a `match /{path=**}/clips/{clipId}`
-rule to match, which is a wider read surface than this app has any other reason
-to open. Recorded rather than half-solved.
+**THE THREE WERE DELETED BY HAND** over the Firestore REST API, and the census
+afterwards reads 7 clips and 0 orphans. No code was grown to do it, and none
+should be: nothing reaches an orphan by path, a COLLECTION-GROUP query does —
+it is how they were found — but sweeping with one spans every user's clips and
+needs a `match /{path=**}/clips/{clipId}` rule to match, a wider read surface
+than this app has any other reason to open. With the sweep in place there is
+nothing left for such code to find.
 
 **THE PLAYER HOLDS A COPY OF THE DOCUMENTS, AND SOMETHING HAS TO REFRESH IT.**
 `current` and `queue` were snapshots frozen at `playSound`. Deletion was the

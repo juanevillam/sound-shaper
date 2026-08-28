@@ -167,13 +167,15 @@ export const updateClip = reported(
  * clips, THREE of them under sound ids that no longer exist. Those three would
  * have outlived the account.
  *
- * Rows orphaned by the old behaviour are NOT cleaned up by this function —
- * nothing can reach them by path, since the client cannot list a document's
- * subcollections. A COLLECTION-GROUP query on `clips` can (that is how the
- * three above were found), but sweeping with one spans every user's clips and
- * needs a `match /{path=**}/clips/{clipId}` rule to match, which is a wider
- * read surface than this app has any other reason to open. Left as a recorded
- * gap rather than half-solved; see the app's AGENTS.md.
+ * THE THREE WERE DELETED BY HAND, over the Firestore REST API, and the census
+ * afterwards reads 7 clips and 0 orphans. This function is what stops new ones
+ * appearing; it does NOT clean up old ones, and deliberately grew no code to.
+ * Nothing can reach an orphan by path, since the client cannot list a
+ * document's subcollections — a COLLECTION-GROUP query can (it is how these
+ * were found), but sweeping with one spans every user's clips and needs a
+ * `match /{path=**}/clips/{clipId}` rule to match, a wider read surface than
+ * this app has any other reason to open. A one-off repair did not justify
+ * that; with the sweep below in place there is nothing left for it to find.
  */
 export const deleteClipsOfSound = reported(
   'clips.deleteClipsOfSound',
