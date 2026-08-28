@@ -1,6 +1,4 @@
-import { useState } from 'react';
-
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import {
   artworkRadius,
@@ -17,27 +15,54 @@ import { Text } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Sound } from '@/services/firebase/sounds';
-import { opticalTextInset } from '@/styles/metrics';
+import { opticalTextInset, SCREEN_PADDING, TILE_GAP } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE, SHAPE_MD } from '@/styles/shape';
 
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
 // language, one sound per tile. Tap = play, long-press = edit.
 
-// The tile measures its own art box, so this only covers the very first frame
-// before `onLayout` reports — roughly a tile's width at the usual grid.
-const ART_FALLBACK_SIZE = 148;
-
 /**
- * THE GRID CELL, measured: 402 screen − 2 × 16 gutter − 14 gap, halved.
+ * THE GRID CELL — DERIVED FROM THE WINDOW, NOT MEASURED AND NOT A CONSTANT.
  *
- * Stated as a constant because two SHARED terms are derived from it — the
- * artwork's corner and the add tile's plus — and both are ratios of the box
- * rather than numbers of their own. It is a static figure for a 2-column grid
- * on iPhone; if the grid ever gains a column or runs on iPad, this is the one
- * value to make dynamic and everything below follows it.
+ * It was a stated 178 (402 screen − 2 × 16 gutter − 14 gap, halved) whose own
+ * comment promised that making it dynamic was the one change "everything below
+ * follows". This is that change, and it was forced by a real cost rather than
+ * by tidiness.
+ *
+ * THE TILE USED TO MEASURE ITS OWN ART BOX (`useState(0)` + `onLayout`), so the
+ * FIRST frame handed `SoundArt` a `displayWidth` of `undefined` — and
+ * `ArtImage` reads `displayWidth ? thumbUrl(...) : uri`, so that frame pointed
+ * the native view at the RAW Cloudinary original. The measurement arrived a
+ * frame later and the tile re-requested `w_356`, changing `recyclingKey` with
+ * it.
+ *
+ * WHAT THAT ACTUALLY COST, MEASURED, because the obvious guess is wrong and
+ * the next person will make it too. It looks like a full-size download per
+ * tile, and it is NOT: expo-image cancels the in-flight load when the source
+ * prop changes, and the re-render lands within milliseconds. Verified by
+ * clearing expo-image's disk cache, cold-starting on the OLD code and matching
+ * every file by MD5 against each candidate url — 19 files, 192,754 bytes, all
+ * of them `w_356` tiles plus one `w_92` banner, and NOT ONE raw original. The
+ * raw originals sitting in a day-old cache came from the three slots that
+ * passed no `displayWidth` at all (the editor previews and the idle banner),
+ * fixed separately in f125517. Do not re-attribute those here.
+ *
+ * So what this removes is a request started and abandoned per tile per mount,
+ * a `recyclingKey` churn, and a second render — not bytes. Worth doing, worth
+ * being honest about the size of.
+ *
+ * THE OTHER HALF IS CORRECTNESS, and it is the part that is not a micro-win: a
+ * window width is available synchronously, so there is nothing to wait for.
+ * This is the shape `chrome.ts` already uses for the player's artwork
+ * (`playerArtSize(winW)`), and the root AGENTS.md's rule that a measurement
+ * must never sit on the layout path of its own first frame. It reproduces the
+ * old 178.0 exactly at 402pt and is simply correct on every other width, where
+ * the frozen 178 had the cover, its corner and its bone all disagreeing with
+ * the box they were in.
  */
-const GRID_CELL = 178;
+export const soundGridCell = (winW: number): number =>
+  (winW - SCREEN_PADDING * 2 - TILE_GAP) / 2;
 
 /**
  * CAPTION TYPE, sized against the COVER rather than taken from the shared
@@ -87,14 +112,16 @@ const CAPTION_TITLE = 17;
 const CAPTION_SUB = 15;
 
 /**
- * ARTWORK, so the shared RATIO rather than the grouped-container constant this
- * used to pass. `TILE_RADIUS` is 26 — the iOS grouped-list radius, which is
- * correct for a card and wrong in kind for a cover — and it agreed with the
- * ratio only by coincidence at this exact cell size (0.15 × 178 = 27). Topper's
- * rail tile draws its cover from the same function at 124pt; that is what keeps
- * the two apps' artwork one shape family instead of two that happen to match.
+ * TYPE IS NOT GEOMETRY, so these do NOT follow the cell — see `CAPTION_TITLE`.
+ * They are the only terms below that stay fixed while the box moves.
  */
-const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
+const LINES = Platform.select({
+  ios: { title: CAPTION_TITLE + 5, subtitle: CAPTION_SUB + 5 },
+  default: {
+    title: TEXT_VARIANTS.bodyMedium.lineHeight as number,
+    subtitle: TEXT_VARIANTS.bodySmall.lineHeight as number,
+  },
+}) as { title: number; subtitle: number };
 
 /**
  * THE TILE'S GEOMETRY, EXPORTED FOR ITS SKELETON — style objects, not a copy of
@@ -108,9 +135,21 @@ const ART_RADIUS = artworkRadius(GRID_CELL, SHAPE_MD);
  * `Skeleton.tsx` records the rule this now follows: reserve the LINE BOX, draw
  * the bar thinner inside it.
  */
-export const SOUND_TILE_METRICS = {
-  artRadius: ART_RADIUS,
-  artToCaption: EMPTY_MEDIA_CAPTION_GAP,
+export type SoundTileMetrics = {
+  /** The cell's side — the artwork is square and fills it. */
+  cell: number;
+  /**
+   * ARTWORK, so the shared RATIO rather than the grouped-container constant
+   * this used to pass. `TILE_RADIUS` is 26 — the iOS grouped-list radius, which
+   * is correct for a card and wrong in kind for a cover — and it agreed with
+   * the ratio only by coincidence at the old fixed cell size (0.15 × 178 = 27).
+   * Topper's rail tile draws its cover from the same function at 124pt; that is
+   * what keeps the two apps' artwork one shape family instead of two that
+   * happen to match. (`artworkRadius` returns the Android STEP unchanged on
+   * Android, so only iOS's corner moves with the box.)
+   */
+  artRadius: number;
+  artToCaption: number;
   /**
    * The optical nudge the captions take to clear the artwork's rounded corner.
    * The BONES need it too, and did not have it: they sat flush at the tile's
@@ -120,20 +159,47 @@ export const SOUND_TILE_METRICS = {
    * (`railBodyIos`), which is why the jump showed up in one app and not the
    * other.
    */
-  captionInset: Platform.select({
-    ios: opticalTextInset(ART_RADIUS),
-    default: 0,
-  }) as number,
+  captionInset: number;
   /** The gap the title's own `marginBottom` opens under it. */
-  titleGap: 1,
-  lines: Platform.select({
-    ios: { title: CAPTION_TITLE + 5, subtitle: CAPTION_SUB + 5 },
-    default: {
-      title: TEXT_VARIANTS.bodyMedium.lineHeight as number,
-      subtitle: TEXT_VARIANTS.bodySmall.lineHeight as number,
-    },
-  }) as { title: number; subtitle: number },
+  titleGap: number;
+  lines: { title: number; subtitle: number };
 };
+
+/**
+ * THE TILE'S GEOMETRY, DERIVED FROM ITS BOX AND SHARED WITH ITS SKELETON —
+ * style objects, not a copy of their numbers.
+ *
+ * `SoundTileSkeleton` stood a hand-copied set that had rotted: a 26 radius
+ * against this file's 27, and a caption block of 16 + 6 + 12 = 34pt against the
+ * real 22 + 1 + 20 = 43. Nine points of jump per row on settle, invisible in
+ * the skeleton itself. Topper's rail hit the identical bug (its labels traced
+ * 15/13 against 20/18 line boxes and left the rail 10pt short) and its
+ * `Skeleton.tsx` records the rule this now follows: reserve the LINE BOX, draw
+ * the bar thinner inside it.
+ *
+ * It is a FUNCTION now rather than a frozen object, because the cell it is
+ * derived from is. Both surfaces take it through `useSoundTileMetrics` so the
+ * bone and the tile cannot land on different widths.
+ */
+export const soundTileMetrics = (cell: number): SoundTileMetrics => {
+  const artRadius = artworkRadius(cell, SHAPE_MD);
+
+  return {
+    cell,
+    artRadius,
+    artToCaption: EMPTY_MEDIA_CAPTION_GAP,
+    captionInset: Platform.select({
+      ios: opticalTextInset(artRadius),
+      default: 0,
+    }) as number,
+    titleGap: 1,
+    lines: LINES,
+  };
+};
+
+/** The grid's geometry for the current window — tile and bone read the same. */
+export const useSoundTileMetrics = (): SoundTileMetrics =>
+  soundTileMetrics(soundGridCell(useWindowDimensions().width));
 
 type SoundTileProps = {
   sound: Sound;
@@ -156,21 +222,19 @@ export function SoundTile({
   onLongPress,
 }: SoundTileProps) {
   const { colors } = useAppTheme();
-  // Measured so the glyph fallback scales with the tile (art is width-driven).
-  const [artSize, setArtSize] = useState(0);
+  // Derived, never measured — the first frame must already know this, or the
+  // cover is fetched at its stored size. See `soundGridCell`.
+  const { artRadius, captionInset, cell } = useSoundTileMetrics();
 
   return (
     <SquashPressable onPress={onPress} onLongPress={onLongPress}>
-      <View
-        style={styles.art}
-        onLayout={event => setArtSize(event.nativeEvent.layout.width)}
-      >
+      <View style={styles.art}>
         <SoundArt
           artUrl={sound.artUrl || undefined}
-          displayWidth={artSize || undefined}
-          size={artSize || ART_FALLBACK_SIZE}
+          displayWidth={cell}
+          size={cell}
           title={sound.name}
-          style={[styles.artMedia, { borderRadius: ART_RADIUS }]}
+          style={[styles.artMedia, { borderRadius: artRadius }]}
         />
         {isCurrent ? (
           <View style={styles.nowPlaying} pointerEvents="none">
@@ -200,6 +264,7 @@ export function SoundTile({
         numberOfLines={1}
         style={[
           styles.name,
+          { paddingLeft: captionInset },
           isCurrent && Platform.OS !== 'ios' && { color: colors.primary },
         ]}
       />
@@ -209,7 +274,7 @@ export function SoundTile({
         text={sound.artist || ' '}
         variant="bodySmall"
         numberOfLines={1}
-        style={styles.artist}
+        style={[styles.artist, { paddingLeft: captionInset }]}
       />
     </SquashPressable>
   );
@@ -219,6 +284,7 @@ export function SoundTile({
 export function AddSoundTile({ onPress }: { onPress: () => void }) {
   const { colors } = useAppTheme();
   const { t } = useI18n();
+  const { artRadius, captionInset, cell } = useSoundTileMetrics();
 
   return (
     <SquashPressable onPress={onPress} accessibilityLabel={t('home.addSound')}>
@@ -226,7 +292,7 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
         style={[
           styles.art,
           styles.addBox,
-          { borderRadius: ART_RADIUS },
+          { borderRadius: artRadius },
           // iOS: a FILLED placeholder. A dashed border reads as a web/Material
           // dropzone; Apple's nearest equivalent — the iWork document manager's
           // "Create Document" cell — is a filled tile, and a fill keeps the
@@ -243,7 +309,13 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
             : { borderColor: colors.border },
         ]}
       >
-        <Text doNotTranslate text={EMPTY_MEDIA_PLUS} style={styles.plus} />
+        <Text
+          doNotTranslate
+          text={EMPTY_MEDIA_PLUS}
+          style={
+            Platform.OS === 'ios' ? emptyMediaPlusStyle(cell) : styles.plus
+          }
+        />
       </View>
       {/* TWO CAPTION LINES, like every real tile — and the second one is not
           filler. Sound Shaper's add tile goes STRAIGHT to the file picker
@@ -253,8 +325,16 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
           and `readId3Tags` reads ID3v2, so anything else arrives mislabelled
           and untagged. Saying so on the tile is cheaper than finding out after
           the upload. Muted, like the artist line it stands in for. */}
-      <Text text="home.addSound" variant="bodyMedium" style={styles.name} />
-      <Text muted text="home.addSoundFormat" style={styles.artist} />
+      <Text
+        text="home.addSound"
+        variant="bodyMedium"
+        style={[styles.name, { paddingLeft: captionInset }]}
+      />
+      <Text
+        muted
+        text="home.addSoundFormat"
+        style={[styles.artist, { paddingLeft: captionInset }]}
+      />
     </SquashPressable>
   );
 }
@@ -277,22 +357,22 @@ const styles = StyleSheet.create({
     }),
   },
   /**
-   * THE SHARED "ADD MEDIA" PLUS, derived from the box rather than hard-coded.
+   * ANDROID's plus only — iOS derives its own from the live cell at the call
+   * site (`emptyMediaPlusStyle`), since that ratio follows the box.
    *
-   * This drew a fixed 40 on a 178pt cell — a ratio of 0.225, which is precisely
-   * the value Topper's rail tile was moved OFF on 2026-08-16 for reading as "a
-   * small mark in a large empty square". Topper's number followed the spec and
-   * this one did not, so the two add tiles drifted apart on the one term a
-   * comment in `HomeRailTilesIos` claimed they shared. At 0.3 this renders 53.
+   * THE SHARED "ADD MEDIA" PLUS is derived rather than hard-coded because a
+   * fixed 40 on a 178pt cell is a ratio of 0.225, precisely the value Topper's
+   * rail tile was moved OFF on 2026-08-16 for reading as "a small mark in a
+   * large empty square". Topper's number followed the spec and this one did
+   * not, so the two add tiles drifted apart on the one term a comment in
+   * `HomeRailTilesIos` claimed they shared. At 0.3 this renders 53 on a 402pt
+   * screen.
    *
    * The explicit line height comes with it: iOS clips a glyph this large to the
    * font's line box and the plus renders as a "T". Android keeps its frozen
    * layout, so it takes neither.
    */
-  plus: Platform.select({
-    ios: emptyMediaPlusStyle(GRID_CELL),
-    default: { fontSize: 40, fontWeight: '300' as const },
-  }),
+  plus: { fontSize: 40, fontWeight: '300' as const },
   // Sizes come from CAPTION_TITLE / CAPTION_SUB above.
   // The optical nudge is iOS-only: the caption sits under the artwork's rounded
   // bottom corners, which curve the edge inward right where the text starts, so
@@ -301,19 +381,11 @@ const styles = StyleSheet.create({
   name: {
     marginBottom: 1,
     ...Platform.select({
-      ios: {
-        fontSize: CAPTION_TITLE,
-        lineHeight: CAPTION_TITLE + 5,
-        paddingLeft: SOUND_TILE_METRICS.captionInset,
-      },
+      ios: { fontSize: CAPTION_TITLE, lineHeight: CAPTION_TITLE + 5 },
     }),
   },
   artist:
     Platform.select({
-      ios: {
-        fontSize: CAPTION_SUB,
-        lineHeight: CAPTION_SUB + 5,
-        paddingLeft: SOUND_TILE_METRICS.captionInset,
-      },
+      ios: { fontSize: CAPTION_SUB, lineHeight: CAPTION_SUB + 5 },
     }) ?? {},
 });

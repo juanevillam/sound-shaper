@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { SkeletonBone as Skeleton } from '@portfolio/mobile-ui';
 
-import { SOUND_TILE_METRICS } from '@/components/sounds/SoundTile';
+import { useSoundTileMetrics } from '@/components/sounds/SoundTile';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -29,7 +29,7 @@ export { Skeleton };
  * Stand-in for `SoundTile` — the home grid: artwork square + two text lines
  * under it, so the grid doesn't reflow on settle.
  *
- * EVERY TERM COMES FROM THE TILE (`SOUND_TILE_METRICS`), because every one of
+ * EVERY TERM COMES FROM THE TILE (`useSoundTileMetrics`), because every one of
  * them had rotted as a copy: a 26 radius against the tile's 27, and a caption
  * block of 16 + 6 + 12 = 34pt against the real 22 + 1 + 20 = 43. Nine points of
  * jump per row on settle, and invisible in the skeleton itself.
@@ -40,18 +40,39 @@ export { Skeleton };
  * `Skeleton.tsx`.
  */
 export function SoundTileSkeleton() {
+  // THE SAME CALL THE TILE MAKES, not a copy of its answer — the cell is
+  // derived from the window now, so a bone holding a frozen one would stand the
+  // wrong width on any screen that is not 402pt wide. This is the horizontal
+  // half of the rule below.
+  const { artRadius, artToCaption, captionInset, lines, titleGap } =
+    useSoundTileMetrics();
+
   return (
     <View>
       {/* Yoga ignores aspectRatio once width AND height are both set, so the
           square comes from a wrapper and the block just fills it. */}
-      <View style={styles.tileArt}>
-        <Skeleton radius={SOUND_TILE_METRICS.artRadius} style={styles.fill} />
+      <View style={[styles.tileArt, { marginBottom: artToCaption }]}>
+        <Skeleton radius={artRadius} style={styles.fill} />
       </View>
-      <View style={styles.tileNameLine}>
-        <Skeleton width="75%" height={TITLE_BAR} />
+      <View
+        style={[
+          styles.line,
+          {
+            height: lines.title,
+            marginBottom: titleGap,
+            paddingLeft: captionInset,
+          },
+        ]}
+      >
+        <Skeleton width="75%" height={Math.round(lines.title * BAR_RATIO)} />
       </View>
-      <View style={styles.tileArtistLine}>
-        <Skeleton width="40%" height={SUBTITLE_BAR} />
+      <View
+        style={[
+          styles.line,
+          { height: lines.subtitle, paddingLeft: captionInset },
+        ]}
+      >
+        <Skeleton width="40%" height={Math.round(lines.subtitle * BAR_RATIO)} />
       </View>
     </View>
   );
@@ -63,28 +84,14 @@ export function SoundTileSkeleton() {
  * the text's own ink would be, which is what makes a bone read as a placeholder
  * rather than as a redacted word.
  */
-const TITLE_BAR = Math.round(SOUND_TILE_METRICS.lines.title * 0.73);
-const SUBTITLE_BAR = Math.round(SOUND_TILE_METRICS.lines.subtitle * 0.73);
+const BAR_RATIO = 0.73;
 
 const styles = StyleSheet.create({
-  tileArt: {
-    aspectRatio: 1,
-    marginBottom: SOUND_TILE_METRICS.artToCaption,
-    width: '100%',
-  },
+  tileArt: { aspectRatio: 1, width: '100%' },
   fill: { height: '100%', width: '100%' },
-  // The line BOX, with the bar centred in it — the tile's own two rows. The
-  // left inset is the tile's too: its captions clear the artwork's rounded
-  // corner, and bones flush to the edge slid 6pt right on settle.
-  tileNameLine: {
-    height: SOUND_TILE_METRICS.lines.title,
-    justifyContent: 'center',
-    marginBottom: SOUND_TILE_METRICS.titleGap,
-    paddingLeft: SOUND_TILE_METRICS.captionInset,
-  },
-  tileArtistLine: {
-    height: SOUND_TILE_METRICS.lines.subtitle,
-    justifyContent: 'center',
-    paddingLeft: SOUND_TILE_METRICS.captionInset,
-  },
+  // The line BOX, with the bar centred in it — the tile's own two rows. Its
+  // height and left inset come from the metrics above: the captions clear the
+  // artwork's rounded corner, and bones flush to the edge slid 6pt right on
+  // settle.
+  line: { justifyContent: 'center' },
 });
