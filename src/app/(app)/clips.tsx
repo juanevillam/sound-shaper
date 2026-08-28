@@ -13,14 +13,17 @@ import { foregroundStyle, tint } from '@expo/ui/swift-ui/modifiers';
 import {
   EmptyState,
   HeaderGlyphButtonIos,
+  ProgressViewIos,
   SheetFormBodyIos,
   StateWrapIos as StateWrap,
 } from '@portfolio/mobile-ui';
 import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -46,6 +49,34 @@ function ClipsSheetScreen() {
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
   );
+  /**
+   * "NO CLIPS" IS A CLAIM, AND THIS SCREEN WAS MAKING IT BEFORE IT KNEW.
+   *
+   * The branch below was `clips.length === 0`, which is also what an unloaded
+   * sound looks like — so a first open on a cold cache asserted the sound had
+   * no clips and then popped a list in underneath the sentence. The store has
+   * carried `settledBySoundId` for exactly this since it was written ("so the
+   * clips section can branch between loading and genuinely empty") and nothing
+   * had ever read it.
+   *
+   * The window is small — `useClipsSubscription` mounts when the PLAYER
+   * expands, not when this sheet opens, so the snapshot has usually landed
+   * before anyone can tap through — but small is not never, and the empty state
+   * is the one branch that must not be guessed.
+   */
+  const settled = useClipsStore(s =>
+    current ? (s.settledBySoundId[current.id] ?? false) : false,
+  );
+  /**
+   * A SPINNER, NOT A BONE, and it is the call Explore's search already made.
+   * The rule (AGENTS.md → "Waiting has two shapes") sends predictable shapes to
+   * a bone and unpredictable ones to a spinner: nothing knows how many clips a
+   * sound has until the snapshot lands, so a set of bones promises a row count
+   * it cannot keep. Delayed by the same 400ms every other first-load surface
+   * uses, so the usual instant cache hit shows nothing at all rather than a
+   * flash.
+   */
+  const showSpinner = useDelayedShow(SKELETON_DELAY_MS);
 
   if (!current) return <View style={{ backgroundColor: colors.sheet }} />;
 
@@ -107,7 +138,9 @@ function ClipsSheetScreen() {
        * it in a section row and it renders as an empty white capsule with the
        * glyph clipped — built that way first and caught on screen.
        */}
-      {clips.length === 0 ? (
+      {!settled ? (
+        <StateWrap>{showSpinner ? <ProgressViewIos /> : null}</StateWrap>
+      ) : clips.length === 0 ? (
         <StateWrap>
           <EmptyState
             systemImage="scissors"

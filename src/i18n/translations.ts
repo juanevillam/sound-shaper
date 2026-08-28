@@ -119,6 +119,11 @@ export const translations = {
         preview: 'Preview',
         saveClip: 'Save',
         empty: 'Frame your favorite part above and save it.',
+        // A STATUS LINE, so sentence case and an ellipsis — Android's clips
+        // sheet shows it while the first snapshot is still in flight. iOS
+        // draws a spinner in the same moment (it has a box to centre one in);
+        // this is the same wait in Compose's language.
+        loading: 'Loading clips…',
         none: 'No Clips Yet',
         // THE BAR'S SUMMARY, not the sheet's empty title. `none` above is an
         // empty-STATE title and was being used as a VALUE under the label
@@ -396,6 +401,7 @@ export const translations = {
         preview: 'Previsualizar',
         saveClip: 'Guardar',
         empty: 'Encuadra tu parte favorita arriba y guárdala.',
+        loading: 'Cargando clips…',
         none: 'Aún no hay clips',
         noneSummary: 'Ninguno',
         count: '{n} guardados',
@@ -664,6 +670,7 @@ export const translations = {
         preview: '预览',
         saveClip: '存储',
         empty: '在上方框选你最喜欢的部分并存储。',
+        loading: '正在载入片段…',
         none: '还没有片段',
         noneSummary: '无',
         count: '已存储 {n} 个',
