@@ -1,4 +1,4 @@
-import { type ImageSourcePropType } from 'react-native';
+import { Platform, type ImageSourcePropType } from 'react-native';
 
 import Add from '@expo/material-symbols/add.xml';
 import Apps from '@expo/material-symbols/apps.xml';
@@ -135,6 +135,19 @@ export const iconSource = (name: IconName): ImageSourcePropType => icons[name];
 /**
  * Warm the drawable cache for every icon so the first render of each one does
  * not pay a Metro fetch/decode cost. Call once at app startup; fire-and-forget.
+ *
+ * ANDROID ONLY, and the set is why: these are Android VECTOR DRAWABLE XML —
+ * 60 files, 52 KB — which iOS cannot render at all. Nothing on iOS ever asks
+ * for one, because every surface that calls `iconSource` (`SettingsScreen`,
+ * `SettingsAccountSection`, `ManageAccountScreen`, `WelcomeScreen`) is an
+ * Android base with an `.ios.tsx` twin beside it, and `AppIcon.ios` draws SF
+ * Symbols instead. Unguarded, every iOS cold start in all three apps resolved
+ * 60 assets to warm a cache with no readers.
+ *
+ * Resolves to an empty array off Android so callers keep their
+ * fire-and-forget shape.
  */
 export const preloadIcons = (): Promise<Asset[]> =>
-  Asset.loadAsync(Object.values(icons) as number[]);
+  Platform.OS === 'android'
+    ? Asset.loadAsync(Object.values(icons) as number[])
+    : Promise.resolve([]);
