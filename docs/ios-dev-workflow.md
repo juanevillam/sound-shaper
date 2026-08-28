@@ -179,6 +179,22 @@ path avoids it entirely.
 **`--port` and `--no-bundler` are mutually exclusive** — they are. Use
 `--no-bundler` and start Metro yourself.
 
+**`expo run:ios` built fine, then the app opened against ANOTHER app's Metro**
+— the port-map rule broken by the build command itself, and it looks completely
+healthy. If 8081 is already held by a different app, `run:ios` cannot prompt in
+a non-interactive shell, prints `Port 8081 is running <other app>` and
+`Skipping dev server`, and then still launches the dev client at
+`http://<lan-ip>:8081` — i.e. at the other app's bundler. Caught 2026-08-28
+with the starter loading Topper's bundle. Re-point it by hand:
+
+```bash
+xcrun simctl openurl booted "exp+expo-ui-starter://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8083"
+```
+
+Always confirm which app answered before believing a screenshot —
+`curl -H 'expo-platform: ios' localhost:<port>/` returns a manifest whose
+`slug` names it.
+
 **CocoaPods: `Unicode Normalization not appropriate for ASCII-8BIT`** — a
 non-UTF-8 shell. `export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`.
 
