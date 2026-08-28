@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { subscribeToSounds } from '@/services/firebase/sounds';
+import { usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
 
 /**
@@ -16,7 +17,13 @@ export const useSoundsSubscription = () => {
   useEffect(
     () =>
       subscribeToSounds({
-        onNext: setSounds,
+        onNext: sounds => {
+          setSounds(sounds);
+          // The player keeps its OWN copy of the documents it loaded, so a
+          // snapshot has to be handed to it as well or an edit never reaches
+          // the banner. See `syncLibrary`.
+          usePlayerStore.getState().syncLibrary(sounds);
+        },
         onError: setError,
       }),
     [setSounds, setError, subNonce],
