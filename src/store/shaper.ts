@@ -57,6 +57,8 @@ type ShaperState = {
   activePreset: string | null; // i18nKey while gains match a preset, else null
   setBandGain: (index: number, db: number) => void;
   applyPreset: (i18nKey: string) => void;
+  /** Back to flat — sign-out and account wipe. See `reset` below. */
+  reset: () => void;
 };
 
 const flat = (): number[] => EQ_BANDS.map(() => 0);
@@ -82,6 +84,37 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     if (!preset) return;
     const gains = [...preset.gains];
     set({ gains, activePreset: i18nKey });
+    audioEngine.apply(gains);
+  },
+
+  /**
+   * THE CURVE IS USER-SCOPED, AND FORGETTING THAT HANDED SOMEONE ELSE'S
+   * TROPHY OUT.
+   *
+   * Nothing here is persisted, so this survives only until the process dies —
+   * but a sign-out and sign-in inside one session is exactly the window that
+   * matters. `useTrophyTriggers` awards `first-shape` on
+   * `rate !== 1 || gains.some(gain => gain !== 0)`, and the two halves of that
+   * test were cleaned up differently: `rate` lives in the player store, which
+   * the auth listener already reset, while `gains` lives here and was reset by
+   * nobody. So account A dragged a band or picked a preset, signed out, and
+   * account B was awarded First Shape off A's activity the moment its trophies
+   * hydrated. Same class as the two persisted counters in 0f5260d and Topper's
+   * recent searches — a device-local cache is not a device-local FACT.
+   *
+   * `audioEngine.apply` rather than a bare `set`, because the engine keeps its
+   * OWN copy of the curve (`settings.gains`, module scope, so a freshly built
+   * graph inherits the current shaping) and that copy is just as user-scoped.
+   * It is safe with no graph standing: `apply` writes the module settings
+   * before `pushSettings` returns early.
+   *
+   * IT WAS DELETED FOR HAVING NO CALLERS six hours before the sibling resets
+   * were added (1bd1895, then 0f5260d) — the two passes crossed, and "uncalled"
+   * turned out to mean "missing a call site" rather than "dead".
+   */
+  reset: () => {
+    const gains = flat();
+    set({ gains, activePreset: 'flat' });
     audioEngine.apply(gains);
   },
 }));
