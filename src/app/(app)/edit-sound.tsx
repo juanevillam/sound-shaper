@@ -359,6 +359,10 @@ function EditSoundSheetScreen() {
                     <ArtImage
                       container="sheet"
                       uri={artPreviewUri}
+                      // Display-sized fetch for an EXISTING sound's remote
+                      // cover; a fresh local pick and the ID3 tag's own
+                      // `data:` bytes both pass through `thumbUrl` untouched.
+                      displayWidth={MEDIA_PICKER_SIZE}
                       style={styles.mediaPreview}
                     />
                   ) : null

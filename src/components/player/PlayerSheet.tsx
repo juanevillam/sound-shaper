@@ -1614,6 +1614,12 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           <SoundArt
             artUrl={first?.artUrl || undefined}
             size={MINI_ART_SIZE}
+            // A DISPLAY-SIZED VARIANT, for the same reason the hero above
+            // takes one — and this slot is 46pt, so the stored original was
+            // the most oversized fetch in the app. It is also the first thing
+            // a cold start with a library pays for: this banner stands parked
+            // on the newest sound before anything has been played.
+            displayWidth={MINI_ART_SIZE}
             title={first?.name}
             // Same corner the loaded banner's thumb renders at.
             style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
