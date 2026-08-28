@@ -1,9 +1,10 @@
 import { IconButton } from '@/components/ui/IconButton';
 
-// iOS counterpart of `HeaderIconButton`. Nothing mounts it today — iOS draws
-// its own header rather than using the navigator's bar — but the twin has to
-// exist, because the Android file imports `@expo/ui/jetpack-compose` and a
-// shared import path must resolve on both platforms.
+// iOS counterpart of `HeaderIconButton`. Nothing mounts it today — home's only
+// bar action is `HeaderSettingsButton`, a `HeaderGlyphButtonIos` handed to the
+// system large title's `headerRight` — but the twin has to exist, because the
+// Android file imports `@expo/ui/jetpack-compose` and a shared import path must
+// resolve on both platforms.
 //
 // If a screen ever does put an action in a native iOS bar, use
 // `HeaderGlyphButtonIos` / `HeaderGlyphGroupIos` from `@portfolio/mobile-ui` —

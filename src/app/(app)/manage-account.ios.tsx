@@ -70,9 +70,12 @@ export default function ManageAccount() {
   /**
    * THE DELETE IS RUNNING, AND THE SHEET IS SEALED WHILE IT IS.
    *
-   * Everything behind the second alert — the Cloudinary sweep, the Firestore
-   * sweep, the Auth delete — used to run against a screen that looked idle and
-   * stayed fully usable, for as long as all of that takes. Nothing said it was
+   * Everything behind the second alert — the re-auth, the Firestore sweep, the
+   * Apple token revoke, the Auth delete — used to run against a screen that
+   * looked idle and stayed fully usable, for as long as all of that takes.
+   * (Cloudinary media is NOT swept: deleting it needs a signed backend call
+   * this app does not have, the same accepted gap deleting one sound has.)
+   * Nothing said it was
    * happening and nothing stopped the reader navigating into Trophies, or
    * closing the sheet, while their account was being torn down under them.
    *

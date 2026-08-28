@@ -222,8 +222,11 @@ const GLASS_FOOTER_ICON = 24;
  * usually resolves same-frame: it survives a band-scan of the settled state
  * and is caught by eye instead.
  *
- * Same ratio and reasoning as `TransportGlyphs.ios`, which reserves its box
- * from the point size for the identical reason.
+ * Same REASONING as `TransportGlyphs.ios`, which reserves its box from the
+ * point size too — but deliberately NOT its ratio. That one is 1.45, sized to
+ * clear a double-triangle skip symbol's unusual width; these are a `tune`, a
+ * `scissors` and a `pencil` sitting in a bar whose ends are measured, and the
+ * 1.3 box is what those measurements were taken against.
  */
 const GLASS_FOOTER_ICON_BOX = Math.round(GLASS_FOOTER_ICON * 1.3);
 
@@ -808,37 +811,6 @@ const styles = StyleSheet.create({
   },
   glassCopy: { flex: 1, gap: 1 },
   glassEditSlot: { flexShrink: 0 },
-  /**
-   * TRAILING, NOT CENTRED, and it is the same `GLASS_ROW_PADDING` the leading
-   * half takes — so the bar's first ink and its last ink sit at equal depth.
-   *
-   * Centred in its own slot the glyph sat 24.00 off the bar's right edge
-   * against the Shape icon's 19.50 off the left, which is the kind of 4.5pt
-   * asymmetry nobody can name and everybody sees. Flush against the padding,
-   * with the same 31pt icon host the halves use, both come to 19.50 by
-   * construction rather than by arithmetic.
-   */
-  /**
-   * STACKED, so the cell occupies BOTH of the bar's rows.
-   *
-   * Beside it the two cards run label 781.33 → 796.67 over summary
-   * 804.00 → 815.00. Laid out as a ROW this cell put its one word at
-   * 791.67 → 804.33 — centred on the two-line block to within 0.17pt, and
-   * therefore level with neither row: its top 10.3 below the labels, its bottom
-   * exactly where the summaries start. Mathematically centred, optically
-   * homeless, and Juan read it as a break in the bar's vertical flow.
-   *
-   * A SUMMARY WOULD HAVE BEEN THE OTHER FIX AND THERE IS NO ROOM FOR ONE. The
-   * compartment hugs its content, so every point of summary comes off the two
-   * cards: "Details" (~44 of ink) drops them to 125.5 and their copy box to
-   * 50.5 against "Flat · 1×"'s 50.67 — truncating the DEFAULT state. Live text
-   * is worse than tight: the sound's own name would re-divide the bar on every
-   * swipe.
-   *
-   * So the icon takes the labels' band and the caption takes the summaries',
-   * and the cell reads as a trailing toolbar action rather than a card that
-   * lost its second line.
-   */
   /**
    * A ROW, exactly like the two cards — icon, gap, one line of copy, and
    * `GLASS_ROW_PADDING` at both ends, so the bar's last ink sits at the same

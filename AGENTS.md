@@ -300,12 +300,40 @@ in the file's header; the ones worth knowing before touching it:
   arbitration write-ups above survive inside `ClipTrimFrameIos` itself,
   which is where that behaviour now lives.
 
-Band-scanned on iPhone 17 / iOS 26.5, identical across an 8-frame burst with no
-interaction: bar glyph ink 79.00, artwork 119.00 (inset 62 + target 43 + gap
-14), footer 766.00 → 827.00, clearance below 47.00 (inset 34 +
-`FLOATING_EDGE_GAP` 12). Cover 369.00 wide playing, 324.00 paused, centre held.
-A LIVE appearance switch reads the same numbers, which is the proof the
-`matchContents` header jump is gone.
+**BAND-SCANNED ON iPhone 17 / iOS 26.5**, re-measured 2026-08-28. The figures
+that stood here described a screen that no longer exists — they were taken
+while the bar row was still up (artwork cleared `PLAYER_BAR_TARGET + 14`) and
+while the cover still shrank on pause, so they named a bar glyph, an artwork
+top of 119.00 and two different cover widths. What is measurable today:
+
+- artwork top **74.00** — `insets.top` 62 + `IOS_ART_TOP_GAP` 12, the cover's
+  own breathing room under the Dynamic Island, with nothing between them;
+- cover **370.00** wide (left edge 16.00, right 386.00), ONE width — `winW` 402
+  less `SCREEN_PADDING` × 2, identical playing and paused.
+
+**THE GLASS FOOTER COULD NOT BE MEASURED, BECAUSE IT DOES NOT RENDER** — see
+the defect note below. Its intended box is `MINI_PLAYER_HEIGHT` 68 standing on
+`insets.bottom` 34 + `NOW_PLAYING_BOTTOM_GAP_IOS` 8, i.e. 764.00 → 832.00, and
+that is what the code computes; nothing has confirmed it on screen. **Do not
+copy those three numbers forward as measurements** — they are the arithmetic,
+and the whole point of this block is that arithmetic is not evidence.
+
+**⚠️ THE SHAPE / CLIPS / EDIT BAR IS MISSING ON THE SIMULATOR** (found
+2026-08-28, during the craft audit's verification pass; NOT yet fixed). The
+expanded console renders its artwork, copy, scrubber and transport and then
+nothing at all: a horizontal scan across the whole 700 → 874 band finds only
+the backdrop's own gradient, in every frame of a burst. It is not the glass
+failing to draw — the compartments' RN labels ("Shape", "Clips", "Edit") are
+absent too, and a temporary solid `backgroundColor` on the footer's wrapper
+did not appear either, so the subtree is either unmounted or sitting at
+opacity 0 / zero height.
+
+The leading suspicion is the wrapper's own `entering={FadeIn.duration(200)}`:
+it mounts inside a tree whose opacity `consoleStyle` is animating, and a
+Reanimated entering animation that is interrupted there can settle at 0. That
+is a HYPOTHESIS, not a finding — the next session should confirm it before
+changing anything (drop the `entering` and see, or log the wrapper's measured
+frame). The audit's report has the full evidence.
 
 **The player's four sheets are on TOPPER'S bar** (2026-08-21). `shaper`,
 `clips` and `edit-sound` are `titled` in `IOS_FORM_SHEETS`. `edit-sound` states
@@ -411,8 +439,11 @@ trailing, at the portfolio's 43pt bar target, and Juan removed it: a personal
 player has no bar's worth of work to put in one, the drag already puts the
 player away, and two glyphs floating over the wash were the busiest thing on an
 otherwise calm screen. It also hands **43pt** back to the column below —
-`playerArtTop` clears a 24pt gap instead of `PLAYER_BAR_TARGET + 14` — which is
-where the transport and the footer wanted it.
+`playerArtTop` cleared `PLAYER_BAR_TARGET + 14` and clears `IOS_ART_TOP_GAP`
+alone now — which is where the transport and the footer wanted it. (That gap
+was 24 the day the row went and is **12** today: nothing shares the band any
+more, so its only remaining job is keeping the cover off the Dynamic Island's
+own shadow — see the cover bullet above.)
 
 **EDIT IS THE GLASS BAR'S THIRD COMPARTMENT, and it took two tries.** It was
 first hung beside the copy it edits — a `pencil` trailing the title and artist —
@@ -434,47 +465,33 @@ the 31pt icon host and the 12pt gap that leaves **48.33** of copy — so the
 DEFAULT shape summary truncates. Trimming padding to 12 and the gap to 10 buys
 61.33, which still loses every preset that is not Flat at 1×.
 
-So the compartment is sized to what it HOLDS, which is what a toolbar does, and
-its two pieces are STACKED — the icon in the cards' label band, the word in
-their summary band — so the cell fills the bar's vertical rhythm instead of
-sitting between its two rows.
+So the compartment is sized to what it HOLDS, which is what a toolbar does: an
+icon, one word, and no summary line — it has no live state to put on one, which
+is exactly what separates it from Shape and Clips.
 
-**IT WAS A ROW FIRST, AND THAT IS THE INSTRUCTIVE FAILURE.** Laid out
-horizontally, its one word landed at 791.67 → 804.33 against the cards' label
-781.33 → 796.67 and summary 804.00 → 815.00. Centred on the two-line block to
-within 0.17pt — mathematically correct, optically homeless: 10.3 below the
-labels, and its baseline exactly where the summaries begin. Juan read it as a
-break in the bar's vertical flow before any of it was measured, and he was
-right. **Centring a one-line cell beside two-line ones is not alignment.**
+**IT IS A ROW, LIKE THE TWO CARDS, AND THE STACK IS THE REJECTED ALTERNATIVE.**
+A STACKED version was built first — icon in the cards' label band (ink centre
+789.00), word in their summary band (809.50), each solved backwards from the
+cards rather than centred and hoped for, and landing within half a point of
+both. The argument for it is real: a one-line cell centred beside two-line ones
+is level with neither row. It is not the argument that decides. **The stack
+makes this cell a different KIND of thing, and the bar's three items should read
+as one kind.** Juan chose the row after seeing both.
 
-**THE BANDS ARE SOLVED BACKWARDS FROM THE CARDS, not centred and hoped for.**
-The label band's ink centre is 789.00 and the summary band's is 809.50, in a bar
-whose content starts at 764. The icon's host is 31 and the glyph centres in it,
-so the host's top is 789.00 − 15.5 = **773.50**, i.e. `GLASS_EDIT_ICON_TOP` 9.5
-below the bar's top. The caption is the summaries' own `bodyMedium`, whose 20pt
-line box wants its top at 809.50 − 10 = 799.50 — **5 above** the icon host's
-bottom of 804.50, hence `GLASS_EDIT_CAPTION_LIFT` −5. Rendered: icon ink centre
-789.17 against the label's 789.00, caption centre 809.00 against the summary's
-809.50. A 12pt `caption1` was tried for the word first (the tab-bar treatment)
-and read undersized beside "None" and "1 saved"; matching the band's type fixes
-that and the alignment together.
+**THE TRAILING PADDING CARRIES THE ICON HOST'S SLACK — and that, not
+`opticalTextInset`, is why the two ends differ in metric.** At identical
+`GLASS_ROW_PADDING` the right read tighter, and the cause is measurable: the
+bar's first ink is a glyph inside a 31pt HOST 7 wider than the 24pt symbol it
+holds, so the leading ink starts at padding + 3.5 of host slack + the glyph's
+own bearing — 19.67 band-scanned. The bar's last ink is text, whose box has
+almost no bearing at all: 16.34, a genuine 3.3pt tighter. So the trailing side
+adds the host's half-slack back, derived from the two constants rather than
+nudged by eye.
 
-**THE TRAILING SIDE TAKES `opticalTextInset`; THE LEADING SIDE DOES NOT — so the
-two ends are deliberately UNEQUAL in metric to be equal to the eye.**
-Band-scanned, they were already equal in metric: the leading icon's ink starts
-19.67 inside the bar and the word ended 19.00 from it, 0.67pt apart. Juan still
-read the right as tighter, and both reasons are real. The bar's FIRST ink is a
-sparse glyph at the bar's vertical middle, where the edge is at its full 385.67.
-Its LAST ink is a dense letterform down in the summary band, where the 22pt
-corner has begun pulling in — 385.67 at the word's top, 385.00 at its baseline,
-383.33 eight points lower.
-
-That is precisely the case `opticalTextInset` names ("text set flush to the
-shape's true edge reads as hanging past it even though the two are
-mathematically aligned"), so the word takes the nudge derived from
-`FLOATING_RADIUS` — round(22 × 0.215) = 5 — and the icon, which sits nowhere
-near a corner, does not. Rendered: leading 19.67, trailing 24.00. The cards give
-up 2.5 each for it, leaving a 55.5 copy box against "Flat · 1×"'s 50.67.
+**`opticalTextInset` WAS TRIED HERE AND IT DOES NOT BELONG.** It was earned by
+the STACKED layout, where the word sat low enough in the bar for the 22pt corner
+to have begun pulling the edge in. With the word back at the bar's vertical
+middle the edge is at its full 385.67, and there is nothing to compensate for.
 
 **THE WORD IS FULL-STRENGTH, not muted like the summaries it sits beside.** It
 is the cell's LABEL — the only one it has, with the icon as its partner — and a
@@ -893,11 +910,19 @@ songs or clips until 2026-08-20 (wrong collection paths that were still legal
 paths); the refs now mirror `songs.ts` / `clips.ts` exactly, and any new
 subcollection has to be added there or a recreated account inherits it.
 
-Brand is deliberately **deferred to the end** — the launcher icon / splash /
-welcome hero currently use **placeholder art borrowed from expo-ui-starter**; the
-Welcome hero falls back to the app initial (no `logo` prop yet). Replace with a
-real stroke glyph (48-grid, stroke 3.25, sibling to the Topper crown) at the
-brand phase.
+**The brand has landed** — the deferral is over. The mark is a **five-bar
+equalizer** (`src/components/ui/BrandMark.tsx`), the shape of sound being
+tuned: a 48-unit grid at stroke 3.25 with round caps and no fill, a sibling to
+Topper's crown and the starter's bento by construction. Its bars are uneven on
+purpose — rise, dip, peak, settle — rather than a symmetric curve, so the glyph
+reads as audio rather than as a chart.
+
+It is wired everywhere the family expects: `assets/AppIcon.icon` (the Icon
+Composer document iOS renders itself, so the shine, the squircle and the
+tinted/clear appearances all come from the OS), `icon.png`, both splash glyphs
+and the Android adaptive set — all generated by `scripts/gen-brand-art.py`, and
+the Welcome hero passes it through `WelcomeScreen`'s `logo` prop. Never
+hand-edit any of those outputs; the runbook is in the root `AGENTS.md`.
 
 ## Expo has changed
 
