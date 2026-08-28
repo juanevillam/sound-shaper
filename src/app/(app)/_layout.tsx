@@ -100,6 +100,15 @@ export default function AppLayout() {
           // Painting `headerStyle.backgroundColor` opts out of all of that, and
           // is what made every pushed screen's bar read as a flat band. An
           // UNSET headerStyle is still not an option on the Android side.
+          //
+          // ANDROID'S DEFAULT IS THE AT-REST GROUND, NOT THE SCROLLED ONE.
+          // This was `surfaceContainer` for every pushed screen, which is M3's
+          // colour for a bar with content BEHIND it — so a screen sitting at
+          // the top of its list drew a hard seam against the page. Band-scanned
+          // on the A54 in dark: bar #3A3A3D against a #010102 page, unscrolled,
+          // on Settings (seam at 89.96dp) and on home. A screen that scrolls
+          // steps up from here through `useHeaderScroll`; a screen that cannot
+          // scroll (manage-account is a short Compose column) correctly stays.
           ...(Platform.OS === 'ios'
             ? {
                 headerTransparent: true,
@@ -107,7 +116,7 @@ export default function AppLayout() {
                 headerLargeTitleStyle: { color: colors.onSurface },
               }
             : {
-                headerStyle: { backgroundColor: colors.surfaceContainer },
+                headerStyle: { backgroundColor: colors.background },
               }),
           headerShadowVisible: false,
           headerTintColor: colors.onSurface,

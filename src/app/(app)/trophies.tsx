@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/ui/Screen';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 
@@ -21,6 +22,8 @@ export default function TrophiesRoute() {
   const { t, locale } = useI18n();
   const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total } = useTrophies(copy);
+  // The shared screen owns its scroller — hand it the M3 bar-lift.
+  const { scrollProps } = useHeaderScroll();
 
   // Tapping a row opens its detail sheet — the objective is worth reading in
   // full, and the list truncates longer ones.
@@ -63,6 +66,7 @@ export default function TrophiesRoute() {
           }}
           strings={{ progress, percent, ...screenStrings }}
           formatDate={formatDate}
+          scrollProps={scrollProps}
           onTrophyPress={trophyId =>
             // iOS presents the detail as a native form-sheet ROUTE; Android
             // mounts the Compose sheet in place.
