@@ -88,8 +88,13 @@ export const GLASS_FLOOR = 0.25;
  * The snackbar then clears the app's own bottom chrome by this same gap rather
  * than by a number per app — see `iosBottomInset` on `SnackbarProvider`.
  *
- * ANDROID KEEPS ITS OWN SPACING. Both apps are frozen there, and Material's
- * banner/snackbar spacing is not this family's question.
+ * ANDROID KEEPS ITS OWN SPACING, and the reason is Material rather than the
+ * schedule. This used to read "both apps are frozen there" — a statement about
+ * when Android would be worked on, wearing the clothes of a design decision,
+ * and stale since the freeze lifted on 2026-08-29. The argument that survives
+ * it is the second half: M3 specifies its own snackbar and banner insets, and
+ * this constant is the iOS floating-glass family's gap. Android has no
+ * floating-glass family to be a member of.
  */
 export const FLOATING_EDGE_GAP = 12;
 
