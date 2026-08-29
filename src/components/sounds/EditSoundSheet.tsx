@@ -43,9 +43,6 @@ import { usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
 import { SHAPE_MD } from '@/styles/shape';
 
-/** Breathing room under the destructive row, on top of the navigation bar. */
-const SHEET_BOTTOM_GAP = 16;
-
 /** The picture fills the slot the package sized and clipped. */
 const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
 
@@ -275,12 +272,7 @@ export function EditSoundSheet({
             // the gap above the content. The bottom clears the navigation bar
             // — see `composeSheetBottomPadding`.
             modifiers={[
-              padding(
-                16,
-                0,
-                16,
-                composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
-              ),
+              padding(16, 0, 16, composeSheetBottomPadding(insets.bottom)),
               fillMaxWidth(),
             ]}
           >

@@ -11,6 +11,8 @@ import {
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
+import { composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
@@ -62,6 +64,7 @@ export function TrophyDetailSheet({
   seedColor,
 }: TrophyDetailSheetProps) {
   const sheetRef = useRef<ModalBottomSheetRef>(null);
+  const insets = useSafeAreaInsets();
 
   // Same description whether earned or locked; only the caption's date/lock differs.
   const body = trophy.description;
@@ -84,7 +87,18 @@ export function TrophyDetailSheet({
         <Column
           horizontalAlignment="center"
           verticalArrangement={{ spacedBy: 12 }}
-          modifiers={[fillMaxWidth(), padding(24, 12, 24, 24)]}
+          // The bottom clears the navigation bar — a Compose sheet's window
+          // runs to the SCREEN's edge, not to the top of the system bar. This
+          // sheet is bottom-anchored and content-sized, so its LAST LINE sits
+          // wherever the padding puts it whatever the trophy: band-scanned on
+          // a Galaxy A54 (Android 16, 3-button nav) at a flat 24, the caption's
+          // ink came to rest 753.42dp against a bar starting at 784.00 —
+          // 30.58dp, where the three sheets in Sound Shaper reserve 64.
+          // See `composeSheetBottomPadding`.
+          modifiers={[
+            fillMaxWidth(),
+            padding(24, 12, 24, composeSheetBottomPadding(insets.bottom)),
+          ]}
         >
           <RNHostView matchContents>
             <View style={styles.iconWrap}>

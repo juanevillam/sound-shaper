@@ -60,9 +60,6 @@ const CLIP_ROW_SHAPE = Shape.RoundedCorner({
 
 const NO_CLIPS: never[] = [];
 
-/** Breathing room under the last row, on top of the navigation bar. */
-const SHEET_BOTTOM_GAP = 28;
-
 /** The M3 loading indicator's box, matching `SheetBar`'s commit spinner. */
 const SPINNER_SIZE = 20;
 /** The empty state's mark. `EmptyState`'s own step, which it draws at 48. */
@@ -174,12 +171,7 @@ export function ClipsSheet({
             // The bottom clears the navigation bar — a Compose sheet's window
             // runs to the screen edge. See `composeSheetBottomPadding`.
             modifiers={[
-              padding(
-                24,
-                0,
-                24,
-                composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
-              ),
+              padding(24, 0, 24, composeSheetBottomPadding(insets.bottom)),
               fillMaxWidth(),
             ]}
           >
