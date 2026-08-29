@@ -274,7 +274,8 @@ button's native `popover` — and removed both times. The popover presented
 **mis-anchored on first open on device** and went stale across a theme change,
 but the deciding reason was product rather than polish: someone with something
 to say opens comments themselves, and actively soliciting the comment is noise
-(Juan's call). Android keeps its card because Android is frozen for release, so
+(Juan's call). ANDROID STILL SHOWS THE CARD — an open divergence since the
+freeze lifted on 2026-08-29, and the same product argument applies to it, so
 `TopReactions` still renders it behind `Platform.OS !== 'ios'`.
 
 ## A REORDER MODE on Topper's item list — REMOVED 2026-08-15
