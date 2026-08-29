@@ -25,6 +25,7 @@ import {
   MediaPickerAvatar,
 } from '@/components/ui/MediaPickerAvatar';
 import { SheetBar } from '@/components/ui/SheetBar';
+import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -109,6 +110,11 @@ export function EditSoundSheet({
   const [isSaving, setIsSaving] = useState(false);
   const { pickCover, uploadCover } = useCoverPicker();
   const [showNameError, setShowNameError] = useState(false);
+  /**
+   * A FAILURE THAT LEAVES THIS SHEET STANDING has to be said in the sheet — the
+   * toast draws behind a Compose sheet's own window. See `SheetErrorLine`.
+   */
+  const [failure, setFailure] = useState<string | null>(null);
   const [deleteVisible, setDeleteVisible] = useState(false);
 
   /**
@@ -121,11 +127,13 @@ export function EditSoundSheet({
   const onPickCover = () => {
     if (isSaving) return;
 
+    setFailure(null);
+
     void pickCover()
       .then(picked => {
         if (picked) setPickedCover(picked);
       })
-      .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
+      .catch(() => setFailure(t('snackbar.sound-save-failed')));
   };
 
   // The preview: a picked cover, else the ID3-embedded picture (create) or the
@@ -151,6 +159,7 @@ export function EditSoundSheet({
     const trimmedArtist = artist.trim();
 
     savingRef.current = true;
+    setFailure(null);
 
     if (soundId) {
       if (pickedCover) {
@@ -169,10 +178,13 @@ export function EditSoundSheet({
             soundId,
           });
 
-          showSnackbar(t('snackbar.sound-updated'));
+          await sheetRef.current?.hide();
           onClose();
+          showSnackbar(t('snackbar.sound-updated'));
         } catch {
-          showSnackbar(t('snackbar.sound-save-failed'));
+          // The sheet stays open so the edit can be retried, so the toast
+          // would be invisible — see `SheetErrorLine`.
+          setFailure(t('snackbar.sound-save-failed'));
           setIsSaving(false);
           savingRef.current = false;
         }
@@ -181,7 +193,13 @@ export function EditSoundSheet({
       }
 
       // Metadata-only update: latency-compensated, so close immediately and
-      // let a single trailing snackbar confirm success OR failure.
+      // let a single trailing snackbar confirm success OR failure. The close
+      // comes FIRST — a toast fired while this sheet still stands draws behind
+      // its window (see `SheetErrorLine`), and by the time either of these
+      // resolves the sheet is gone.
+      await sheetRef.current?.hide();
+      onClose();
+
       updateSound({
         artist: trimmedArtist,
         name: trimmedName,
@@ -190,8 +208,6 @@ export function EditSoundSheet({
         .then(() => showSnackbar(t('snackbar.sound-updated')))
         .catch(() => showSnackbar(t('snackbar.sound-save-failed')));
 
-      await sheetRef.current?.hide();
-      onClose();
       return;
     }
 
@@ -214,11 +230,12 @@ export function EditSoundSheet({
         name: trimmedName,
       });
 
-      showSnackbar(t('snackbar.sound-created'));
       await sheetRef.current?.hide();
       onClose();
+      showSnackbar(t('snackbar.sound-created'));
     } catch {
-      showSnackbar(t('snackbar.sound-save-failed'));
+      // Held open so the upload can be retried without re-picking the file.
+      setFailure(t('snackbar.sound-save-failed'));
       setIsSaving(false);
       savingRef.current = false;
     }
@@ -234,12 +251,12 @@ export function EditSoundSheet({
     // the now-playing banner or stay playable.
     usePlayerStore.getState().soundDeleted(soundId);
 
+    await sheetRef.current?.hide();
+    onClose();
+
     deleteSound(soundId)
       .then(() => showSnackbar(t('snackbar.sound-deleted')))
       .catch(() => showSnackbar(t('snackbar.sound-delete-failed')));
-
-    await sheetRef.current?.hide();
-    onClose();
   };
 
   return (
@@ -387,6 +404,8 @@ export function EditSoundSheet({
                 <Text>{t('soundEdit.subtitle.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
             </OutlinedTextField>
+
+            {failure ? <SheetErrorLine message={failure} /> : null}
 
             {soundId ? (
               <OutlinedButton

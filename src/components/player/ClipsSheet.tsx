@@ -25,11 +25,11 @@ import {
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
@@ -91,11 +91,13 @@ export function ClipsSheet({
 }: ClipsSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
-  const { showSnackbar } = useSnackbar();
   const insets = useSafeAreaInsets();
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
   const [confirmClipId, setConfirmClipId] = useState<string | null>(null);
+  /** A delete that failed, said here because the toast cannot be seen from
+   *  inside a Compose sheet — see `SheetErrorLine`. */
+  const [failure, setFailure] = useState<string | null>(null);
 
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
@@ -152,9 +154,12 @@ export function ClipsSheet({
   const onDelete = (clipId: string) => {
     haptics.medium();
     setConfirmClipId(null);
+    setFailure(null);
 
+    // This sheet stays open, so the failure is said IN it rather than in a
+    // toast that would draw behind its window.
     deleteClip({ clipId, soundId: current.id }).catch(() =>
-      showSnackbar(t('snackbar.clip-delete-failed')),
+      setFailure(t('snackbar.clip-delete-failed')),
     );
   };
 
@@ -204,6 +209,8 @@ export function ClipsSheet({
                 />
               </IconButton>
             </Row>
+
+            {failure ? <SheetErrorLine message={failure} /> : null}
 
             {!settled ? (
               <Column
