@@ -104,6 +104,27 @@ const TITLE_WEIGHT = '700';
  * WHEN A BOX IS REMOVED, RESTORE THE INTENT — do not preserve what the box was
  * doing.
  */
+/**
+ * The feature row's leading glyph and the air before its text.
+ *
+ * 24 was Material's LIST-item icon, and this is not a list — it is an
+ * onboarding summary, where the glyph is carrying a whole feature rather than
+ * labelling a row. Juan read it as visibly smaller than the iOS twin's, and the
+ * ratio says why: iOS draws 30pt against a 17pt `headline`, i.e. 1.76x its
+ * title. Against Android's 16sp `titleMedium`, 24 is only 1.50x — so the glyph
+ * really is proportionally smaller, not just nominally.
+ *
+ * 28 restores that ratio at 1.75x, and lands the text 40dp from the content
+ * edge, which is exactly Material's own list-item text offset for a leading
+ * icon (24 + 16). Two independent reasons, one number. 32 was rendered too and
+ * is 2.00x — bigger than the iOS icon it was chasing.
+ *
+ * NOT scaled from iOS's 30: the ratio is what transfers, because the two
+ * titles are different sizes. This is the geometry half of the rule that keeps
+ * TYPE on each platform's ladder — a glyph is sized against the box it sits in.
+ */
+const FEATURE_ICON_SIZE = 28;
+const FEATURE_ICON_GAP = 12;
 const CREDIT_FONT_SIZE = 14;
 const CREDIT_LINE_HEIGHT = 20;
 const CREDIT_TOP_GAP = spacing.xs;
@@ -314,7 +335,7 @@ export const WelcomeScreen = ({
                       // whose text sits low in its line box (ascent gap).
                       <AppIcon
                         name={feature.icon}
-                        size={24}
+                        size={FEATURE_ICON_SIZE}
                         tint={colors?.primary}
                         modifiers={[padding(0, 2, 0, 0)]}
                       />
@@ -323,7 +344,7 @@ export const WelcomeScreen = ({
                         {feature.emoji}
                       </Text>
                     )}
-                    <Spacer modifiers={[width(spacing.md)]} />
+                    <Spacer modifiers={[width(FEATURE_ICON_GAP)]} />
                     <Column modifiers={[weight(1)]}>
                       <Text
                         color={colors?.onSurface}
