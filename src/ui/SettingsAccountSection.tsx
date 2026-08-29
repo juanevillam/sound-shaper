@@ -31,6 +31,8 @@ import { Image } from 'expo-image';
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { iconSource, type IconName } from './icons';
 import {
+  dialogContainer,
+  GROUP_HEADERLESS_TOP_GAP,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,
@@ -127,9 +129,12 @@ export type SettingsUsernameEditor = {
  *    instead of being decoration.
  *
  * iOS ONLY. Android renders the account entry as a `navRow` inside the account
- * group (Material's own idiom, and frozen for release), so the Compose variant
- * reads `profile` and ignores this — the prop is declared here because this is
- * the file the shared prop type lives in.
+ * group, which is Material's own idiom — Google's apps put the destination in
+ * the group rather than turning the identity card into the tap target. (That
+ * used to be written as "Material's own idiom, and frozen for release"; the
+ * freeze lifted on 2026-08-29 and the Material half never needed it.) So the
+ * Compose variant reads `profile` and ignores this — the prop is declared here
+ * because this is the file the shared prop type lives in.
  *
  * Mutually exclusive with `usernameEditor`: both claim the profile row's tap
  * and its second line. No app wants both — an app with usernames is a social
@@ -338,7 +343,7 @@ export const UsernameDialog = ({
       }}
     >
       <Surface
-        tonalElevation={6}
+        color={dialogContainer(colors)}
         modifiers={[
           width(USERNAME_DIALOG_WIDTH),
           clip(Shapes.RoundedCorner(28)),
@@ -395,21 +400,33 @@ const SignOutRow = memo(
     shape,
     colors,
     onPress,
+    withIcon = true,
   }: {
     label: string;
     shape: GroupShape;
     colors: SettingsAccountColors;
     onPress: () => void;
+    /**
+     * The leading glyph exists to line this row's label up with the PROFILE
+     * row's, whose 40dp avatar sets the group's text inset. Standing alone in
+     * the trailing card there is no avatar to line up with — and keeping the
+     * icon there pushed "Sign Out" to 88.89dp while every other row on the
+     * screen starts its label at 33.07dp (measured on a Galaxy A54). One
+     * screen, one text inset: no group, no glyph.
+     */
+    withIcon?: boolean;
   }) => (
     <ListItem
       colors={listItemColors(colors)}
       modifiers={[fillMaxWidth(), clip(shape), clickable(onPress)]}
     >
-      <ListItem.LeadingContent>
-        <LeadingSlot>
-          <Icon source={logoutIcon} size={24} tint={colors.danger} />
-        </LeadingSlot>
-      </ListItem.LeadingContent>
+      {withIcon ? (
+        <ListItem.LeadingContent>
+          <LeadingSlot>
+            <Icon source={logoutIcon} size={24} tint={colors.danger} />
+          </LeadingSlot>
+        </ListItem.LeadingContent>
+      ) : null}
       <ListItem.HeadlineContent>
         {/* Danger-colored like the iOS destructive row, so it reads as an action. */}
         <Text color={colors.danger}>{label}</Text>
@@ -532,8 +549,10 @@ export const SettingsAccountSection = ({
 
   return (
     <Column modifiers={[fillMaxWidth()]}>
+      {/* Ink, not the accent — a group header is a label. The full argument
+          is on `sectionsTitle` in `SettingsScreen`. */}
       <Text
-        color={colors.primary}
+        color={colors.onSurfaceMuted}
         style={{ typography: 'labelLarge' }}
         modifiers={[padding(16, 16, 16, 8)]}
       >
@@ -618,15 +637,81 @@ export const SettingsAccountSection = ({
 };
 
 /**
- * iOS-only — the real implementation is in `SettingsAccountSection.ios.tsx`,
- * where Apple's placement puts sign-out alone in a trailing card. Declared here
- * because tsc resolves this base file for both platforms. On ANDROID the
- * sign-out row stays inside the account section above — Material's grouping —
- * so this renders nothing.
+ * THE TRAILING SIGN-OUT CARD — one destructive action, no header, last on the
+ * screen. The iOS twin is in `SettingsAccountSection.ios.tsx`; both platforms
+ * export this name and draw the same idea in their own language.
+ *
+ * IT USED TO RENDER NOTHING HERE, on the grounds that Material keeps sign-out
+ * inside the account group. That is true when there IS a group — an app with a
+ * profile row, a Trash entry, a delete-account row. It was never true for an
+ * app whose account block is nothing but the sign-out action, which is the
+ * starter and Topper: there the "Account" header named a group that did not
+ * exist, wedged one lone destructive row between General and About. Google puts
+ * "Sign out" at the end of Settings, and a header names a group. So the screen
+ * picks: a real group renders in place, a lone action renders here.
+ * `SettingsScreen`'s `accountIsGroup` is where that choice is made and
+ * explained.
+ *
+ * `colors` and `onOpenSignOutConfirm` are OPTIONAL only so that tsc — which
+ * resolves this base file for the iOS call site too — does not demand them of
+ * the iOS variant, which needs neither. The Android screen always passes both;
+ * without `colors` there is nothing to paint with and this renders nothing,
+ * which is exactly the old behaviour.
  */
-export const SettingsSignOutSection = (
-  _props: Pick<
-    SettingsAccountSectionProps,
-    'signOutLabel' | 'signOutDialog' | 'onSignOut'
-  >,
-) => null;
+export const SettingsSignOutSection = ({
+  signOutLabel,
+  signOutDialog,
+  onSignOut,
+  colors,
+  onOpenSignOutConfirm,
+}: Pick<
+  SettingsAccountSectionProps,
+  'signOutLabel' | 'signOutDialog' | 'onSignOut'
+> & {
+  colors?: SettingsAccountColors;
+  onOpenSignOutConfirm?: () => void;
+}) => {
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const openConfirm = onOpenSignOutConfirm ?? (() => setConfirmVisible(true));
+
+  if (!colors) return null;
+
+  return (
+    <Column
+      modifiers={[
+        fillMaxWidth(),
+        padding(
+          GROUP_SIDE_PADDING,
+          GROUP_HEADERLESS_TOP_GAP,
+          GROUP_SIDE_PADDING,
+          0,
+        ),
+      ]}
+    >
+      {/* A single row, so it takes BOTH outer corners — `groupRowShape(0, 1)`
+          is the one-row case and needs no special-casing here. */}
+      <SignOutRow
+        label={signOutLabel}
+        shape={groupRowShape(0, 1)}
+        colors={colors}
+        onPress={openConfirm}
+        withIcon={false}
+      />
+
+      {/* Fallback dialog for standalone use only — when the screen supplies an
+          opener it hosts the dialog itself, in a separate `Host`, because
+          mounting it here corrupts the sibling rows' modifiers. */}
+      {!onOpenSignOutConfirm && confirmVisible && (
+        <DestructiveConfirmDialog
+          dialog={signOutDialog}
+          colors={colors}
+          onConfirm={() => {
+            setConfirmVisible(false);
+            onSignOut();
+          }}
+          onDismiss={() => setConfirmVisible(false)}
+        />
+      )}
+    </Column>
+  );
+};
