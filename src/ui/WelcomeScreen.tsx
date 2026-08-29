@@ -20,7 +20,6 @@ import {
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
-  padding,
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
@@ -107,23 +106,22 @@ const TITLE_WEIGHT = '700';
 /**
  * The feature row's leading glyph and the air before its text.
  *
+ * COMPARE RENDERED INK, NOT NOMINAL BOXES — that mistake is what made the first
+ * two attempts at this too small. Material Symbols carry padding inside their
+ * viewBox and SF Symbols barely do, so a 28dp Material box draws only 21.33dp
+ * of ink while a 30pt SF Symbol draws close to its nominal size. Matching the
+ * numbers, or even matching the glyph-to-title RATIO, still leaves Android
+ * visibly smaller, which is what Juan kept seeing.
+ *
+ * Measured ink on a Galaxy A54: 24 -> 17.78, 28 -> 21.33, 32 -> 24.53,
+ * 36 -> 27.38. 36 is the one that puts real ink in the range an SF Symbol at
+ * iOS's 30pt occupies.
+ *
  * 24 was Material's LIST-item icon, and this is not a list — it is an
- * onboarding summary, where the glyph is carrying a whole feature rather than
- * labelling a row. Juan read it as visibly smaller than the iOS twin's, and the
- * ratio says why: iOS draws 30pt against a 17pt `headline`, i.e. 1.76x its
- * title. Against Android's 16sp `titleMedium`, 24 is only 1.50x — so the glyph
- * really is proportionally smaller, not just nominally.
- *
- * 28 restores that ratio at 1.75x, and lands the text 40dp from the content
- * edge, which is exactly Material's own list-item text offset for a leading
- * icon (24 + 16). Two independent reasons, one number. 32 was rendered too and
- * is 2.00x — bigger than the iOS icon it was chasing.
- *
- * NOT scaled from iOS's 30: the ratio is what transfers, because the two
- * titles are different sizes. This is the geometry half of the rule that keeps
- * TYPE on each platform's ladder — a glyph is sized against the box it sits in.
+ * onboarding summary where the glyph carries a whole feature rather than
+ * labelling a row.
  */
-const FEATURE_ICON_SIZE = 28;
+const FEATURE_ICON_SIZE = 36;
 const FEATURE_ICON_GAP = 12;
 const CREDIT_FONT_SIZE = 14;
 const CREDIT_LINE_HEIGHT = 20;
@@ -331,13 +329,17 @@ export const WelcomeScreen = ({
                     modifiers={[fillMaxWidth()]}
                   >
                     {feature.icon ? (
-                      // Nudged down so the glyph optically matches the title,
-                      // whose text sits low in its line box (ascent gap).
+                      // The glyph is TOP-aligned with the title's line box and
+                      // then nudged, because the title's ink sits low in that
+                      // box (ascent gap). The nudge is a function of the icon's
+                      // size — a taller box already reaches further down — so
+                      // it went to 0 when the glyph grew to 36. Measured on a
+                      // Galaxy A54: icon centre 320.7 against the title ink's
+                      // 318.9, where 2dp of padding put it at 321.8.
                       <AppIcon
                         name={feature.icon}
                         size={FEATURE_ICON_SIZE}
                         tint={colors?.primary}
-                        modifiers={[padding(0, 2, 0, 0)]}
                       />
                     ) : (
                       <Text style={{ fontSize: 24, lineHeight: 24 }}>
