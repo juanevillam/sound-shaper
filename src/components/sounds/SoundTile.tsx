@@ -12,7 +12,7 @@ import {
 import { NowPlayingBars } from '@/components/sounds/NowPlayingBars';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { SquashPressable } from '@/components/ui/SquashPressable';
-import { Text } from '@/components/ui/Text';
+import { Text, type TextVariant } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { type Sound } from '@/services/firebase/sounds';
@@ -130,6 +130,21 @@ const CAPTION_SUB = 15;
  */
 const ANDROID_CAPTION_TITLE = 'bodyLarge' as const;
 const ANDROID_CAPTION_SUB = 'bodyMedium' as const;
+
+/**
+ * THE TWO VARIANTS THE CAPTIONS ARE TYPESET IN, resolved per platform and
+ * EXPORTED — the tile renders them and `SoundTileSkeleton` stands an invisible
+ * `Text` at the same two to reserve its line boxes.
+ *
+ * It is the variant that is shared rather than the line height, and that is the
+ * whole point: an Android `Text` does not render at its stated `lineHeight`,
+ * so a bone built from the number was 3.91dp short per row even though the
+ * number itself was correctly imported. See `CaptionLine`.
+ */
+export const CAPTION_VARIANTS = {
+  title: (IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE) as TextVariant,
+  subtitle: (IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB) as TextVariant,
+};
 
 /**
  * TYPE IS NOT GEOMETRY, so these do NOT follow the cell — see `CAPTION_TITLE`.
@@ -280,7 +295,7 @@ export function SoundTile({
       <Text
         doNotTranslate
         text={sound.name}
-        variant={IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE}
+        variant={CAPTION_VARIANTS.title}
         numberOfLines={1}
         style={[
           styles.name,
@@ -292,7 +307,7 @@ export function SoundTile({
         doNotTranslate
         muted
         text={sound.artist || ' '}
-        variant={IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB}
+        variant={CAPTION_VARIANTS.subtitle}
         numberOfLines={1}
         style={[styles.artist, { paddingLeft: captionInset }]}
       />
@@ -357,13 +372,13 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
           the upload. Muted, like the artist line it stands in for. */}
       <Text
         text="home.addSound"
-        variant={IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE}
+        variant={CAPTION_VARIANTS.title}
         style={[styles.name, { paddingLeft: captionInset }]}
       />
       <Text
         muted
         text="home.addSoundFormat"
-        variant={IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB}
+        variant={CAPTION_VARIANTS.subtitle}
         style={[styles.artist, { paddingLeft: captionInset }]}
       />
     </SquashPressable>
