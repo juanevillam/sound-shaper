@@ -47,6 +47,24 @@ const LOGO_LETTER_SIZE = 56;
  *  like the app icon (mirrors its foreground proportions). */
 const LOGO_GLYPH_SIZE = 90;
 /**
+ * Tile-to-title spacing. This was `spacing.lg`, which was a default rather than
+ * a decision, and it rendered a 27.38dp ink gap under a 96dp tile — measured on
+ * a Galaxy A54. Apple's own welcome template (the Passwords first-run screen,
+ * band-scanned for the iOS variant's docblock) leaves 40.3pt under an 82pt
+ * icon, a ratio of 0.49; the same ratio on a 96dp tile asks for about 47.
+ *
+ * `spacing.xxl` lands 43.4dp of ink — between Apple's absolute number and its
+ * proportional one, and ON Material's 8dp grid rather than off it. The point is
+ * not to match iOS: a hero mark needs room to read as a hero on either
+ * platform, and 16 was simply not giving it any.
+ *
+ * NOTE this is spacing, not the rendered gap — a text view carries ascent
+ * padding beyond its glyphs, measured at 11.4dp for `displaySmall` here. Same
+ * caveat as the iOS variant's `LOGO_TITLE_GAP`; re-measure rather than
+ * re-derive if the type scale moves.
+ */
+const LOGO_TITLE_GAP = spacing.xxl;
+/**
  * The hero title's weight. M3 ships the display styles at Regular (400), which
  * is Material's default voice for body-of-the-scale type — but this is a hero,
  * and Material 3 Expressive added the `*Emphasized` styles for exactly that
@@ -151,7 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoSlot: { marginBottom: spacing.lg, alignSelf: 'center' },
+  logoSlot: { marginBottom: LOGO_TITLE_GAP, alignSelf: 'center' },
   logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
