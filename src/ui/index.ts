@@ -131,6 +131,8 @@ export {
   SNACKBAR_BOTTOM_CLEARANCE,
   SnackbarProvider,
 } from './SnackbarProvider';
+export { TextLink, type TextLinkProps } from './TextLink';
+
 export {
   BRAND_PRESSED_OPACITY,
   ICON_PRESS_OPACITY,

@@ -17,12 +17,9 @@ import {
   Row,
   Spacer,
   Text,
-  TextButton,
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
-  height,
-  offset,
   padding,
   weight,
   width,
@@ -37,6 +34,7 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
 import { LegalFooter, type WelcomeLegal } from './LegalFooter';
 import { Screen } from './Screen';
+import { TextLink } from './TextLink';
 import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 
@@ -80,26 +78,19 @@ const LOGO_TITLE_GAP = spacing.xxl;
  */
 const TITLE_WEIGHT = '700';
 /**
- * How far the author credit is drawn UP, back-solved from a render the way the
- * iOS variant's `LOGO_TITLE_GAP` was.
+ * The author credit's type and the air around it. RN rather than Compose — see
+ * `TextLink` for why the Material `TextButton` was dropped and what it cost.
  *
- * The credit's name is a Material `TextButton`, which carries
- * `ButtonDefaults.MinHeight` (36dp) and 8dp of vertical content padding — so a
- * Row holding a 20sp line of prose inflates to the button's box and centres
- * everything inside it. Measured on a Galaxy A54: 24.18dp of ink between the
- * title and the credit, against the ~11dp the 4dp column spacing asks for.
- *
- * `offset` MOVES the row without resizing it, which is the point: the button
- * keeps its full 36dp box and its touch target, and only the drawing lands
- * where the rhythm wants it. The `Spacer` below gives back the same amount, so
- * the title-to-features pitch is unchanged.
- *
- * The real fix is an inline `LinkAnnotation` span — Material's own primitive
- * for a link INSIDE a sentence, which has no button box to fight. `@expo/ui`
- * 57's `TextSpanRecord` carries no press handler, so it is not reachable yet;
- * see `docs/pending-upstream.md`.
+ * The metrics ARE Material's `bodyMedium` (14sp on a 20sp line), restated here
+ * because an RN `Text` cannot read the M3 type scale; they must move together
+ * with the Compose `bodyMedium` the feature subtitles use, or the two stop
+ * matching. Both gaps are back-solved from a render against the rhythm this
+ * screen had before the credit left the Host, so the line sits where it did.
  */
-const CREDIT_ROW_LIFT = 10;
+const CREDIT_FONT_SIZE = 14;
+const CREDIT_LINE_HEIGHT = 20;
+const CREDIT_TOP_GAP = 10;
+const CREDIT_BOTTOM_GAP = 53;
 const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
@@ -170,6 +161,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoSlot: { marginBottom: LOGO_TITLE_GAP, alignSelf: 'center' },
+  credit: {
+    fontSize: CREDIT_FONT_SIZE,
+    lineHeight: CREDIT_LINE_HEIGHT,
+    marginTop: CREDIT_TOP_GAP,
+    marginBottom: CREDIT_BOTTOM_GAP,
+  },
   logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
@@ -251,46 +248,37 @@ export const WelcomeScreen = ({
             colorScheme={colorScheme}
             seedColor={seedColor}
           >
-            <Column
-              modifiers={[fillMaxWidth()]}
-              verticalArrangement={{ spacedBy: spacing.xs }}
-            >
+            <Column modifiers={[fillMaxWidth()]}>
               <Text
                 color={colors?.onSurface}
                 style={{ typography: 'displaySmall', fontWeight: TITLE_WEIGHT }}
               >
                 {appName}
               </Text>
-              {/* Only the name is the link, and it is a Material `TextButton`
-                  rather than a `clickable` Text — that is the M3 primitive for
-                  a text-only action, so the ripple, the tinted label and the
-                  48dp touch target all come from the framework. Its horizontal
-                  content padding is trimmed to `xs` so the pair still reads as
-                  one line of prose. iOS does the same split with a SwiftUI
-                  `Link`; each platform in its own kit. */}
-              <Row
-                verticalAlignment="center"
-                modifiers={[offset(0, -CREDIT_ROW_LIFT)]}
-              >
-                <Text
-                  color={colors?.onSurfaceMuted}
-                  style={{ typography: 'bodyMedium' }}
-                >
-                  {AUTHOR_CREDIT_PREFIX}
-                </Text>
-                <TextButton
-                  onClick={openCredit}
-                  colors={{ contentColor: colors?.primary }}
-                  contentPadding={{ start: spacing.xs, end: spacing.xs }}
-                >
-                  <Text style={{ typography: 'bodyMedium' }}>
-                    {AUTHOR_NAME}
-                  </Text>
-                </TextButton>
-              </Row>
+            </Column>
+          </Host>
 
-              <Spacer modifiers={[height(spacing.xxl - CREDIT_ROW_LIFT)]} />
+          {/* Only the name is the link. It is RN rather than a Material
+              `TextButton`, which departs from native-primitive-first and is
+              argued — with the measurements that forced it — in `TextLink`.
+              Living outside the `Host` is what it costs: the hero is two Hosts
+              now, with this one line of prose between them. iOS keeps a native
+              SwiftUI `Link` and needs none of this. */}
+          <RNText style={[styles.credit, { color: colors?.onSurfaceMuted }]}>
+            {`${AUTHOR_CREDIT_PREFIX} `}
+            <TextLink
+              label={AUTHOR_NAME}
+              color={colors?.primary}
+              onPress={openCredit}
+            />
+          </RNText>
 
+          <Host
+            matchContents={{ vertical: true }}
+            colorScheme={colorScheme}
+            seedColor={seedColor}
+          >
+            <Column modifiers={[fillMaxWidth()]}>
               {/* Plain rows instead of ListItem (its leading slot floats on
                   two-line items). Top alignment lines the 24dp icon up with
                   the title's 24sp line box, the Material multi-line idiom. */}
