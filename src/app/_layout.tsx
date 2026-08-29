@@ -96,15 +96,40 @@ export default function RootLayout() {
     preloadIcons().catch(() => {});
   }, []);
 
-  // iOS: paint the native root view the theme background. `contentStyle` colors
-  // each screen, but the react-native-screens root behind them defaults to the
-  // system background and flashes (white in dark mode) during push/pop
-  // transitions — this keeps that layer themed so back/forward never flickers.
-  // iOS-only: Android's window is frozen for release.
+  // Paint the native window background the theme background — BOTH platforms.
+  //
+  // iOS: `contentStyle` colors each screen, but the react-native-screens root
+  // behind them defaults to the system background and flashes (white in dark
+  // mode) during push/pop transitions — this keeps that layer themed so
+  // back/forward never flickers.
+  //
+  // Android: the window background is what shows through the (transparent)
+  // 3-button navigation bar, which without this sat at a flat light #E6E6E6
+  // under a dark app — measured on a Galaxy A54. This is the whole nav-bar
+  // fix, and it needs no native module: `expo-system-ui` is already a
+  // dependency and `expo-navigation-bar` is deliberately NOT one.
+  //
+  // ANDROID ONLY TAKES THIS AT COLD START, and the two appearances therefore
+  // land differently. Measured on a Galaxy A54, 3-button navigation
+  // (`navigation_mode 0`), density 450:
+  //
+  //   cold start in dark    nav bar #010101, system flips its glyphs light  ✅
+  //   cold start in light   nav bar #FEFEFE, dark glyphs (unchanged)
+  //   theme flipped at RUNTIME — bar keeps its old value until relaunch
+  //
+  // The runtime staleness is not a regression; the bar never followed a live
+  // theme change. Fixing it, and controlling the light bar at all, means
+  // `setNavigationBarContrastEnforced` / `isAppearanceLightNavigationBars` —
+  // native levers that need `expo-navigation-bar`, which is deliberately not a
+  // dependency, plus a prebuild and a rebuild of all three apps.
+  //
+  // One measurement worth not re-deriving: a mid-grey (#919192) light bar can
+  // be produced by cold-starting in dark and then flipping to light, because
+  // the window background lands on a window whose bar is still in its dark
+  // state and Android scrims it. It looks good and it is NOT a state a real
+  // launch reaches — do not chase it without the native lever above.
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
-    }
+    SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
   }, [colors.background]);
 
   if (!ready) return null;
