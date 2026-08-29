@@ -88,3 +88,30 @@ export const COMPOSE_SHEET_BOTTOM_GAP = 16;
 
 export const composeSheetBottomPadding = (insetBottom: number): number =>
   insetBottom + COMPOSE_SHEET_BOTTOM_GAP;
+
+/**
+ * HOW FAR IN A COMPOSE SHEET'S CONTENT STARTS FROM ITS SIDE EDGES.
+ *
+ * M3's own bottom-sheet content inset, and what most of Topper's sheets
+ * already use. Sound Shaper's three disagreed — 16 in the sound editor, 24 in
+ * Clips and Shape — so two sheets a tap apart in one player started their
+ * text at different places, measured 18.13dp against 25.60dp of ink on the
+ * A54.
+ *
+ * A CENTRED-HERO SHEET IS THE EXCEPTION AND STATES ITS OWN. `TrophyDetailSheet`
+ * and Topper's `ItemDetailSheet` / `CreatorInfoSheet` stand one centred column
+ * rather than rows, and 24 is right there; the constant is for sheets holding
+ * LIST ROWS OR A FORM, which is what "content inset" means in the spec.
+ */
+export const COMPOSE_SHEET_GUTTER = 16;
+
+/**
+ * THE TRAILING PADDING THAT LANDS A BAR GLYPH ON THE GUTTER.
+ *
+ * An icon button is a 24dp glyph centred in a 48dp touch box, so aligning the
+ * BOX to the gutter pushes the glyph 12dp inboard of every label under it.
+ * `COMPOSE_SHEET_GUTTER − 12` is what puts the glyph itself on the margin,
+ * which is the same arithmetic Sound Shaper's home app bar does by hand
+ * (`paddingRight: 4` under a 16 leading inset).
+ */
+export const COMPOSE_SHEET_GLYPH_INSET = COMPOSE_SHEET_GUTTER - 12;

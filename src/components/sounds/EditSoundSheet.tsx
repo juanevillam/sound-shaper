@@ -15,6 +15,7 @@ import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import {
   artworkRadius,
   composeSheetBottomPadding,
+  COMPOSE_SHEET_GUTTER,
   DestructiveConfirmDialog,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -272,7 +273,12 @@ export function EditSoundSheet({
             // the gap above the content. The bottom clears the navigation bar
             // — see `composeSheetBottomPadding`.
             modifiers={[
-              padding(16, 0, 16, composeSheetBottomPadding(insets.bottom)),
+              padding(
+                COMPOSE_SHEET_GUTTER,
+                0,
+                COMPOSE_SHEET_GUTTER,
+                composeSheetBottomPadding(insets.bottom),
+              ),
               fillMaxWidth(),
             ]}
           >

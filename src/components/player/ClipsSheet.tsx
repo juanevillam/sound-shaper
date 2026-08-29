@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   CircularWavyProgressIndicator,
@@ -11,6 +11,7 @@ import {
   Shape,
   Surface,
   Text,
+  type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
@@ -21,6 +22,8 @@ import {
 import {
   AppIcon,
   composeSheetBottomPadding,
+  COMPOSE_SHEET_GLYPH_INSET,
+  COMPOSE_SHEET_GUTTER,
   DestructiveConfirmDialog,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,6 +92,7 @@ export function ClipsSheet({
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const sheetRef = useRef<ModalBottomSheetRef>(null);
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
   const [confirmClipId, setConfirmClipId] = useState<string | null>(null);
@@ -148,6 +152,26 @@ export function ClipsSheet({
    * The toast still fires on FAILURE, and by then the sheet is beside the
    * point.
    */
+  /**
+   * EVERY EXIT ANIMATES, INCLUDING THE THREE THAT ARE NOT A SWIPE.
+   *
+   * A swipe or a scrim tap is Compose's own: it runs the slide-down and THEN
+   * fires `onDismissRequest`. The three actions inside this sheet — play a
+   * clip, +, Edit — went straight to a parent callback that flips
+   * `clipsVisible` false, and unmounting a `ModalBottomSheet` tears its window
+   * down where it stands. Screen-recorded on the A54 at 30fps: the sheet's top
+   * edge held 482.13dp for six consecutive frames and was simply gone on the
+   * seventh. No slide, on the three exits people actually use.
+   *
+   * `hide()` is the imperative half of the same animation, which is what
+   * `EditSoundSheet` has always awaited before calling `onClose`. Same shape
+   * here, so the sheet leaves the same way however you leave it.
+   */
+  const leave = async (action: () => void) => {
+    await sheetRef.current?.hide();
+    action();
+  };
+
   const onDelete = (clipId: string) => {
     haptics.medium();
     setConfirmClipId(null);
@@ -163,15 +187,26 @@ export function ClipsSheet({
   return (
     <>
       <ThemedHost matchContents>
-        {/* No ref: a row press closes through `onClose` like every other exit,
-            so there is nothing here to dismiss imperatively. */}
-        <ModalBottomSheet onDismissRequest={onClose} skipPartiallyExpanded>
+        {/* `onDismissRequest` is the swipe/scrim path, which Compose has
+            already animated by the time it fires. The three in-sheet actions
+            go through `leave` — see it. */}
+        <ModalBottomSheet
+          ref={sheetRef}
+          onDismissRequest={onClose}
+          skipPartiallyExpanded
+        >
           <Column
             verticalArrangement={{ spacedBy: 12 }}
-            // The bottom clears the navigation bar — a Compose sheet's window
-            // runs to the screen edge. See `composeSheetBottomPadding`.
+            // NO HORIZONTAL PADDING HERE — each section states its own, which
+            // is what lets a clip row run to the sheet's EDGES and take the
+            // gutter as a content inset instead. A pressable list row whose
+            // ripple stops short of the edge is not a Material list row, and
+            // the same arrangement is already one file over, on the Shape
+            // sheet's chips row. The bottom clears the navigation bar — a
+            // Compose sheet's window runs to the screen edge. See
+            // `composeSheetBottomPadding`.
             modifiers={[
-              padding(24, 0, 24, composeSheetBottomPadding(insets.bottom)),
+              padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
               fillMaxWidth(),
             ]}
           >
@@ -183,7 +218,10 @@ export function ClipsSheet({
               M3 icon button is that glyph in Material. */}
             <Row
               verticalAlignment="center"
-              modifiers={[fillMaxWidth(), padding(0, 4, 0, 0)]}
+              modifiers={[
+                fillMaxWidth(),
+                padding(COMPOSE_SHEET_GUTTER, 4, COMPOSE_SHEET_GLYPH_INSET, 0),
+              ]}
             >
               <Text
                 color={colors.onSurface}
@@ -193,7 +231,7 @@ export function ClipsSheet({
               >
                 {t('player.clips.title')}
               </Text>
-              <IconButton onClick={onNewClip}>
+              <IconButton onClick={() => void leave(onNewClip)}>
                 <AppIcon
                   name="add"
                   tint={colors.onSurface}
@@ -202,14 +240,28 @@ export function ClipsSheet({
               </IconButton>
             </Row>
 
-            {failure ? <SheetErrorLine message={failure} /> : null}
+            {failure ? (
+              <Column
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
+              >
+                <SheetErrorLine message={failure} />
+              </Column>
+            ) : null}
 
             {!settled ? (
               <Column
                 horizontalAlignment="center"
                 modifiers={[
                   fillMaxWidth(),
-                  padding(0, STATE_PADDING, 0, STATE_PADDING),
+                  padding(
+                    COMPOSE_SHEET_GUTTER,
+                    STATE_PADDING,
+                    COMPOSE_SHEET_GUTTER,
+                    STATE_PADDING,
+                  ),
                 ]}
               >
                 {showSpinner ? (
@@ -233,7 +285,12 @@ export function ClipsSheet({
                 verticalArrangement={{ spacedBy: 8 }}
                 modifiers={[
                   fillMaxWidth(),
-                  padding(0, STATE_PADDING, 0, STATE_PADDING),
+                  padding(
+                    COMPOSE_SHEET_GUTTER,
+                    STATE_PADDING,
+                    COMPOSE_SHEET_GUTTER,
+                    STATE_PADDING,
+                  ),
                 ]}
               >
                 <Text style={{ fontSize: EMPTY_EMOJI_SIZE }}>✂️</Text>
@@ -268,9 +325,13 @@ export function ClipsSheet({
                       // the frame's own range — is the player underneath.
                       // Staying put left the person looking at a list while the
                       // sound they asked for played somewhere they could not see.
+                      // The sound starts BEFORE the hide, not after it: the
+                      // press is a request to HEAR this, and the answer should
+                      // not wait on an animation. The sheet then slides away
+                      // over a player that is already playing.
                       onClick={() => {
                         playClip(clip.id, clip.startMs, clip.endMs);
-                        onClose();
+                        void leave(onClose);
                       }}
                       color="transparent"
                       shape={CLIP_ROW_SHAPE}
@@ -279,7 +340,23 @@ export function ClipsSheet({
                       <Row
                         verticalAlignment="center"
                         horizontalArrangement={{ spacedBy: 12 }}
-                        modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
+                        // The ROW is inset, not the Surface around it, so the
+                        // press ripple reaches the sheet's edges the way
+                        // Material's own list rows do — and the range lands on
+                        // the same gutter as the title above it. It used to
+                        // carry a bare 12 inside a Column already padded 24,
+                        // which put the text 11.73dp inboard of that title
+                        // (measured 25.60 against 37.33 on the A54) and bought
+                        // no bleed in return.
+                        modifiers={[
+                          fillMaxWidth(),
+                          padding(
+                            COMPOSE_SHEET_GUTTER,
+                            4,
+                            COMPOSE_SHEET_GLYPH_INSET,
+                            4,
+                          ),
+                        ]}
                       >
                         <Column
                           verticalArrangement={{ spacedBy: 1 }}
@@ -324,11 +401,13 @@ export function ClipsSheet({
                             <DropdownMenuItem
                               onClick={() => {
                                 setMenuClipId(null);
-                                onEditClip({
-                                  id: clip.id,
-                                  startMs: clip.startMs,
-                                  endMs: clip.endMs,
-                                });
+                                void leave(() =>
+                                  onEditClip({
+                                    id: clip.id,
+                                    startMs: clip.startMs,
+                                    endMs: clip.endMs,
+                                  }),
+                                );
                               }}
                             >
                               <DropdownMenuItem.Text>

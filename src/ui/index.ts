@@ -82,6 +82,9 @@ export {
 } from './sheetHero';
 export {
   composeSheetBottomPadding,
+  COMPOSE_SHEET_BOTTOM_GAP,
+  COMPOSE_SHEET_GLYPH_INSET,
+  COMPOSE_SHEET_GUTTER,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
   SHEET_TITLE_TO_CONTENT,
