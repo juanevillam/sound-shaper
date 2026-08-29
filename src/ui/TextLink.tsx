@@ -74,5 +74,17 @@ export function TextLink({ label, color, onPress, style }: TextLinkProps) {
 }
 
 const styles = StyleSheet.create({
-  link: { fontWeight: '600' },
+  /**
+   * REGULAR, not semibold — the tint is what says "link", and the weight is
+   * what says "important". A legal disclaimer is the least important line on
+   * the screen and was shouting louder than the app's own byline.
+   *
+   * It is also the weight the two NATIVE links in this family already use:
+   * iOS's author credit is a SwiftUI `Link` at plain `subheadline`, and a
+   * SwiftUI markdown link renders accent-on-regular. Apple tints links in fine
+   * print and leaves the weight alone (the App Store's terms footer, the Apple
+   * ID consent sheets). 600 was the outlier, and it made the ANDROID credit
+   * semibold against its own iOS twin once both went through this component.
+   */
+  link: { fontWeight: '400' },
 });
