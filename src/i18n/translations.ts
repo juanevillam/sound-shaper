@@ -132,7 +132,24 @@ export const translations = {
         // crowded the bar's trailing glyph.
         noneSummary: 'None',
         count: '{n} saved',
+        // Names the glyph that marks the sounding row. COLOUR ALONE IS NOT AN
+        // INDICATOR, so the accent is paired with a mark — and a mark needs a
+        // name for anyone who cannot see it. Music does the same.
+        playing: 'Now Playing',
         delete: 'Delete Clip',
+        // A DIALOG, not an undo toast, and the reason is the container. A
+        // snackbar fired from inside an open Compose `ModalBottomSheet` draws
+        // BEHIND it — that sheet is its own window above the RN root, which is
+        // what `SnackbarOutlet` exists to solve on iOS and what Android has no
+        // outlet for. So the confirmation has to live in a window of its own,
+        // which is exactly what the sound editor's delete already does one
+        // sheet over.
+        deleteConfirm: {
+          title: 'Delete This Clip?',
+          message: 'The clip will be deleted. This can’t be undone.',
+          confirm: 'Delete',
+          cancel: 'Cancel',
+        },
         // VoiceOver only — the trim frame's three adjustable elements.
         selection: 'Clip',
         startHandle: 'Clip start',
@@ -405,7 +422,14 @@ export const translations = {
         none: 'Aún no hay clips',
         noneSummary: 'Ninguno',
         count: '{n} guardados',
+        playing: 'Reproduciendo',
         delete: 'Eliminar clip',
+        deleteConfirm: {
+          title: '¿Eliminar este clip?',
+          message: 'El clip se eliminará. Esta acción no se puede deshacer.',
+          confirm: 'Eliminar',
+          cancel: 'Cancelar',
+        },
         selection: 'Clip',
         startHandle: 'Inicio del clip',
         endHandle: 'Fin del clip',
@@ -674,7 +698,14 @@ export const translations = {
         none: '还没有片段',
         noneSummary: '无',
         count: '已存储 {n} 个',
+        playing: '正在播放',
         delete: '删除片段',
+        deleteConfirm: {
+          title: '删除此片段？',
+          message: '此片段将被删除。此操作无法撤销。',
+          confirm: '删除',
+          cancel: '取消',
+        },
         selection: '片段',
         startHandle: '片段起点',
         endHandle: '片段终点',

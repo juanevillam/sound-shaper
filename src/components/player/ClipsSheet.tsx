@@ -1,7 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import {
+  CircularWavyProgressIndicator,
   Column,
+  DropdownMenu,
+  DropdownMenuItem,
   IconButton,
   ModalBottomSheet,
   Row,
@@ -13,14 +16,20 @@ import {
 import {
   fillMaxWidth,
   padding,
+  size,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
-import { AppIcon, composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import {
+  AppIcon,
+  composeSheetBottomPadding,
+  DestructiveConfirmDialog,
+} from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SheetBar } from '@/components/ui/SheetBar';
+import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -29,9 +38,17 @@ import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 
-// The saved-clips manager (the Shape sheet's sibling): play or delete what
-// you've framed, or jump into framing a new one — the framing itself happens
-// ON the player's scrubber, where the sound is.
+// The saved-clips manager (the Shape sheet's sibling): play, re-frame or delete
+// what you've framed, or jump into framing a new one — the framing itself
+// happens ON the player's scrubber, where the sound is.
+//
+// THE TWIN IS `app/(app)/clips.tsx`, and it has the same parts under the same
+// names: a title with an ADD action (never a commit — this sheet saves nothing),
+// a spinner while the first snapshot is in flight, a real empty state, and rows
+// that play, edit and delete. What differs is the language. iOS puts edit and
+// delete on opposed swipe edges because that is where iOS hides row actions;
+// Material puts them in an overflow menu, which is also what removes the
+// unguarded single-tap delete this sheet used to carry.
 
 const CLIP_ROW_SHAPE = Shape.RoundedCorner({
   cornerRadii: {
@@ -47,18 +64,40 @@ const NO_CLIPS: never[] = [];
 /** Breathing room under the last row, on top of the navigation bar. */
 const SHEET_BOTTOM_GAP = 28;
 
+/** The M3 loading indicator's box, matching `SheetBar`'s commit spinner. */
+const SPINNER_SIZE = 20;
+/** The empty state's mark. `EmptyState`'s own step, which it draws at 48. */
+const EMPTY_EMOJI_SIZE = 48;
+const MENU_ICON_SIZE = 24;
+/** Vertical air around the two state branches, so neither sits on the bar. */
+const STATE_PADDING = 32;
+
 export type ClipsSheetProps = {
   /** Close the sheet and drop the trim brackets on the player's scrubber. */
   onNewClip: () => void;
+  /**
+   * Re-frame an existing clip: close the sheet and drop the brackets on ITS
+   * range rather than around the playhead. Saving updates that clip instead of
+   * creating another — one anatomy for framing and re-framing, which is the
+   * same thing iOS's leading swipe reaches.
+   */
+  onEditClip: (clip: { id: string; startMs: number; endMs: number }) => void;
   onClose: () => void;
 };
 
-export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
+export function ClipsSheet({
+  onNewClip,
+  onEditClip,
+  onClose,
+}: ClipsSheetProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
+  const [menuClipId, setMenuClipId] = useState<string | null>(null);
+  /** The clip whose destructive confirmation is up — see `onDelete`. */
+  const [confirmClipId, setConfirmClipId] = useState<string | null>(null);
 
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
@@ -72,121 +111,293 @@ export function ClipsSheet({ onNewClip, onClose }: ClipsSheetProps) {
    * identical in `clips` — see the iOS twin (`app/(app)/clips.tsx`), which
    * carries the full write-up. `settledBySoundId` was put in the store for
    * this branch and had never been read by either platform.
-   *
-   * WRITTEN UNVERIFIED, under the Android freeze: the feature spans both twins
-   * and leaving this one asserting "no clips" while iOS waits would be exactly
-   * the drift this repo hates, but nothing Android is installed or run.
-   * Re-check on device when Android resumes. Android shows the plain waiting
-   * line rather than iOS's spinner — a Compose bottom sheet that has just
-   * animated in has no empty box to centre a control in, and this text sits
-   * where the empty-state line already does.
    */
   const settled = useClipsStore(s =>
     current ? (s.settledBySoundId[current.id] ?? false) : false,
   );
+  /**
+   * A SPINNER, NOT A LINE OF TEXT — the same call iOS made, in Material. The
+   * rule (root AGENTS.md → "Waiting has two shapes") sends predictable shapes
+   * to a bone and unpredictable ones to a spinner, and nothing knows how many
+   * clips a sound has until the snapshot lands. This shipped as a muted
+   * `bodySmall` reading "Loading clips…" on the argument that a bottom sheet
+   * which has just animated in has no empty box to centre a control in; it has
+   * one, and a sentence where every other waiting surface in the portfolio
+   * shows a control was the odd one out. Delayed by the same 400ms every other
+   * first-load surface uses, so the usual instant cache hit shows nothing at
+   * all rather than a flash.
+   */
+  const showSpinner = useDelayedShow(SKELETON_DELAY_MS);
 
   if (!current) return null;
 
+  /**
+   * A CONFIRMATION, AND IT HAS TO BE A DIALOG — the one thing this sheet cannot
+   * use is a toast.
+   *
+   * Deleting was a single unguarded tap on a trailing trash glyph, where iOS
+   * hides the same action behind a swipe; one mis-tap and a clip was gone. An
+   * undo snackbar was built first, because a reversible destructive list action
+   * is Material's own idiom for exactly this — and it is INVISIBLE HERE.
+   * Verified on the A54: a Compose `ModalBottomSheet` is its own window above
+   * the RN root, so the toast drew behind it and the row simply vanished with
+   * no explanation and no way back. That is not new — the plain `clip-deleted`
+   * toast this sheet has always fired was never visible either, for the same
+   * reason; nobody had looked. (iOS solves it with `SnackbarOutlet`; Android
+   * has no outlet inside a Compose window.)
+   *
+   * So the confirmation goes in a window of its own, which is what the sound
+   * editor's delete already does one sheet over — same component, same shape.
+   * The toast still fires on FAILURE, and by then the sheet is beside the
+   * point.
+   */
   const onDelete = (clipId: string) => {
     haptics.medium();
-    deleteClip({ clipId, soundId: current.id })
-      .then(() => showSnackbar(t('snackbar.clip-deleted')))
-      .catch(() => showSnackbar(t('snackbar.clip-delete-failed')));
+    setConfirmClipId(null);
+
+    deleteClip({ clipId, soundId: current.id }).catch(() =>
+      showSnackbar(t('snackbar.clip-delete-failed')),
+    );
   };
 
   return (
-    <ThemedHost matchContents>
-      <ModalBottomSheet
-        ref={sheetRef}
-        onDismissRequest={onClose}
-        skipPartiallyExpanded
-      >
-        <Column
-          verticalArrangement={{ spacedBy: 12 }}
-          // The bottom clears the navigation bar — a Compose sheet's window
-          // runs to the screen edge. See `composeSheetBottomPadding`.
-          modifiers={[
-            padding(
-              24,
-              0,
-              24,
-              composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
-            ),
-            fillMaxWidth(),
-          ]}
+    <>
+      <ThemedHost matchContents>
+        <ModalBottomSheet
+          ref={sheetRef}
+          onDismissRequest={onClose}
+          skipPartiallyExpanded
         >
-          {/* The shared sheet header — same bar as every other sheet. */}
-          <SheetBar
-            title={t('player.clips.title')}
-            saveLabel={t('player.clips.new')}
-            saving={false}
-            onSave={onNewClip}
-          />
+          <Column
+            verticalArrangement={{ spacedBy: 12 }}
+            // The bottom clears the navigation bar — a Compose sheet's window
+            // runs to the screen edge. See `composeSheetBottomPadding`.
+            modifiers={[
+              padding(
+                24,
+                0,
+                24,
+                composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
+              ),
+              fillMaxWidth(),
+            ]}
+          >
+            {/* NOT `SheetBar`. That bar pairs a title with a filled Save pill,
+              and this sheet commits NOTHING — it lists what exists and its
+              trailing action ADDS one. A prominent filled button is Material's
+              primary-commit shape, so it said "done" about a form there is
+              none of; iOS reached the same conclusion and draws a `plus`. An
+              M3 icon button is that glyph in Material. */}
+            <Row
+              verticalAlignment="center"
+              modifiers={[fillMaxWidth(), padding(0, 4, 0, 0)]}
+            >
+              <Text
+                color={colors.onSurface}
+                style={{ typography: 'titleLarge' }}
+                maxLines={1}
+                modifiers={[weight(1)]}
+              >
+                {t('player.clips.title')}
+              </Text>
+              <IconButton onClick={onNewClip}>
+                <AppIcon
+                  name="add"
+                  tint={colors.onSurface}
+                  contentDescription={t('player.clips.new')}
+                />
+              </IconButton>
+            </Row>
 
-          {!settled ? (
-            <Text
-              color={colors.onSurfaceMuted}
-              style={{ typography: 'bodySmall' }}
-            >
-              {t('player.clips.loading')}
-            </Text>
-          ) : clips.length === 0 ? (
-            <Text
-              color={colors.onSurfaceMuted}
-              style={{ typography: 'bodySmall' }}
-            >
-              {t('player.clips.empty')}
-            </Text>
-          ) : (
-            <Column
-              verticalArrangement={{ spacedBy: 2 }}
-              modifiers={[fillMaxWidth()]}
-            >
-              {clips.map(clip => {
-                const isActive = activeClip?.clipId === clip.id;
-                const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+            {!settled ? (
+              <Column
+                horizontalAlignment="center"
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(0, STATE_PADDING, 0, STATE_PADDING),
+                ]}
+              >
+                {showSpinner ? (
+                  <CircularWavyProgressIndicator
+                    color={colors.primary}
+                    modifiers={[size(SPINNER_SIZE, SPINNER_SIZE)]}
+                  />
+                ) : null}
+              </Column>
+            ) : clips.length === 0 ? (
+              /* A REAL EMPTY STATE, the parts `EmptyState` names — a mark, a
+               title, a supporting line — rather than the lone muted sentence
+               that used to stand here while iOS drew the full thing.
 
-                return (
-                  <Surface
-                    key={clip.id}
-                    onClick={() => playClip(clip.id, clip.startMs, clip.endMs)}
-                    color="transparent"
-                    shape={CLIP_ROW_SHAPE}
-                    modifiers={[fillMaxWidth()]}
-                  >
-                    <Row
-                      verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 12 }}
-                      modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
+               It is re-drawn in Compose rather than mounted: `EmptyState` hosts
+               its OWN `Host`, and a Host inside this sheet's Host is the nesting
+               blow-up the RNHostView notes record. Same parts, same steps, same
+               strings; only the container differs. */
+              <Column
+                horizontalAlignment="center"
+                verticalArrangement={{ spacedBy: 8 }}
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(0, STATE_PADDING, 0, STATE_PADDING),
+                ]}
+              >
+                <Text style={{ fontSize: EMPTY_EMOJI_SIZE }}>✂️</Text>
+                <Text
+                  color={colors.onSurface}
+                  style={{ typography: 'titleLarge', textAlign: 'center' }}
+                >
+                  {t('player.clips.none')}
+                </Text>
+                <Text
+                  color={colors.onSurfaceMuted}
+                  style={{ typography: 'bodyMedium', textAlign: 'center' }}
+                >
+                  {t('player.clips.empty')}
+                </Text>
+              </Column>
+            ) : (
+              <Column
+                verticalArrangement={{ spacedBy: 2 }}
+                modifiers={[fillMaxWidth()]}
+              >
+                {clips.map(clip => {
+                  const isActive = activeClip?.clipId === clip.id;
+                  const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+
+                  return (
+                    <Surface
+                      key={clip.id}
+                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
+                      // does. Playing one is a request to HEAR it, and the thing
+                      // that shows what is sounding — the artwork, the scrubber,
+                      // the frame's own range — is the player underneath.
+                      // Staying put left the person looking at a list while the
+                      // sound they asked for played somewhere they could not see.
+                      onClick={() => {
+                        playClip(clip.id, clip.startMs, clip.endMs);
+                        onClose();
+                      }}
+                      color="transparent"
+                      shape={CLIP_ROW_SHAPE}
+                      modifiers={[fillMaxWidth()]}
                     >
-                      <Column
-                        verticalArrangement={{ spacedBy: 1 }}
-                        modifiers={[weight(1)]}
+                      <Row
+                        verticalAlignment="center"
+                        horizontalArrangement={{ spacedBy: 12 }}
+                        modifiers={[fillMaxWidth(), padding(12, 4, 0, 4)]}
                       >
-                        <Text
-                          color={isActive ? colors.primary : colors.onSurface}
-                          style={{ typography: 'bodyLarge' }}
-                          maxLines={1}
+                        <Column
+                          verticalArrangement={{ spacedBy: 1 }}
+                          modifiers={[weight(1)]}
                         >
-                          {range}
-                        </Text>
-                      </Column>
-                      <IconButton onClick={() => onDelete(clip.id)}>
-                        <AppIcon
-                          name="delete"
-                          size={20}
-                          tint={colors.onSurfaceMuted}
-                          contentDescription={t('player.clips.delete')}
-                        />
-                      </IconButton>
-                    </Row>
-                  </Surface>
-                );
-              })}
-            </Column>
-          )}
-        </Column>
-      </ModalBottomSheet>
-    </ThemedHost>
+                          <Text
+                            color={isActive ? colors.primary : colors.onSurface}
+                            style={{ typography: 'bodyLarge' }}
+                            maxLines={1}
+                          >
+                            {range}
+                          </Text>
+                        </Column>
+                        {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
+                          Material marks an active list item with the accent and
+                          that stays, but COLOUR ALONE IS NOT AN INDICATOR for
+                          anyone who cannot see this particular colour — the
+                          accent was the only marker here, where iOS has always
+                          paired it with a mark. Music does the same. */}
+                        {isActive ? (
+                          <AppIcon
+                            name="graphic-eq"
+                            size={MENU_ICON_SIZE}
+                            tint={colors.primary}
+                            contentDescription={t('player.clips.playing')}
+                          />
+                        ) : null}
+                        <DropdownMenu
+                          expanded={menuClipId === clip.id}
+                          onDismissRequest={() => setMenuClipId(null)}
+                        >
+                          <DropdownMenu.Trigger>
+                            <IconButton onClick={() => setMenuClipId(clip.id)}>
+                              <AppIcon
+                                name="more-vert"
+                                tint={colors.onSurfaceMuted}
+                                contentDescription={t('player.menu.label')}
+                              />
+                            </IconButton>
+                          </DropdownMenu.Trigger>
+                          <DropdownMenu.Items>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setMenuClipId(null);
+                                onEditClip({
+                                  id: clip.id,
+                                  startMs: clip.startMs,
+                                  endMs: clip.endMs,
+                                });
+                              }}
+                            >
+                              <DropdownMenuItem.Text>
+                                <Text color={colors.onSurface}>
+                                  {t('player.clips.editAction')}
+                                </Text>
+                              </DropdownMenuItem.Text>
+                              <DropdownMenuItem.LeadingIcon>
+                                <AppIcon
+                                  name="edit"
+                                  size={MENU_ICON_SIZE}
+                                  tint={colors.onSurface}
+                                />
+                              </DropdownMenuItem.LeadingIcon>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setMenuClipId(null);
+                                setConfirmClipId(clip.id);
+                              }}
+                            >
+                              <DropdownMenuItem.Text>
+                                <Text color={colors.danger}>
+                                  {t('player.clips.delete')}
+                                </Text>
+                              </DropdownMenuItem.Text>
+                              <DropdownMenuItem.LeadingIcon>
+                                <AppIcon
+                                  name="delete"
+                                  size={MENU_ICON_SIZE}
+                                  tint={colors.danger}
+                                />
+                              </DropdownMenuItem.LeadingIcon>
+                            </DropdownMenuItem>
+                          </DropdownMenu.Items>
+                        </DropdownMenu>
+                      </Row>
+                    </Surface>
+                  );
+                })}
+              </Column>
+            )}
+          </Column>
+        </ModalBottomSheet>
+      </ThemedHost>
+
+      {/* Its OWN Host — a dialog mounted beside other Compose content in one
+          Host flickers the siblings, which is the note `EditSoundSheet` records
+          for the identical arrangement. */}
+      {confirmClipId ? (
+        <ThemedHost matchContents>
+          <DestructiveConfirmDialog
+            dialog={{
+              title: t('player.clips.deleteConfirm.title'),
+              message: t('player.clips.deleteConfirm.message'),
+              confirm: t('player.clips.deleteConfirm.confirm'),
+              cancel: t('player.clips.deleteConfirm.cancel'),
+            }}
+            colors={{ danger: colors.danger }}
+            onConfirm={() => onDelete(confirmClipId)}
+            onDismiss={() => setConfirmClipId(null)}
+          />
+        </ThemedHost>
+      ) : null}
+    </>
   );
 }

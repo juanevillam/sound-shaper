@@ -209,6 +209,12 @@ export type ClipActionsRowProps = {
   onPreview: () => void;
   onSave: () => void;
   /**
+   * Re-framing an existing clip rather than making one. Only the row's LABEL
+   * changes — the surface, the gestures and Save are the same anatomy, which is
+   * the point of reaching edit through it (see `PlayerSheet`'s `onEditClip`).
+   */
+  editing: boolean;
+  /**
    * Measured content-box width. iOS draws this row as the glass bar it stands
    * in for, and `GlassSurfaceIos` takes a real box rather than a flex one.
    * Android ignores it — its row is a plain Compose surface.
@@ -288,6 +294,8 @@ export type PlayerConsoleProps = {
   onClipCancel: () => void;
   onClipPreview: () => void;
   onClipSave: () => void;
+  /** Framing is re-framing an existing clip — see `ClipActionsRowProps`. */
+  clipEditing: boolean;
 
   /* The two studios, and the overflow behind the title. */
   cards: readonly PlayerCard[];

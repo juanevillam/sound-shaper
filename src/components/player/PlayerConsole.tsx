@@ -35,11 +35,12 @@ import {
 // as Material, that is because it is Material and is meant to be. The iOS
 // surface is `PlayerConsole.ios.tsx`.
 //
-// ANDROID IS NOT BEING VERIFIED. The portfolio is iOS-only until iOS is done —
-// nothing Android is installed or run — so this file is effectively frozen
-// whatever the release-freeze's exact wording covers. Edit it only when a
-// feature genuinely spans both twins, and expect to re-check it on device when
-// Android comes back.
+// IT IS VERIFIED NOW. This file spent months carrying a note saying nothing
+// Android was installed and so nothing here could be checked; that stopped
+// being true on 2026-08-28, when the A54 became the standing target and this
+// console was walked on it. The RELEASE freeze still stands — features and
+// flows need an explicit ask — but feel does not, and "written but unverified"
+// is no longer an acceptable state for anything in here.
 //
 // A fixed column, nothing scrolls, so nothing can fight the drag-to-close
 // gesture: art (owned by the sheet, above), title with an overflow menu, the
@@ -52,6 +53,7 @@ const SIDE_PADDING = 24;
 
 export function PlayerConsole({
   cards,
+  clipEditing,
   clipMode,
   clipRange,
   consoleStyle,
@@ -235,6 +237,7 @@ export function PlayerConsole({
         {clipMode ? (
           <View style={styles.firstCardHost}>
             <ClipActionsRow
+              editing={clipEditing}
               onCancel={onClipCancel}
               onPreview={onClipPreview}
               onSave={onClipSave}
@@ -328,9 +331,10 @@ const styles = StyleSheet.create({
   // The cards' own height, from the term `PlayerCards` already imports — it was
   // a re-typed 96 beside it, which is the same value on Android and the wrong
   // way to say it.
+  // Only ever applied together with `firstCardHost`, which is why it states no
+  // top margin of its own — it carried a 12 that the 28 below always won.
   cardHost: {
     height: CARDS_HEIGHT,
-    marginTop: 12,
     width: '100%',
   },
   // Extra air between the transport and the first card.

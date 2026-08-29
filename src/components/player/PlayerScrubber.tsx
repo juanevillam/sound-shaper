@@ -49,8 +49,8 @@ export function PlayerScrubber({
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelMedium' }}
           >
-            {/* `-:--` while unknown - see the iOS twin. UNVERIFIED on
-                device (Android is frozen); re-check when Android resumes. */}
+            {/* `-:--` while unknown — see the iOS twin. Walked on the A54
+                2026-08-28. */}
             {totalDuration > 0 ? formatTime(totalDuration) : '-:--'}
           </Text>
         </Row>

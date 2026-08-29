@@ -76,7 +76,7 @@ import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { createClip } from '@/services/firebase/clips';
+import { createClip, updateClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
@@ -1074,6 +1074,13 @@ export function PlayerSheet() {
   // exited by save / dismiss / track change.
   const [clipMode, setClipMode] = useState(false);
   const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
+  /**
+   * WHICH clip framing is editing, or null for a new one. Re-framing reuses the
+   * whole framing surface rather than growing a second one — one anatomy for
+   * framing and re-framing, which is the rule iOS's `clip-trim` states for its
+   * own editor. Only the COMMIT differs, below.
+   */
+  const [editingClipId, setEditingClipId] = useState<string | null>(null);
 
   /**
    * LEAVING FRAMING RELEASES THE PREVIEW'S END-STOP. `activeClip` survives
@@ -1088,6 +1095,7 @@ export function PlayerSheet() {
    */
   const exitFraming = useCallback(() => {
     setClipMode(false);
+    setEditingClipId(null);
     const { activeClip, clearActiveClip } = usePlayerStore.getState();
     if (activeClip?.clipId === 'preview') clearActiveClip();
   }, []);
@@ -1149,6 +1157,7 @@ export function PlayerSheet() {
   // From the Clips sheet: close it, drop the brackets around the playhead.
   const onStartFraming = () => {
     setClipsVisible(false);
+    setEditingClipId(null);
     // Read once, at the moment of the action — the sheet no longer holds a
     // live playhead, and a clip framed "around here" only ever meant the
     // instant the button was pressed anyway.
@@ -1158,6 +1167,22 @@ export function PlayerSheet() {
     );
     const end = Math.min(trimmerDuration || 15, start + 15);
     setClipRange({ startS: start, endS: Math.max(end, start + 1) });
+    // Framing is a quiet mode — see the store's `pause`.
+    usePlayerStore.getState().pause();
+    setClipMode(true);
+  };
+
+  /**
+   * RE-FRAME AN EXISTING CLIP, from the Clips sheet's overflow. Same surface,
+   * same gestures, same Save — seeded with the clip's own range instead of a
+   * window around the playhead, and committing an UPDATE. It is what iOS's
+   * leading swipe reaches; Android says it in an overflow menu because that is
+   * where Material hides a row's actions.
+   */
+  const onEditClip = (clip: { id: string; startMs: number; endMs: number }) => {
+    setClipsVisible(false);
+    setEditingClipId(clip.id);
+    setClipRange({ startS: clip.startMs / 1000, endS: clip.endMs / 1000 });
     // Framing is a quiet mode — see the store's `pause`.
     usePlayerStore.getState().pause();
     setClipMode(true);
@@ -1194,7 +1219,24 @@ export function PlayerSheet() {
 
   const onSaveClip = () => {
     haptics.selection();
+    const clipId = editingClipId;
     exitFraming();
+
+    // RE-FRAMING UPDATES, IT DOES NOT ADD. It also earns nothing: the trophies
+    // below count clips a person has SAVED, and moving one clip's edges is not
+    // a second clip.
+    if (clipId) {
+      updateClip({
+        clipId,
+        soundId: current.id,
+        startMs: clipRange.startS * 1000,
+        endMs: clipRange.endS * 1000,
+      })
+        .then(() => showSnackbar(t('snackbar.clip-updated')))
+        .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
+      return;
+    }
+
     createClip({
       soundId: current.id,
       startMs: clipRange.startS * 1000,
@@ -1411,6 +1453,7 @@ export function PlayerSheet() {
         {playerMounted ? (
           <PlayerConsole
             cards={cards}
+            clipEditing={editingClipId !== null}
             clipMode={clipMode}
             clipRange={clipRange}
             consoleStyle={expandedStyle}
@@ -1550,6 +1593,7 @@ export function PlayerSheet() {
       {clipsVisible && (
         <ClipsSheet
           onNewClip={onStartFraming}
+          onEditClip={onEditClip}
           onClose={() => setClipsVisible(false)}
         />
       )}
