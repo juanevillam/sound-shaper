@@ -27,7 +27,15 @@ const fire = (run: () => Promise<void>) => {
 };
 
 export const haptics = {
-  /** Light tick for a discrete choice: a saved clip, a picked preset. */
+  /**
+   * Light tick for a discrete choice: a saved clip, a trimmed clip's handles.
+   *
+   * NOT AN EQ PRESET, which is the one discrete choice in this app that
+   * deliberately stays silent. It was walked on device on 2026-08-28 and left
+   * that way on purpose: the Shape sheet's whole job is to make you listen, and
+   * a tap in the hand at the moment the curve changes competes with the thing
+   * you are there to judge.
+   */
   selection: () => fire(() => Haptics.selectionAsync()),
   /** A committed action: deleting a sound or a clip. */
   medium: () =>
