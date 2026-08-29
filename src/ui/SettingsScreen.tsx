@@ -32,11 +32,13 @@ import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
 import {
   SettingsAccountSection,
+  SettingsSignOutSection,
   UsernameDialog,
   type SettingsAccountColors,
   type SettingsAccountSectionProps,
 } from './SettingsAccountSection';
 import {
+  dialogContainer,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,
@@ -297,7 +299,7 @@ const RadioOptionsDialog = ({
   return (
     <BasicAlertDialog onDismissRequest={onDismiss}>
       <Surface
-        tonalElevation={6}
+        color={dialogContainer(colors)}
         modifiers={[width(DIALOG_WIDTH), clip(Shapes.RoundedCorner(28))]}
       >
         <Column modifiers={[fillMaxWidth()]}>
@@ -397,6 +399,33 @@ export const SettingsScreen = ({
     section => section.title === openSectionTitle,
   );
 
+  /**
+   * IS THE ACCOUNT BLOCK A GROUP, OR JUST THE SIGN-OUT ACTION?
+   *
+   * An app that passes a profile, nav rows or danger rows has a real account
+   * GROUP, and it renders where it always has — between General and About.
+   * An app that passes only the sign-out fields (the starter, and Topper, whose
+   * identity lives on its Profile tab) has no group at all: it has one
+   * destructive ACTION, and a lone action does not belong wedged between two
+   * content groups under a header naming a group that isn't there.
+   *
+   * So that case renders LAST, headerless, after About — which is where Google
+   * puts "Sign out", and independently the shape iOS already had (a trailing
+   * bare card; `SettingsLegalConfig` records the same argument for why Sign Out
+   * is the ONE headerless card on that side). Two platforms, one reason: a
+   * header names a group, and this is not one.
+   *
+   * Apps WITH an identity group are deliberately untouched here. Whether their
+   * account block should lead the screen the way Apple's does is a real
+   * question — it is row 8 of the 2026-08-29 parity audit — but answering it
+   * moves Topper's and Sound Shaper's Settings, and neither was on the device
+   * for this pass.
+   */
+  const accountIsGroup = Boolean(
+    account &&
+    (account.profile || account.navRows?.length || account.dangerRows?.length),
+  );
+
   return (
     <Screen backgroundColor={colors.background}>
       <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
@@ -411,9 +440,25 @@ export const SettingsScreen = ({
               modifiers={[fillMaxWidth()]}
               verticalArrangement={{ spacedBy: 8 }}
             >
+              {/* A GROUP HEADER IS A LABEL, SO IT TAKES THE INK.
+                  It used to be `colors.primary`, which on a wallpaper-derived
+                  palette rendered #4979F6 on the A54 — the same accent in both
+                  appearances — for three static strings that carry no state, no
+                  selection and no action. Google's own Settings does tint its
+                  category headers, so this was a defensible Material reading;
+                  it is not the house one. The monochrome rule crossed to
+                  Android on 2026-08-29 and its first bucket is exactly this
+                  case: colour a thing was given because the framework tints it
+                  by default, saying nothing. `onSurfaceVariant` is what M3
+                  spends on a list subheader anyway.
+
+                  What KEEPS its colour on this screen is what means something:
+                  the destructive sign-out row stays `danger`, and the radio
+                  dialog's selected button stays the accent — that one IS the
+                  selection. */}
               {sectionsTitle ? (
                 <Text
-                  color={colors.primary}
+                  color={colors.onSurfaceMuted}
                   style={{ typography: 'labelLarge' }}
                   modifiers={[padding(16, 16, 16, 8)]}
                 >
@@ -445,7 +490,7 @@ export const SettingsScreen = ({
                 ))}
               </Column>
 
-              {account ? (
+              {account && accountIsGroup ? (
                 <SettingsAccountSection
                   {...account}
                   colors={colors}
@@ -458,9 +503,10 @@ export const SettingsScreen = ({
 
               {about ? (
                 <>
+                  {/* Ink, not the accent — see the note on `sectionsTitle`. */}
                   {about.title ? (
                     <Text
-                      color={colors.primary}
+                      color={colors.onSurfaceMuted}
                       style={{
                         typography: 'labelLarge',
                       }}
@@ -490,6 +536,19 @@ export const SettingsScreen = ({
                     ))}
                   </Column>
                 </>
+              ) : null}
+
+              {/* A lone sign-out closes the screen instead of sitting under an
+                  "Account" header that names a group it isn't. See
+                  `accountIsGroup` above. */}
+              {account && !accountIsGroup ? (
+                <SettingsSignOutSection
+                  signOutLabel={account.signOutLabel}
+                  signOutDialog={account.signOutDialog}
+                  onSignOut={account.onSignOut}
+                  colors={colors}
+                  onOpenSignOutConfirm={openSignOutConfirm}
+                />
               ) : null}
             </Column>
           </Host>
