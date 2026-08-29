@@ -122,9 +122,9 @@ export default function RootLayout() {
             {/* `dismissLabel` is Android's action-less dismiss slot — it
                 shipped as a hardcoded English 'OK' inside the package's
                 default, the one user-facing string outside translations.ts.
-                Android is frozen, so this ships UNVERIFIED until the freeze
-                lifts (recorded in the 2026-08-28 craft audit); Topper carries
-                the identical line. */}
+                Walked on the A54 2026-08-28: a clip-saved toast renders "Clip
+                saved" with an "OK" dismiss. Topper carries the identical
+                line. */}
             <SnackbarProvider dismissLabel={t('common.ok')}>
               <Stack
                 screenOptions={{

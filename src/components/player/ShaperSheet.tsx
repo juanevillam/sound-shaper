@@ -1,5 +1,3 @@
-import { useRef } from 'react';
-
 import {
   Column,
   FilterChip,
@@ -8,7 +6,6 @@ import {
   Slider,
   Switch,
   Text,
-  type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
@@ -45,7 +42,8 @@ const EQ_LABEL_WIDTH = 36;
 // its full size while the five bands read as a tighter group. The gap between
 // them comes from the column's spacing, not from padding each row out.
 const EQ_ROW_HEIGHT = 34;
-// Band sliders snap per dB; speed snaps to quarter steps.
+// Band sliders snap per dB; speed snaps to tenths (`RATE_STEP`). The comment
+// here said "quarter steps" for as long as the constant below said 0.1.
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 const RATE_MIN = 0.5;
 const RATE_MAX = 1.5;
@@ -65,7 +63,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t, locale } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const sheetRef = useRef<ModalBottomSheetRef>(null);
 
   const rate = usePlayerStore(s => s.rate);
   const setRate = usePlayerStore(s => s.setRate);
@@ -113,12 +110,11 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           the Back/Home glyphs. `@expo/ui` 57 exposes no `contentWindowInsets`
           (its `ModalBottomSheetView.kt` names no insets at all) and M3's own
           default applies the TOP side only, so trailing content padding is the
-          available lever and full height is what removes the collision. */}
-      <ModalBottomSheet
-        ref={sheetRef}
-        onDismissRequest={onClose}
-        skipPartiallyExpanded
-      >
+          available lever and full height is what removes the collision.
+
+          No ref either: nothing here dismisses the sheet programmatically —
+          every row applies live and the person leaves when they are done. */}
+      <ModalBottomSheet onDismissRequest={onClose} skipPartiallyExpanded>
         <Column
           verticalArrangement={{ spacedBy: 4 }}
           // Horizontal padding lives on each SECTION, not here — the chips row

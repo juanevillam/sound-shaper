@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import {
   CircularWavyProgressIndicator,
@@ -11,7 +11,6 @@ import {
   Shape,
   Surface,
   Text,
-  type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
@@ -94,7 +93,6 @@ export function ClipsSheet({
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const insets = useSafeAreaInsets();
-  const sheetRef = useRef<ModalBottomSheetRef>(null);
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
   const [confirmClipId, setConfirmClipId] = useState<string | null>(null);
@@ -163,11 +161,9 @@ export function ClipsSheet({
   return (
     <>
       <ThemedHost matchContents>
-        <ModalBottomSheet
-          ref={sheetRef}
-          onDismissRequest={onClose}
-          skipPartiallyExpanded
-        >
+        {/* No ref: a row press closes through `onClose` like every other exit,
+            so there is nothing here to dismiss imperatively. */}
+        <ModalBottomSheet onDismissRequest={onClose} skipPartiallyExpanded>
           <Column
             verticalArrangement={{ spacedBy: 12 }}
             // The bottom clears the navigation bar — a Compose sheet's window

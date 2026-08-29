@@ -1,18 +1,31 @@
 import { useEffect } from 'react';
 
+import { PermissionsAndroid, Platform } from 'react-native';
+
 import { PlaybackNotificationManager } from 'react-native-audio-api';
 
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { usePlayerStore } from '@/store/player';
 
 // ---------------------------------------------------------------------------
-// THE SYSTEM'S NOW PLAYING SURFACE — the Dynamic Island's audio pill, the Lock
-// Screen player and Control Center's card are all ONE thing, drawn by iOS for
-// whichever app owns the now-playing session. Spotify does not render its
-// island; it publishes `MPNowPlayingInfoCenter` metadata and answers
-// `MPRemoteCommandCenter` commands, and the system does the rest. This bridge
-// does exactly that through the audio library's `PlaybackNotificationManager`,
-// which wraps both (see `PlaybackNotification.mm`).
+// THE SYSTEM'S NOW PLAYING SURFACE — one bridge, both platforms.
+//
+// On iOS the Dynamic Island's audio pill, the Lock Screen player and Control
+// Center's card are all ONE thing, drawn by the system for whichever app owns
+// the now-playing session. Spotify does not render its island; it publishes
+// `MPNowPlayingInfoCenter` metadata and answers `MPRemoteCommandCenter`
+// commands, and the system does the rest. On Android the same publish becomes
+// a MediaSession notification in the shade and on the lock screen, drawn by the
+// OS from the same metadata and answering the same transport events. The audio
+// library's `PlaybackNotificationManager` wraps both, which is why this file is
+// one file.
+//
+// IT WAS iOS-ONLY UNTIL 2026-08-28, and the reason was never technical: the
+// note here said Android "needs notification permissions and a verified
+// device", and there was no verified device. There is now. An Android music
+// player with no notification has no lock-screen or shade transport at all and
+// is a background-kill candidate the moment the screen goes off — the single
+// biggest native-feel gap this app had.
 //
 // PUSH ON DISCONTINUITIES, NEVER ON THE TICK. iOS interpolates the published
 // playhead itself from one (elapsedTime, playbackRate) pair — which is also
@@ -24,11 +37,32 @@ import { usePlayerStore } from '@/store/player';
 // `seekNonce`, which every discontinuous playhead move stamps (a scrub, a clip
 // start, a boundary park, a restart).
 //
-// iOS-ONLY BY NAME, per the house rule (`…Ios.tsx`, no platform suffix, no
-// stub). The same manager drives an Android media notification, but that side
-// needs notification permissions and a verified device, and nothing Android
-// can be verified while the freeze holds — wire it when Android resumes.
+// PUBLISH ON DISCONTINUITIES holds on Android too — a MediaSession's playback
+// state carries a position and a speed and the system extrapolates from them,
+// exactly as iOS does, so the same effect keys serve both.
 // ---------------------------------------------------------------------------
+
+/**
+ * ANDROID 13+ WILL NOT DRAW THE NOTIFICATION WITHOUT THIS, and the foreground
+ * service alone is not enough: the media-playback service is already declared
+ * by the audio library's own config plugin, but `POST_NOTIFICATIONS` is a
+ * runtime permission and its notification is silently dropped when it is
+ * denied.
+ *
+ * ASKED IN CONTEXT, not at launch. Android's own guidance is to request it at
+ * the moment the notification would first be useful, and there is nothing to
+ * notify about until a sound is loaded — so this runs on the first `current`,
+ * which is the person having pressed play. Denial is not an error: playback and
+ * the foreground service both carry on, and the person simply gets no shade
+ * controls.
+ */
+const ensureNotificationPermission = () => {
+  if (Platform.OS !== 'android' || Platform.Version < 33) return;
+
+  void PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+  ).catch(() => {});
+};
 
 /**
  * The island's artwork slot is ~60pt (~180px @3x); the Lock Screen player's is
@@ -53,6 +87,9 @@ const NOW_PLAYING_ART_WIDTH = 600;
  * and Spotify put there. The seek command stays enabled — it is the
  * scrubbable progress bar, not a button.
  */
+// The same call on Android: a media notification for a music player carries
+// previous / play-pause / next, not a ±15 pair. Wearables and Auto read the
+// same command set.
 const REMOTE_CONTROLS = [
   ['play', true],
   ['pause', true],
@@ -84,7 +121,7 @@ const skipBy = (deltaS: number) => {
   seek(Math.min(Math.max(position + deltaS, 0), upper));
 };
 
-export function NowPlayingBridgeIos() {
+export function NowPlayingBridge() {
   const current = usePlayerStore(s => s.current);
   const playing = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
@@ -131,21 +168,48 @@ export function NowPlayingBridgeIos() {
       ),
     ];
 
-    /**
-     * The button SET is static, so it is stated once here rather than after
-     * the first metadata publish — which is also the ordering iOS wants: the
-     * command centre decides which controls exist, and the now-playing info
-     * is what fills them. Wiring it the other way round left the first
-     * rendered session holding the defaults.
-     */
+    return () => subscriptions.forEach(subscription => subscription.remove());
+  }, []);
+
+  // Keyed on whether there IS a loaded sound rather than on which one, so
+  // skipping tracks neither re-asks for the permission nor re-states a button
+  // set that has not changed.
+  const hasCurrent = current !== null && current !== undefined;
+
+  /**
+   * THE BUTTON SET IS STATED PER SESSION, NOT ONCE AT MOUNT — and the once-at-
+   * mount version is what shipped iOS-only and drew NO transport at all on
+   * Android.
+   *
+   * It has to come BEFORE the first metadata publish, which is the ordering iOS
+   * wants: the command centre decides which controls exist and the now-playing
+   * info is what fills them, and wiring it the other way round left the first
+   * rendered session holding the defaults. That much was right. What it missed
+   * is that a `hide()` CLEARS the set on Android — the native
+   * `PlaybackNotification.reset()` zeroes its `controls` bitmask — and this
+   * bridge hides whenever there is no loaded sound, which is the state the app
+   * launches in. So the mount-time assertion was wiped moments later by the
+   * hide it raced, and every session after it published `actions=0`.
+   *
+   * Measured with `adb shell dumpsys media_session` on the A54: the session
+   * carried its metadata and `state=PLAYING` with `actions=0`, and Samsung's
+   * media card drew the artwork, the title and a progress bar with no
+   * play/pause, no next and no previous.
+   *
+   * Re-stating it on every session start costs seven bridge calls per loaded
+   * sound and cannot get out of step with the hide.
+   */
+  useEffect(() => {
+    if (!hasCurrent) return;
+
+    ensureNotificationPermission();
+
     REMOTE_CONTROLS.forEach(([control, enabled]) => {
       PlaybackNotificationManager.enableControl(control, enabled).catch(
         () => {},
       );
     });
-
-    return () => subscriptions.forEach(subscription => subscription.remove());
-  }, []);
+  }, [hasCurrent]);
 
   useEffect(() => {
     if (!current) {
