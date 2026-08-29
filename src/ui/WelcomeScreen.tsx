@@ -22,6 +22,7 @@ import {
 import {
   fillMaxWidth,
   height,
+  offset,
   padding,
   weight,
   width,
@@ -45,6 +46,42 @@ const LOGO_LETTER_SIZE = 56;
 /** Glyph box for the brand mark inside the hero tile — sized so the mark reads
  *  like the app icon (mirrors its foreground proportions). */
 const LOGO_GLYPH_SIZE = 90;
+/**
+ * The hero title's weight. M3 ships the display styles at Regular (400), which
+ * is Material's default voice for body-of-the-scale type — but this is a hero,
+ * and Material 3 Expressive added the `*Emphasized` styles for exactly that
+ * moment: the same size and tracking at a heavier weight. `@expo/ui` 57 does
+ * not expose the emphasized tokens (`TypographyStyle` is the 15 baseline
+ * names), so the recipe is spelled out — `TextStyle` documents that "other
+ * properties in this style object will override specific values from the
+ * typography", which is what makes this `displaySmallEmphasized` rather than a
+ * font size picked by hand.
+ *
+ * NOT a port of iOS's `largeTitle` + bold. That screen reads heavier for its
+ * own reason and this one lands on Material's own answer to the same problem.
+ */
+const TITLE_WEIGHT = '700';
+/**
+ * How far the author credit is drawn UP, back-solved from a render the way the
+ * iOS variant's `LOGO_TITLE_GAP` was.
+ *
+ * The credit's name is a Material `TextButton`, which carries
+ * `ButtonDefaults.MinHeight` (36dp) and 8dp of vertical content padding — so a
+ * Row holding a 20sp line of prose inflates to the button's box and centres
+ * everything inside it. Measured on a Galaxy A54: 24.18dp of ink between the
+ * title and the credit, against the ~11dp the 4dp column spacing asks for.
+ *
+ * `offset` MOVES the row without resizing it, which is the point: the button
+ * keeps its full 36dp box and its touch target, and only the drawing lands
+ * where the rhythm wants it. The `Spacer` below gives back the same amount, so
+ * the title-to-features pitch is unchanged.
+ *
+ * The real fix is an inline `LinkAnnotation` span — Material's own primitive
+ * for a link INSIDE a sentence, which has no button box to fight. `@expo/ui`
+ * 57's `TextSpanRecord` carries no press handler, so it is not reachable yet;
+ * see `docs/pending-upstream.md`.
+ */
+const CREDIT_ROW_LIFT = 10;
 const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
@@ -202,7 +239,7 @@ export const WelcomeScreen = ({
             >
               <Text
                 color={colors?.onSurface}
-                style={{ typography: 'displaySmall' }}
+                style={{ typography: 'displaySmall', fontWeight: TITLE_WEIGHT }}
               >
                 {appName}
               </Text>
@@ -213,7 +250,10 @@ export const WelcomeScreen = ({
                   content padding is trimmed to `xs` so the pair still reads as
                   one line of prose. iOS does the same split with a SwiftUI
                   `Link`; each platform in its own kit. */}
-              <Row verticalAlignment="center">
+              <Row
+                verticalAlignment="center"
+                modifiers={[offset(0, -CREDIT_ROW_LIFT)]}
+              >
                 <Text
                   color={colors?.onSurfaceMuted}
                   style={{ typography: 'bodyMedium' }}
@@ -231,7 +271,7 @@ export const WelcomeScreen = ({
                 </TextButton>
               </Row>
 
-              <Spacer modifiers={[height(spacing.xxl)]} />
+              <Spacer modifiers={[height(spacing.xxl - CREDIT_ROW_LIFT)]} />
 
               {/* Plain rows instead of ListItem (its leading slot floats on
                   two-line items). Top alignment lines the 24dp icon up with
@@ -315,8 +355,8 @@ export const WelcomeScreen = ({
                 );
               }
 
-              const ButtonComponent =
-                action.variant === 'outlined' ? OutlinedButton : Button;
+              const isOutlined = action.variant === 'outlined';
+              const ButtonComponent = isOutlined ? OutlinedButton : Button;
 
               return (
                 <Host
@@ -329,13 +369,43 @@ export const WelcomeScreen = ({
                     onClick={action.onPress}
                     enabled={!isDisabled && !action.isLoading}
                     modifiers={[fillMaxWidth()]}
+                    // MONOCHROME, and it is the FILLED variant only — the same
+                    // split the iOS twin makes, site for site. Monochrome is a
+                    // BRAND rule rather than a platform one, so it crosses to
+                    // Android; what does NOT cross is the decision about which
+                    // controls it claims, and the three buckets already settled
+                    // that. A filled CTA's colour is inherited (Material fills
+                    // it with the accent because that is the default), so it
+                    // takes the ink. An OUTLINED button derives both its wash
+                    // and its label from the tint, and the monochrome version
+                    // reads as disabled — so it keeps the accent, exactly as
+                    // `actionButtonModifiersIos` does.
+                    //
+                    // Unlike SwiftUI, Material DOES invert a filled button's
+                    // label for you — `contentColor` is a real role on the
+                    // container, so there is no `labelColor` trap here. The
+                    // disabled pair is deliberately left to Material.
+                    colors={
+                      isOutlined
+                        ? undefined
+                        : {
+                            containerColor: colors?.onSurface,
+                            contentColor: colors?.background,
+                          }
+                    }
                   >
                     {action.icon ? (
                       <>
                         <AppIcon
                           name={action.icon}
                           size={18}
-                          tint={colors?.primary}
+                          // A bare `AppIcon` does not inherit the button's
+                          // content colour the way `Text` does (see the icon
+                          // theming notes), so it is mapped explicitly to
+                          // whatever the container's label is.
+                          tint={
+                            isOutlined ? colors?.primary : colors?.background
+                          }
                         />
                         <Spacer modifiers={[width(spacing.sm)]} />
                       </>
