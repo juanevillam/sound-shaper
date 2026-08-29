@@ -50,10 +50,22 @@ export type TextLinkProps = {
   /** Resting ink. The pressed state is this at `PRESSED_OPACITY`. */
   color?: string;
   onPress: () => void;
+  /**
+   * The link's weight, when the surrounding type is small enough that the
+   * default stops carrying — `LegalFooter` is the one caller that passes it.
+   * Defaults to regular, which is what the rest of this family renders.
+   */
+  weight?: TextStyle['fontWeight'];
   style?: TextStyle;
 };
 
-export function TextLink({ label, color, onPress, style }: TextLinkProps) {
+export function TextLink({
+  label,
+  color,
+  onPress,
+  weight,
+  style,
+}: TextLinkProps) {
   const [pressed, setPressed] = useState(false);
 
   return (
@@ -61,6 +73,7 @@ export function TextLink({ label, color, onPress, style }: TextLinkProps) {
       suppressHighlighting
       style={[
         styles.link,
+        weight ? { fontWeight: weight } : null,
         style,
         { color: color && pressed ? withAlpha(color, PRESSED_OPACITY) : color },
       ]}
@@ -75,16 +88,18 @@ export function TextLink({ label, color, onPress, style }: TextLinkProps) {
 
 const styles = StyleSheet.create({
   /**
-   * REGULAR, not semibold — the tint is what says "link", and the weight is
-   * what says "important". A legal disclaimer is the least important line on
-   * the screen and was shouting louder than the app's own byline.
+   * REGULAR by default — the tint is what says "link", and the weight is what
+   * says "important". A tappable run inside prose is not more important than
+   * the prose.
    *
-   * It is also the weight the two NATIVE links in this family already use:
-   * iOS's author credit is a SwiftUI `Link` at plain `subheadline`, and a
-   * SwiftUI markdown link renders accent-on-regular. Apple tints links in fine
-   * print and leaves the weight alone (the App Store's terms footer, the Apple
-   * ID consent sheets). 600 was the outlier, and it made the ANDROID credit
-   * semibold against its own iOS twin once both went through this component.
+   * It is also the weight the NATIVE half of this family renders: iOS's author
+   * credit is a SwiftUI `Link` at plain `subheadline`, and a SwiftUI markdown
+   * link is accent-on-regular. Apple tints links in fine print and leaves the
+   * weight alone.
+   *
+   * `weight` overrides it where the type gets small enough that regular stops
+   * carrying, which is a per-PLATFORM question rather than a per-caller one —
+   * see `LegalFooter`, the only caller that passes it.
    */
   link: { fontWeight: '400' },
 });
