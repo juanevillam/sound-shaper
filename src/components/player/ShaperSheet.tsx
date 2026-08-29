@@ -42,9 +42,23 @@ const EQ_LABEL_WIDTH = 36;
 // its full size while the five bands read as a tighter group. The gap between
 // them comes from the column's spacing, not from padding each row out.
 const EQ_ROW_HEIGHT = 34;
-// Band sliders snap per dB; speed snaps to tenths (`RATE_STEP`). The comment
-// here said "quarter steps" for as long as the constant below said 0.1.
-const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
+/**
+ * THE BANDS SNAP WITHOUT DRAWING TICKS; SPEED DRAWS THEM.
+ *
+ * A Compose `Slider` renders one tick per step, which is right for a small set
+ * of discrete values and wrong for a large one: the five bands span 24 whole dB,
+ * so `steps` drew 23 dots across each of five stacked tracks and the group read
+ * as a dotted texture rather than as five controls. M3 asks for tick marks only
+ * where the count is small enough to aim at, and iOS's twin draws none at all.
+ *
+ * Dropping `steps` does NOT drop the snapping: the store rounds in
+ * `onValueChange` and the slider is controlled off that rounded value, so the
+ * thumb settles on whole dB exactly as before. Verified by dragging the 80 Hz
+ * band on the A54 — it reads +5, never +5.3.
+ *
+ * SPEED KEEPS ITS TICKS, and the contrast is the point: ten stops between 0.5×
+ * and 1.5× is a count you can aim at, and the dots say so.
+ */
 const RATE_MIN = 0.5;
 const RATE_MAX = 1.5;
 const RATE_STEP = 0.1;
@@ -229,7 +243,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                   value={gains[index]}
                   min={EQ_MIN_DB}
                   max={EQ_MAX_DB}
-                  steps={EQ_SLIDER_STEPS}
                   onValueChange={value => setBandGain(index, Math.round(value))}
                   modifiers={[weight(1)]}
                 />
