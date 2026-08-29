@@ -48,8 +48,7 @@ type SnackbarProviderProps = {
    * swipe are the dismissal there). Already translated, since the package has
    * no translator. Defaults to 'OK' — the one hardcoded English string this
    * file shipped with — so an app that has not wired it yet is unchanged.
-   * WRITTEN UNDER THE ANDROID FREEZE, so any app passing this ships it
-   * unverified until Android resumes.
+   * STILL UNVERIFIED on an Android device — walk it.
    */
   dismissLabel?: string;
   /**

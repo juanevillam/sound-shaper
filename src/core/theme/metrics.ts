@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
  * putting it here would imply a difference that isn't there and invite someone
  * to invent one. `ROW_INSET` is the deliberate exception, and says so.
  *
- * Android's values are the ones the frozen apps already ship — this module
+ * Android's values are the ones the apps already ship — this module
  * describes those builds, it does not change them. Every iOS value is the
  * Apple convention it corresponds to, cited in its comment.
  *

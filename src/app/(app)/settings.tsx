@@ -48,8 +48,8 @@ const openLegalPage = (page: LegalPage) =>
  *
  * On Android Settings is an ordinary pushed screen whose root toast works
  * fine, and mounting an outlet there would claim the toast into this screen
- * and hand it the SHEET's clearance instead of the app's. Android is frozen;
- * it keeps the plain View.
+ * and hand it the SHEET's clearance instead of the app's, so Android keeps the
+ * plain View. That is the reason, not the release freeze it used to cite.
  */
 function SettingsRoot({ children }: { children: ReactNode }) {
   return Platform.OS === 'ios' ? (
@@ -111,8 +111,9 @@ export default function Settings() {
         // answer to the same problem is the Apple Account banner at the top of
         // Settings, which is what this is (see `SettingsAccountLink`).
         //
-        // Android is frozen and keeps its `navRows` entry — Material's own
-        // idiom — so the two twins reach the same sheet in their own language.
+        // Android keeps its `navRows` entry — Material's own idiom — so the
+        // two twins reach the same sheet in their own language. A real
+        // divergence, not an artifact of the lifted freeze.
         {...(Platform.OS === 'ios'
           ? {
               account: {
@@ -202,8 +203,8 @@ export default function Settings() {
         )}
         // Stores require the privacy policy reachable INSIDE the app
         // (Apple 5.1.1(i) / Play User Data policy), not just pre-login.
-        // Own card on iOS (Apple's grouping), still appended to About on
-        // Android, which is frozen — see `SettingsLegalConfig`.
+        // Own card on iOS (Apple's grouping), appended to About on Android,
+        // which is Material's grouping — see `SettingsLegalConfig`.
         legal={{
           title: t('settings.legal.title'),
           // Terms first, then Privacy — the App Store's Apple Account sheet's

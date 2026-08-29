@@ -84,8 +84,8 @@ export type SettingsAboutConfig = {
  * Policy links (privacy policy, terms) that stores require reachable from
  * inside the app. Passed separately from `about` because the two platforms
  * group them differently — Apple gives legal its own card between About and
- * Sign Out, while ANDROID (frozen) keeps them appended to the About list,
- * which is where they shipped. Each variant does that merge itself, so an app
+ * Sign Out, while ANDROID keeps them appended to the About list, which is
+ * Material's own grouping. Each variant does that merge itself, so an app
  * passes the rows once and neither platform's output changes shape.
  */
 export type SettingsLegalConfig = {
@@ -478,7 +478,7 @@ export const SettingsScreen = ({
                   >
                     {/* Legal rows are appended to About here, which is exactly
                         where they rendered before they became their own prop —
-                        Android is frozen, so its output must not move. iOS
+                        Material's grouping keeps them there. iOS
                         gives them their own card instead. */}
                     {aboutRows.map((row, index) => (
                       <InfoRow

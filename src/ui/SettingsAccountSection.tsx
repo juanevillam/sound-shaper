@@ -620,9 +620,9 @@ export const SettingsAccountSection = ({
 /**
  * iOS-only — the real implementation is in `SettingsAccountSection.ios.tsx`,
  * where Apple's placement puts sign-out alone in a trailing card. Declared here
- * because tsc resolves this base file for both platforms. On ANDROID (frozen)
- * the sign-out row stays inside the account section above, so this renders
- * nothing and the Android screen is unchanged.
+ * because tsc resolves this base file for both platforms. On ANDROID the
+ * sign-out row stays inside the account section above — Material's grouping —
+ * so this renders nothing.
  */
 export const SettingsSignOutSection = (
   _props: Pick<

@@ -33,8 +33,9 @@ import { SquashPressable } from './SquashPressable';
  *
  * 120 on iOS, the Contacts photo-editor size — the picker floats on the sheet
  * (no row fill to sit in), and at the Android-era 72 it read as a thumbnail
- * rather than the sheet's subject (Juan: "soo small"). Android is frozen at 72,
- * where the disc still sits inside a filled Compose row.
+ * rather than the sheet's subject (Juan: "soo small"). ANDROID IS STILL 72,
+ * where the disc sits inside a filled Compose row — a different container, so
+ * not automatically the same answer, but no longer a decision the freeze made.
  */
 export const MEDIA_PICKER_SIZE = Platform.select({
   ios: 120,
@@ -44,8 +45,8 @@ const AVATAR_SIZE = MEDIA_PICKER_SIZE;
 const AVATAR_RADIUS = AVATAR_SIZE / 2;
 /**
  * iOS renders the SHARED empty-media plus — the same spec a create tile draws,
- * since both are "tap to fill this box". Android is frozen, so it keeps the
- * fullwidth glyph and hand size it shipped with.
+ * since both are "tap to fill this box". ANDROID STILL KEEPS the fullwidth glyph
+ * and hand size it shipped with — unreviewed rather than decided.
  */
 const ANDROID_PLUS_FONT_SIZE = 28;
 /** A fallback emoji stands in for the plus where an app has one. */

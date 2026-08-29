@@ -144,7 +144,7 @@ export const ManageAccountScreen = ({
            * and Reset sections both read that way — so the supporting line the
            * Android row carries inline moves here, where it explains the row
            * rather than repeating it. `title` stays on the shared prop because
-           * Android, frozen, still draws it as a header.
+           * Android still draws it as a header.
            */
           <Section
             footer={

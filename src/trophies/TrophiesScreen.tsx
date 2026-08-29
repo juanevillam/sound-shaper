@@ -65,7 +65,7 @@ export type TrophiesScreenProps = {
    * icon (the tier colour is what claims "earned") and the whole progress
    * summary. The trophy TITLES stay real: they come from config and copy, not
    * the network, and boning them would only cost each row its true height.
-   * Android, frozen, does not read it.
+   * Android does not read it yet.
    */
   loading?: boolean;
 };
