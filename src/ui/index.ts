@@ -109,6 +109,7 @@ export { ProgressOverlayIos } from './ProgressOverlayIos';
 export { ProgressViewIos } from './ProgressViewIos';
 export { Screen } from './Screen';
 export { SheetBar } from './SheetBar';
+export { SheetErrorLine } from './SheetErrorLine';
 export {
   SnackbarContext,
   useSnackbar,
