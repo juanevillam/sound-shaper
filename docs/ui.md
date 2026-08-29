@@ -90,7 +90,7 @@ import {
 | `InitialArt` extras — `emptyMediaColor` / `EMPTY_MEDIA_INITIAL_RATIO` / `emptyMediaPlusStyle` / `EMPTY_MEDIA_PLUS` | The material behind ANY art-less box, stepped by container: inside a sheet every grouped colour goes up one, so callers pass `container="sheet"` rather than a colour. |
 | `artworkRadius` | A picture's corner — a RATIO of the picture (0.15), not a constant, and not the grouped-card radius. |
 | `MediaPickerAvatar` / `MEDIA_PICKER_SIZE` | An editor sheet's media slot — Contacts' centred media-over-caption box. The box is shared; the picture is the caller's. |
-| `StateWrapIos` | The container for a screen's non-list states — empties, errors and skeletons — under a native large title or search bar. Hands its child a full screen frame, which is why `EmptyState` and `ProgressViewIos` both centre themselves. |
+| `StateWrap` | The container for a screen's non-list states — empties, errors and skeletons — under a native large title or search bar. Hands its child a full screen frame, which is why `EmptyState` and `ProgressViewIos` both centre themselves. |
 | `SHEET_HERO_*` | The hero badge at the top of a sheet — symbol, badge and glyph sizes as one set. |
 | `confirmDestructiveIos` | The iOS destructive confirmation — `Alert.alert` in the platform's own grammar, the twin of Android's `DestructiveConfirmDialog`. |
 | `AppleSignInButton` | Sign in with Apple, per Apple's spec (U+F8FF from the system font, black-on-light / white-on-dark). iOS only, by policy rather than by capability. |

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { StateWrapIos as StateWrap, EmptyState } from '@portfolio/mobile-ui';
+import { StateWrap, EmptyState } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
@@ -397,7 +397,7 @@ export default function HomeScreen() {
           // CENTRED, so no `top` — `EmptyState` centres itself in whatever box
           // it gets, and an `automatic` inset would push that centre half the
           // header too low. The contract and the measurement behind it live on
-          // `StateWrapIos`.
+          // `StateWrap`.
           <StateWrap>
             <EmptyState
               systemImage="exclamationmark.triangle"

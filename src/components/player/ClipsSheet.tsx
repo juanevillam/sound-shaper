@@ -25,6 +25,7 @@ import {
   COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
   DestructiveConfirmDialog,
+  EMPTY_STATE_STEPS,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -65,8 +66,6 @@ const NO_CLIPS: never[] = [];
 
 /** The M3 loading indicator's box, matching `SheetBar`'s commit spinner. */
 const SPINNER_SIZE = 20;
-/** The empty state's mark. `EmptyState`'s own step, which it draws at 48. */
-const EMPTY_EMOJI_SIZE = 48;
 const MENU_ICON_SIZE = 24;
 /** Vertical air around the two state branches, so neither sits on the bar. */
 const STATE_PADDING = 32;
@@ -278,11 +277,13 @@ export function ClipsSheet({
 
                It is re-drawn in Compose rather than mounted: `EmptyState` hosts
                its OWN `Host`, and a Host inside this sheet's Host is the nesting
-               blow-up the RNHostView notes record. Same parts, same steps, same
-               strings; only the container differs. */
+               blow-up the RNHostView notes record. Same parts, same strings —
+               and the steps are IMPORTED (`EMPTY_STATE_STEPS`) rather than
+               matched by hand, which is what they were. Only the container
+               differs. */
               <Column
                 horizontalAlignment="center"
-                verticalArrangement={{ spacedBy: 8 }}
+                verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
                 modifiers={[
                   fillMaxWidth(),
                   padding(
@@ -293,16 +294,24 @@ export function ClipsSheet({
                   ),
                 ]}
               >
-                <Text style={{ fontSize: EMPTY_EMOJI_SIZE }}>✂️</Text>
+                <Text style={{ fontSize: EMPTY_STATE_STEPS.emojiSize }}>
+                  ✂️
+                </Text>
                 <Text
                   color={colors.onSurface}
-                  style={{ typography: 'titleLarge', textAlign: 'center' }}
+                  style={{
+                    typography: EMPTY_STATE_STEPS.title,
+                    textAlign: 'center',
+                  }}
                 >
                   {t('player.clips.none')}
                 </Text>
                 <Text
                   color={colors.onSurfaceMuted}
-                  style={{ typography: 'bodyMedium', textAlign: 'center' }}
+                  style={{
+                    typography: EMPTY_STATE_STEPS.subtitle,
+                    textAlign: 'center',
+                  }}
                 >
                   {t('player.clips.empty')}
                 </Text>

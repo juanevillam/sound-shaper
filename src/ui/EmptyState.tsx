@@ -7,7 +7,25 @@ import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 
 import { useAppTheme } from '@portfolio/core';
 
-const EMOJI_SIZE = 48;
+/**
+ * THE EMPTY STATE'S OWN STEPS, exported for the one case that may not mount
+ * this component: a surface that must RE-DRAW it in another container.
+ *
+ * `EmptyState` hosts its own Compose `Host`, and a Host inside another Host is
+ * the nesting blow-up the RNHostView notes record — so a Compose bottom sheet
+ * standing an empty state has to draw the parts itself. Sound Shaper's Clips
+ * sheet does, and it had hand-copied all four numbers, which is the
+ * "re-implement in another technology, import its constants" rule from the
+ * root AGENTS.md pointing at exactly this shape. There is one caller today and
+ * that is the point: the steps are stated here, and the copy is gone.
+ */
+export const EMPTY_STATE_STEPS = {
+  emojiSize: 48,
+  /** The mark-to-title and title-to-subtitle gap. */
+  gap: 8,
+  title: 'titleLarge',
+  subtitle: 'bodyMedium',
+} as const;
 
 type EmptyStateProps = {
   emoji?: string;
@@ -71,20 +89,30 @@ export function EmptyState({
       >
         <Column
           horizontalAlignment="center"
-          verticalArrangement={{ spacedBy: 8 }}
+          verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
           modifiers={[fillMaxWidth()]}
         >
-          {emoji ? <Text style={{ fontSize: EMOJI_SIZE }}>{emoji}</Text> : null}
+          {emoji ? (
+            <Text style={{ fontSize: EMPTY_STATE_STEPS.emojiSize }}>
+              {emoji}
+            </Text>
+          ) : null}
           <Text
             color={colors.onSurface}
-            style={{ typography: 'titleLarge', textAlign: 'center' }}
+            style={{
+              typography: EMPTY_STATE_STEPS.title,
+              textAlign: 'center',
+            }}
           >
             {title}
           </Text>
           {subtitle ? (
             <Text
               color={colors.onSurfaceMuted}
-              style={{ typography: 'bodyMedium', textAlign: 'center' }}
+              style={{
+                typography: EMPTY_STATE_STEPS.subtitle,
+                textAlign: 'center',
+              }}
             >
               {subtitle}
             </Text>

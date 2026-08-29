@@ -15,7 +15,7 @@ import {
   HeaderGlyphButtonIos,
   ProgressViewIos,
   SheetFormBodyIos,
-  StateWrapIos as StateWrap,
+  StateWrap,
 } from '@portfolio/mobile-ui';
 import { router, Stack } from 'expo-router';
 
