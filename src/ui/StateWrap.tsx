@@ -4,8 +4,17 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 /**
  * The container for a screen's NON-LIST states — screen-level empties and
- * errors, and the skeletons that stand in for content — under a native iOS
- * large title or search bar.
+ * errors, and the skeletons that stand in for content — under a screen's own
+ * chrome.
+ *
+ * IT IS NOT `StateWrapIos`, AND THE RENAME IS THE POINT. In this repo the `Ios`
+ * suffix means a component that exists ONLY on iOS; this one answers a question
+ * both platforms have — where does a state that is not a list stand — and Sound
+ * Shaper renders it from two cross-platform files. What is iOS-specific is the
+ * MECHANISM, not the component: `contentInsetAdjustmentBehavior` and
+ * `alwaysBounceVertical` are UIKit levers that Android ignores, so there it is
+ * simply a full-height scroller and the `top` / centred contract still holds.
+ * Every Topper caller was already aliasing the old name back to this one.
  *
  * IT LIVES IN THE PACKAGE because the question it answers is the same in every
  * app: where does a state that is not a list stand, on a screen whose chrome is
@@ -39,7 +48,7 @@ import { ScrollView, StyleSheet } from 'react-native';
  * anywhere other than where its content will start IS layout shift, which is
  * the defect this screen pair keeps being audited for.
  */
-export function StateWrapIos({
+export function StateWrap({
   children,
   top = false,
 }: {

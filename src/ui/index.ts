@@ -30,7 +30,7 @@ export {
   type DestructiveConfirmDialogProps,
 } from './DestructiveConfirmDialog';
 export { artworkRadius } from './artworkRadius';
-export { EmptyState } from './EmptyState';
+export { EmptyState, EMPTY_STATE_STEPS } from './EmptyState';
 export {
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
@@ -90,7 +90,7 @@ export {
   SHEET_TITLE_TO_CONTENT,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
-export { StateWrapIos } from './StateWrapIos';
+export { StateWrap } from './StateWrap';
 export {
   EMPTY_MEDIA_INITIAL_RATIO,
   emptyMediaColor,

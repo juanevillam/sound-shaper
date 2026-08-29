@@ -53,11 +53,23 @@ export const BANNER_SIDE_INSET = SCREEN_PADDING;
 const BANNER_BOTTOM_GAP_ANDROID = 16;
 
 /**
+ * The banner's own gap to the screen's bottom edge, WITHOUT the safe-area
+ * inset — i.e. how far it floats above whatever chrome is down there.
+ *
+ * Exported because two callers want the gap on its own rather than the total:
+ * anything that positions itself against the inset ALREADY (the dev state
+ * lab's picker adds `insets.bottom` itself) would double-count it otherwise.
+ * That is not hypothetical — `HOME_LAB_BOTTOM_OFFSET` was built from the iOS
+ * gap outright, so the picker stood 8dp low on Android.
+ */
+export const BANNER_BOTTOM_GAP =
+  Platform.OS === 'ios'
+    ? NOW_PLAYING_BOTTOM_GAP_IOS
+    : BANNER_BOTTOM_GAP_ANDROID;
+
+/**
  * Clearance under the banner, from the screen's bottom EDGE — a total, so
  * callers never add the inset to it a second time.
  */
 export const bannerBottomOffset = (bottomInset: number) =>
-  bottomInset +
-  (Platform.OS === 'ios'
-    ? NOW_PLAYING_BOTTOM_GAP_IOS
-    : BANNER_BOTTOM_GAP_ANDROID);
+  bottomInset + BANNER_BOTTOM_GAP;

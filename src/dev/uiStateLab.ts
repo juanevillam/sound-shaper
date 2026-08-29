@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { SKELETON_ROWS } from '@/app/(app)/home';
 import {
-  BANNER_BOTTOM_GAP_IOS,
+  BANNER_BOTTOM_GAP,
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import { STATE_LAB } from '@/dev/flags';
@@ -36,9 +36,12 @@ export const UI_STATE_LAB = __DEV__ && STATE_LAB;
  * constants rather than a guessed number: the banner is a detached pill, so
  * clearing it means its bottom gap plus its height. It lives here rather than
  * in either bar because BOTH dev controls on this screen stack on it.
+ *
+ * THE GAP IS PER-PLATFORM and this used to take the iOS one on both, because
+ * the picker was iOS-only. Android's banner floats 16 above the navigation bar
+ * against iOS's 8, so the offset differs by exactly that.
  */
-export const HOME_LAB_BOTTOM_OFFSET =
-  MINI_PLAYER_HEIGHT + BANNER_BOTTOM_GAP_IOS;
+export const HOME_LAB_BOTTOM_OFFSET = MINI_PLAYER_HEIGHT + BANNER_BOTTOM_GAP;
 
 /**
  * HOME — the sound grid.
