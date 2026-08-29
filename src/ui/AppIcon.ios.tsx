@@ -43,6 +43,13 @@ const SF_SYMBOLS = {
   'favorite-filled': 'heart.fill',
   flag: 'flag',
   flight: 'airplane',
+  // THE SOUNDING-ROW MARKER, and the SF side is not a translation of the
+  // Material glyph — it is what this app's own iOS twin already draws for the
+  // identical job. Sound Shaper's `clips` route marks the playing row with
+  // `speaker.wave.2.fill`, so mapping the Material equalizer bars onto
+  // `waveform` would have put two different marks on one feature's two
+  // platforms. The name stays Material's because the icon SET is.
+  'graphic-eq': 'speaker.wave.2.fill',
   groups: 'person.2',
   help: 'questionmark.circle',
   home: 'house',
