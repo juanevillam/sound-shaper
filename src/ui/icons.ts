@@ -16,6 +16,7 @@ import DeleteForever from '@expo/material-symbols/delete_forever.xml';
 import Devices from '@expo/material-symbols/devices.xml';
 import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
+import Extension from '@expo/material-symbols/extension.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
 import Flag from '@expo/material-symbols/flag.xml';
 import Flight from '@expo/material-symbols/flight.xml';
@@ -84,6 +85,7 @@ const icons = {
   devices: Devices,
   'drag-indicator': DragIndicator,
   edit: Edit,
+  extension: Extension,
   favorite: Favorite,
   'favorite-filled': require('./assets/icons/favorite-filled.xml'),
   flag: Flag,
