@@ -17,7 +17,10 @@ import {
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 
-import { composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import {
+  composeSheetBottomPadding,
+  COMPOSE_SHEET_GUTTER,
+} from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -147,7 +150,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           {/* The sheet's title. NOT `SheetBar`: that bar pairs a title with a
               filled Save pill, and there is nothing here to commit. The sheet
               supplies its own native drag handle. */}
-          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}>
+          <Column
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
             <Text
               color={colors.onSurface}
               style={{ typography: 'titleLarge' }}
@@ -160,21 +168,23 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 2, 24, 0)]}
+            modifiers={[
+              padding(COMPOSE_SHEET_GUTTER, 2, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           >
             {t('player.shape.presets')}
           </Text>
 
           {/* Built-in presets ("Flat" doubles as reset). Padding AFTER
               horizontalScroll = content padding: the row bleeds to the sheet
-              edges, the chips start/end 24 inside. */}
+              edges, the chips start/end on the gutter. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement={{ spacedBy: 8 }}
             modifiers={[
               fillMaxWidth(),
               horizontalScroll(),
-              padding(24, 0, 24, 0),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
             {EQ_PRESETS.map(preset => (
@@ -195,7 +205,9 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
-            modifiers={[padding(24, 12, 24, 0)]}
+            modifiers={[
+              padding(COMPOSE_SHEET_GUTTER, 12, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           >
             {t('player.eq.title')}
           </Text>
@@ -204,7 +216,9 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'bodySmall' }}
-            modifiers={[padding(24, 0, 24, 0)]}
+            modifiers={[
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           >
             {t('player.eq.hint')}
           </Text>
@@ -221,7 +235,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 modifiers={[
                   fillMaxWidth(),
                   height(EQ_ROW_HEIGHT),
-                  padding(24, 0, 24, 0),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                 ]}
               >
                 <Text
@@ -253,7 +267,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 12, 24, 0)]}
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 12, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           >
             <Text
               color={colors.onSurfaceMuted}
@@ -275,7 +292,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               // to one decimal.
               setRate(Math.round(value / RATE_STEP) / 10)
             }
-            modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           />
 
           {/* Keep pitch belongs WITH speed — it only decides whether changing
@@ -284,7 +304,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
-            modifiers={[fillMaxWidth(), padding(24, 14, 24, 0)]}
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
+            ]}
           >
             <Column
               verticalArrangement={{ spacedBy: 2 }}
