@@ -1,8 +1,18 @@
-import { StyleSheet, View } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type DimensionValue,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { SkeletonBone as Skeleton } from '@portfolio/mobile-ui';
 
-import { useSoundTileMetrics } from '@/components/sounds/SoundTile';
+import {
+  CAPTION_VARIANTS,
+  useSoundTileMetrics,
+} from '@/components/sounds/SoundTile';
+import { Text, type TextVariant } from '@/components/ui/Text';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -54,25 +64,77 @@ export function SoundTileSkeleton() {
       <View style={[styles.tileArt, { marginBottom: artToCaption }]}>
         <Skeleton radius={artRadius} style={styles.fill} />
       </View>
-      <View
-        style={[
-          styles.line,
-          {
-            height: lines.title,
-            marginBottom: titleGap,
-            paddingLeft: captionInset,
-          },
-        ]}
-      >
-        <Skeleton width="75%" height={Math.round(lines.title * BAR_RATIO)} />
-      </View>
-      <View
-        style={[
-          styles.line,
-          { height: lines.subtitle, paddingLeft: captionInset },
-        ]}
-      >
-        <Skeleton width="40%" height={Math.round(lines.subtitle * BAR_RATIO)} />
+      <CaptionLine
+        variant={CAPTION_VARIANTS.title}
+        nominal={lines.title}
+        barWidth="75%"
+        inset={captionInset}
+        style={{ marginBottom: titleGap }}
+      />
+      <CaptionLine
+        variant={CAPTION_VARIANTS.subtitle}
+        nominal={lines.subtitle}
+        barWidth="40%"
+        inset={captionInset}
+      />
+    </View>
+  );
+}
+
+/**
+ * ONE CAPTION LINE — and it reserves its box by STANDING A REAL `Text`, not by
+ * setting a height.
+ *
+ * This used to take `lines.title` / `lines.subtitle` — the shared
+ * `TEXT_VARIANTS[…].lineHeight`, imported rather than copied, which is the rule
+ * this repo already had. It was still wrong on Android by 3.91dp PER ROW,
+ * measured with the dev state lab against the live grid at a high-contrast
+ * column: rows stood at 127.29 / 372.27 / 617.24dp live against
+ * 127.29 / 368.36 / 609.43 boned, ~11.7dp of jump handed over on settle.
+ *
+ * AN ANDROID `Text` DOES NOT RENDER AT ITS STATED `lineHeight`. It came out
+ * ~2dp taller per line, and `includeFontPadding: false` — the obvious
+ * suspect — was rendered on device and changed NOTHING (the live art tops were
+ * identical to the pixel before and after), so the padding is not what the
+ * extra is. Whatever it is, it belongs to the platform's text measurement, and
+ * a constant of ours describing it would be a number nobody can re-derive.
+ *
+ * So the bone stops describing the box and STANDS one: an invisible `Text` at
+ * the caption's own variant, holding a single space, with the bar absolutely
+ * positioned over it. The height is then whatever Android measures for that
+ * variant — by construction the same thing the real caption gets — and there is
+ * no term left to drift. `nominal` is used only to size the BAR inside the box,
+ * where being a couple of points out is invisible.
+ *
+ * iOS was never affected and is unchanged by this: there the rendered box
+ * already equals `lineHeight`.
+ */
+function CaptionLine({
+  variant,
+  nominal,
+  barWidth,
+  inset,
+  style,
+}: {
+  variant: TextVariant;
+  /** The variant's nominal line height — sizes the BAR, never the box. */
+  nominal: number;
+  barWidth: DimensionValue;
+  inset: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View
+      style={[styles.line, { paddingLeft: inset }, style]}
+      // The space below is a MEASURING DEVICE, not content — keep TalkBack out
+      // of it, or a loading grid announces a run of blank rows.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {/* A space, not an empty string: an empty `Text` measures zero. */}
+      <Text doNotTranslate text=" " variant={variant} numberOfLines={1} />
+      <View style={styles.barSlot} pointerEvents="none">
+        <Skeleton width={barWidth} height={Math.round(nominal * BAR_RATIO)} />
       </View>
     </View>
   );
@@ -89,9 +151,19 @@ const BAR_RATIO = 0.73;
 const styles = StyleSheet.create({
   tileArt: { aspectRatio: 1, width: '100%' },
   fill: { height: '100%', width: '100%' },
-  // The line BOX, with the bar centred in it — the tile's own two rows. Its
-  // height and left inset come from the metrics above: the captions clear the
-  // artwork's rounded corner, and bones flush to the edge slid 6pt right on
-  // settle.
+  // The bar rides OVER the invisible `Text` that sets the box's height, centred
+  // in it exactly as the real ink is.
+  barSlot: {
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  // The line BOX. Its HEIGHT is the invisible `Text` inside it (see
+  // `CaptionLine`); only the left inset comes from the metrics, because the
+  // captions clear the artwork's rounded corner and bones flush to the edge
+  // slid 6pt right on settle.
   line: { justifyContent: 'center' },
 });
