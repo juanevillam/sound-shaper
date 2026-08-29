@@ -352,9 +352,10 @@ export default function HomeScreen() {
               },
             ]}
           >
+            {/* No `variant`: this bar's face is stated whole in
+                `appBarTitle`. */}
             <Text
               text="app.title"
-              variant="titleLarge"
               numberOfLines={1}
               style={styles.appBarTitle}
             />
@@ -478,7 +479,19 @@ const styles = StyleSheet.create({
   // (22sp regular). Drawing this bar ourselves means matching it by hand, and
   // matching the other two apps beats being closer to the spec on this one
   // screen: measured side by side, 22/400 read 9% larger AND lighter.
-  appBarTitle: { flexShrink: 1, fontSize: 20, fontWeight: '500' },
+  //
+  // ALL THREE VALUES ARE STATED HERE, and the `Text` takes no `variant`. It
+  // used to pass `titleLarge` and then override two of its three properties in
+  // this object, so the declaration said 22sp while the screen rendered 20 —
+  // and the only thing the variant still contributed was a line box nobody had
+  // chosen. The 28 below IS that line box, kept so nothing moves; it is the
+  // number to re-measure if this bar's face ever changes again.
+  appBarTitle: {
+    flexShrink: 1,
+    fontSize: 20,
+    fontWeight: '500',
+    lineHeight: 28,
+  },
   list: { flex: 1 },
   gridRow: {
     flexDirection: 'row',
