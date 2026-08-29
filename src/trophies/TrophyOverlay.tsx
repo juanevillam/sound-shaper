@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
   host: {
     left: 0,
     // iOS: the screen gutter, so this banner hangs off the side edges by what
-    // the now-playing banner and the toast do. Android is frozen at 12.
+    // the now-playing banner and the toast do. ANDROID IS STILL 12, unreviewed.
     paddingHorizontal: Platform.select({ ios: SCREEN_PADDING, default: 12 }),
     position: 'absolute',
     right: 0,
@@ -685,9 +685,9 @@ const styles = StyleSheet.create({
     /**
      * iOS: the SHARED floating-surface gap, so this banner stands off the top
      * safe area by exactly what the now-playing banner stands off the bottom
-     * one — same object, opposite ends. Android is frozen and keeps the 18 it
-     * shipped with ("a little breathing room below the status bar", which was
-     * never a measured number).
+     * one — same object, opposite ends. ANDROID STILL KEEPS the 18 it shipped with
+     * ("a little breathing room below the status bar", which was never a
+     * measured number, and is now measurable).
      */
     marginTop: Platform.select({ ios: FLOATING_EDGE_GAP, default: 18 }),
     // NO `overflow: 'hidden'` — it would clip the injected surface's shadow off
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  // iOS: the shared title→supporting step. Android is frozen at 1.
+  // iOS: the shared title→supporting step. Android is still 1, unreviewed.
   textColumn: {
     flex: 1,
     gap: Platform.select({ ios: FLOATING_COPY_GAP, default: 1 }),

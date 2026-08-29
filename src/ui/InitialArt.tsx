@@ -84,7 +84,7 @@ export const emptyMediaColor = ({
       container === 'sheet' && scheme === 'dark'
         ? colors.surfaceVariant
         : colors.surfaceContainer,
-    // Android is frozen on its M3 role and has no sheet-elevated split here.
+    // Android takes its M3 role and has no sheet-elevated split to make.
     default: colors.surfaceVariant,
   }) as string;
 
@@ -92,7 +92,7 @@ type InitialArtProps = {
   /** Defaults to the platform's EMPTY-MEDIA material — on iOS
    *  `surfaceContainer` (the systemGray5 pair), the same material the create
    *  tiles use, so every art-less box and every create affordance read as one
-   *  thing; on Android the frozen `surfaceVariant`.
+   *  thing; on Android `surfaceVariant`.
    *
    *  SOLID on purpose, not the translucent `fill` this briefly was: over a
    *  dark page background the fill composites to #1D1D1F, one hex step from

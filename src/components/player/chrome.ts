@@ -243,9 +243,9 @@ export type ClipHandlesProps = {
  * A full `PlayerSheet.ios.tsx` was the obvious alternative and is the wrong
  * shape: only SEVEN of that file's 1751 lines are platform branches, so a twin
  * would copy ~700 lines of correct, frame-verified animation and gesture code
- * that has nothing to do with either platform's look. Android is frozen, so the
- * copy would rot silently and every fix would need landing twice — the
- * re-implementation trap AGENTS.md names.
+ * that has nothing to do with either platform's look. The copy would rot and
+ * every fix would need landing twice — the re-implementation trap AGENTS.md
+ * names.
  */
 export type PlayerConsoleProps = {
   /** The console's top edge, in container space — below the artwork. */
@@ -328,8 +328,8 @@ export type PlayerConsoleProps = {
  * it left 164pt of dead screen below the console (band-scanned: content ended
  * at 676 on an 874pt screen).
  *
- * ANDROID KEEPS ITS OWN, unchanged and frozen: a moderate square with the
- * Material console stacked under it.
+ * ANDROID KEEPS ITS OWN: a moderate square with the Material console stacked
+ * under it.
  */
 export const PLAYER_SIDE_PADDING = Platform.select({
   // The app's own screen gutter — also the collapsed banner's side inset, so

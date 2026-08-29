@@ -60,8 +60,8 @@ export type Sound = {
  * deleted outright for two reasons — existing documents carry values, and
  * `updateSound` writing `undefined` would leave them alone rather than clearing
  * them, which is what "not handled" should mean; and Android's editor still
- * passes both, because Android is frozen and cannot be verified (root
- * AGENTS.md). Delete them here when Android's twin catches up.
+ * passes both. Delete them here when Android's twin catches up — reachable now
+ * that Android is verifiable on the standing device.
  */
 type CreateSoundParams = {
   album?: string;

@@ -25,9 +25,9 @@ export type TextVariant =
 // individually wrong and the whole thing read as not-quite-native, because a
 // platform's type ramp is most of its handwriting.
 //
-// So the steps are per-platform. ANDROID KEEPS ITS EXACT NUMBERS — this split
-// was introduced with Android frozen for release, and its rendered output must
-// not move by a pixel. iOS maps each step onto the matching Apple text style at
+// So the steps are per-platform. ANDROID KEEPS ITS EXACT NUMBERS — they are
+// the M3 roles its screens were built against, and moving them would move every
+// Android screen at once. iOS maps each step onto the matching Apple text style at
 // the default (Large) Dynamic Type size, from the HIG's specification:
 //
 //   Large Title 34/41   Title 1 28/34   Title 2 22/28   Title 3 20/25

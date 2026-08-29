@@ -96,7 +96,8 @@ export type ManageAccountScreenProps = {
    * Topper's Trophies and Trash live here on iOS: the Settings sheet's identity
    * row is a single destination (Apple's Apple Account pattern), so everything
    * account-shaped sits behind it rather than as loose rows in Settings.
-   * Android, frozen, keeps them in Settings and passes nothing here.
+   * Android keeps them in Settings — Material's own grouping — and passes
+   * nothing here.
    */
   sections?: Array<{ title?: string; rows: ManageAccountNavRow[] }>;
   /**

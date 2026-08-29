@@ -319,8 +319,8 @@ export function EditSoundSheet({
                   radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
                   emoji="🎵"
                   // Same `ArtImage` the slot rendered internally before it
-                  // moved to the package — ANDROID IS FROZEN and this keeps
-                  // its output identical, tokens and circle included.
+                  // moved to the package; this keeps its output identical,
+                  // tokens and circle included.
                   preview={
                     artPreviewUri ? (
                       <ArtImage

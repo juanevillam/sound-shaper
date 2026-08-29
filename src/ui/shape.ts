@@ -22,7 +22,7 @@ import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 // Container corner radii for the apps' CUSTOM cards / rows / tiles, matched
 // to each platform's NATIVE list container so custom surfaces read in tone
 // with native ones (a Settings Form section beside a TopCard must feel like
-// one family): Android = the M3 card values the frozen apps shipped with;
+// one family): Android = the M3 card values the apps shipped with;
 // iOS = the iOS 26 inset-grouped-list radius.
 const IOS_GROUP_RADIUS = 26;
 

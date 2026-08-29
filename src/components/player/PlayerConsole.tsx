@@ -38,9 +38,9 @@ import {
 // IT IS VERIFIED NOW. This file spent months carrying a note saying nothing
 // Android was installed and so nothing here could be checked; that stopped
 // being true on 2026-08-28, when the A54 became the standing target and this
-// console was walked on it. The RELEASE freeze still stands — features and
-// flows need an explicit ask — but feel does not, and "written but unverified"
-// is no longer an acceptable state for anything in here.
+// console was walked on it. Features and flows still need an explicit ask,
+// but feel does not, and "written but unverified" is no longer an acceptable
+// state for anything in here.
 //
 // A fixed column, nothing scrolls, so nothing can fight the drag-to-close
 // gesture: art (owned by the sheet, above), title with an overflow menu, the
