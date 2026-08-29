@@ -196,8 +196,10 @@ export function NowPlayingBridge() {
    * media card drew the artwork, the title and a progress bar with no
    * play/pause, no next and no previous.
    *
-   * Re-stating it on every session start costs seven bridge calls per loaded
-   * sound and cannot get out of step with the hide.
+   * Re-stating it on every session start costs seven bridge calls per SESSION
+   * — the effect is keyed on whether there IS a loaded sound, not on which
+   * one, so skipping tracks re-states nothing — and it cannot get out of step
+   * with the hide.
    */
   useEffect(() => {
     if (!hasCurrent) return;
