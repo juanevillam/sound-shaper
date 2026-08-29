@@ -39,6 +39,7 @@ const SF_SYMBOLS = {
   // iOS reorder affordance is the three-line grabber, not the six-dot grid.
   'drag-indicator': 'line.3.horizontal',
   edit: 'pencil',
+  extension: 'puzzlepiece.extension',
   favorite: 'heart',
   'favorite-filled': 'heart.fill',
   flag: 'flag',
