@@ -39,16 +39,33 @@ export type TextVariant =
 // SwiftUI's text styles, which also means auditing every fixed-height layout
 // (the skeletons are dimension-matched on purpose, and the rail header height
 // is a derived constant). Tracked as the next step, not smuggled in here.
+// M3 SPECIFIES A WEIGHT PER ROLE, AND HALF OF THESE WERE SILENTLY DROPPING IT.
+// The sizes were right and the weights were never written, so RN fell back to
+// Roboto Regular for every role — including the four M3 sets in Medium (500).
+// Measured on a Galaxy A54 (density 450, dark): the stem of `titleMedium`'s
+// "B" and `bodyLarge`'s "B" were both 5px, i.e. a block's TITLE and the body
+// text under it were rendering as the same face at the same size. There was no
+// weight step anywhere on the Android side, while the iOS ladder below has
+// carried its `'600'` on `titleMedium` all along.
+//
+// This is invisible to tsc, to lint and to a band-scan — the metrics do not
+// change, only the face — which is why it survived until a stem was measured.
+// The M3 roles that are Medium: `titleMedium`, `labelLarge`, `labelMedium`
+// (and `titleSmall`, which this scale has no step for). Everything else on the
+// display / headline / body ramps is Regular, and stays unset.
+//
+// `fontSize` and `lineHeight` are untouched, so no layout moves and the
+// dimension-matched skeletons stay matched — this is a weight-only change.
 const ANDROID_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: { fontSize: 36, lineHeight: 44 },
   headlineLarge: { fontSize: 28, lineHeight: 36 },
   titleLarge: { fontSize: 22, lineHeight: 28 },
-  titleMedium: { fontSize: 16, lineHeight: 22 },
+  titleMedium: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   bodyLarge: { fontSize: 16, lineHeight: 22 },
   bodyMedium: { fontSize: 14, lineHeight: 20 },
   bodySmall: { fontSize: 12, lineHeight: 16 },
-  labelLarge: { fontSize: 14, lineHeight: 18 },
-  labelMedium: { fontSize: 12, lineHeight: 16 },
+  labelLarge: { fontSize: 14, lineHeight: 18, fontWeight: '500' },
+  labelMedium: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
 };
 
 const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
