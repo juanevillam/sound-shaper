@@ -84,13 +84,30 @@ const TITLE_WEIGHT = '700';
  * The metrics ARE Material's `bodyMedium` (14sp on a 20sp line), restated here
  * because an RN `Text` cannot read the M3 type scale; they must move together
  * with the Compose `bodyMedium` the feature subtitles use, or the two stop
- * matching. Both gaps are back-solved from a render against the rhythm this
- * screen had before the credit left the Host, so the line sits where it did.
+ * matching.
+ *
+ * THE GAPS ARE THE NOMINAL SPACING, NOT A RENDER BACK-SOLVED FROM THE OLD ONE,
+ * and that distinction is the whole bug this replaced. When the credit came out
+ * of the `Host` these were solved to reproduce the rhythm the screen had — but
+ * that rhythm was inflated by the `TextButton`'s `ButtonDefaults.MinHeight`,
+ * which centred one 20sp line inside a 36dp box, and the button was the thing
+ * being deleted. Preserving it preserved the artifact: measured on a Galaxy
+ * A54, the credit sat 28.09dp under the title and the feature list 63.29dp
+ * under the credit, against the 31.0pt the iOS twin renders in the same place.
+ * Juan spotted both by eye against his iPhone before any of it was measured.
+ *
+ * So they are tokens again — `xs` above, because the byline belongs to the
+ * title, and `xl` below, Material's own step between content groups. Matching
+ * iOS exactly is neither possible nor wanted: the ladders differ, and Android's
+ * `displaySmall` carries more descent than a `largeTitle`.
+ *
+ * WHEN A BOX IS REMOVED, RESTORE THE INTENT — do not preserve what the box was
+ * doing.
  */
 const CREDIT_FONT_SIZE = 14;
 const CREDIT_LINE_HEIGHT = 20;
-const CREDIT_TOP_GAP = 10;
-const CREDIT_BOTTOM_GAP = 53;
+const CREDIT_TOP_GAP = spacing.xs;
+const CREDIT_BOTTOM_GAP = spacing.xl;
 const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
