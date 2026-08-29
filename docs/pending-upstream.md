@@ -436,3 +436,59 @@ WSOLA is still there and check: diff the new version's
 `WsolaTimeStretcher.{h,cpp}` against 0.13.2's. If it has grown a music-grade
 path on its own, the right move is deleting `patches/react-native-audio-api/`,
 not rebasing it.
+
+---
+
+## Inline links that are the PLATFORM'S OWN — blocked on `@expo/ui` (both sides)
+
+**What we want.** The welcome screen's tappable runs of prose — the author
+credit and the two legal pages — drawn by each platform's own text engine
+instead of by React Native. Today all three go through `TextLink`
+(`@portfolio/mobile-ui`), which is RN on BOTH platforms. iOS's author credit is
+the one exception and IS native: a SwiftUI `Link`, because it is a standalone
+word rather than a run inside a sentence.
+
+**Why it isn't built — and it is a DIFFERENT blocker per platform.**
+
+**iOS is blocked on interception, not on rendering.** SwiftUI can already draw
+this: `@expo/ui` 57 exposes `markdownEnabled` on `Text` (SwiftUI
+`LocalizedStringKey`), so `[Privacy Policy](url)` renders as a real tappable
+link, correctly tinted, wrapping mid-phrase like any other text. The problem is
+what happens on tap: a markdown link fires SwiftUI's `openURL` environment
+action, which hands the URL to **Safari and leaves the app**. Every welcome
+route deliberately opens these in an in-app `SFSafariViewController` sheet
+(`WebBrowser.openBrowserAsync`) so that reading a policy never drops someone out
+of the sign-in flow. Overriding that needs
+`.environment(\.openURL, OpenURLAction { ... })`, and `@expo/ui`'s `environment`
+modifier accepts only `editMode`, `colorScheme`, `locale` and `timeZone`.
+
+**Android is blocked on rendering.** Compose's own primitive for a link inside a
+sentence is an `AnnotatedString` carrying a `LinkAnnotation` (`withLink`), which
+`@expo/ui` does not surface — `TextSpanRecord` has no press handler and no link
+field. The only reachable Compose approximation is a `TextButton` beside the
+prose, and that was BUILT, MEASURED AND REMOVED on 2026-08-29: its ripple is
+Material's 10% state layer, which at link size measured a peak delta of 18/255
+in light and 25/255 in dark on a Galaxy A54 — present, spec-correct and
+imperceptible against the 82/255 an RN fade gets. `clickable` offers only
+`indication: boolean`, so it cannot be strengthened. It also carried
+`ButtonDefaults.MinHeight`, which inflated the credit row and had to be fought
+with an `offset`.
+
+**What unlocks it.**
+
+1. **iOS** — an `openURL` key on `@expo/ui`'s `environment` modifier (grep
+   `EnvironmentConfig` in `swift-ui/modifiers/environment.d.ts`; today it is a
+   four-member union). With it, `LegalFooter.ios.tsx` becomes one
+   `markdownEnabled` `Text` whose links still open the in-app sheet.
+2. **Android** — a press handler or link field on `TextSpanRecord` (grep
+   `TextSpanStyleBase` / `TextSpanRecord` in
+   `jetpack-compose/Text/index.d.ts`). With it, both Android links become one
+   Compose `Text` with `LinkAnnotation` spans, the RN fallback goes away, and
+   the credit stops needing its own `Host`.
+
+**Until then RN is the CORRECT answer here, not a shortcut**, and that is worth
+stating because it looks like a violation of native-primitive-first. It is the
+rule's own fallback: on Android the native control cannot render this at all,
+and on iOS it can render it only by breaking a deliberate UX decision. The
+consolation is that one RN component gives both platforms identical behaviour,
+which is what the three links have today.
