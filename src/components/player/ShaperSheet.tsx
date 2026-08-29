@@ -64,9 +64,6 @@ const RATE_MAX = 1.5;
 const RATE_STEP = 0.1;
 const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
 
-/** Breathing room under the last control, on top of the navigation bar. */
-const SHEET_BOTTOM_GAP = 16;
-
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 export type ShaperSheetProps = {
@@ -144,12 +141,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           modifiers={[
             fillMaxWidth(),
             verticalScroll(),
-            padding(
-              0,
-              0,
-              0,
-              composeSheetBottomPadding(insets.bottom, SHEET_BOTTOM_GAP),
-            ),
+            padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
           ]}
         >
           {/* The sheet's title. NOT `SheetBar`: that bar pairs a title with a

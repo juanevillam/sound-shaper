@@ -71,12 +71,20 @@ export const SHEET_TITLE_TO_CONTENT = 38.5;
  * The two content-sized sheets beside it cleared only by their own 16dp
  * padding, i.e. by luck rather than by saying so.
  *
- * Pass `useSafeAreaInsets().bottom`; the caller adds whatever breathing room
- * that sheet wants on top. It is a FUNCTION rather than a constant because the
- * inset is the device's, and a gesture-navigation phone reports a much smaller
- * one — hard-coding 48 would open a hole there.
+ * Pass `useSafeAreaInsets().bottom` and nothing else. It is a FUNCTION rather
+ * than a constant because the inset is the device's, and a gesture-navigation
+ * phone reports a much smaller one — hard-coding 48 would open a hole there.
+ *
+ * IT TAKES NO PER-CALLER GAP, and it used to. Three sheets in one app each
+ * declared their own `SHEET_BOTTOM_GAP` — 28, 16 and 16 — for the same job
+ * under the same kind of last row, which is the `PRESSED_OPACITY` shape: one
+ * idea stated in three files, drifting the moment nobody compares them. The
+ * breathing room is a property of a Compose bottom sheet, not of what happens
+ * to be at the bottom of one, so it lives here as `COMPOSE_SHEET_BOTTOM_GAP`
+ * and every sheet gets it. If one genuinely needs more, that is an argument to
+ * have in this file.
  */
-export const composeSheetBottomPadding = (
-  insetBottom: number,
-  contentPadding: number,
-): number => insetBottom + contentPadding;
+export const COMPOSE_SHEET_BOTTOM_GAP = 16;
+
+export const composeSheetBottomPadding = (insetBottom: number): number =>
+  insetBottom + COMPOSE_SHEET_BOTTOM_GAP;
