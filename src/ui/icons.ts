@@ -19,6 +19,7 @@ import Edit from '@expo/material-symbols/edit.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
 import Flag from '@expo/material-symbols/flag.xml';
 import Flight from '@expo/material-symbols/flight.xml';
+import GraphicEq from '@expo/material-symbols/graphic_eq.xml';
 import Groups from '@expo/material-symbols/groups.xml';
 import Help from '@expo/material-symbols/help.xml';
 import Home from '@expo/material-symbols/home.xml';
@@ -87,6 +88,10 @@ const icons = {
   'favorite-filled': require('./assets/icons/favorite-filled.xml'),
   flag: Flag,
   flight: Flight,
+  // The sounding-row marker — Material's equalizer bars, which is also this
+  // app's own now-playing emblem over a grid tile. Pairs with the accent so
+  // colour is not the only indicator.
+  'graphic-eq': GraphicEq,
   groups: Groups,
   help: Help,
   home: Home,

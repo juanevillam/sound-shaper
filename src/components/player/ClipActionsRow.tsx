@@ -21,6 +21,7 @@ export function ClipActionsRow({
   onCancel,
   onPreview,
   onSave,
+  editing,
 }: ClipActionsRowProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -45,7 +46,7 @@ export function ClipActionsRow({
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
           >
-            {t('player.clips.new')}
+            {t(editing ? 'player.clips.edit' : 'player.clips.new')}
           </Text>
         </Column>
         <OutlinedButton onClick={onPreview}>
