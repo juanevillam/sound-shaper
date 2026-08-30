@@ -537,42 +537,44 @@ a decision to stop doing that.
 
 ---
 
-## A header icon button's RIPPLE SIZE — blocked on `@expo/ui`
+## A header icon button's RIPPLE — blocked on `@expo/ui`
 
-**What we want.** A 40dp ripple inside a 48dp touch target, which is what M3
-specifies for an icon button and what the navigator's own back arrow draws.
+**What we want.** A header action that presses like the navigator's own back
+arrow: a 40dp ripple inside a 48dp target, LIGHTENING the bar.
 
-**Why it isn't built.** `@expo/ui` sizes a Compose control's ripple to the
-**`Host`**, not to the button. Measured on a Galaxy A54, holding the search
-view's back arrow:
+**What we have, and why.** Three separate limits, all measured on a Galaxy A54.
 
-| host | ripple  | note                                             |
-| ---- | ------- | ------------------------------------------------ |
-| 40dp | 39.11dp | matches the native arrow's 39.11dp exactly       |
-| 48dp | 47.29dp | correct target, ripple 8dp too wide at both ends |
-| 56dp | 55.50dp | —                                                |
+_Size is tied to the host._ @expo/ui sizes a Compose control's ripple to the
+`Host`, not to the button — host 40 → 39.47dp, host 48 → 47.29, host 56 → 55.50.
+`modifiers={[size(40, 40)]}` on the `IconButton` changes nothing.
 
-So the two properties cannot both be right. `HeaderIconButton` keeps the **48dp
-target** and accepts the wide ripple, because Material's touch-target floor is 48
-and the cost of the alternative was probed rather than assumed: with a 40dp host,
-a tap at 51.6dp registers on the native arrow and **misses** ours.
+_A 48dp host does not fit the header's slot._ With one, the TRAILING actions'
+ripple landed 17dp below its own glyph (y-centre 80.89 against 61.69) and was
+clipped to 31.29dp by the bar's edge; the leading one was fine. At 40dp both are
+correct, matching the native arrow within 0.35dp on width and centre.
 
-The position is NOT the problem and should not be "fixed": the ripple centres at
-27.73dp against the native 27.91. It reads as shifted right; it is too wide at
-both ends, so its left edge reaches 4.27dp from the screen where the native one
-stops at 8.53.
+_Colour is unreachable._ Compose's ripple DARKENS by ~2 L\* where the native arrow
+LIGHTENS by 21.5, so the two read differently in the same bar.
+`colors.contentColor` was measured to change nothing — −2.19 with and without.
 
-**What was tried.** `modifiers={[size(40, 40)]}` on the `IconButton` — no effect,
-the ripple still filled the host.
+**What it costs today.** `HeaderIconButton` uses the 40dp host, so the geometry is
+right and the TOUCH TARGET is 40dp, under Material's 48 floor. Probed rather than
+assumed: a tap at 51.6dp registers on the native arrow and misses ours.
 
-**What unlocks it.** Either a ripple/indication size that follows the composable
-rather than the host, or a `Host` that lets a smaller child keep the parent's
-touch area. Grep mechanically:
+**What unlocks it.** Either a ripple that follows the composable, or a ripple
+colour prop. Grep mechanically:
 
 ```bash
-grep -rn "minimumInteractiveComponentSize\|indication\|rippleRadius" \
+grep -rn "rippleRadius\|indication\|RippleConfiguration" \
   node_modules/@expo/ui/android/src/main/java/expo/modules/ui/
+grep -n "colors" node_modules/@expo/ui/src/jetpack-compose/IconButton/index.tsx
 ```
 
-Then set `HEADER_TOUCH_TARGET` back to 48 with a 40dp ripple in
+Then restore `HEADER_TOUCH_TARGET = 48` in
 `packages/mobile-ui/src/HeaderIconButton.tsx`.
+
+**The escape hatch, not taken.** An RN `Pressable` with `android_ripple` would
+give all three — colour, radius and a 48dp target independently. It also means
+dropping `AppIcon`, because these icons are Android XML vector drawables that
+RN's `Image` cannot render, so the icon set would have to be re-sourced. That is
+a real decision, not a workaround, and it is Juan's to make.

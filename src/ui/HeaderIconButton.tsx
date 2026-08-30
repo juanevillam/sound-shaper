@@ -33,31 +33,39 @@ import type { IconName } from './icons';
  * `HEADER_TOUCH_TARGET` is M3's icon-button size, which is also what the ripple
  * needs room for.
  */
-export const HEADER_TOUCH_TARGET = 48;
+export const HEADER_TOUCH_TARGET = 40;
 
 /**
  * How far the glyph's CENTRE sits from the screen edge, matched to the
  * navigator's own back arrow so a screen with a custom leading action lines up
  * with one that has the real thing. Measured: the native arrow centres at
- * 28.09dp, a hosted one at 40.18dp — 12.09dp adrift, which reads as a jump
- * between screens. `leading` is the correction.
+ * 28.09dp, a hosted one at 40.18dp. `leading` is that correction.
  *
- * THE RIPPLE IS 8dp WIDER THAN THE NATIVE ONE, AND THAT IS NOT A POSITION BUG.
- * Measured on a Galaxy A54: the ripple centres at 27.73dp against the native
- * 27.91 — the same place — but spans 47.29dp against 39.11, so its left edge
- * reaches 4.27dp from the screen where the native one stops at 8.53. It reads as
- * "shifted right"; it is actually "too wide at both ends".
+ * WHY THE BOX IS 40 AND NOT 48. M3 draws a 40dp ripple inside a 48dp target, and
+ * @expo/ui gives no way to ask for both: the ripple is sized to the HOST, not to
+ * the button (host 40 -> 39.5dp, host 48 -> 47.3, host 56 -> 55.5; a
+ * `size(40, 40)` modifier on the `IconButton` changes nothing). A 48dp host does
+ * not fit the header's slot either, and the failure is not subtle — measured on a
+ * Galaxy A54, the TRAILING buttons' ripple landed 17dp below its own glyph
+ * (y-centre 80.89 against the glyph's 61.69) and was clipped to 31.29dp by the
+ * bar's edge, while the leading one was correct. At 40 both are right:
  *
- * The cause is that @expo/ui sizes the ripple to the HOST, not to the button:
- * host 48 → ripple 47.29, host 56 → ripple 55.5, host 40 → ripple 39.11. M3 puts
- * a 40dp ripple inside a 48dp target and there is no way to ask for both — a
- * `size(40, 40)` modifier on the `IconButton` was tried and changed nothing.
+ *                    ripple width   y-centre
+ *   native back         39.82dp      61.69dp
+ *   trailing gear       39.47dp      61.51dp
+ *   leading back        39.47dp      61.87dp
  *
- * So this keeps the 48dp TARGET and accepts the wide ripple. The alternative was
- * measured too: a 40dp host renders the ripple at 39.11dp, matching the native
- * one exactly, and shrinks the target to 40dp — probed on the device, a tap at
- * 51.6dp registers on the native arrow and misses on that one. Material's floor
- * is 48. Filed in docs/pending-upstream.md.
+ * THE COST IS THE TOUCH TARGET, and it was probed rather than assumed: a tap at
+ * 51.6dp registers on the native arrow and misses this one. 40dp is under
+ * Material's 48dp floor. The trade is stated in docs/pending-upstream.md.
+ *
+ * WHAT IS STILL NOT EQUAL is the ripple's COLOUR. Compose's darkens by about 2
+ * L* where the native arrow lightens by 21.5, so the two read differently in the
+ * same bar. It is not reachable from JS — `colors.contentColor` was measured to
+ * change nothing (-2.19 with and without) — and fixing it means abandoning the
+ * Compose `IconButton` for an RN `Pressable` with `android_ripple`, which also
+ * means abandoning `AppIcon`, since these icons are Android XML vector drawables
+ * that RN's `Image` cannot render. Not done without a decision.
  */
 export const HEADER_NATIVE_LEADING_CENTRE = 28.09;
 
@@ -110,4 +118,4 @@ export function HeaderIconButton({
  * own button padding and the bar's start keyline all contribute, and none of
  * them is a number this side can read.
  */
-const LEADING_PULL = 12;
+const LEADING_PULL = 8;
