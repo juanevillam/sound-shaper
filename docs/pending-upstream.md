@@ -537,53 +537,37 @@ a decision to stop doing that.
 
 ---
 
-## A header icon button's RIPPLE — blocked on `@expo/ui`
+## A header icon button's RIPPLE COLOUR — blocked on `@expo/ui`
 
 **What we want.** A header action that presses like the navigator's own back
-arrow: a 40dp ripple inside a 48dp target, LIGHTENING the bar.
+arrow, which LIGHTENS the bar by 21.5 L\*.
 
-**What we have, and why.** Three separate limits, all measured on a Galaxy A54.
+**What we have.** Compose's ripple, which DARKENS it by about 2. Everything else
+about these buttons now matches the native arrow — the leading one to the decimal
+(39.82dp at x 27.91, y 61.69), the trailing ones within 0.4dp, on M3's 48dp pitch
+and 40dp end inset, with a target wider than the native arrow's.
 
-_Size is tied to the host._ @expo/ui sizes a Compose control's ripple to the
-`Host`, not to the button — host 40 → 39.47dp, host 48 → 47.29, host 56 → 55.50.
-`modifiers={[size(40, 40)]}` on the `IconButton` changes nothing.
+**Why it isn't built.** The ripple colour is not exposed. `colors.contentColor`
+on `IconButton` reaches the CONTENT and not the indication — measured -2.19 L\*
+with it and without it, i.e. no change at all.
 
-_A 48dp host does not fit the header's slot._ With one, the TRAILING actions'
-ripple landed 17dp below its own glyph (y-centre 80.89 against 61.69) and was
-clipped to 31.29dp by the bar's edge; the leading one was fine. At 40dp both are
-correct, matching the native arrow within 0.35dp on width and centre.
-
-_Colour is unreachable._ Compose's ripple DARKENS by ~2 L\* where the native arrow
-LIGHTENS by 21.5, so the two read differently in the same bar.
-`colors.contentColor` was measured to change nothing — −2.19 with and without.
-
-**What it costs today.** `HeaderIconButton` uses the 40dp host, so the geometry is
-right and the TOUCH TARGET is 40dp, under Material's 48 floor. Probed rather than
-assumed: a tap at 51.6dp registers on the native arrow and misses ours.
-
-**What unlocks it.** Either a ripple that follows the composable, or a ripple
-colour prop. Grep mechanically:
+**What unlocks it.** A ripple/indication colour on the Compose controls. Grep:
 
 ```bash
-grep -rn "rippleRadius\|indication\|RippleConfiguration" \
+grep -rn "RippleConfiguration\|LocalIndication\|rippleColor" \
   node_modules/@expo/ui/android/src/main/java/expo/modules/ui/
-grep -n "colors" node_modules/@expo/ui/src/jetpack-compose/IconButton/index.tsx
 ```
 
-Then restore `HEADER_TOUCH_TARGET = 48` in
-`packages/mobile-ui/src/HeaderIconButton.tsx`.
-
 **The escape hatch, REJECTED 2026-08-29.** An RN `Pressable` with
-`android_ripple` would give all three — colour, radius and a 48dp target
-independently. Juan's call, asked and answered: the header actions stay Compose
-`IconButton`s. "I want them icons to be as native as possible, no rn pressables."
+`android_ripple` would give the colour outright. Juan's call, asked and answered:
+the header actions stay Compose `IconButton`s — "I want them icons to be as
+native as possible, no rn pressables." That is the rule this repo already has, a
+native control beating an authored one that matches a screenshot, and the icons
+are Android XML vector drawables `Image` cannot render anyway, so the swap would
+have dragged the whole icon set with it. Re-open only if `@expo/ui` exposes the
+ripple.
 
-That is the right instinct and it is the rule this repo already has — a native
-control that is 95% right beats an authored one that matches a screenshot, and
-the icons are Android XML vector drawables `Image` cannot render anyway, so the
-swap would have dragged the whole icon set with it.
-
-So the ripple's COLOUR is a closed question, not an open one: it stays Compose's,
-darkening ~2 L\* where the navigator's own arrow lightens 21.5. Everything else —
-size, placement, pitch, keyline — is matched to the native arrow within 0.7dp.
-Re-open only if `@expo/ui` exposes the ripple.
+**Solved along the way, and NOT to be re-litigated:** ripple size and placement.
+The fix was to stop sizing the `Host` and let the `IconButton` size itself inside
+a `Box` that states the 48dp slot — the full account, with the two wrong turns
+that preceded it, is on `HeaderIconButton`.
