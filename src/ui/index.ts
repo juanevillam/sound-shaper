@@ -31,6 +31,7 @@ export {
 } from './DestructiveConfirmDialog';
 export { artworkRadius } from './artworkRadius';
 export { EmptyState, EMPTY_STATE_STEPS } from './EmptyState';
+export { HeaderIconButton, HEADER_TOUCH_TARGET } from './HeaderIconButton';
 export { SearchField } from './SearchField';
 export {
   EMPTY_MEDIA_CAPTION_GAP,
