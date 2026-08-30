@@ -26,6 +26,13 @@ type SearchFieldProps = {
   onClear: () => void;
   onFocusChange?: (focused: boolean) => void;
   onSubmit?: (query: string) => void;
+  /**
+   * Take focus and raise the keyboard on mount. For a field that APPEARS on
+   * demand — a search mode the bar just opened — where making someone tap a
+   * field they only just summoned is a wasted step. A field that is simply
+   * present on the screen leaves this off.
+   */
+  autoFocus?: boolean;
 };
 
 /**
@@ -59,6 +66,7 @@ export function SearchField({
   onClear,
   onFocusChange,
   onSubmit,
+  autoFocus = false,
 }: SearchFieldProps) {
   const { colors, scheme, seedColor } = useAppTheme();
 
@@ -74,6 +82,7 @@ export function SearchField({
     >
       <TextField
         value={value}
+        autoFocus={autoFocus}
         singleLine
         shape={Shape.Pill({})}
         colors={{
