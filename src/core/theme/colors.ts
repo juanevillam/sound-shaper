@@ -24,6 +24,13 @@ export type AppColors = {
    */
   surfaceRaised: string;
   /**
+   * A DIALOG'S CONTAINER — the one surface that floats over a scrim, so it sits
+   * higher than a card and higher than chrome. M3 spends `surfaceContainerHigh`
+   * here; this is that step when the palette's own is in range and a measured
+   * substitute when it is not. See `dialogMaterial`.
+   */
+  surfaceDialog: string;
+  /**
    * THE TONAL STEP THAT IS GUARANTEED TO SEPARATE FROM `surfaceContainer`.
    *
    * Read that contract, not the token's M3 name, before using it: on Android
@@ -325,6 +332,46 @@ const cardMaterial = (m: MaterialColors): string => {
  */
 const RAISED_STEP_TARGET = 7;
 
+/**
+ * A DIALOG'S CONTAINER, WHICH IS THE SAME DEFECT ONE STEP HIGHER.
+ *
+ * M3 puts a dialog on `surfaceContainerHigh` — two steps above surface, so it
+ * reads as floating rather than as another card. On the M3 baseline that lands
+ * about 10 L* off the page. On the A54 `surfaceContainerHigh` is #4D4D52, 32.6
+ * L* off a near-black page: the same over-contrast `cardMaterial` exists to
+ * repair, and the dialogs kept it after the cards were fixed, which is exactly
+ * how they came to read as slabs against a screen that had gone quiet (Juan,
+ * 2026-08-29).
+ *
+ * The target is deliberately above the card's: a dialog that matched the cards
+ * under it would stop reading as a layer. Measured on the A54, the ladder has
+ * nothing between 5.7 and 14.5 L*, so it lands on #252528 — 8.5 above the card,
+ * clear of it without being a slab.
+ */
+const DIALOG_STEP_TARGET = 12;
+const DIALOG_STEP_CEILING = 20;
+
+const dialogMaterial = (m: MaterialColors): string => {
+  const ground = lightness(m.background);
+  const step = (c: string) => Math.abs(lightness(c) - ground);
+
+  if (step(m.surfaceContainerHigh) <= DIALOG_STEP_CEILING)
+    return m.surfaceContainerHigh;
+
+  return [
+    m.surfaceContainerLow,
+    m.surfaceContainerHighest,
+    m.surfaceContainer,
+    m.surfaceBright,
+    m.surfaceContainerHigh,
+  ].reduce((best, next) =>
+    Math.abs(step(next) - DIALOG_STEP_TARGET) <
+    Math.abs(step(best) - DIALOG_STEP_TARGET)
+      ? next
+      : best,
+  );
+};
+
 const raisedMaterial = (m: MaterialColors): string => {
   const ground = lightness(m.surface);
   const step = (c: string) => Math.abs(lightness(c) - ground);
@@ -350,6 +397,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     background: m.background,
     surface: m.surface,
     surfaceRaised: raisedMaterial(m),
+    surfaceDialog: dialogMaterial(m),
     card: card,
     sheet: card,
     sheetField: card,
@@ -425,6 +473,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
     surfaceRaised: '#E5E5EA',
+    surfaceDialog: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
     shadow: '#000000',
     onSurface: '#000000',
@@ -459,6 +508,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
     surfaceRaised: '#2C2C2E',
+    surfaceDialog: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
     shadow: '#000000',
     onSurface: '#FFFFFF',
@@ -496,6 +546,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
     surfaceRaised: '#F3EDF7',
+    surfaceDialog: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
     shadow: '#000000',
     onSurface: '#1D1B20',
@@ -531,6 +582,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
     surfaceRaised: '#211F26',
+    surfaceDialog: '#211F26',
     surfaceVariant: '#49454F',
     shadow: '#000000',
     onSurface: '#E6E0E9',

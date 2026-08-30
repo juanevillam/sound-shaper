@@ -475,7 +475,11 @@ export function ClipsSheet({
               confirm: t('player.clips.deleteConfirm.confirm'),
               cancel: t('player.clips.deleteConfirm.cancel'),
             }}
-            colors={{ danger: colors.danger }}
+            colors={{
+              danger: colors.danger,
+              primary: colors.primary,
+              surfaceDialog: colors.surfaceDialog,
+            }}
             onConfirm={() => onDelete(confirmClipId)}
             onDismiss={() => setConfirmClipId(null)}
           />

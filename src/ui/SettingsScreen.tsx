@@ -413,7 +413,15 @@ const RadioOptionsDialog = ({
             horizontalArrangement="end"
             modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
           >
-            <TextButton onClick={onDismiss}>
+            {/* A Compose control themes itself from the NATIVE scheme, which on
+                a One UI palette is the untuned accent `schemePrimary` exists to
+                repair — so every text button in a dialog states its content
+                colour rather than inheriting one the rest of the app no longer
+                uses. Measured: inherited #4979F6 against the app's #B1C5FF. */}
+            <TextButton
+              colors={{ contentColor: colors.primary }}
+              onClick={onDismiss}
+            >
               <Text>{cancelLabel}</Text>
             </TextButton>
           </Row>

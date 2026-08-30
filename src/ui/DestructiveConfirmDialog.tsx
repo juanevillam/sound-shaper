@@ -10,7 +10,7 @@ export type DestructiveConfirmDialogContent = {
 
 export type DestructiveConfirmDialogProps = {
   dialog: DestructiveConfirmDialogContent;
-  colors: { danger: string };
+  colors: { danger: string; primary: string; surfaceDialog: string };
   /** Disables both actions and blocks dismissal while the action runs. */
   busy?: boolean;
   onConfirm: () => void;
@@ -40,6 +40,11 @@ export const DestructiveConfirmDialog = ({
   onDismiss,
 }: DestructiveConfirmDialogProps) => (
   <AlertDialog
+    // The same container the two hand-built dialogs paint, so the app's three
+    // dialogs are one surface. Left to itself this draws M3's
+    // `surfaceContainerHigh`, which is 32.6 L* off the page on a One UI palette
+    // — see `dialogMaterial` in `@portfolio/core`.
+    colors={{ containerColor: colors.surfaceDialog }}
     onDismissRequest={() => {
       if (!busy) onDismiss();
     }}
@@ -56,7 +61,13 @@ export const DestructiveConfirmDialog = ({
       </TextButton>
     </AlertDialog.ConfirmButton>
     <AlertDialog.DismissButton>
-      <TextButton enabled={!busy} onClick={onDismiss}>
+      {/* Content colour stated, not inherited — see the note on the radio
+          dialog's Cancel in `SettingsScreen`. */}
+      <TextButton
+        colors={{ contentColor: colors.primary }}
+        enabled={!busy}
+        onClick={onDismiss}
+      >
         <Text>{dialog.cancel}</Text>
       </TextButton>
     </AlertDialog.DismissButton>
