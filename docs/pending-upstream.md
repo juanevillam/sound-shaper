@@ -492,3 +492,45 @@ rule's own fallback: on Android the native control cannot render this at all,
 and on iOS it can render it only by breaking a deliberate UX decision. The
 consolation is that one RN component gives both platforms identical behaviour,
 which is what the three links have today.
+
+---
+
+## A Compose `RadioButton`'s SELECTED colour — blocked on `@expo/ui`
+
+**What we want.** The selected dot in the Language / Appearance radio dialogs to
+be the app's accent, which on a wallpaper-derived palette is not the same value
+the native Material scheme hands a Compose control.
+
+**Why it matters here.** Samsung One UI returns the SAME `primary` in both
+schemes — measured `#387AFF` in dark and in light on a Galaxy A54 — where M3
+gives a dark scheme the lighter tone 80. `schemePrimary` in `@portfolio/core`
+repairs that for everything the app paints itself (measured `#B1C5FF`), and every
+Compose control that accepts a colour has been pointed at it: `TextButton` via
+`colors.contentColor`, `OutlinedTextField` via its focused indicator / label /
+cursor, `AlertDialog` via `colors.containerColor`. The radio dot is the one that
+cannot be, so it renders the raw `#4979F6` beside labels at `#B1C5FF` — the only
+untuned accent left in the app.
+
+**Why it isn't built.** No API. `RadioButtonProps` on `@expo/ui` **57.0.7**
+declares exactly three fields — `selected`, `onClick`, `modifiers` — and there is
+no tint among the modifiers either (checked the full export list: `background`,
+`border`, `alpha`, `blur`, `clip` … no colour that reaches a control's own
+drawing). Compose's `RadioButton` takes `colors: RadioButtonColors` natively; it
+is simply not surfaced.
+
+**What unlocks it.** A `colors` prop on `RadioButton`, the same shape the other
+controls already have. Grep for it mechanically:
+
+```bash
+grep -n "colors" node_modules/@expo/ui/src/jetpack-compose/RadioButton/index.tsx
+```
+
+Non-empty = build it: pass `{ selectedColor: colors.primary }` from
+`RadioOptionsDialog` in `packages/mobile-ui/src/SettingsScreen.tsx`.
+
+**The thing NOT to do meanwhile.** `Host` takes a `seedColor`, and seeding the
+scheme WOULD regenerate a correct M3 ramp — including a proper dark tone-80
+primary — fixing this natively. It also throws away One UI's own surface values
+and regenerates all of them from one hue, which is a different theme, not a fix
+for one dot. The portfolio rides the platform palette (see AGENTS.md); a seed is
+a decision to stop doing that.
