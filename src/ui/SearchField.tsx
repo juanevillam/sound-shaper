@@ -33,6 +33,17 @@ type SearchFieldProps = {
    * present on the screen leaves this off.
    */
   autoFocus?: boolean;
+  /**
+   * `pill` (default) is the docked Material search field — a filled container
+   * shaped into a pill, for a field that sits in a screen's content.
+   *
+   * `bare` is the field INSIDE an expanded app bar: no container, no leading
+   * magnifier, no shape. Material's search view replaces the whole bar, so the
+   * back arrow is already the leading affordance and a second magnifier beside
+   * it is a duplicate; without a container the field reads as the bar's own
+   * title slot having become an input, which is exactly what it is.
+   */
+  variant?: 'pill' | 'bare';
 };
 
 /**
@@ -67,27 +78,38 @@ export function SearchField({
   onFocusChange,
   onSubmit,
   autoFocus = false,
+  variant = 'pill',
 }: SearchFieldProps) {
   const { colors, scheme, seedColor } = useAppTheme();
+  const bare = variant === 'bare';
 
   return (
     /* The app-side `ThemedHost` this used to take is a `Host` with the resolved
        scheme forwarded; a package component asks for the scheme itself, the
        same way `EmptyState` does. */
+    /* A BARE FIELD STATES ITS BOX INSTEAD OF MATCHING ITS CONTENTS, because
+       that is the only way it can live in a native header: `matchContents`
+       reports its size after the fact, and inside a header title slot the
+       answer never arrives — the screen renders blank. Same rule as every other
+       host in a native row or sheet. */
     <Host
       colorScheme={scheme}
       seedColor={seedColor}
-      matchContents={{ vertical: true }}
-      style={styles.host}
+      {...(bare ? {} : { matchContents: { vertical: true } as const })}
+      style={bare ? styles.hostBare : styles.host}
     >
       <TextField
         value={value}
         autoFocus={autoFocus}
         singleLine
-        shape={Shape.Pill({})}
+        {...(bare ? {} : { shape: Shape.Pill({}) })}
         colors={{
-          focusedContainerColor: colors.surfaceContainer,
-          unfocusedContainerColor: colors.surfaceContainer,
+          // Bare: the bar's own ground shows through, so the field melts into
+          // the header rather than sitting on it as a second surface.
+          focusedContainerColor: bare ? 'transparent' : colors.surfaceContainer,
+          unfocusedContainerColor: bare
+            ? 'transparent'
+            : colors.surfaceContainer,
           // Hide the filled field's bottom indicator so it reads as a pill.
           focusedIndicatorColor: 'transparent',
           unfocusedIndicatorColor: 'transparent',
@@ -107,9 +129,13 @@ export function SearchField({
         onFocusChanged={onFocusChange}
         modifiers={[fillMaxWidth()]}
       >
-        <TextField.LeadingIcon>
-          <Icon source={iconSource('search')} tint={colors.onSurfaceMuted} />
-        </TextField.LeadingIcon>
+        {/* No magnifier in the bar — the back arrow is already the leading
+            affordance there, and two glyphs for one job is one too many. */}
+        {bare ? null : (
+          <TextField.LeadingIcon>
+            <Icon source={iconSource('search')} tint={colors.onSurfaceMuted} />
+          </TextField.LeadingIcon>
+        )}
         <TextField.Placeholder>
           <ComposeText color={colors.onSurfaceMuted}>{placeholder}</ComposeText>
         </TextField.Placeholder>
@@ -132,4 +158,8 @@ export function SearchField({
   );
 }
 
-const styles = { host: { width: '100%' as const } };
+const styles = {
+  host: { width: '100%' as const },
+  /** The expanded app bar's title slot: stated, not measured. See the Host. */
+  hostBare: { width: '100%' as const, height: 48 },
+};
