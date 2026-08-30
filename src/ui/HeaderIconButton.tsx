@@ -59,13 +59,11 @@ export const HEADER_TOUCH_TARGET = 40;
  * 51.6dp registers on the native arrow and misses this one. 40dp is under
  * Material's 48dp floor. The trade is stated in docs/pending-upstream.md.
  *
- * WHAT IS STILL NOT EQUAL is the ripple's COLOUR. Compose's darkens by about 2
- * L* where the native arrow lightens by 21.5, so the two read differently in the
- * same bar. It is not reachable from JS — `colors.contentColor` was measured to
- * change nothing (-2.19 with and without) — and fixing it means abandoning the
- * Compose `IconButton` for an RN `Pressable` with `android_ripple`, which also
- * means abandoning `AppIcon`, since these icons are Android XML vector drawables
- * that RN's `Image` cannot render. Not done without a decision.
+ * WHAT IS STILL NOT EQUAL is the ripple's COLOUR: Compose's darkens by about 2
+ * L* where the native arrow lightens by 21.5. Not reachable from JS —
+ * `colors.contentColor` measured -2.19 with and without — and the only fix is an
+ * RN `Pressable`, which Juan rejected on 2026-08-29 and rightly: these stay
+ * native Compose `IconButton`s. A closed question, not an open one.
  */
 export const HEADER_NATIVE_LEADING_CENTRE = 28.09;
 
@@ -96,7 +94,9 @@ export function HeaderIconButton({
       style={{
         width: HEADER_TOUCH_TARGET,
         height: HEADER_TOUCH_TARGET,
-        ...(leading ? { marginStart: -LEADING_PULL } : null),
+        ...(leading
+          ? { marginStart: -LEADING_PULL }
+          : { marginHorizontal: TRAILING_SLOT_PAD }),
       }}
     >
       <IconButton onClick={onPress}>
@@ -119,3 +119,19 @@ export function HeaderIconButton({
  * them is a number this side can read.
  */
 const LEADING_PULL = 8;
+
+/**
+ * THE VISUAL BOX IS 40, THE LAYOUT SLOT IS STILL 48.
+ *
+ * Shrinking the host to 40 fixed the ripple's size and placement and shrank the
+ * bar's rhythm with it: two trailing actions came to sit 40.36dp apart where M3
+ * spaces them 48, and the last one landed 35.73dp from the screen edge instead
+ * of 40 (16 + 24). Both read as crowded, and the gap between the two glyphs is
+ * the one you notice.
+ *
+ * So each trailing button carries the 4dp the host gave up on either side, which
+ * restores the 48dp pitch and the 40dp end inset without touching the ripple.
+ * The LEADING button is exempt: it is alone in its slot and already carries
+ * `LEADING_PULL` to sit on the navigator's own keyline.
+ */
+const TRAILING_SLOT_PAD = (48 - 40) / 2;
