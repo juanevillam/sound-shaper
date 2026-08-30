@@ -84,22 +84,28 @@ export type SettingsAboutConfig = {
 
 /**
  * Policy links (privacy policy, terms) that stores require reachable from
- * inside the app. Passed separately from `about` because the two platforms
- * group them differently — Apple gives legal its own card between About and
- * Sign Out, while ANDROID keeps them appended to the About list, which is
- * Material's own grouping. Each variant does that merge itself, so an app
- * passes the rows once and neither platform's output changes shape.
+ * inside the app. Passed separately from `about` because they are a different
+ * KIND of row — a version number is a fact about the build, these two are links
+ * that leave the app — and both platforms now give them their own card between
+ * About and Sign Out.
+ *
+ * ANDROID USED TO APPEND THEM TO ABOUT, on the stated grounds that this was
+ * "Material's grouping". Retired 2026-08-29: Android does group legal near
+ * About, but as ONE "Legal information" row opening a sub-screen, not as two
+ * flat links beside a version. Merged, they were also the only content rows on
+ * the screen with no header, which is the thing that made the card read as a
+ * mixed bag.
  */
 export type SettingsLegalConfig = {
   /**
-   * Section header, iOS only — Android appends these rows to About and never
-   * renders a header for them (see `aboutRows` below).
+   * Section header.
    *
    * Titled because every CONTENT group on the screen is: General, Account,
    * About and these. The only headerless card is the trailing Sign Out, which
    * is an ACTION rather than a group — Apple leaves that one bare too (the
-   * Apple Account sheet's own Sign Out). Without a header here the screen read
-   * unevenly, with one content card silently different from its neighbours.
+   * Apple Account sheet's own Sign Out), and so does Google. Without a header
+   * here the screen read unevenly, with one content card silently different
+   * from its neighbours.
    */
   title?: string;
   rows: SettingsInfoRow[];
@@ -196,7 +202,23 @@ const PreferenceRow = memo(
       colors={{
         containerColor: colors.surfaceContainer,
         contentColor: colors.onSurface,
-        supportingContentColor: colors.onSurfaceMuted,
+        // THE SELECTED VALUE KEEPS THE ACCENT, because here the colour IS the
+        // information: this line is not supporting text about the row, it is
+        // the row's current SELECTION, and it is the only thing on the screen
+        // that says which language and which appearance are in effect.
+        //
+        // That is the monochrome rule's second bucket, not an exception to it,
+        // and iOS has drawn it this way all along — the accent list names "a
+        // form's menu-picker VALUE" explicitly, on the grounds that Apple's own
+        // Settings tints Language and Appearance itself. The 2026-08-29 parity
+        // audit compared the two rows' SHAPE (Android's value is supporting
+        // text, iOS's is a trailing tinted label with a chevron), called the
+        // shape difference correct, and never checked the INK against the rule
+        // — so Android sat at `onSurfaceMuted` and read like disabled text.
+        //
+        // A read-only value does NOT get this: `InfoRow`'s version number stays
+        // muted, because a build number is a fact rather than a choice.
+        supportingContentColor: colors.primary,
       }}
       modifiers={[fillMaxWidth(), clip(shape), clickable(() => onOpen(title))]}
     >
@@ -274,6 +296,51 @@ const InfoRow = ({
     ) : null}
   </ListItem>
 );
+
+/**
+ * A HEADED CARD OF READ-ONLY ROWS — About, and Legal. One definition because
+ * they are the same object: a `labelLarge` muted subheader over a grouped card
+ * whose first and last rows take the outer corners.
+ */
+const InfoGroup = ({
+  title,
+  rows,
+  colors,
+}: {
+  title?: string;
+  rows: SettingsInfoRow[];
+  colors: SettingsScreenColors;
+}) =>
+  rows.length ? (
+    <>
+      {/* Ink, not the accent — see the note on `sectionsTitle`. */}
+      {title ? (
+        <Text
+          color={colors.onSurfaceMuted}
+          style={{ typography: 'labelLarge' }}
+          modifiers={[padding(16, 16, 16, 8)]}
+        >
+          {title}
+        </Text>
+      ) : null}
+      <Column
+        modifiers={[
+          fillMaxWidth(),
+          padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+        ]}
+        verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+      >
+        {rows.map((row, index) => (
+          <InfoRow
+            key={row.label}
+            row={row}
+            shape={groupRowShape(index, rows.length)}
+            colors={colors}
+          />
+        ))}
+      </Column>
+    </>
+  ) : null;
 
 /**
  * The single-choice radio dialog a preference row opens. Hosted by the screen
@@ -380,8 +447,6 @@ export const SettingsScreen = ({
   const [accountDialog, setAccountDialog] = useState<
     'username' | 'signOut' | null
   >(null);
-
-  const aboutRows = about ? [...about.rows, ...(legal?.rows ?? [])] : [];
 
   const openPreference = useCallback(
     (title: string) => setOpenSectionTitle(title),
@@ -502,40 +567,31 @@ export const SettingsScreen = ({
               ) : null}
 
               {about ? (
-                <>
-                  {/* Ink, not the accent — see the note on `sectionsTitle`. */}
-                  {about.title ? (
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{
-                        typography: 'labelLarge',
-                      }}
-                      modifiers={[padding(16, 16, 16, 8)]}
-                    >
-                      {about.title}
-                    </Text>
-                  ) : null}
-                  <Column
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                    ]}
-                    verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                  >
-                    {/* Legal rows are appended to About here, which is exactly
-                        where they rendered before they became their own prop —
-                        Material's grouping keeps them there. iOS
-                        gives them their own card instead. */}
-                    {aboutRows.map((row, index) => (
-                      <InfoRow
-                        key={row.label}
-                        row={row}
-                        shape={groupRowShape(index, aboutRows.length)}
-                        colors={colors}
-                      />
-                    ))}
-                  </Column>
-                </>
+                <InfoGroup
+                  title={about.title}
+                  rows={about.rows}
+                  colors={colors}
+                />
+              ) : null}
+
+              {/* LEGAL IS ITS OWN CARD, not two more About rows.
+                  It used to be appended to About, on a reason that read
+                  "exactly where they rendered before they became their own
+                  prop — Material's grouping keeps them there": the first half
+                  is history and the second was asserted, which is the same
+                  shape as the freeze clauses retired on 2026-08-29. What
+                  Android actually does is put ONE "Legal information" row under
+                  About phone that opens a sub-screen — not two flat links
+                  sitting beside a version number. Merged, this was also the
+                  only content card on the screen with no header of its own,
+                  while General and About both had one (Sign Out is bare on
+                  purpose: it is an action, not a group). */}
+              {legal ? (
+                <InfoGroup
+                  title={legal.title}
+                  rows={legal.rows}
+                  colors={colors}
+                />
               ) : null}
 
               {/* A lone sign-out closes the screen instead of sitting under an
