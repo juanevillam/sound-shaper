@@ -160,6 +160,16 @@ export function SearchField({
 
 const styles = {
   host: { width: '100%' as const },
-  /** The expanded app bar's title slot: stated, not measured. See the Host. */
-  hostBare: { width: '100%' as const, height: 48 },
+  /**
+   * The expanded app bar's title slot: stated, not measured (see the Host).
+   *
+   * 56, NOT 48, AND THE DIFFERENCE IS A CLIPPED DESCENDER. A Compose filled
+   * `TextField` wants 56dp; squeezed into 48 it renders the line but cuts the
+   * bottom off, which shows up as the "p" of "Search components" losing its
+   * tail. Measured on a Galaxy A54: at 48 the placeholder's ink ends abruptly —
+   * the per-row ink count falls 174, 211, 186, 151, 9, 4, a cut rather than a
+   * taper — and at 56 it runs on as a 4px stem to the true baseline. Ink height
+   * 13.16dp against 15.64.
+   */
+  hostBare: { width: '100%' as const, height: 56 },
 };
