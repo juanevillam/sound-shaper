@@ -101,7 +101,11 @@ export default function ManageAccount() {
               confirm: t('settings.manageAccount.deleteDialog.confirm'),
               cancel: t('settings.manageAccount.deleteDialog.cancel'),
             }}
-            colors={{ danger: colors.danger }}
+            colors={{
+              danger: colors.danger,
+              primary: colors.primary,
+              surfaceDialog: colors.surfaceDialog,
+            }}
             busy={deleting}
             onConfirm={confirmDelete}
             onDismiss={() => {

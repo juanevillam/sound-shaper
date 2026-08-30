@@ -79,17 +79,19 @@ export const groupRowShape = (index: number, count: number): GroupShape => {
  * Compose derives a tonal overlay by blending the scheme's PRIMARY into the
  * surface, so on a wallpaper-derived palette the dialog picks up the accent.
  * Measured on a Galaxy A54 (dark): #1B2131 — a blue whose blue channel sits 22
- * above its red, in an app where every other container is neutral — and 23
- * levels DARKER than the cards it floats over, so it read recessed rather than
- * raised.
+ * above its red, in an app where every other container is neutral.
  *
- * The token was chosen by MEASUREMENT, and the ground truth was already on the
- * same screen: `DestructiveConfirmDialog` (Sign Out) uses Compose's real
- * `AlertDialog`, which draws M3's own dialog container. That measured #4D4D52
- * on this device — exactly what `surfaceVariant` resolves to here, since that
- * role's whole contract is "the tonal step guaranteed to separate from
- * `surfaceContainer`" whatever the OEM ships. So the two hand-built dialogs now
- * match the framework's own dialog beside them instead of being the odd ones.
+ * IT WAS `surfaceVariant` FOR A DAY, and that was right only until the palette
+ * repair landed. It was chosen because it matched what Compose's own
+ * `AlertDialog` draws (#4D4D52) — but that value is `surfaceContainerHigh`,
+ * which on this palette is 32.6 L* off a near-black page. Once `cardMaterial`
+ * brought the cards down to 5.7, the dialogs were the last slabs on a screen
+ * that had gone quiet. `surfaceDialog` is the same repair one step higher; see
+ * `dialogMaterial` in `@portfolio/core`.
+ *
+ * The sign-out dialog is Compose's real `AlertDialog` and takes the same value
+ * through `colors.containerColor`, so all three dialogs in the app are one
+ * surface rather than two hand-built ones and a framework default.
  */
-export const dialogContainer = (colors: { surfaceVariant: string }): string =>
-  colors.surfaceVariant;
+export const dialogContainer = (colors: { surfaceDialog: string }): string =>
+  colors.surfaceDialog;

@@ -429,7 +429,11 @@ export function EditSoundSheet({
               confirm: t('soundEdit.deleteConfirm.confirm'),
               cancel: t('soundEdit.deleteConfirm.cancel'),
             }}
-            colors={{ danger: colors.danger }}
+            colors={{
+              danger: colors.danger,
+              primary: colors.primary,
+              surfaceDialog: colors.surfaceDialog,
+            }}
             onConfirm={handleDelete}
             onDismiss={() => setDeleteVisible(false)}
           />

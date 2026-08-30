@@ -48,6 +48,7 @@ export type SettingsAccountColors = {
   onSurfaceMuted: string;
   surfaceContainer: string;
   surfaceVariant: string;
+  surfaceDialog: string;
   danger: string;
 };
 
@@ -363,6 +364,14 @@ export const UsernameDialog = ({
               onValueChange={onChange}
               singleLine
               isError={!!error}
+              // Same reason as the buttons: the focused ring, the label and the
+              // caret are accent-drawn, and the native scheme's accent is the
+              // one the app repairs.
+              colors={{
+                focusedIndicatorColor: colors.primary,
+                focusedLabelColor: colors.primary,
+                cursorColor: colors.primary,
+              }}
               modifiers={[fillMaxWidth()]}
             >
               <OutlinedTextField.Label>
@@ -379,12 +388,22 @@ export const UsernameDialog = ({
             horizontalArrangement="end"
             modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
           >
+            {/* Content colour stated, not inherited — see the note on the radio
+                dialog's Cancel in `SettingsScreen`. */}
             {dismissable ? (
-              <TextButton enabled={!isSubmitting} onClick={onDismiss}>
+              <TextButton
+                colors={{ contentColor: colors.primary }}
+                enabled={!isSubmitting}
+                onClick={onDismiss}
+              >
                 <Text>{editor.dialog.cancel}</Text>
               </TextButton>
             ) : null}
-            <TextButton enabled={!isSubmitting} onClick={submit}>
+            <TextButton
+              colors={{ contentColor: colors.primary }}
+              enabled={!isSubmitting}
+              onClick={submit}
+            >
               <Text>{editor.dialog.confirm}</Text>
             </TextButton>
           </Row>
