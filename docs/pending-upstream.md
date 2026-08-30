@@ -573,8 +573,17 @@ grep -n "colors" node_modules/@expo/ui/src/jetpack-compose/IconButton/index.tsx
 Then restore `HEADER_TOUCH_TARGET = 48` in
 `packages/mobile-ui/src/HeaderIconButton.tsx`.
 
-**The escape hatch, not taken.** An RN `Pressable` with `android_ripple` would
-give all three — colour, radius and a 48dp target independently. It also means
-dropping `AppIcon`, because these icons are Android XML vector drawables that
-RN's `Image` cannot render, so the icon set would have to be re-sourced. That is
-a real decision, not a workaround, and it is Juan's to make.
+**The escape hatch, REJECTED 2026-08-29.** An RN `Pressable` with
+`android_ripple` would give all three — colour, radius and a 48dp target
+independently. Juan's call, asked and answered: the header actions stay Compose
+`IconButton`s. "I want them icons to be as native as possible, no rn pressables."
+
+That is the right instinct and it is the rule this repo already has — a native
+control that is 95% right beats an authored one that matches a screenshot, and
+the icons are Android XML vector drawables `Image` cannot render anyway, so the
+swap would have dragged the whole icon set with it.
+
+So the ripple's COLOUR is a closed question, not an open one: it stays Compose's,
+darkening ~2 L\* where the navigator's own arrow lightens 21.5. Everything else —
+size, placement, pitch, keyline — is matched to the native arrow within 0.7dp.
+Re-open only if `@expo/ui` exposes the ripple.
