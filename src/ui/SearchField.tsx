@@ -7,7 +7,7 @@ import {
   Text as ComposeText,
   type ObservableState,
 } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
+import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
 import { useAppTheme } from '@portfolio/core';
 
@@ -127,7 +127,11 @@ export function SearchField({
         keyboardActions={onSubmit ? { onSearch: onSubmit } : undefined}
         onValueChange={onValueChange}
         onFocusChanged={onFocusChange}
-        modifiers={[fillMaxWidth()]}
+        modifiers={
+          bare
+            ? [fillMaxWidth(), padding(BARE_TITLE_INSET, 0, 0, 0)]
+            : [fillMaxWidth()]
+        }
       >
         {/* No magnifier in the bar — the back arrow is already the leading
             affordance there, and two glyphs for one job is one too many. */}
@@ -158,6 +162,17 @@ export function SearchField({
   );
 }
 
+/**
+ * Lands the bare field's text on the app bar's TITLE keyline, so the search view
+ * and a pushed screen's title share a left edge.
+ *
+ * Measured on a Galaxy A54: with a navigation icon present the bar's title
+ * starts at 72.53dp (M3's 72) and the bare field's text started at 68.62 —
+ * 3.91dp short. A `paddingStart` on the Host's RN style does not reach the
+ * Compose content and was tried first; this is a Compose modifier, which does.
+ */
+const BARE_TITLE_INSET = 4;
+
 const styles = {
   host: { width: '100%' as const },
   /**
@@ -171,5 +186,8 @@ const styles = {
    * taper — and at 56 it runs on as a 4px stem to the true baseline. Ink height
    * 13.16dp against 15.64.
    */
-  hostBare: { width: '100%' as const, height: 56 },
+  hostBare: {
+    width: '100%' as const,
+    height: 56,
+  },
 };
