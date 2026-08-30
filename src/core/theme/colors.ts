@@ -18,6 +18,12 @@ export type AppColors = {
   sheetField: string;
   surfaceContainer: string;
   /**
+   * The ground CHROME takes once content is behind it — the M3 top app bar's
+   * scrolled colour, and nothing else reads it. One perceptible step above
+   * `surface`, where the bar rests. See `raisedMaterial`.
+   */
+  surfaceRaised: string;
+  /**
    * THE TONAL STEP THAT IS GUARANTEED TO SEPARATE FROM `surfaceContainer`.
    *
    * Read that contract, not the token's M3 name, before using it: on Android
@@ -199,14 +205,19 @@ const mutedInk = (m: MaterialColors): string => {
  * disappear most obviously into the card they sit on, but the role has about
  * twenty-five readers across the three apps and the substitution serves all of
  * them — see the token's own note in `AppColors`. `surfaceVariant` normally IS
- * that step; when the palette makes it the same ink as `surfaceContainer`
- * (which is also `card`), take the container step that separates furthest,
- * whichever direction the ladder happens to run on this OEM.
+ * that step; when the palette makes it the same ink as `surfaceContainer`,
+ * take the container step that separates furthest, whichever direction the
+ * ladder happens to run on this OEM.
+ *
+ * IT IS GROUNDED AGAINST THE CARD WE RESOLVE, not against `m.surfaceContainer`.
+ * Those were the same value until `cardMaterial` started stepping the card down
+ * on palettes whose own step is out of range; passing the raw token after that
+ * would be measuring separation from a colour nothing on screen is painted.
  */
-const emptyMediaMaterial = (m: MaterialColors): string => {
+const emptyMediaMaterial = (m: MaterialColors, card: string): string => {
   if (!sameInk(m.surfaceVariant, m.surfaceContainer)) return m.surfaceVariant;
   return bestSeparated(
-    [m.surfaceContainer, m.background],
+    [card, m.background],
     [
       m.surfaceContainerHigh,
       m.surfaceContainerHighest,
@@ -217,15 +228,133 @@ const emptyMediaMaterial = (m: MaterialColors): string => {
   );
 };
 
+/** Perceptual lightness (CIE L*), the axis a "step" is actually judged on. */
+const lightness = (color: string): number => {
+  const y = luminance(color);
+  return y > 0.008856 ? 116 * y ** (1 / 3) - 16 : 903.3 * y;
+};
+
+const isDarkScheme = (m: MaterialColors): boolean =>
+  lightness(m.background) < lightness(m.onBackground);
+
+/**
+ * THE ACCENT, WITH ITS DARK TONE PUT BACK.
+ *
+ * M3 gives a dark scheme a LIGHTER primary than a light one — tone 80 against
+ * tone 40 — because a mid-tone accent on a dark ground glows. Samsung One UI
+ * returns the SAME value for both: measured live on a Galaxy A54 (2026-08-29),
+ * `primary` is #387AFF in dark and #387AFF in light, so every accent in the app
+ * was the light-scheme tone painted on near-black.
+ *
+ * That it is a palette bug rather than a house choice is provable from the same
+ * dump, because the OTHER accents flip correctly — `error` #B3261E → #F2B8B5,
+ * `secondary` #585E71 → #C0C6DD, `tertiary` #6B5780 → #EDD8FF. Only `primary`
+ * and `onPrimary` fail to. (19 of 48 roles do not change between schemes there.)
+ *
+ * THE TELL IS `inversePrimary`, not a hardcoded list of OEMs. In a correct dark
+ * scheme `inversePrimary` IS the light scheme's primary, so the two differ; when
+ * they are the same ink the palette has handed back one tone for both. The
+ * replacement is already in the palette and needs no colour maths:
+ * `primaryFixedDim` is tone 80 by definition, which is exactly what M3's dark
+ * `primary` is. Measured #B1C5FF here.
+ *
+ * A palette that separates them is passed through untouched, so a Pixel keeps
+ * what it had.
+ */
+const schemePrimary = (m: MaterialColors): string =>
+  isDarkScheme(m) && sameInk(m.primary, m.inversePrimary)
+    ? m.primaryFixedDim
+    : m.primary;
+
+/**
+ * HOW FAR A CARD SHOULD SIT OFF THE PAGE — and the OEM does not always say.
+ *
+ * A filled card on the page background is ONE elevation step in M3, and it is
+ * meant to read the same weight in both schemes. On the A54 it does not:
+ * `background` is near-pure black (#010102, L* 0.3) while the containers stay
+ * high (`surfaceContainer` #3A3A3D, L* 24.5), so the step is 24.2 L* in dark
+ * against 4.5 in light — five times heavier on one side, which is exactly how it
+ * reads (Juan, 2026-08-29). A Pixel puts that step at roughly 5-7.
+ *
+ * So the step is CHOSEN BY MEASUREMENT when the palette's own is out of range,
+ * and passed through when it is not — the same shape as `mutedInk` and
+ * `emptyMediaMaterial` above. `TARGET` is the middle of M3's own range and
+ * `FLOOR` keeps the pick from landing on a step so small the card disappears
+ * (`surfaceContainerLowest` IS the background on this device). Landed
+ * `surfaceDim` #121318 here: 5.7 L*, against light's 4.5.
+ */
+const CARD_STEP_TARGET = 6;
+const CARD_STEP_FLOOR = 3;
+const CARD_STEP_CEILING = 12;
+
+const cardMaterial = (m: MaterialColors): string => {
+  const ground = lightness(m.background);
+  const step = (c: string) => Math.abs(lightness(c) - ground);
+
+  if (step(m.surfaceContainer) <= CARD_STEP_CEILING) return m.surfaceContainer;
+
+  const candidates = [
+    m.surfaceDim,
+    m.surfaceContainerLow,
+    m.surfaceContainerLowest,
+    m.surfaceBright,
+    m.surfaceContainerHighest,
+    m.surfaceContainer,
+  ].filter(c => step(c) >= CARD_STEP_FLOOR);
+
+  return candidates.length
+    ? candidates.reduce((best, next) =>
+        Math.abs(step(next) - CARD_STEP_TARGET) <
+        Math.abs(step(best) - CARD_STEP_TARGET)
+          ? next
+          : best,
+      )
+    : m.surfaceContainer;
+};
+
+/**
+ * THE GROUND CHROME TAKES ONCE CONTENT IS BEHIND IT — the M3 top app bar's
+ * scrolled colour, and nothing else.
+ *
+ * It used to be `surfaceContainer`, which is right in the spec and wrong on a
+ * palette whose container sits 24 L* off the page: the bar arrived as a slab
+ * (#3A3A3D) heavier than anything else on screen. It is now a step above
+ * `surface` — where the bar rests — so the lift is perceptible without being an
+ * event. Picked from the ladder rather than named, because Samsung's is not
+ * monotonic (`surfaceContainerHighest` is DARKER than `surfaceContainer` there).
+ */
+const RAISED_STEP_TARGET = 7;
+
+const raisedMaterial = (m: MaterialColors): string => {
+  const ground = lightness(m.surface);
+  const step = (c: string) => Math.abs(lightness(c) - ground);
+  return [
+    m.surfaceContainerLow,
+    m.surfaceContainerHighest,
+    m.surfaceContainer,
+    m.surfaceBright,
+    m.surfaceDim,
+  ].reduce((best, next) =>
+    Math.abs(step(next) - RAISED_STEP_TARGET) <
+    Math.abs(step(best) - RAISED_STEP_TARGET)
+      ? next
+      : best,
+  );
+};
+
 export function materialToAppColors(m: MaterialColors): AppColors {
+  // Resolved once: the bone/track material measures its separation against it.
+  const card = cardMaterial(m);
+
   return {
     background: m.background,
     surface: m.surface,
-    card: m.surfaceContainer,
-    sheet: m.surfaceContainer,
-    sheetField: m.surfaceContainer,
-    surfaceContainer: m.surfaceContainer,
-    surfaceVariant: emptyMediaMaterial(m),
+    surfaceRaised: raisedMaterial(m),
+    card: card,
+    sheet: card,
+    sheetField: card,
+    surfaceContainer: card,
+    surfaceVariant: emptyMediaMaterial(m, card),
     // MaterialColors exposes no `shadow` field; M3's scrim shares the same
     // ink (black) so it stands in for the shadow token.
     shadow: m.scrim,
@@ -233,7 +362,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     onSurfaceMuted: mutedInk(m),
     border: m.outlineVariant,
     listSeparator: m.outlineVariant,
-    primary: m.primary,
+    primary: schemePrimary(m),
     onPrimary: m.onPrimary,
     primaryMuted: m.primaryContainer,
     secondary: m.secondary,
@@ -295,6 +424,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#F2F2F7',
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
+    surfaceRaised: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
     shadow: '#000000',
     onSurface: '#000000',
@@ -328,6 +458,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#1C1C1E',
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
+    surfaceRaised: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
     shadow: '#000000',
     onSurface: '#FFFFFF',
@@ -364,6 +495,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#F3EDF7',
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
+    surfaceRaised: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
     shadow: '#000000',
     onSurface: '#1D1B20',
@@ -398,6 +530,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#211F26',
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
+    surfaceRaised: '#211F26',
     surfaceVariant: '#49454F',
     shadow: '#000000',
     onSurface: '#E6E0E9',
