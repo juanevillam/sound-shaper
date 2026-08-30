@@ -74,7 +74,7 @@ export default function Settings() {
   const setDevStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
   // The shared screen owns its scroller, so the M3 bar-lift has to be handed
   // in — see `useHeaderScroll`. A no-op on iOS, which leaves the bar clear.
-  const { scrollProps } = useHeaderScroll({ elevatedBar: true });
+  const { scrollProps } = useHeaderScroll();
 
   // Identity display only — personal app, so no username line or editor. On
   // iOS this same object is what the account banner draws, so the second line
