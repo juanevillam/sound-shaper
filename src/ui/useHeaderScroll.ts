@@ -44,6 +44,20 @@ export type HeaderScrollColors = {
  * two coincide on AOSP; Samsung splits them (#010102 vs #17171A), and matching
  * the spec's token there would reintroduce the very seam this removes.
  *
+ * THE ONE SCREEN THAT WANTS `surface` INSTEAD IS SETTINGS, and the difference
+ * is what the content IS. Home and the showcases are full-bleed lists that
+ * scroll UNDER the bar, so the bar sharing their ground is the whole point —
+ * there is nothing to separate from. Settings is a page of CARDS with the page
+ * showing between them, nothing ever passes behind the bar, and at `background`
+ * the bar and the page read as one unbroken slab (Juan, 2026-08-29). There the
+ * bar is chrome OVER content rather than the content's own ground, so it takes
+ * M3's nominal `surface`: measured 24 levels against the page on a Galaxy A54
+ * in dark, and it keeps the step to `surfaceContainer` intact, which pinning
+ * the bar straight to the container colour would have spent.
+ *
+ * Apps express that with their own adapter's `elevatedBar` flag; the choice of
+ * which two colours to hand over has always been the caller's.
+ *
  * IT MUST WATCH THE END OF THE GESTURE, NOT ONLY THE STREAM — this is the half
  * that was missing, and it made the bar a one-way trip. A throttled `onScroll`
  * never samples the offset a list comes to REST at: scrolling home back to the
