@@ -534,3 +534,45 @@ primary — fixing this natively. It also throws away One UI's own surface value
 and regenerates all of them from one hue, which is a different theme, not a fix
 for one dot. The portfolio rides the platform palette (see AGENTS.md); a seed is
 a decision to stop doing that.
+
+---
+
+## A header icon button's RIPPLE SIZE — blocked on `@expo/ui`
+
+**What we want.** A 40dp ripple inside a 48dp touch target, which is what M3
+specifies for an icon button and what the navigator's own back arrow draws.
+
+**Why it isn't built.** `@expo/ui` sizes a Compose control's ripple to the
+**`Host`**, not to the button. Measured on a Galaxy A54, holding the search
+view's back arrow:
+
+| host | ripple  | note                                             |
+| ---- | ------- | ------------------------------------------------ |
+| 40dp | 39.11dp | matches the native arrow's 39.11dp exactly       |
+| 48dp | 47.29dp | correct target, ripple 8dp too wide at both ends |
+| 56dp | 55.50dp | —                                                |
+
+So the two properties cannot both be right. `HeaderIconButton` keeps the **48dp
+target** and accepts the wide ripple, because Material's touch-target floor is 48
+and the cost of the alternative was probed rather than assumed: with a 40dp host,
+a tap at 51.6dp registers on the native arrow and **misses** ours.
+
+The position is NOT the problem and should not be "fixed": the ripple centres at
+27.73dp against the native 27.91. It reads as shifted right; it is too wide at
+both ends, so its left edge reaches 4.27dp from the screen where the native one
+stops at 8.53.
+
+**What was tried.** `modifiers={[size(40, 40)]}` on the `IconButton` — no effect,
+the ripple still filled the host.
+
+**What unlocks it.** Either a ripple/indication size that follows the composable
+rather than the host, or a `Host` that lets a smaller child keep the parent's
+touch area. Grep mechanically:
+
+```bash
+grep -rn "minimumInteractiveComponentSize\|indication\|rippleRadius" \
+  node_modules/@expo/ui/android/src/main/java/expo/modules/ui/
+```
+
+Then set `HEADER_TOUCH_TARGET` back to 48 with a 40dp ripple in
+`packages/mobile-ui/src/HeaderIconButton.tsx`.
