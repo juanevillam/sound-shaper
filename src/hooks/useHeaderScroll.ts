@@ -25,13 +25,26 @@ import { useAppTheme } from '@/hooks/useAppTheme';
  */
 export const useHeaderScroll = ({
   ownBar = false,
-}: { ownBar?: boolean } = {}) => {
+  elevatedBar = false,
+}: {
+  ownBar?: boolean;
+  /**
+   * Settings only: the bar sits on M3's nominal `surface` instead of sharing
+   * the page's ground, because that screen is CARDS on a page and nothing
+   * scrolls behind the bar. The full argument, and the measurement, are on
+   * `useHeaderScroll` in `@portfolio/mobile-ui`.
+   */
+  elevatedBar?: boolean;
+} = {}) => {
   const { colors } = useAppTheme();
 
   return useSharedHeaderScroll({
     headerColors:
       ownBar || Platform.OS === 'ios'
         ? undefined
-        : { atRest: colors.background, scrolled: colors.surfaceContainer },
+        : {
+            atRest: elevatedBar ? colors.surface : colors.background,
+            scrolled: colors.surfaceContainer,
+          },
   });
 };
