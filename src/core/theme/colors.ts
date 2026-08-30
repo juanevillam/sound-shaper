@@ -18,12 +18,6 @@ export type AppColors = {
   sheetField: string;
   surfaceContainer: string;
   /**
-   * The ground CHROME takes once content is behind it — the M3 top app bar's
-   * scrolled colour, and nothing else reads it. One perceptible step above
-   * `surface`, where the bar rests. See `raisedMaterial`.
-   */
-  surfaceRaised: string;
-  /**
    * A DIALOG'S CONTAINER — the one surface that floats over a scrim, so it sits
    * higher than a card and higher than chrome. M3 spends `surfaceContainerHigh`
    * here; this is that step when the palette's own is in range and a measured
@@ -320,33 +314,19 @@ const cardMaterial = (m: MaterialColors): string => {
 };
 
 /**
- * THE GROUND CHROME TAKES ONCE CONTENT IS BEHIND IT — the M3 top app bar's
- * scrolled colour, and nothing else.
+ * A DIALOG'S CONTAINER, WHICH IS `cardMaterial` ONE STEP HIGHER.
  *
- * It used to be `surfaceContainer`, which is right in the spec and wrong on a
- * palette whose container sits 24 L* off the page: the bar arrived as a slab
- * (#3A3A3D) heavier than anything else on screen. It is now a step above
- * `surface` — where the bar rests — so the lift is perceptible without being an
- * event. Picked from the ladder rather than named, because Samsung's is not
- * monotonic (`surfaceContainerHighest` is DARKER than `surfaceContainer` there).
- */
-const RAISED_STEP_TARGET = 7;
-
-/**
- * A DIALOG'S CONTAINER, WHICH IS THE SAME DEFECT ONE STEP HIGHER.
+ * M3 puts a dialog on `surfaceContainerHigh` — above a card, so it reads as
+ * floating rather than as another card. On the M3 baseline that lands about 10
+ * L* off the page. On the A54 `surfaceContainerHigh` is #4D4D52, 32.6 L* off a
+ * near-black page: the same over-contrast `cardMaterial` exists to repair, and
+ * the dialogs kept it after the cards were fixed, which is how they came to read
+ * as slabs against a screen that had gone quiet (Juan, 2026-08-29).
  *
- * M3 puts a dialog on `surfaceContainerHigh` — two steps above surface, so it
- * reads as floating rather than as another card. On the M3 baseline that lands
- * about 10 L* off the page. On the A54 `surfaceContainerHigh` is #4D4D52, 32.6
- * L* off a near-black page: the same over-contrast `cardMaterial` exists to
- * repair, and the dialogs kept it after the cards were fixed, which is exactly
- * how they came to read as slabs against a screen that had gone quiet (Juan,
- * 2026-08-29).
- *
- * The target is deliberately above the card's: a dialog that matched the cards
- * under it would stop reading as a layer. Measured on the A54, the ladder has
- * nothing between 5.7 and 14.5 L*, so it lands on #252528 — 8.5 above the card,
- * clear of it without being a slab.
+ * The target sits deliberately above the card's — a dialog that matched the
+ * cards under it would stop reading as a layer. Measured on the A54 the ladder
+ * has nothing between 5.7 and 14.5 L*, so it lands on #252528: 8.5 above the
+ * card, clear of it without being a slab.
  */
 const DIALOG_STEP_TARGET = 12;
 const DIALOG_STEP_CEILING = 20;
@@ -372,23 +352,6 @@ const dialogMaterial = (m: MaterialColors): string => {
   );
 };
 
-const raisedMaterial = (m: MaterialColors): string => {
-  const ground = lightness(m.surface);
-  const step = (c: string) => Math.abs(lightness(c) - ground);
-  return [
-    m.surfaceContainerLow,
-    m.surfaceContainerHighest,
-    m.surfaceContainer,
-    m.surfaceBright,
-    m.surfaceDim,
-  ].reduce((best, next) =>
-    Math.abs(step(next) - RAISED_STEP_TARGET) <
-    Math.abs(step(best) - RAISED_STEP_TARGET)
-      ? next
-      : best,
-  );
-};
-
 export function materialToAppColors(m: MaterialColors): AppColors {
   // Resolved once: the bone/track material measures its separation against it.
   const card = cardMaterial(m);
@@ -396,7 +359,6 @@ export function materialToAppColors(m: MaterialColors): AppColors {
   return {
     background: m.background,
     surface: m.surface,
-    surfaceRaised: raisedMaterial(m),
     surfaceDialog: dialogMaterial(m),
     card: card,
     sheet: card,
@@ -472,7 +434,6 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#F2F2F7',
     sheetField: '#FFFFFF',
     surfaceContainer: '#E5E5EA',
-    surfaceRaised: '#E5E5EA',
     surfaceDialog: '#E5E5EA',
     surfaceVariant: '#D1D1D6',
     shadow: '#000000',
@@ -507,7 +468,6 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#1C1C1E',
     sheetField: '#2C2C2E',
     surfaceContainer: '#2C2C2E',
-    surfaceRaised: '#2C2C2E',
     surfaceDialog: '#2C2C2E',
     surfaceVariant: '#3A3A3C',
     shadow: '#000000',
@@ -545,7 +505,6 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#F3EDF7',
     sheetField: '#F3EDF7',
     surfaceContainer: '#F3EDF7',
-    surfaceRaised: '#F3EDF7',
     surfaceDialog: '#F3EDF7',
     surfaceVariant: '#E7E0EC',
     shadow: '#000000',
@@ -581,7 +540,6 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     sheet: '#211F26',
     sheetField: '#211F26',
     surfaceContainer: '#211F26',
-    surfaceRaised: '#211F26',
     surfaceDialog: '#211F26',
     surfaceVariant: '#49454F',
     shadow: '#000000',

@@ -131,14 +131,14 @@ export default function HomeScreen() {
   const sheetExpanded = usePlayerStore(s => s.sheetExpanded);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
   /**
-   * M3's on-scroll bar, painted BY THIS SCREEN — `ownBar`, so the hook reports
+   * M3's on-scroll bar, painted BY THIS SCREEN — the hook reports
    * the state and never touches the navigator's header. Android's bar here is
    * a plain View drawn as content (so the expanded player can cover it), which
    * means there is no `headerStyle` to step; the View below takes `scrolled`
    * directly. Everything else about the behaviour — the 4dp threshold and the
    * gesture-end sampling a throttled `onScroll` misses — is the shared hook's.
    */
-  const { scrolled, scrollProps } = useHeaderScroll({ ownBar: true });
+  const { scrolled, scrollProps } = useHeaderScroll();
 
   /**
    * DEV LAB: force a UI state. Applied to the values the screen already

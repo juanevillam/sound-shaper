@@ -116,7 +116,10 @@ export default function AppLayout() {
                 headerLargeTitleStyle: { color: colors.onSurface },
               }
             : {
-                headerStyle: { backgroundColor: colors.background },
+                // ONE GROUND, AND IT DOES NOT MOVE — `surface` at every
+                // scroll offset. See the note in `useHeaderScroll`
+                // (`@portfolio/mobile-ui`) for why the on-scroll step went.
+                headerStyle: { backgroundColor: colors.surface },
               }),
           headerShadowVisible: false,
           headerTintColor: colors.onSurface,
