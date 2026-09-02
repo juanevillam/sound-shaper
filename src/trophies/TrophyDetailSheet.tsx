@@ -11,7 +11,10 @@ import {
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
-import { composeSheetBottomPadding } from '@portfolio/mobile-ui';
+import {
+  composeSheetBottomPadding,
+  SheetDragHandle,
+} from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tierColor } from './tierColors';
@@ -83,7 +86,9 @@ export function TrophyDetailSheet({
         ref={sheetRef}
         onDismissRequest={onClose}
         skipPartiallyExpanded
+        showDragHandle={false}
       >
+        <SheetDragHandle />
         <Column
           horizontalAlignment="center"
           verticalArrangement={{ spacedBy: 12 }}

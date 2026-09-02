@@ -13,6 +13,8 @@ import {
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 
+import { SheetDragHandle } from '@portfolio/mobile-ui';
+
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -46,7 +48,9 @@ export function SoundInfoSheet({ sound, onClose }: SoundInfoSheetProps) {
         ref={sheetRef}
         onDismissRequest={onClose}
         skipPartiallyExpanded
+        showDragHandle={false}
       >
+        <SheetDragHandle />
         <Column
           verticalArrangement={{ spacedBy: 14 }}
           modifiers={[padding(24, 0, 24, 28), fillMaxWidth()]}
