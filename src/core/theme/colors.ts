@@ -71,6 +71,16 @@ export type AppColors = {
   onTertiary: string;
   danger: string;
   /**
+   * THE INK ON `danger`, and the reason it exists is that nothing else is
+   * correct there. M3 pairs `error` with `onError` and the pairing is not
+   * cosmetic: in a DARK scheme `error` is a pale pink, so its ink is a dark
+   * maroon — the inverse of what every other "on" role does. Reaching for
+   * `onPrimary` instead put #FCFCFF on #E9BAB7 in expo-ui-starter's Badge
+   * showcase, measured 1.68:1 against the 7.69:1 the same badge scores one
+   * route away where Compose supplies the pair itself (Galaxy A54, dark).
+   */
+  onError: string;
+  /**
    * A SWITCH'S ON STATE, and it is a PLATFORM SEMANTIC rather than the accent.
    *
    * iOS reads green as "on" everywhere Apple draws a switch — Settings and
@@ -352,6 +362,30 @@ const dialogMaterial = (m: MaterialColors): string => {
   );
 };
 
+/**
+ * A COMPOSE COMPONENT THAT PICKS ITS OWN CONTAINER NEVER PASSES THROUGH HERE.
+ *
+ * Everything below repairs a role on its way to the RN side. A Compose
+ * composable inside a `Host` reads the NATIVE scheme instead, so it draws the
+ * OEM's raw token — and on One UI that means the very slabs `cardMaterial` and
+ * `dialogMaterial` exist to fix. Found on expo-ui-starter's inline
+ * `DateTimePicker`, which fills its container `surfaceContainerHigh` (#4D4D52,
+ * 32.6 L* off a near-black page) because M3 builds it for `DatePickerDialog`.
+ *
+ * There is no sweep to do here; the fix is per-component, at the call site,
+ * through whatever colour prop that component exposes. Two ways to choose the
+ * value, and they are not interchangeable:
+ *
+ *  - MATCHING A NATIVE DEFAULT (the component has to agree with a sibling that
+ *    theming does not reach) — pass the RAW token that sibling draws in. A
+ *    derived step cannot track it: `surfaceDialog` matched the sibling in dark
+ *    (14.50 L* against 14.88) and was 2.5x heavier in light (13.10 against
+ *    5.13), because One UI's container ladder does not behave the same way in
+ *    the two schemes. `useSurfaceContainerHighest` is the worked example.
+ *  - AUTHORING A STEP (nothing to match; the surface just has to sit correctly
+ *    off its ground) — pass the repaired role from here, which is what every
+ *    RN-side caller already gets.
+ */
 export function materialToAppColors(m: MaterialColors): AppColors {
   // Resolved once: the bone/track material measures its separation against it.
   const card = cardMaterial(m);
@@ -380,6 +414,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     tertiary: m.tertiary,
     onTertiary: m.onTertiary,
     danger: m.error,
+    onError: m.onError,
     // A Compose `Switch` draws itself from the scheme — see the token's note.
     switchOn: m.primary,
     primaryContainer: m.primaryContainer,
@@ -449,6 +484,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#AF52DE',
     onTertiary: '#FFFFFF',
     danger: '#FF3B30',
+    onError: '#FFFFFF',
     switchOn: '#34C759', // systemGreen, light
     primaryContainer: '#CCE4FF',
     onPrimaryContainer: '#00428C',
@@ -483,6 +519,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#BF5AF2',
     onTertiary: '#FFFFFF',
     danger: '#FF453A',
+    onError: '#FFFFFF',
     switchOn: '#30D158', // systemGreen, dark
     primaryContainer: '#0D3A66',
     onPrimaryContainer: '#A8CFFF',
@@ -520,6 +557,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#7D5260',
     onTertiary: '#FFFFFF',
     danger: '#B3261E',
+    onError: '#FFFFFF',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#6750A4',
     primaryContainer: '#EADDFF',
@@ -555,6 +593,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     tertiary: '#EFB8C8',
     onTertiary: '#492532',
     danger: '#F2B8B5',
+    onError: '#601410',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#D0BCFF',
     primaryContainer: '#4F378B',
