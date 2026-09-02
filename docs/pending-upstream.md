@@ -495,6 +495,130 @@ which is what the three links have today.
 
 ---
 
+## A carousel PEEK item's rounded corner — blocked on `@expo/ui`
+
+**What we want.** Every item in the Carousel showcases rounded at M3's
+`shapes.extraLarge` (28dp) — including the squeezed peek strips, not only the
+focused item.
+
+**Why it matters here.** iOS has no sharp-cornered coloured container anywhere
+in this app because Apple's radii are respected there, and Material has its own
+shape scale that simply was not being applied on the Android side (Juan,
+2026-09-02). The docs examples draw each slide as a bare `background(color)`
+with no clip, so every item rendered as a hard square.
+
+**What IS fixed.** Clipping the item's own `Box` — `clip(carouselItemShape)`
+before `background(...)` — rounds it correctly. Measured on a Galaxy A54: the
+focused hero item's corner inset eases 23.5dp → 0.0dp over ~25dp, which is the
+28dp radius drawing, and `HorizontalUncontainedCarousel`'s items are rounded on
+all four corners because uncontained items keep their full width.
+
+**What isn't, and why.** `HorizontalMultiBrowseCarousel` and
+`HorizontalCenteredHeroCarousel` MASK their items down as they scroll, and our
+clip lives INSIDE that mask — so a peek item shows a slice taken from the middle
+of the rounded box, where there are no corners. Measured: a peek strip 39.8dp
+wide with **0.0dp corner inset at every row**, fully sharp, against a source box
+clipped at 28. Compose solves this with `Modifier.maskClip(shape)`, which
+shapes the carousel's MASK rather than the content; `@expo/ui` **57.0.7**
+exposes no such modifier, and neither carousel takes an item-shape prop
+(`CarouselCommonConfig` is `itemSpacing`, `contentPadding`, `flingBehavior`,
+`userScrollEnabled`, `modifiers`, `children`).
+
+**What unlocks it.** A `maskClip` modifier, or an item-shape prop on the
+carousels. Grep for either mechanically:
+
+```bash
+grep -rn "maskClip" node_modules/@expo/ui/build/jetpack-compose/modifiers/index.d.ts
+grep -n "shape" node_modules/@expo/ui/build/jetpack-compose/Carousel/index.d.ts
+```
+
+Non-empty = swap `clip(carouselItemShape)` for the mask version in the three
+files under `apps/expo-ui-starter/src/components/showcase/android/carousel/`.
+
+---
+
+## A `SearchBar`'s KEYBOARD — blocked on `@expo/ui`
+
+**What we want.** Tapping either search-bar showcase to open the soft keyboard,
+so the demo can actually be typed into.
+
+**Why it matters here.** It cannot. Tapping focuses the field — the caret shows
+and key events land — but the IME never opens and the bar never expands, so both
+showcases are inert. **Re-verified on 57.0.7** (Galaxy A54, 2026-09-02) rather
+than trusted: `adb shell dumpsys input_method | grep mInputShown` reads `false`
+after tapping the `SearchBar`, and `true` after tapping the `TextField` showcase
+one route away. Same probe, opposite answers — so the window is fine and the
+component is not.
+
+**Why it isn't built.** `SearchBar` and `DockedSearchBar` are the only
+components built on Compose's `TextFieldState` API, whose IME request dies under
+the RN-hosted window; the legacy `value`/`onValueChange` fields (`TextField`,
+`BasicTextField`) open the keyboard fine in the same `Host`. There is no escape
+hatch: `SearchBarProps` on 57.0.7 is `onSearch`, `modifiers`, `children` — no
+ref, no `autoFocus`, no focus prop — and none of the 44 exported modifiers
+touches focus (`clickable`, `selectable`, `toggleable`, `semantics` … no
+`focusRequester`).
+
+**What unlocks it.** A focus/ref API on `SearchBar`, or the underlying IME fix.
+Grep for either mechanically:
+
+```bash
+grep -nE "ref|autoFocus|focus" node_modules/@expo/ui/build/jetpack-compose/SearchBar/index.d.ts
+grep -n "focusRequester" node_modules/@expo/ui/build/jetpack-compose/modifiers/index.d.ts
+```
+
+Non-empty = drop the KNOWN UPSTREAM GAP banners in
+`showcase/android/search-bar/` and `showcase/android/docked-search-bar/`.
+
+**Nothing is being filed upstream, on purpose** (Juan, 2026-09-02) — this entry
+is the record. The app itself is unaffected: `SearchField` in
+`@portfolio/mobile-ui` is a Material `TextField` pill precisely because of this,
+and its keyboard works. Only the showcases are stuck, because demonstrating the
+real component is their job.
+
+---
+
+## A `SearchBar` / `DockedSearchBar` CONTAINER COLOUR — blocked on `@expo/ui`
+
+**What we want.** Both search-bar showcases in expo-ui-starter — `SearchBar`
+and `DockedSearchBar` — to sit on the same fill as the text-field showcases
+beside them.
+
+**Why it matters here.** They do not match today: measured on a Galaxy A54 in
+dark, both docked search bars render **#4D4D52** against the **#24262D** the
+`basic-text-field` demos land on. #4D4D52 is raw `surfaceContainerHigh` — the
+One UI slab this repo has already repaired everywhere it could reach (the
+inline `DateTimePicker`, the hand-decorated `BasicTextField`s and the alert
+dialogs all take a stated colour for exactly this reason). The search bars are
+the one place left that still shows it.
+
+**Why it isn't built.** No API, and the modifier escape hatch does not work.
+`DockedSearchBarProps` on **57.0.7** declares exactly three fields —
+`onQueryChange`, `modifiers`, `children` — with no colours slot, while Compose's
+`DockedSearchBar` takes `colors: SearchBarColors` natively. Passing
+`modifiers={[clip(Shapes.Circle), background(fill)]}` was built and MEASURED: the
+bar still rendered #4D4D52, because the composable paints its own `Surface` from
+`SearchBarDefaults.colors()` OVER whatever the outer node draws. The dead
+modifiers were removed rather than left in place implying they do something.
+
+**What unlocks it.** A `colors` prop on `DockedSearchBar` (and on `SearchBar`,
+which has the same shape). Grep for it mechanically:
+
+```bash
+grep -n "colors" node_modules/@expo/ui/build/jetpack-compose/DockedSearchBar/index.d.ts
+grep -n "colors" node_modules/@expo/ui/build/jetpack-compose/SearchBar/index.d.ts
+```
+
+Non-empty = pass `{ containerColor: useSurfaceContainerHighest() }` from the
+files under `showcase/android/docked-search-bar/` and `showcase/android/search-bar/`.
+
+**Note on the sibling.** The app's own Android search field does not use
+`SearchBar` at all — its IME is dead on 57, so `SearchField` in
+`@portfolio/mobile-ui` is a Material `TextField` pill, which is themeable. Only
+the SHOWCASES are stuck, because their job is to demonstrate the real component.
+
+---
+
 ## A Compose `RadioButton`'s SELECTED colour — blocked on `@expo/ui`
 
 **What we want.** The selected dot in the Language / Appearance radio dialogs to
