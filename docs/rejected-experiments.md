@@ -139,6 +139,41 @@ neighbouring things are NOT rejected and have been shipped or are wanted:
   applies to judging one: verify it on screen against the actual background
   rather than assuming either way.
 
+## Native SwiftUI cells for expo-ui-starter's iOS home catalogue — INFEASIBLE, 2026-09-02
+
+Tried after the ANDROID home succeeded at the same thing: there, the RN
+`SectionList` stays the scroller and each ROW becomes a Compose `ListItem`
+under `clip(shape)`, which buys Material's real ripple and costs nothing
+(measured 1.35% jank, scroll position restoring to 0/13053 sampled pixels).
+The iOS attempt was worth making and does not transfer, for a reason that is
+structural rather than a version limit:
+
+**On Android the cell IS a component; on iOS the cell is the CONTAINER's
+doing.** A Compose `ListItem` is self-contained — its container colour, its
+shape and its indication are all its own, so it works standing alone in a
+`Host`. SwiftUI has no equivalent: a row's background, separators, highlight
+and grouping are drawn by `List`, and a lone `Text`/`LabeledContent` in a Host
+is bare content on nothing.
+
+The only way to get a native cell per row is a one-row `List` per `Host`, which
+was built and run on iPhone 17 / iOS 26.5. Every row rendered as its OWN fully
+rounded inset-grouped SECTION with its own section margins — so the grouped
+card is impossible by construction (there is no "rounded top, square middle,
+rounded bottom" when each row is a separate section), on top of 50 nested
+`UICollectionView`s inside a scroll view and 120pt of Host for a 44pt cell.
+
+Moving the WHOLE list into one SwiftUI `List` is the older rejection and all
+three of its legs still hold, re-checked the same day: RNScreens cannot drive
+the large-title collapse or arm the scroll-edge effect from a SwiftUI scroller
+(so the system large title and the transparent bar both go), and `searchable`
+is still not exposed by @expo/ui 57.0.7 — **zero hits across the entire
+`swift-ui` build** — so the real `UISearchController` goes with it. RN keeps all
+three via `headerSearchBarOptions`.
+
+Shipped instead: iOS keeps its authored cells, measured against the real `List`
+(51pt row + 1pt separator on a 52pt pitch, header 30.7/14.3pt). Android keeps
+the Compose rows. The docblock in each `HomeShowcaseList` carries its own half.
+
 ## Shared-element image morph in Topper (home thumbnail → detail) — INFEASIBLE, 2026-06
 
 Two independent blockers: reanimated 4.3.1 ships shared transitions
