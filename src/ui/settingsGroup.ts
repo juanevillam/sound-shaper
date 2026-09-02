@@ -40,8 +40,22 @@ export const GROUP_SIDE_PADDING = 16;
  */
 export const GROUP_HEADERLESS_TOP_GAP = 28;
 
-const OUTER_RADIUS = 24;
-const INNER_RADIUS = 4;
+/**
+ * A grouped card's corners: large where the card meets the page, small on the
+ * inner edges, so a run of rows reads as ONE card split by thin gaps.
+ *
+ * Exported because `groupRowShape` hands back a Compose `Shape`, which is no
+ * use to a caller drawing the same group in React Native — the starter's home
+ * catalogue is an RN `SectionList` and cannot take one. The rule this repo
+ * already has for that case is to import the CONSTANTS rather than re-measure
+ * them (`TopItemListIos` learned it the expensive way), so the numbers are the
+ * shared term and each technology builds its own shape from them.
+ */
+export const GROUP_OUTER_RADIUS = 24;
+export const GROUP_INNER_RADIUS = 4;
+
+const OUTER_RADIUS = GROUP_OUTER_RADIUS;
+const INNER_RADIUS = GROUP_INNER_RADIUS;
 
 type GroupShape = ReturnType<typeof Shapes.RoundedCorner>;
 

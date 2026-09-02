@@ -164,7 +164,11 @@ export {
   SheetFormFieldIos,
   SheetFormMediaIos,
 } from './SheetFormIos';
+export { SheetDragHandle } from './SheetDragHandle';
 export {
+  dialogContainer,
+  GROUP_INNER_RADIUS,
+  GROUP_OUTER_RADIUS,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,

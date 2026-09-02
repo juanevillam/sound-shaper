@@ -18,8 +18,9 @@ type SheetBarProps = {
 
 // Top action row INSIDE a Compose ModalBottomSheet editor: title on the left, a
 // filled Save pill on the right. Pure Compose — renders inside the sheet's Host,
-// so it has no Host of its own. The sheet supplies its own native drag handle.
-// Destructive delete lives at the BOTTOM of the sheet, not here.
+// so it has no Host of its own.
+// The sheet stands `SheetDragHandle` above this, not the native handle — see
+// that component for why. Destructive delete lives at the BOTTOM, not here.
 export function SheetBar({
   title,
   saveLabel,
