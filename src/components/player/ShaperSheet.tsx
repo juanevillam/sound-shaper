@@ -18,8 +18,9 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 
 import {
-  composeSheetBottomPadding,
   COMPOSE_SHEET_GUTTER,
+  composeSheetBottomPadding,
+  SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -128,7 +129,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
 
           No ref either: nothing here dismisses the sheet programmatically —
           every row applies live and the person leaves when they are done. */}
-      <ModalBottomSheet onDismissRequest={onClose} skipPartiallyExpanded>
+      <ModalBottomSheet
+        onDismissRequest={onClose}
+        skipPartiallyExpanded
+        showDragHandle={false}
+      >
+        <SheetDragHandle />
         <Column
           verticalArrangement={{ spacedBy: 4 }}
           // Horizontal padding lives on each SECTION, not here — the chips row

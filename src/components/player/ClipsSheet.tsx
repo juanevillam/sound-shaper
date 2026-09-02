@@ -21,11 +21,12 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import {
   AppIcon,
-  composeSheetBottomPadding,
   COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
+  composeSheetBottomPadding,
   DestructiveConfirmDialog,
   EMPTY_STATE_STEPS,
+  SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -193,7 +194,9 @@ export function ClipsSheet({
           ref={sheetRef}
           onDismissRequest={onClose}
           skipPartiallyExpanded
+          showDragHandle={false}
         >
+          <SheetDragHandle />
           <Column
             verticalArrangement={{ spacedBy: 12 }}
             // NO HORIZONTAL PADDING HERE — each section states its own, which

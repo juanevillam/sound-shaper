@@ -14,9 +14,10 @@ import {
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import {
   artworkRadius,
-  composeSheetBottomPadding,
   COMPOSE_SHEET_GUTTER,
+  composeSheetBottomPadding,
   DestructiveConfirmDialog,
+  SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -266,7 +267,9 @@ export function EditSoundSheet({
             if (!isSaving) onClose();
           }}
           skipPartiallyExpanded
+          showDragHandle={false}
         >
+          <SheetDragHandle />
           <Column
             verticalArrangement={{ spacedBy: 16 }}
             // No top padding: the sheet's native drag handle already supplies
