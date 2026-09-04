@@ -284,6 +284,12 @@ function Step({
 const styles = StyleSheet.create({
   bar: {
     borderRadius: 20,
+    // Android's shadow: the `shadow*` props below are iOS-only, so without
+    // this the bar had no float at all and melted into any ground that
+    // resolves to its own card colour (Juan, 2026-09-04) — which after the
+    // card remap is every card it hovers over. The iOS twin keeps its RN
+    // shadow; this is the same statement in Android's language.
+    elevation: 8,
     gap: 8,
     left: 12,
     paddingBottom: 10,
