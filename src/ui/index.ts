@@ -110,6 +110,10 @@ export {
 } from './WelcomeScreen';
 export { ProgressOverlayIos } from './ProgressOverlayIos';
 export { ProgressViewIos } from './ProgressViewIos';
+// The platform pair: `ProgressView` resolves to the Compose spinner on Android
+// and to `ProgressViewIos` on iOS. Existing iOS-only callers keep the `Ios`
+// name; a cross-platform site takes the pair.
+export { ProgressView } from './ProgressView';
 export { Screen } from './Screen';
 export { SheetBar } from './SheetBar';
 export { SheetErrorLine } from './SheetErrorLine';
