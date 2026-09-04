@@ -415,6 +415,56 @@ const cardMaterial = (m: MaterialColors): string => {
 };
 
 /**
+ * THE CHROME GROUND — the app bar's one colour (see each app's Android stack
+ * options: "one ground, and it does not move").
+ *
+ * `m.surface` is the right token until the card resolution lands ON it, which
+ * is exactly what the lighter-than-page card pick did on the A54 in light:
+ * `surfaceContainerLowest` #FCFCFF IS `surface` there, so the header wore the
+ * same colour as the list rows scrolling under it and the two read as one
+ * sheet (Juan, 2026-09-04 — dark never collided, `surface` #17171A vs card
+ * #121318). When they collide, take the first ladder step that is visibly
+ * apart from BOTH the card and the page — `surfaceContainer` leads the
+ * candidates because it is M3's own tonal app-bar colour. Lands #E4E4E7 in
+ * light on the A54; any palette whose `surface` already differs from the card
+ * passes through untouched.
+ *
+ * The collision test is deliberately looser than the substitute's own floor:
+ * the A54's dark `surface` sits only 1.9 L* off the card and Juan reads the
+ * two apart there ("in dark it doesn't happen"), so 1.9 keeps the token —
+ * only a genuine collision (light's is exactly 0) triggers the substitution.
+ */
+const CHROME_COLLIDE_EPSILON = 1.5;
+const CHROME_STEP_FLOOR = 3;
+const CHROME_STEP_CEILING = 12;
+
+const surfaceMaterial = (m: MaterialColors, card: string): string => {
+  if (
+    Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
+  )
+    return m.surface;
+
+  const grounds = [card, m.background];
+  const worstGap = (c: string) =>
+    Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
+
+  const candidates = [
+    m.surfaceContainer,
+    m.surfaceContainerHigh,
+    m.surfaceDim,
+    m.surfaceContainerHighest,
+    m.surfaceContainerLow,
+    m.surfaceBright,
+  ];
+  const inRange = candidates.find(
+    c => worstGap(c) >= CHROME_STEP_FLOOR && worstGap(c) <= CHROME_STEP_CEILING,
+  );
+  if (inRange) return inRange;
+
+  return candidates.reduce((a, b) => (worstGap(b) > worstGap(a) ? b : a));
+};
+
+/**
  * A DIALOG'S CONTAINER, WHICH IS `cardMaterial` ONE STEP HIGHER.
  *
  * M3 puts a dialog on `surfaceContainerHigh` — above a card, so it reads as
@@ -483,7 +533,7 @@ export function materialToAppColors(m: MaterialColors): AppColors {
 
   return {
     background: m.background,
-    surface: m.surface,
+    surface: surfaceMaterial(m, card),
     surfaceDialog: dialogMaterial(m),
     card: card,
     sheet: card,

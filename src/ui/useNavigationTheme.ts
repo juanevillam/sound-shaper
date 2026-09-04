@@ -29,7 +29,13 @@ export function useNavigationTheme() {
       colors: {
         ...base.colors,
         background: colors.background,
-        card: colors.surfaceContainer,
+        // The CHROME ground, not the card's: this is what react-native-screens
+        // paints the native bars with, and `surface` is the one colour every
+        // Android app bar here wears ("one ground, and it does not move").
+        // It was `surfaceContainer`, which now resolves WITH the card — so a
+        // js-tabs bar wore the row colour while every pushed screen's bar wore
+        // `surface`, one hair apart in dark and identical in light.
+        card: colors.surface,
         text: colors.onSurface,
         border: colors.border,
         primary: colors.primary,
