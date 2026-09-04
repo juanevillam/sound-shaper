@@ -2,9 +2,15 @@ import { useEffect, useState } from 'react';
 
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TEXT_VARIANTS } from './createText';
+import {
+  ICON_PRESS_OPACITY,
+  ICON_PRESS_SCALE,
+  usePressSquash,
+} from './SquashPressable';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -86,6 +92,14 @@ type StateLabColors = {
  */
 const STEP_SIZE = 52;
 const GROUP_HEIGHT = 40;
+/**
+ * The note ALWAYS reserves two lines, exactly like the iOS twin's
+ * `lineLimit(2, { reservesSpace: true })`: notes are one line for some states
+ * and two for others, and without the reservation the bar changed height as
+ * you stepped — a picker that shifts under the thumb, on the one tool whose
+ * job is finding shifts.
+ */
+const NOTE_LINES = 2;
 /** Clearance for a floating tab bar, when the caller does not say otherwise. */
 const DEFAULT_BOTTOM_OFFSET = 52;
 
@@ -198,7 +212,7 @@ export function StateLab({
             {`${group.label.toUpperCase()}  ${index + 1}/${group.states.length}  ${entry.label}`}
           </Text>
           <Text
-            numberOfLines={2}
+            numberOfLines={NOTE_LINES}
             style={[styles.note, { color: colors.onSurfaceMuted }]}
           >
             {entry.note}
@@ -211,8 +225,12 @@ export function StateLab({
   );
 }
 
-// A pressed FILL rather than a fade: at this size and this tap rate, a dim is
-// hard to see under a thumb, and you need to know the tap landed.
+// THE PORTFOLIO'S ICON PRESS, not a pressed fill. This shipped with a
+// `surfaceContainer` fill under the pressed glyph on the argument that a dim is
+// hard to see under a thumb — which is exactly what `ICON_PRESS_SCALE` +
+// `ICON_PRESS_OPACITY` exist to solve for a lone glyph, and what the iOS twin
+// answers with its SF Symbol bounce. One press language (Juan, 2026-09-04:
+// bring this bar to the iOS one).
 function Step({
   colors,
   glyph,
@@ -222,17 +240,23 @@ function Step({
   glyph: string;
   onPress: () => void;
 }) {
+  const squash = usePressSquash({
+    scale: ICON_PRESS_SCALE,
+    opacity: ICON_PRESS_OPACITY,
+  });
+
   return (
-    <Pressable
-      hitSlop={12}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.step,
-        pressed && { backgroundColor: colors.surfaceContainer },
-      ]}
-    >
-      <Text style={[styles.glyph, { color: colors.onSurface }]}>{glyph}</Text>
-    </Pressable>
+    <Animated.View style={squash.style}>
+      <Pressable
+        hitSlop={12}
+        onPress={onPress}
+        onPressIn={squash.onPressIn}
+        onPressOut={squash.onPressOut}
+        style={styles.step}
+      >
+        <Text style={[styles.glyph, { color: colors.onSurface }]}>{glyph}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -271,7 +295,12 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   body: { flex: 1, gap: 2 },
   title: TEXT_VARIANTS.labelLarge,
-  note: TEXT_VARIANTS.bodySmall,
+  // The reserved two-line box — the line height is the scale's own, so the box
+  // is exactly two lines of THIS font rather than a height guessed in dp.
+  note: {
+    ...TEXT_VARIANTS.bodySmall,
+    height: NOTE_LINES * (TEXT_VARIANTS.bodySmall.lineHeight as number),
+  },
   step: {
     alignItems: 'center',
     borderRadius: 14,
@@ -279,5 +308,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: STEP_SIZE,
   },
-  glyph: { fontSize: 34, lineHeight: 40 },
+  // 44, up from 34 (Juan, 2026-09-04): the ‹ › glyphs carry heavy side
+  // bearings, so at 34 their INK was well under the iOS chevron's — size the
+  // ink, not the font box.
+  glyph: { fontSize: 44, lineHeight: 50 },
 });
