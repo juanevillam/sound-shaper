@@ -438,12 +438,37 @@ const cardMaterial = (m: MaterialColors): string => {
  * Lands #EBEBED on the A54: 6 channels off the page, 17 off the rows.
  */
 const CHROME_COLLIDE_EPSILON = 1.5;
-const CHROME_MIX = 0.5;
+const CHROME_STEP_FLOOR = 3;
+const CHROME_STEP_CEILING = 12;
 
-const surfaceMaterial = (m: MaterialColors, card: string): string =>
-  Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
-    ? m.surface
-    : mix(m.background, m.surfaceContainer, CHROME_MIX);
+const surfaceMaterial = (m: MaterialColors, card: string): string => {
+  if (
+    Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
+  )
+    return m.surface;
+
+  /**
+   * ON COLLISION, THE SEED-TINTED ELEVATED TONE LEADS. Three neutrals were
+   * rendered and rejected in light on the A54 (Juan, 2026-09-04):
+   * `surfaceContainer` #E4E4E7 (a heavy tonal band), the bare page (no
+   * chrome at all), and their half-step mix #EBEBED (a dingier page).
+   * `surfaceContainerHighest` is the palette's ELEVATED tone — on a dynamic
+   * palette it carries the wallpaper seed's hue (#E1E2ED here, a cool
+   * blue-grey), so the bars read as tinted chrome rather than as a grey
+   * band, which is what One UI's own tinted surfaces do. Candidates are
+   * still guarded by measurement (visible against both the page and the
+   * rows, ceiling against a slab), with the neutral mix as the fallback for
+   * a ladder with nothing in range.
+   */
+  const grounds = [card, m.background];
+  const worstGap = (c: string) =>
+    Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
+
+  const pick = [m.surfaceContainerHighest, m.surfaceContainer].find(
+    c => worstGap(c) >= CHROME_STEP_FLOOR && worstGap(c) <= CHROME_STEP_CEILING,
+  );
+  return pick ?? mix(m.background, m.surfaceContainer, 0.5);
+};
 
 /**
  * A DIALOG'S CONTAINER, WHICH IS `cardMaterial` ONE STEP HIGHER.
