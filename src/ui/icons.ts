@@ -54,6 +54,7 @@ import SwapVert from '@expo/material-symbols/swap_vert.xml';
 import Trophy from '@expo/material-symbols/trophy.xml';
 import Tune from '@expo/material-symbols/tune.xml';
 import VisibilityOff from '@expo/material-symbols/visibility_off.xml';
+import Warning from '@expo/material-symbols/warning.xml';
 import Widgets from '@expo/material-symbols/widgets.xml';
 import { Asset } from 'expo-asset';
 
@@ -131,6 +132,7 @@ const icons = {
   trophy: Trophy,
   tune: Tune,
   'visibility-off': VisibilityOff,
+  warning: Warning,
   widgets: Widgets,
 } satisfies Record<string, ImageSourcePropType>;
 

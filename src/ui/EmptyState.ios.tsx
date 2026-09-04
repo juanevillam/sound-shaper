@@ -43,6 +43,9 @@ const CTA_SPACING = 0;
 type EmptyStateProps = {
   /** Android only — the iOS variant draws `systemImage` instead. */
   emoji?: string;
+  /** Android only — the Material Symbol its variant draws where this one
+   *  draws `systemImage`. Accepted and ignored here. */
+  icon?: string;
   /** iOS only. SF Symbol for the native `ContentUnavailableView`. */
   systemImage?: SFSymbol;
   title: string;
