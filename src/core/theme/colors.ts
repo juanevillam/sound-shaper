@@ -423,46 +423,27 @@ const cardMaterial = (m: MaterialColors): string => {
  * `surfaceContainerLowest` #FCFCFF IS `surface` there, so the header wore the
  * same colour as the list rows scrolling under it and the two read as one
  * sheet (Juan, 2026-09-04 — dark never collided, `surface` #17171A vs card
- * #121318). When they collide, take the first ladder step that is visibly
- * apart from BOTH the card and the page — `surfaceContainer` leads the
- * candidates because it is M3's own tonal app-bar colour. Lands #E4E4E7 in
- * light on the A54; any palette whose `surface` already differs from the card
- * passes through untouched.
+ * #121318, and that 1.9 L* step reads apart on device, hence the loose
+ * epsilon: only a genuine collision substitutes).
  *
- * The collision test is deliberately looser than the substitute's own floor:
- * the A54's dark `surface` sits only 1.9 L* off the card and Juan reads the
- * two apart there ("in dark it doesn't happen"), so 1.9 keeps the token —
- * only a genuine collision (light's is exactly 0) triggers the substitution.
+ * ON COLLISION THE BAR TAKES THE PAGE GROUND. A tonal substitute was tried
+ * first — `surfaceContainer` #E4E4E7, M3's own app-bar colour — and rejected
+ * on sight (Juan, same day): with the cards stepped UP off the page, a band
+ * darker than the page reads as a third grey saying nothing. The ladder
+ * offers nothing else — every candidate lighter than the page sits within
+ * ~2 L* of the rows (the collision again), every darker one is that same
+ * band. The page IS the remaining answer, and it is Apple's: an iOS light
+ * screen is a grey ground with white cells and no bar band at all, and the
+ * header-vs-items distinction the bar exists for is carried by the CARD step,
+ * not by chrome paint. A palette whose `surface` clears the card passes
+ * through untouched.
  */
 const CHROME_COLLIDE_EPSILON = 1.5;
-const CHROME_STEP_FLOOR = 3;
-const CHROME_STEP_CEILING = 12;
 
-const surfaceMaterial = (m: MaterialColors, card: string): string => {
-  if (
-    Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
-  )
-    return m.surface;
-
-  const grounds = [card, m.background];
-  const worstGap = (c: string) =>
-    Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
-
-  const candidates = [
-    m.surfaceContainer,
-    m.surfaceContainerHigh,
-    m.surfaceDim,
-    m.surfaceContainerHighest,
-    m.surfaceContainerLow,
-    m.surfaceBright,
-  ];
-  const inRange = candidates.find(
-    c => worstGap(c) >= CHROME_STEP_FLOOR && worstGap(c) <= CHROME_STEP_CEILING,
-  );
-  if (inRange) return inRange;
-
-  return candidates.reduce((a, b) => (worstGap(b) > worstGap(a) ? b : a));
-};
+const surfaceMaterial = (m: MaterialColors, card: string): string =>
+  Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
+    ? m.surface
+    : m.background;
 
 /**
  * A DIALOG'S CONTAINER, WHICH IS `cardMaterial` ONE STEP HIGHER.
