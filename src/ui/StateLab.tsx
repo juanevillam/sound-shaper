@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  Host,
+  SegmentedButton,
+  SingleChoiceSegmentedButtonRow,
+  Text as ComposeText,
+} from '@expo/ui/jetpack-compose';
+import { weight } from '@expo/ui/jetpack-compose/modifiers';
+import { useAppTheme } from '@portfolio/core';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -91,7 +99,6 @@ type StateLabColors = {
  * the group chips 40.
  */
 const STEP_SIZE = 52;
-const GROUP_HEIGHT = 40;
 /**
  * The note ALWAYS reserves two lines, exactly like the iOS twin's
  * `lineLimit(2, { reservesSpace: true })`: notes are one line for some states
@@ -127,6 +134,7 @@ export function StateLab({
   onSelectGroup?: (key: string) => void;
 }) {
   const { bottom } = useSafeAreaInsets();
+  const { scheme, seedColor } = useAppTheme();
   const [activeKey, setActiveKey] = useState(groups[0]?.key);
 
   /**
@@ -179,33 +187,34 @@ export function StateLab({
       ]}
     >
       {groups.length > 1 ? (
-        <View style={[styles.groups, { borderColor: colors.listSeparator }]}>
-          {groups.map(option => (
-            <Pressable
-              key={option.key}
-              onPress={() => selectGroup(option.key)}
-              style={[
-                styles.group,
-                option.key === group.key && {
-                  backgroundColor: colors.surfaceContainer,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chip,
-                  {
-                    color:
-                      option.key === group.key
-                        ? colors.onSurface
-                        : colors.onSurfaceMuted,
-                  },
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+        // A REAL M3 SegmentedButton row, exactly as the iOS twin uses a real
+        // segmented Picker — the hand-drawn chip row this replaces was the
+        // "scaffolding mistakable for UI" the iOS rewrite already called out
+        // (Juan, 2026-09-04). The Host carries the resolved scheme itself,
+        // the same move EmptyState makes; each button takes an equal share so
+        // the switcher cannot be missed, matching the chips it replaces.
+        <View style={styles.groups}>
+          <Host
+            colorScheme={scheme}
+            seedColor={seedColor}
+            matchContents={{ vertical: true }}
+            style={styles.groupsHost}
+          >
+            <SingleChoiceSegmentedButtonRow>
+              {groups.map(option => (
+                <SegmentedButton
+                  key={option.key}
+                  selected={option.key === group.key}
+                  onClick={() => selectGroup(option.key)}
+                  modifiers={[weight(1)]}
+                >
+                  <SegmentedButton.Label>
+                    <ComposeText maxLines={1}>{option.label}</ComposeText>
+                  </SegmentedButton.Label>
+                </SegmentedButton>
+              ))}
+            </SingleChoiceSegmentedButtonRow>
+          </Host>
         </View>
       ) : null}
 
@@ -287,9 +296,10 @@ const styles = StyleSheet.create({
     // Android's shadow: the `shadow*` props below are iOS-only, so without
     // this the bar had no float at all and melted into any ground that
     // resolves to its own card colour (Juan, 2026-09-04) — which after the
-    // card remap is every card it hovers over. The iOS twin keeps its RN
-    // shadow; this is the same statement in Android's language.
-    elevation: 8,
+    // card remap is every card it hovers over. 8 was the first value and read
+    // heavier than the iOS twin's soft RN shadow; 4 floats without shouting
+    // (Juan, same day).
+    elevation: 4,
     gap: 8,
     left: 12,
     paddingBottom: 10,
@@ -302,23 +312,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 12,
   },
-  groups: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    marginHorizontal: 6,
-    overflow: 'hidden',
-  },
-  // Each chip takes an EQUAL SHARE of the bar rather than hugging its word: a
-  // switcher whose halves are full width cannot be missed, and the targets stay
-  // the same size as each other however long the labels are.
-  group: {
-    alignItems: 'center',
-    flex: 1,
-    height: GROUP_HEIGHT,
-    justifyContent: 'center',
-  },
-  chip: TEXT_VARIANTS.labelMedium,
+  groups: { marginHorizontal: 6 },
+  groupsHost: { width: '100%' },
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   body: { flex: 1, gap: 2 },
   title: TEXT_VARIANTS.labelLarge,
