@@ -226,23 +226,43 @@ const mutedInk = (m: MaterialColors): string => {
  * on palettes whose own step is out of range; passing the raw token after that
  * would be measuring separation from a colour nothing on screen is painted.
  */
-const EMPTY_STEP_TARGET = 8;
+const EMPTY_STEP_TARGET = 5;
 const EMPTY_STEP_FLOOR = 3;
+
+/** Channel-wise mix of two palette colours — still a derivation of the
+ *  dynamic theme, never a static colour (same licence `mutedInk`'s alpha
+ *  fallback already takes). */
+const mix = (a: string, b: string, t: number): string => {
+  const ch = (hex: string, i: number) =>
+    parseInt(hex.replace('#', '').slice(i * 2, i * 2 + 2), 16);
+  const blend = (i: number) =>
+    Math.round(ch(a, i) + (ch(b, i) - ch(a, i)) * t)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${blend(0)}${blend(1)}${blend(2)}`.toUpperCase();
+};
 
 const emptyMediaMaterial = (m: MaterialColors, card: string): string => {
   if (!sameInk(m.surfaceVariant, m.surfaceContainer)) return m.surfaceVariant;
 
   /**
-   * TARGET a step, don't maximise one. `bestSeparated` (kept below as the
-   * floor-failure fallback) picks the candidate FURTHEST from both grounds,
-   * and on the A54 that meant #4D4D52 — 32.6 L* off a near-black page, three
-   * times the step Apple's own empty-media grey takes (systemGray5 sits ~11
-   * L* off black, ~9 off a white card) — so every art-less box and bone
+   * TARGET a step, don't maximise one — and BLEND DOWN to it when the ladder
+   * cannot say it quietly. `bestSeparated` (kept as the floor-failure
+   * fallback) picks the candidate FURTHEST from both grounds, and on the A54
+   * that meant #4D4D52 — 32.6 L* off a near-black page, three times the step
+   * Apple's own empty-media grey takes — so every art-less box and bone
    * shouted (Juan, 2026-09-04, both schemes). The box only has to be VISIBLE
-   * on both its grounds; past that, distance is noise. Same shape as
-   * `cardMaterial`: floor for visibility, then closest to the target.
-   * Lands `surfaceContainerLow` #252528 in dark and `surfaceDim` #DAD9E0 in
-   * light on the A54.
+   * on both its grounds; past that, distance is noise.
+   *
+   * The quietest LADDER answer was still too loud (Juan, same day, second
+   * pass): Samsung's dark ladder has nothing between "equal to the card" and
+   * ~9 L* above it, so the pick lands at #252528 and cannot go lower by
+   * choosing tokens. When the best candidate still overshoots the target, it
+   * is therefore blended toward the nearer ground until its worst-case step
+   * sits at the target — Apple's own fills are exactly this kind of
+   * fractional step (systemGray5 sits ~4 L* off the grouped page). The blend
+   * is a mix of two palette colours, so the result is still the dynamic
+   * theme's, just between its rungs.
    */
   const grounds = [card, m.background];
   const candidates = [
@@ -256,15 +276,32 @@ const emptyMediaMaterial = (m: MaterialColors, card: string): string => {
     Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
 
   const visible = candidates.filter(c => worstGap(c) >= EMPTY_STEP_FLOOR);
-  if (visible.length)
-    return visible.reduce((best, next) =>
-      Math.abs(worstGap(next) - EMPTY_STEP_TARGET) <
-      Math.abs(worstGap(best) - EMPTY_STEP_TARGET)
-        ? next
-        : best,
-    );
+  if (!visible.length) return bestSeparated(grounds, candidates);
 
-  return bestSeparated(grounds, candidates);
+  const best = visible.reduce((a, b) =>
+    Math.abs(worstGap(b) - EMPTY_STEP_TARGET) <
+    Math.abs(worstGap(a) - EMPTY_STEP_TARGET)
+      ? b
+      : a,
+  );
+  if (worstGap(best) <= EMPTY_STEP_TARGET) return best;
+
+  // Overshot: pull toward the nearer ground until the worst-case step lands
+  // on the target (binary search on the mix fraction; monotonic on t).
+  const near = grounds.reduce((a, b) =>
+    Math.abs(lightness(b) - lightness(best)) <
+    Math.abs(lightness(a) - lightness(best))
+      ? b
+      : a,
+  );
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 12; i += 1) {
+    const t = (lo + hi) / 2;
+    if (worstGap(mix(best, near, t)) > EMPTY_STEP_TARGET) lo = t;
+    else hi = t;
+  }
+  return mix(best, near, lo);
 };
 
 /** Perceptual lightness (CIE L*), the axis a "step" is actually judged on. */
