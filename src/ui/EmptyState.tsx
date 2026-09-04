@@ -3,9 +3,12 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
+import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
 import { useAppTheme } from '@portfolio/core';
+
+import { AppIcon } from './AppIcon';
+import type { IconName } from './icons';
 
 /**
  * THE EMPTY STATE'S OWN STEPS, exported for the one case that may not mount
@@ -21,8 +24,22 @@ import { useAppTheme } from '@portfolio/core';
  */
 export const EMPTY_STATE_STEPS = {
   emojiSize: 48,
+  /** The Material symbol renders at the emoji's own box, so an emoji state
+   *  and an icon state stand the same geometry. */
+  iconSize: 48,
   /** The mark-to-title and title-to-subtitle gap. */
   gap: 8,
+  /** EXTRA gap the icon opens above the title, on top of `gap` — the mark is
+   *  a different kind of statement from the text and Apple's own
+   *  `ContentUnavailableView` spaces it that way (icon→title 23.7pt against
+   *  title→description 7.7, measured). 8 + 8 lands 16, the Material grid's
+   *  nearest rhythm. */
+  iconGap: 8,
+  /** EXTRA gap above the CTA, on top of `gap` — a button pressed right up
+   *  against the description reads as part of the prose. iOS gets 37pt of
+   *  clearance from Apple's own trailing inset; 8 + 16 is the Material-grid
+   *  equivalent. */
+  ctaGap: 16,
   title: 'titleLarge',
   subtitle: 'bodyMedium',
 } as const;
@@ -30,9 +47,15 @@ export const EMPTY_STATE_STEPS = {
 type EmptyStateProps = {
   emoji?: string;
   /**
+   * The Material Symbol drawn where iOS draws its `systemImage` — large and
+   * muted, the same statement `ContentUnavailableView` opens with. Optional
+   * because an emoji state keeps its emoji; a state that names BOTH draws the
+   * icon (they occupy the same slot).
+   */
+  icon?: IconName;
+  /**
    * iOS only — the SF Symbol its `ContentUnavailableView` draws. Accepted and
-   * IGNORED here: Android keeps the emoji, which reads better against Material's
-   * surfaces and needs no symbol vocabulary.
+   * IGNORED here; this side names its Material twin via `icon`.
    */
   systemImage?: string;
   title: string;
@@ -67,6 +90,7 @@ type EmptyStateProps = {
  */
 export function EmptyState({
   emoji,
+  icon,
   title,
   subtitle,
   action,
@@ -92,7 +116,14 @@ export function EmptyState({
           verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
           modifiers={[fillMaxWidth()]}
         >
-          {emoji ? (
+          {icon ? (
+            <AppIcon
+              name={icon}
+              size={EMPTY_STATE_STEPS.iconSize}
+              tint={colors.onSurfaceMuted}
+              modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+            />
+          ) : emoji ? (
             <Text style={{ fontSize: EMPTY_STATE_STEPS.emojiSize }}>
               {emoji}
             </Text>
@@ -118,7 +149,19 @@ export function EmptyState({
             </Text>
           ) : null}
           {action ? (
-            <Button onClick={action.onPress}>
+            // MONOCHROME, the same mapping the welcome CTA and the iOS twin
+            // carry: a filled button's colour is inherited (Material fills it
+            // with the accent because that is the default), so it takes the
+            // ink. Material inverts the label itself — `contentColor` is a
+            // real role on the container, no `labelColor` trap here.
+            <Button
+              onClick={action.onPress}
+              colors={{
+                containerColor: colors.onSurface,
+                contentColor: colors.background,
+              }}
+              modifiers={[padding(0, EMPTY_STATE_STEPS.ctaGap, 0, 0)]}
+            >
               <Text>{action.label}</Text>
             </Button>
           ) : null}
