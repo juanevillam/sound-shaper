@@ -150,9 +150,10 @@ export type AppColors = {
  * THE STEP IS CHOSEN BY MEASUREMENT, NOT BY NAME, because Samsung's container
  * ladder is not monotonic: in dark `surfaceContainerHighest` (#23262E) is
  * DARKER than `surfaceContainer` (#3A3A3D), so the highest-sounding token is
- * the wrong one. The pick maximises the WORST-CASE separation from both
- * grounds a box sits on — see `bestSeparated`, which landed #4D4D52 in dark
- * and #CCCCCE in light on the A54, and takes the spec-ordered step on AOSP.
+ * the wrong one. The pick targets a visible-but-quiet worst-case step from
+ * both grounds a box sits on — see `emptyMediaMaterial`, which lands #252528
+ * in dark and #DAD9E0 in light on the A54, and passes the spec's own
+ * `surfaceVariant` through on any palette that separates it.
  */
 
 /** sRGB relative luminance (WCAG), from an `#RRGGBB` or `#RRGGBBAA` string. */
@@ -225,18 +226,45 @@ const mutedInk = (m: MaterialColors): string => {
  * on palettes whose own step is out of range; passing the raw token after that
  * would be measuring separation from a colour nothing on screen is painted.
  */
+const EMPTY_STEP_TARGET = 8;
+const EMPTY_STEP_FLOOR = 3;
+
 const emptyMediaMaterial = (m: MaterialColors, card: string): string => {
   if (!sameInk(m.surfaceVariant, m.surfaceContainer)) return m.surfaceVariant;
-  return bestSeparated(
-    [card, m.background],
-    [
-      m.surfaceContainerHigh,
-      m.surfaceContainerHighest,
-      m.surfaceContainerLow,
-      m.surfaceBright,
-      m.surfaceDim,
-    ],
-  );
+
+  /**
+   * TARGET a step, don't maximise one. `bestSeparated` (kept below as the
+   * floor-failure fallback) picks the candidate FURTHEST from both grounds,
+   * and on the A54 that meant #4D4D52 — 32.6 L* off a near-black page, three
+   * times the step Apple's own empty-media grey takes (systemGray5 sits ~11
+   * L* off black, ~9 off a white card) — so every art-less box and bone
+   * shouted (Juan, 2026-09-04, both schemes). The box only has to be VISIBLE
+   * on both its grounds; past that, distance is noise. Same shape as
+   * `cardMaterial`: floor for visibility, then closest to the target.
+   * Lands `surfaceContainerLow` #252528 in dark and `surfaceDim` #DAD9E0 in
+   * light on the A54.
+   */
+  const grounds = [card, m.background];
+  const candidates = [
+    m.surfaceContainerHigh,
+    m.surfaceContainerHighest,
+    m.surfaceContainerLow,
+    m.surfaceBright,
+    m.surfaceDim,
+  ];
+  const worstGap = (c: string) =>
+    Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
+
+  const visible = candidates.filter(c => worstGap(c) >= EMPTY_STEP_FLOOR);
+  if (visible.length)
+    return visible.reduce((best, next) =>
+      Math.abs(worstGap(next) - EMPTY_STEP_TARGET) <
+      Math.abs(worstGap(best) - EMPTY_STEP_TARGET)
+        ? next
+        : best,
+    );
+
+  return bestSeparated(grounds, candidates);
 };
 
 /** Perceptual lightness (CIE L*), the axis a "step" is actually judged on. */
@@ -278,21 +306,28 @@ const schemePrimary = (m: MaterialColors): string =>
     : m.primary;
 
 /**
- * HOW FAR A CARD SHOULD SIT OFF THE PAGE — and the OEM does not always say.
+ * HOW FAR A CARD SHOULD SIT OFF THE PAGE — AND IN WHICH DIRECTION.
  *
- * A filled card on the page background is ONE elevation step in M3, and it is
- * meant to read the same weight in both schemes. On the A54 it does not:
- * `background` is near-pure black (#010102, L* 0.3) while the containers stay
- * high (`surfaceContainer` #3A3A3D, L* 24.5), so the step is 24.2 L* in dark
- * against 4.5 in light — five times heavier on one side, which is exactly how it
- * reads (Juan, 2026-08-29). A Pixel puts that step at roughly 5-7.
+ * A filled card on the page background is ONE elevation step, and in this
+ * portfolio the step goes UP — the card is LIGHTER than the page in both
+ * schemes, which is Apple's grouped model (white cells on the grey grouped
+ * background; elevated #1C1C1E on black) and the look every iOS surface here
+ * is the reference for. M3's light convention runs the other way (a filled
+ * card is a DARKER tonal container on a near-white page), and following it
+ * shipped exactly that inversion: on the A54 the light page is #F1F1F3
+ * (L* 95.2 — the same lightness as Apple's #F2F2F7) and the cards came out
+ * #E4E4E7, a step DOWN, so light mode read as grey cards on a whiter page —
+ * backwards against the iOS twin on every screen (Juan, 2026-09-04). Dark
+ * already stepped up and is unchanged by this.
  *
- * So the step is CHOSEN BY MEASUREMENT when the palette's own is out of range,
- * and passed through when it is not — the same shape as `mutedInk` and
- * `emptyMediaMaterial` above. `TARGET` is the middle of M3's own range and
- * `FLOOR` keeps the pick from landing on a step so small the card disappears
- * (`surfaceContainerLowest` IS the background on this device). Landed
- * `surfaceDim` #121318 here: 5.7 L*, against light's 4.5.
+ * So the pick prefers candidates that sit ABOVE the page on the lightness
+ * axis, chosen by measured step as before (Samsung's ladder is not monotonic,
+ * so names cannot be trusted): in range [FLOOR, CEILING], closest to TARGET.
+ * On the A54 that lands `surfaceContainerLowest` #FCFCFF in light (+3.8 L*,
+ * against Apple's own +4.8) and keeps `surfaceDim` #121318 in dark (+5.7).
+ * If no candidate clears the floor, the lightest one still above the page
+ * wins; only a palette whose page IS its lightest surface falls back to the
+ * old unsigned pick, because there is nothing to step up to.
  */
 const CARD_STEP_TARGET = 6;
 const CARD_STEP_FLOOR = 3;
@@ -300,27 +335,46 @@ const CARD_STEP_CEILING = 12;
 
 const cardMaterial = (m: MaterialColors): string => {
   const ground = lightness(m.background);
-  const step = (c: string) => Math.abs(lightness(c) - ground);
+  /** Signed: positive = lighter than the page. */
+  const lift = (c: string) => lightness(c) - ground;
 
-  if (step(m.surfaceContainer) <= CARD_STEP_CEILING) return m.surfaceContainer;
-
-  const candidates = [
-    m.surfaceDim,
-    m.surfaceContainerLow,
+  const ladder = [
+    m.surface,
     m.surfaceContainerLowest,
     m.surfaceBright,
-    m.surfaceContainerHighest,
+    m.surfaceDim,
+    m.surfaceContainerLow,
     m.surfaceContainer,
-  ].filter(c => step(c) >= CARD_STEP_FLOOR);
+    m.surfaceContainerHigh,
+    m.surfaceContainerHighest,
+  ];
 
-  return candidates.length
-    ? candidates.reduce((best, next) =>
-        Math.abs(step(next) - CARD_STEP_TARGET) <
-        Math.abs(step(best) - CARD_STEP_TARGET)
-          ? next
-          : best,
-      )
-    : m.surfaceContainer;
+  const inRange = ladder.filter(
+    c => lift(c) >= CARD_STEP_FLOOR && lift(c) <= CARD_STEP_CEILING,
+  );
+  if (inRange.length)
+    return inRange.reduce((best, next) =>
+      Math.abs(lift(next) - CARD_STEP_TARGET) <
+      Math.abs(lift(best) - CARD_STEP_TARGET)
+        ? next
+        : best,
+    );
+
+  const above = ladder.filter(c => lift(c) > 0);
+  if (above.length)
+    return above.reduce((best, next) =>
+      lift(next) > lift(best) ? next : best,
+    );
+
+  // The page is the palette's lightest surface: nothing to step up to, so
+  // take the least-wrong unsigned step rather than inventing a colour.
+  const step = (c: string) => Math.abs(lift(c));
+  return ladder.reduce((best, next) =>
+    Math.abs(step(next) - CARD_STEP_TARGET) <
+    Math.abs(step(best) - CARD_STEP_TARGET)
+      ? next
+      : best,
+  );
 };
 
 /**
