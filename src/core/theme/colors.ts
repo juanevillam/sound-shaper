@@ -421,29 +421,29 @@ const cardMaterial = (m: MaterialColors): string => {
  * `m.surface` is the right token until the card resolution lands ON it, which
  * is exactly what the lighter-than-page card pick did on the A54 in light:
  * `surfaceContainerLowest` #FCFCFF IS `surface` there, so the header wore the
- * same colour as the list rows scrolling under it and the two read as one
- * sheet (Juan, 2026-09-04 — dark never collided, `surface` #17171A vs card
- * #121318, and that 1.9 L* step reads apart on device, hence the loose
- * epsilon: only a genuine collision substitutes).
+ * same colour as the list rows scrolling under it. Dark never collided
+ * (`surface` #17171A vs card #121318, and that 1.9 L* step reads apart on
+ * device — hence the loose epsilon; only a genuine collision substitutes, and
+ * a palette whose `surface` clears the card passes through untouched).
  *
- * ON COLLISION THE BAR TAKES THE PAGE GROUND. A tonal substitute was tried
- * first — `surfaceContainer` #E4E4E7, M3's own app-bar colour — and rejected
- * on sight (Juan, same day): with the cards stepped UP off the page, a band
- * darker than the page reads as a third grey saying nothing. The ladder
- * offers nothing else — every candidate lighter than the page sits within
- * ~2 L* of the rows (the collision again), every darker one is that same
- * band. The page IS the remaining answer, and it is Apple's: an iOS light
- * screen is a grey ground with white cells and no bar band at all, and the
- * header-vs-items distinction the bar exists for is carried by the CARD step,
- * not by chrome paint. A palette whose `surface` clears the card passes
- * through untouched.
+ * THE COLLIDED VALUE IS A HALF-STEP, because both whole answers were rendered
+ * and rejected on device (Juan, 2026-09-04, three passes): `surfaceContainer`
+ * #E4E4E7 read as a heavy tonal band once the cards stepped UP off the page,
+ * and the bare page ground read as no chrome at all — the bar must differ
+ * from BOTH the page and the rows. The ladder holds nothing between those
+ * (every token lighter than the page sits within ~2 L* of the rows; every
+ * darker one is the band), so the chrome is mixed halfway from the page
+ * toward M3's own app-bar colour — the same between-the-rungs licence
+ * `emptyMediaMaterial` already takes, still built only from palette colours.
+ * Lands #EBEBED on the A54: 6 channels off the page, 17 off the rows.
  */
 const CHROME_COLLIDE_EPSILON = 1.5;
+const CHROME_MIX = 0.5;
 
 const surfaceMaterial = (m: MaterialColors, card: string): string =>
   Math.abs(lightness(m.surface) - lightness(card)) >= CHROME_COLLIDE_EPSILON
     ? m.surface
-    : m.background;
+    : mix(m.background, m.surfaceContainer, CHROME_MIX);
 
 /**
  * A DIALOG'S CONTAINER, WHICH IS `cardMaterial` ONE STEP HIGHER.
