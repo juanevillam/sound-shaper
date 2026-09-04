@@ -448,22 +448,42 @@ const surfaceMaterial = (m: MaterialColors, card: string): string => {
     return m.surface;
 
   /**
-   * ON COLLISION, THE SEED-TINTED ELEVATED TONE LEADS. Three neutrals were
-   * rendered and rejected in light on the A54 (Juan, 2026-09-04):
-   * `surfaceContainer` #E4E4E7 (a heavy tonal band), the bare page (no
-   * chrome at all), and their half-step mix #EBEBED (a dingier page).
-   * `surfaceContainerHighest` is the palette's ELEVATED tone — on a dynamic
-   * palette it carries the wallpaper seed's hue (#E1E2ED here, a cool
-   * blue-grey), so the bars read as tinted chrome rather than as a grey
-   * band, which is what One UI's own tinted surfaces do. Candidates are
-   * still guarded by measurement (visible against both the page and the
-   * rows, ceiling against a slab), with the neutral mix as the fallback for
-   * a ladder with nothing in range.
+   * ON COLLISION THE CHROME SITS BETWEEN THE PAGE AND THE CARDS — the dark
+   * relationship, transposed, and Juan's own spec (2026-09-04, fifth pass):
+   * in dark the bars are LIGHTER than both the cards and the page (surface
+   * #17171A over cards #121318 over page #010102) and read exactly right; in
+   * light every candidate DARKER than the page had been tried — the tonal
+   * band #E4E4E7, the half-step #EBEBED, the tinted #E1E2ED — and each read
+   * as a band or a dingier page, because it put the chrome BELOW the ground
+   * it brackets. The bar may sit a hair off the white cards (dark's bar sits
+   * 4 channels off its cards); what it must not be is darker than the page.
+   *
+   * So the pick is the ladder token strictly between the page and the card,
+   * nearest the card — `surfaceBright` #FAF8FF on the A54 (page 241 → chrome
+   * 250 → cards 252, mirroring dark's 1 → 19 → 23). The old darker-side
+   * candidates survive only as fallbacks for a palette with nothing in the
+   * band.
    */
+  const pageL = lightness(m.background);
+  const cardL = lightness(card);
+  const between = [
+    m.surfaceBright,
+    m.surfaceContainerLowest,
+    m.surfaceContainerLow,
+    m.surfaceContainerHighest,
+    m.surfaceContainer,
+  ].filter(c => {
+    const l = lightness(c);
+    return l > Math.min(pageL, cardL) + 0.5 && l < Math.max(pageL, cardL) - 0.5;
+  });
+  if (between.length)
+    return between.reduce((a, b) =>
+      Math.abs(lightness(b) - cardL) < Math.abs(lightness(a) - cardL) ? b : a,
+    );
+
   const grounds = [card, m.background];
   const worstGap = (c: string) =>
     Math.min(...grounds.map(g => Math.abs(lightness(c) - lightness(g))));
-
   const pick = [m.surfaceContainerHighest, m.surfaceContainer].find(
     c => worstGap(c) >= CHROME_STEP_FLOOR && worstGap(c) <= CHROME_STEP_CEILING,
   );
