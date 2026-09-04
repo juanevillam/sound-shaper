@@ -41,10 +41,14 @@ export const SKELETON_BAR_RATIO = 0.73;
 export function SkeletonTextLine({
   variant,
   barWidth,
+  align = 'flex-start',
   style,
 }: {
   variant: TextVariant;
   barWidth: DimensionValue;
+  /** Where the bar sits in the line — `center` for text the real component
+   *  centres (a person card's name), leading otherwise. */
+  align?: 'flex-start' | 'center';
   /** The line's place in its column — margins/padding only; never a height. */
   style?: StyleProp<ViewStyle>;
 }) {
@@ -62,7 +66,10 @@ export function SkeletonTextLine({
       <Text style={metrics} numberOfLines={1}>
         {' '}
       </Text>
-      <View style={styles.barSlot} pointerEvents="none">
+      <View
+        style={[styles.barSlot, { alignItems: align }]}
+        pointerEvents="none"
+      >
         <SkeletonBone
           width={barWidth}
           height={Math.round(
