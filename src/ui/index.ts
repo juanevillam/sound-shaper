@@ -92,6 +92,7 @@ export {
   SHEET_TITLE_TO_CONTENT,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
+export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
 export { StateWrap } from './StateWrap';
 export {
   EMPTY_MEDIA_INITIAL_RATIO,
