@@ -98,8 +98,16 @@ const GROUP_HEIGHT = 40;
  * and two for others, and without the reservation the bar changed height as
  * you stepped — a picker that shifts under the thumb, on the one tool whose
  * job is finding shifts.
+ *
+ * Reserved by a GHOST TEXT, not a height. `2 × lineHeight` was tried first
+ * and CLIPPED a real two-line note mid-glyph: an Android `Text` renders
+ * taller than its stated `lineHeight` (the `SkeletonTextLine` finding), so
+ * the described box was ~3dp shorter than the text it was reserving for. An
+ * invisible two-line spacer at the note's own style makes the box whatever
+ * the platform actually measures.
  */
 const NOTE_LINES = 2;
+const NOTE_GHOST = ' \n ';
 /** Clearance for a floating tab bar, when the caller does not say otherwise. */
 const DEFAULT_BOTTOM_OFFSET = 52;
 
@@ -211,12 +219,25 @@ export function StateLab({
           >
             {`${group.label.toUpperCase()}  ${index + 1}/${group.states.length}  ${entry.label}`}
           </Text>
-          <Text
-            numberOfLines={NOTE_LINES}
-            style={[styles.note, { color: colors.onSurfaceMuted }]}
-          >
-            {entry.note}
-          </Text>
+          <View>
+            <Text
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[styles.note, styles.noteGhost]}
+            >
+              {NOTE_GHOST}
+            </Text>
+            <Text
+              numberOfLines={NOTE_LINES}
+              style={[
+                styles.note,
+                styles.noteOverlay,
+                { color: colors.onSurfaceMuted },
+              ]}
+            >
+              {entry.note}
+            </Text>
+          </View>
         </View>
 
         <Step colors={colors} glyph="›" onPress={() => step(1)} />
@@ -295,11 +316,15 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   body: { flex: 1, gap: 2 },
   title: TEXT_VARIANTS.labelLarge,
-  // The reserved two-line box — the line height is the scale's own, so the box
-  // is exactly two lines of THIS font rather than a height guessed in dp.
-  note: {
-    ...TEXT_VARIANTS.bodySmall,
-    height: NOTE_LINES * (TEXT_VARIANTS.bodySmall.lineHeight as number),
+  note: TEXT_VARIANTS.bodySmall,
+  // The two-line measuring device the real note draws over (see NOTE_GHOST).
+  noteGhost: { opacity: 0 },
+  noteOverlay: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   step: {
     alignItems: 'center',
