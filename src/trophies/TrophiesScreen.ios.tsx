@@ -519,19 +519,16 @@ export const TrophiesScreen = ({
                   }
                   modifiers={[
                     gaugeStyle('circularCapacity'),
-                    // MONOCHROME, and this ring is the clearest case for it in
-                    // the portfolio. A gauge's information is the ARC and the
-                    // number written inside it; the hue adds nothing. Apple's
-                    // Activity rings are coloured because there are THREE and
-                    // colour is what tells them apart — there is one here.
-                    //
-                    // It also competed with the only colour on this screen that
-                    // MEANS something: the trophy tiers below are platinum,
-                    // gold, silver and bronze, and a blue ring sitting above a
-                    // blue-grey platinum cup reads as a fifth tier rather than
-                    // as chrome. The tiers keep their colour; the ring gives
-                    // its up.
-                    tint(colors.onSurface),
+                    // THE ACCENT, reversed from monochrome by Juan on sight
+                    // (2026-09-04). The 2026-08-21 audit took this ring's tint
+                    // on the argument that a gauge's information is its arc
+                    // and the number inside it — which is true and was not the
+                    // problem: rendered, an ink-coloured ring reads as an
+                    // INACTIVE track rather than as progress (the same failure
+                    // mode as the grey swipe action — the monochrome rule's
+                    // own opening principle outranks its buckets). A gauge's
+                    // fill is state, and the accent is what iOS spends on it.
+                    tint(colors.primary),
                     scaleEffect(RING_SCALE),
                     frame({ width: RING_SIZE, height: RING_SIZE }),
                   ]}
