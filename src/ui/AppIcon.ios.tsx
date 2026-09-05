@@ -75,6 +75,7 @@ const SF_SYMBOLS = {
   'play-arrow': 'play.fill',
   public: 'globe',
   report: 'exclamationmark.octagon',
+  restore: 'arrow.uturn.backward',
   // SF Symbols has no rocket glyph at the deployment target; sparkles is the
   // conventional "new and shiny" stand-in.
   'rocket-launch': 'sparkles',

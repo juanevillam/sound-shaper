@@ -42,6 +42,7 @@ import PersonAdd from '@expo/material-symbols/person_add.xml';
 import PlayArrow from '@expo/material-symbols/play_arrow.xml';
 import Public from '@expo/material-symbols/public.xml';
 import Report from '@expo/material-symbols/report.xml';
+import RestoreFromTrash from '@expo/material-symbols/restore_from_trash.xml';
 import RocketLaunch from '@expo/material-symbols/rocket_launch.xml';
 import Search from '@expo/material-symbols/search.xml';
 import Send from '@expo/material-symbols/send.xml';
@@ -119,6 +120,7 @@ const icons = {
   'person-filled': require('./assets/icons/person-filled.xml'),
   public: Public,
   report: Report,
+  restore: RestoreFromTrash,
   'rocket-launch': RocketLaunch,
   search: Search,
   send: Send,
