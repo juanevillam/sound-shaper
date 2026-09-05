@@ -48,6 +48,9 @@ const SF_SYMBOLS = {
   'favorite-filled': 'heart.fill',
   flag: 'flag',
   flight: 'airplane',
+  'format-list-bulleted': 'list.bullet',
+  forum: 'bubble.left.and.bubble.right',
+  'front-hand': 'hand.raised',
   // THE SOUNDING-ROW MARKER, and the SF side is not a translation of the
   // Material glyph — it is what this app's own iOS twin already draws for the
   // identical job. Sound Shaper's `clips` route marks the playing row with

@@ -22,6 +22,9 @@ import Extension from '@expo/material-symbols/extension.xml';
 import Favorite from '@expo/material-symbols/favorite.xml';
 import Flag from '@expo/material-symbols/flag.xml';
 import Flight from '@expo/material-symbols/flight.xml';
+import FormatListBulleted from '@expo/material-symbols/format_list_bulleted.xml';
+import Forum from '@expo/material-symbols/forum.xml';
+import FrontHand from '@expo/material-symbols/front_hand.xml';
 import GraphicEq from '@expo/material-symbols/graphic_eq.xml';
 import Groups from '@expo/material-symbols/groups.xml';
 import Help from '@expo/material-symbols/help.xml';
@@ -96,6 +99,9 @@ const icons = {
   'favorite-filled': require('./assets/icons/favorite-filled.xml'),
   flag: Flag,
   flight: Flight,
+  'format-list-bulleted': FormatListBulleted,
+  forum: Forum,
+  'front-hand': FrontHand,
   // The sounding-row marker — Material's equalizer bars, which is also this
   // app's own now-playing emblem over a grid tile. Pairs with the accent so
   // colour is not the only indicator.
