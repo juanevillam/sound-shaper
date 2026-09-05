@@ -184,7 +184,6 @@ export const translations = {
     },
     trophies: {
       title: 'Trophies',
-      progress: '{earned} of {total} earned',
       locked: 'Locked',
       earned: 'Earned',
       available: 'Available',
@@ -459,7 +458,6 @@ export const translations = {
     },
     trophies: {
       title: 'Trofeos',
-      progress: '{earned} de {total} conseguidos',
       locked: 'Bloqueado',
       earned: 'Conseguido',
       available: 'Disponibles',
@@ -732,7 +730,6 @@ export const translations = {
     },
     trophies: {
       title: '奖杯',
-      progress: '已获得 {earned}/{total}',
       locked: '未解锁',
       earned: '已获得',
       available: '可获得',

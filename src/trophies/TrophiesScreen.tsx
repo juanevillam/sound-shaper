@@ -1,5 +1,13 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import {
+  DisclosureChevron,
+  SkeletonBone,
+  SkeletonTextLine,
+  TEXT_VARIANTS,
+} from '@portfolio/mobile-ui';
+import Svg, { Circle } from 'react-native-svg';
+
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
 import { type ResolvedTrophy, type TrophyTier } from './types';
@@ -11,20 +19,18 @@ export type TrophiesScreenColors = {
   surface: string;
   onSurface: string;
   onSurfaceMuted: string;
-  /** Progress-line fill. */
+  /** Progress-ring fill. */
   primary: string;
-  /** Progress-line track (e.g. surfaceVariant). */
+  /** Progress-ring track (e.g. surfaceVariant). */
   track: string;
   /** Row press ripple — pass a low-alpha onSurface (e.g. withAlpha(onSurface, .1)). */
   ripple: string;
 };
 
 export type TrophiesScreenStrings = {
-  /** Pre-formatted progress line, e.g. "3 of 7 earned". */
-  progress: string;
   /** Pre-formatted completion percent, e.g. "43%" — sits inside the ring. */
   percent: string;
-  /** iOS: the two figures flanking the summary ring. */
+  /** The two figures flanking the summary ring, on BOTH platforms. */
   earnedLabel: string;
   availableLabel: string;
   /** Prefix before the date on an earned trophy, e.g. "Earned". */
@@ -56,16 +62,15 @@ export type TrophiesScreenProps = {
   scrollProps?: object;
 
   /**
-   * iOS only. The awarded cache has not hydrated yet
-   * (`useTrophies().hydrated` is false), so the lock states and the counts
-   * passed above are not yet true: every trophy resolves LOCKED and the
-   * summary reads "0 of N", which is a wrong answer rather than a pending one.
+   * The awarded cache has not hydrated yet (`useTrophies().hydrated` is
+   * false), so the lock states and the counts passed above are not yet true:
+   * every trophy resolves LOCKED and the summary reads "0 of N", which is a
+   * wrong answer rather than a pending one.
    *
-   * While it is set, the parts that WAIT stand `SkeletonBone`s — each row's
-   * icon (the tier colour is what claims "earned") and the whole progress
-   * summary. The trophy TITLES stay real: they come from config and copy, not
-   * the network, and boning them would only cost each row its true height.
-   * Android does not read it yet.
+   * While it is set, the parts that WAIT stand bones — the summary's ring and
+   * figures, each row's icon and lines. Read by BOTH platforms (Android
+   * joined 2026-09-04); the row text bones are ghost-measured
+   * (`SkeletonTextLine`), never lineHeight boxes.
    */
   loading?: boolean;
 };
@@ -79,6 +84,28 @@ const OUTER_RADIUS = 24;
 const INNER_RADIUS = 4;
 const ROW_GAP = 2;
 const ICON_SLOT = 40;
+const ICON_SIZE = 26;
+
+/**
+ * THE SUMMARY IS THE iOS SHAPE — a centred [earned | ring | available] block,
+ * the screen's headline with the list as its body (Juan, 2026-09-04; it was a
+ * count + thin linear bar, which read as a caption). Same parts, Material's
+ * language: the gauge is an SVG arc on the track/primary roles, the figures
+ * take `titleLarge` over a muted `bodySmall` label.
+ *
+ * The iOS block's own proportions carry over where they are ratios of the
+ * block rather than SwiftUI facts: two equal-width figure columns so the ring
+ * lands on the screen's centre, and the ring as the dominant element.
+ */
+const RING_SIZE = 104;
+const RING_STROKE = 8;
+const FIGURE_WIDTH = 72;
+const SUMMARY_COLUMN_GAP = 14;
+/** Bones for the two figures — a number-sized block over a label-sized line. */
+const FIGURE_BONE_NUMBER = { width: 26, height: 24 };
+const FIGURE_BONE_LABEL = 48;
+/** The supporting line is one sentence at bodySmall, whatever the row. */
+const SUPPORTING_BONE_WIDTH = 160;
 
 const groupRadii = (index: number, count: number) => ({
   borderTopLeftRadius: index === 0 ? OUTER_RADIUS : INNER_RADIUS,
@@ -87,6 +114,89 @@ const groupRadii = (index: number, count: number) => ({
   borderBottomRightRadius: index === count - 1 ? OUTER_RADIUS : INNER_RADIUS,
 });
 
+/**
+ * The determinate progress ring — an SVG arc, because Compose's determinate
+ * indicator cannot carry the percent INSIDE the way the iOS `Gauge`'s
+ * `currentValueLabel` does, and a bridged Host for one arc is not worth its
+ * async measurement. Track and fill take the same roles the old linear bar
+ * spent (`track` / `primary`); round caps, 12 o'clock start.
+ */
+const SummaryRing = ({
+  fraction,
+  percent,
+  colors,
+}: {
+  fraction: number;
+  percent: string;
+  colors: TrophiesScreenColors;
+}) => {
+  const radius = (RING_SIZE - RING_STROKE) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <View style={styles.ring}>
+      <Svg width={RING_SIZE} height={RING_SIZE}>
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={radius}
+          stroke={colors.track}
+          strokeWidth={RING_STROKE}
+          fill="none"
+        />
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={radius}
+          stroke={colors.primary}
+          strokeWidth={RING_STROKE}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - fraction)}
+          // Start at 12 o'clock, like the iOS gauge.
+          transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringLabel}>
+        <Text style={[styles.percent, { color: colors.onSurface }]}>
+          {percent}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const SummaryFigure = ({
+  value,
+  label,
+  loading,
+  colors,
+}: {
+  value: string;
+  label: string;
+  loading: boolean;
+  colors: TrophiesScreenColors;
+}) =>
+  loading ? (
+    <View style={[styles.figure, styles.figureBone]}>
+      <SkeletonBone
+        width={FIGURE_BONE_NUMBER.width}
+        height={FIGURE_BONE_NUMBER.height}
+      />
+      <SkeletonBone width={FIGURE_BONE_LABEL} height={12} />
+    </View>
+  ) : (
+    <View style={styles.figure}>
+      <Text style={[styles.figureValue, { color: colors.onSurface }]}>
+        {value}
+      </Text>
+      <Text style={[styles.figureLabel, { color: colors.onSurfaceMuted }]}>
+        {label}
+      </Text>
+    </View>
+  );
+
 const TrophyRow = ({
   trophy,
   index,
@@ -94,6 +204,7 @@ const TrophyRow = ({
   colors,
   strings,
   formatDate,
+  loading,
   onPress,
 }: {
   trophy: ResolvedTrophy;
@@ -102,6 +213,7 @@ const TrophyRow = ({
   colors: TrophiesScreenColors;
   strings: TrophiesScreenStrings;
   formatDate: (achievedAt: number) => string;
+  loading: boolean;
   onPress?: () => void;
 }) => {
   const tierName = strings.tierNames[trophy.tier];
@@ -119,6 +231,11 @@ const TrophyRow = ({
   const iconColor = trophy.unlocked
     ? tierColor(trophy.tier)
     : colors.onSurfaceMuted;
+
+  // The title bar is sized from the title it stands for — the row already HAS
+  // the string (config and copy, not the network), so the bones vary down the
+  // card the way the real names do. The iOS twin's own trick.
+  const titleBoneWidth = Math.min(140, Math.max(56, trophy.title.length * 9));
 
   // The rounded, clipping background is an OUTER View; the Pressable lives
   // inside it. The press ripple can't clip itself to the group's asymmetric
@@ -143,19 +260,56 @@ const TrophyRow = ({
         style={styles.row}
       >
         <View style={styles.iconSlot}>
-          <TrophyIcon color={iconColor} size={26} locked={!trophy.unlocked} />
+          {loading ? (
+            <SkeletonBone
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+              radius={ICON_SIZE / 2}
+            />
+          ) : (
+            <TrophyIcon
+              color={iconColor}
+              size={ICON_SIZE}
+              locked={!trophy.unlocked}
+            />
+          )}
         </View>
         <View style={styles.text}>
-          <Text numberOfLines={1} style={[styles.title, { color: textColor }]}>
-            {trophy.title}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={[styles.supporting, { color: colors.onSurfaceMuted }]}
-          >
-            {supporting}
-          </Text>
+          {loading ? (
+            // Ghost-measured bones — the box is whatever the platform draws
+            // for the row's own variants, never a lineHeight constant.
+            <>
+              <SkeletonTextLine
+                variant="titleMedium"
+                barWidth={titleBoneWidth}
+              />
+              <SkeletonTextLine
+                variant="bodySmall"
+                barWidth={SUPPORTING_BONE_WIDTH}
+              />
+            </>
+          ) : (
+            <>
+              <Text
+                numberOfLines={1}
+                style={[styles.title, { color: textColor }]}
+              >
+                {trophy.title}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.supporting, { color: colors.onSurfaceMuted }]}
+              >
+                {supporting}
+              </Text>
+            </>
+          )}
         </View>
+        {/* The disclosure chevron every pushed row in this family carries —
+            the shared SVG definition, so it cannot drift from the account
+            screen's rows. It stays through the wait: the row still goes
+            somewhere. */}
+        <DisclosureChevron color={colors.onSurfaceMuted} />
       </Pressable>
     </View>
   );
@@ -163,12 +317,13 @@ const TrophyRow = ({
 
 /**
  * The trophies screen, built in the app's own Material 3 grouped-list idiom (the
- * Settings pattern): a summary line + progress on top, then every trophy as a
- * tappable row in one rounded card. Restrained — earned rows wear their tier
- * color with the achieved date, locked rows recede to a dim silhouette + hint,
- * the secret one stays masked. Tapping a row opens its detail (host-owned via
- * `onTrophyPress`). Fully prop-driven (colors, strings, date formatter injected)
- * so the package stays app-agnostic and localizable.
+ * Settings pattern): the iOS summary block — earned figure, progress ring with
+ * the percent inside, available figure — then every trophy as a tappable row in
+ * one rounded card. Restrained — earned rows wear their tier color with the
+ * achieved date, locked rows recede to a dim silhouette + hint, the secret one
+ * stays masked. Tapping a row opens its detail (host-owned via `onTrophyPress`).
+ * Fully prop-driven (colors, strings, date formatter injected) so the package
+ * stays app-agnostic and localizable.
  */
 export const TrophiesScreen = ({
   trophies,
@@ -179,6 +334,7 @@ export const TrophiesScreen = ({
   formatDate,
   onTrophyPress,
   scrollProps,
+  loading = false,
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
 
@@ -189,26 +345,35 @@ export const TrophiesScreen = ({
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
-        <View style={styles.summaryRow}>
-          <Text
-            numberOfLines={1}
-            style={[styles.progress, { color: colors.onSurface }]}
-          >
-            {strings.progress}
-          </Text>
-          {/* The completion %, tinted to match the progress bar it sits above. */}
-          <Text style={[styles.percent, { color: colors.primary }]}>
-            {strings.percent}
-          </Text>
-        </View>
-        <View style={[styles.track, { backgroundColor: colors.track }]}>
-          <View
-            style={[
-              styles.fill,
-              { backgroundColor: colors.primary, width: `${fraction * 100}%` },
-            ]}
+        <SummaryFigure
+          value={String(earned)}
+          label={strings.earnedLabel}
+          loading={loading}
+          colors={colors}
+        />
+        {loading ? (
+          // The ring is boned too, not drawn empty: an empty track is a real
+          // gauge reading zero — a state, not a placeholder (the iOS rule).
+          <View style={styles.ring}>
+            <SkeletonBone
+              width={RING_SIZE}
+              height={RING_SIZE}
+              radius={RING_SIZE / 2}
+            />
+          </View>
+        ) : (
+          <SummaryRing
+            fraction={fraction}
+            percent={strings.percent}
+            colors={colors}
           />
-        </View>
+        )}
+        <SummaryFigure
+          value={String(total)}
+          label={strings.availableLabel}
+          loading={loading}
+          colors={colors}
+        />
       </View>
 
       <View>
@@ -221,6 +386,7 @@ export const TrophiesScreen = ({
             colors={colors}
             strings={strings}
             formatDate={formatDate}
+            loading={loading}
             onPress={onTrophyPress ? () => onTrophyPress(trophy.id) : undefined}
           />
         ))}
@@ -231,19 +397,39 @@ export const TrophiesScreen = ({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
-  // Roomier gap below the summary before the trophy card starts.
-  header: { gap: 12, paddingBottom: 28, paddingHorizontal: 4, paddingTop: 12 },
-  // Count on the left, completion % on the right, sharing the line above the bar.
-  summaryRow: {
+  // The centred summary block: figure | ring | figure, with air below before
+  // the card starts.
+  header: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
+    gap: SUMMARY_COLUMN_GAP,
+    justifyContent: 'center',
+    paddingBottom: 28,
+    paddingTop: 12,
   },
-  progress: { flexShrink: 1, fontSize: 22, fontWeight: '600', lineHeight: 28 },
-  percent: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
-  track: { borderRadius: 999, height: 4, overflow: 'hidden', width: '100%' },
-  fill: { borderRadius: 999, height: '100%' },
+  // Both columns take the SAME width so the block is symmetric and the ring
+  // lands on the screen's centre (the iOS block's own rule — left to hug
+  // their labels, "Available" pulls the group off-centre).
+  figure: { alignItems: 'center', gap: 2, width: FIGURE_WIDTH },
+  figureBone: { gap: 6, justifyContent: 'center', minHeight: 46 },
+  figureValue: { ...TEXT_VARIANTS.titleLarge, fontWeight: '600' },
+  figureLabel: TEXT_VARIANTS.bodySmall,
+  ring: {
+    alignItems: 'center',
+    height: RING_SIZE,
+    justifyContent: 'center',
+    width: RING_SIZE,
+  },
+  ringLabel: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  percent: { ...TEXT_VARIANTS.titleLarge, fontWeight: '600' },
   // Outer wrapper owns the rounded corners + clip so the Pressable's ripple
   // stays inside them; the Pressable owns the row layout.
   rowClip: { overflow: 'hidden' },
@@ -261,6 +447,8 @@ const styles = StyleSheet.create({
     width: ICON_SLOT,
   },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 16, fontWeight: '500', lineHeight: 22 },
-  supporting: { fontSize: 12, lineHeight: 16 },
+  // `titleMedium` / `bodySmall` — the ladder's own rungs for a row title and
+  // its supporting line, and what lets the bones ghost-measure the same box.
+  title: TEXT_VARIANTS.titleMedium,
+  supporting: TEXT_VARIANTS.bodySmall,
 });
