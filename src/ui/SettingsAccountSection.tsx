@@ -3,15 +3,12 @@ import { memo, useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import {
-  BasicAlertDialog,
   Box,
   Column,
   Icon,
   ListItem,
   OutlinedTextField,
   RNHostView,
-  Row,
-  Surface,
   Text,
   TextButton,
   useNativeState,
@@ -24,14 +21,13 @@ import {
   padding,
   Shapes,
   size,
-  width,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { Image } from 'expo-image';
 
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { iconSource, type IconName } from './icons';
+import { SettingsDialog } from './SettingsDialog';
 import {
-  dialogContainer,
   GROUP_HEADERLESS_TOP_GAP,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
@@ -284,12 +280,10 @@ const ProfileRow = memo(
 
 ProfileRow.displayName = 'ProfileRow';
 
-const USERNAME_DIALOG_WIDTH = 312;
-
 /**
- * Text-input dialog in the Material settings idiom (Surface clipped to 28,
- * width 312, trailing text buttons). Mounted only while visible so the field
- * state resets — and pre-fills — on every open.
+ * Text-input dialog in the Material settings idiom — the shared
+ * `SettingsDialog` shell around an `OutlinedTextField`. Mounted only while
+ * visible so the field state resets — and pre-fills — on every open.
  */
 export const UsernameDialog = ({
   editor,
@@ -338,78 +332,62 @@ export const UsernameDialog = ({
   };
 
   return (
-    <BasicAlertDialog
+    <SettingsDialog
+      title={editor.dialog.title}
+      colors={colors}
       onDismissRequest={() => {
         if (dismissable && !isSubmitting) onDismiss();
       }}
-    >
-      <Surface
-        color={dialogContainer(colors)}
-        modifiers={[
-          width(USERNAME_DIALOG_WIDTH),
-          clip(Shapes.RoundedCorner(28)),
-        ]}
-      >
-        <Column modifiers={[fillMaxWidth()]}>
-          <Text
-            color={colors.onSurface}
-            style={{ typography: 'headlineSmall' }}
-            modifiers={[padding(24, 24, 24, 16)]}
-          >
-            {editor.dialog.title}
-          </Text>
-          <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}>
-            <OutlinedTextField
-              value={valueState}
-              onValueChange={onChange}
-              singleLine
-              isError={!!error}
-              // Same reason as the buttons: the focused ring, the label and the
-              // caret are accent-drawn, and the native scheme's accent is the
-              // one the app repairs.
-              colors={{
-                focusedIndicatorColor: colors.primary,
-                focusedLabelColor: colors.primary,
-                cursorColor: colors.primary,
-              }}
-              modifiers={[fillMaxWidth()]}
-            >
-              <OutlinedTextField.Label>
-                <Text>{editor.dialog.fieldLabel}</Text>
-              </OutlinedTextField.Label>
-              {error ? (
-                <OutlinedTextField.SupportingText>
-                  <Text>{error}</Text>
-                </OutlinedTextField.SupportingText>
-              ) : null}
-            </OutlinedTextField>
-          </Column>
-          <Row
-            horizontalArrangement="end"
-            modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
-          >
-            {/* Content colour stated, not inherited — see the note on the radio
-                dialog's Cancel in `SettingsScreen`. */}
-            {dismissable ? (
-              <TextButton
-                colors={{ contentColor: colors.primary }}
-                enabled={!isSubmitting}
-                onClick={onDismiss}
-              >
-                <Text>{editor.dialog.cancel}</Text>
-              </TextButton>
-            ) : null}
+      actions={
+        /* Content colour stated, not inherited — see the note on the radio
+           dialog's Cancel in `SettingsScreen`. */
+        <>
+          {dismissable ? (
             <TextButton
               colors={{ contentColor: colors.primary }}
               enabled={!isSubmitting}
-              onClick={submit}
+              onClick={onDismiss}
             >
-              <Text>{editor.dialog.confirm}</Text>
+              <Text>{editor.dialog.cancel}</Text>
             </TextButton>
-          </Row>
-        </Column>
-      </Surface>
-    </BasicAlertDialog>
+          ) : null}
+          <TextButton
+            colors={{ contentColor: colors.primary }}
+            enabled={!isSubmitting}
+            onClick={submit}
+          >
+            <Text>{editor.dialog.confirm}</Text>
+          </TextButton>
+        </>
+      }
+    >
+      <Column modifiers={[fillMaxWidth(), padding(24, 0, 24, 0)]}>
+        <OutlinedTextField
+          value={valueState}
+          onValueChange={onChange}
+          singleLine
+          isError={!!error}
+          // Same reason as the buttons: the focused ring, the label and the
+          // caret are accent-drawn, and the native scheme's accent is the
+          // one the app repairs.
+          colors={{
+            focusedIndicatorColor: colors.primary,
+            focusedLabelColor: colors.primary,
+            cursorColor: colors.primary,
+          }}
+          modifiers={[fillMaxWidth()]}
+        >
+          <OutlinedTextField.Label>
+            <Text>{editor.dialog.fieldLabel}</Text>
+          </OutlinedTextField.Label>
+          {error ? (
+            <OutlinedTextField.SupportingText>
+              <Text>{error}</Text>
+            </OutlinedTextField.SupportingText>
+          ) : null}
+        </OutlinedTextField>
+      </Column>
+    </SettingsDialog>
   );
 };
 
