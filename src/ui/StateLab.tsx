@@ -8,7 +8,7 @@ import {
   SingleChoiceSegmentedButtonRow,
   Text as ComposeText,
 } from '@expo/ui/jetpack-compose';
-import { weight } from '@expo/ui/jetpack-compose/modifiers';
+import { height, weight } from '@expo/ui/jetpack-compose/modifiers';
 import { useAppTheme } from '@portfolio/core';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -99,6 +99,9 @@ type StateLabColors = {
  * the group chips 40.
  */
 const STEP_SIZE = 52;
+/** The group switcher's height — deliberately under M3's 40dp default so it
+ *  reads as secondary beside the stepper it drives. */
+const GROUPS_HEIGHT = 32;
 /**
  * The note ALWAYS reserves two lines, exactly like the iOS twin's
  * `lineLimit(2, { reservesSpace: true })`: notes are one line for some states
@@ -200,7 +203,12 @@ export function StateLab({
             matchContents={{ vertical: true }}
             style={styles.groupsHost}
           >
-            <SingleChoiceSegmentedButtonRow>
+            {/* SECONDARY-SIZED: the switcher picks which group the stepper
+                drives, so it must not outweigh the stepper row it serves.
+                At M3's default 40dp it read as the bar's primary control
+                (Juan, 2026-09-04); 32 with a labelMedium label keeps a real
+                target while stepping it back. */}
+            <SingleChoiceSegmentedButtonRow modifiers={[height(GROUPS_HEIGHT)]}>
               {groups.map(option => (
                 <SegmentedButton
                   key={option.key}
@@ -209,7 +217,12 @@ export function StateLab({
                   modifiers={[weight(1)]}
                 >
                   <SegmentedButton.Label>
-                    <ComposeText maxLines={1}>{option.label}</ComposeText>
+                    <ComposeText
+                      maxLines={1}
+                      style={{ typography: 'labelMedium' }}
+                    >
+                      {option.label}
+                    </ComposeText>
                   </SegmentedButton.Label>
                 </SegmentedButton>
               ))}
