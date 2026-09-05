@@ -237,7 +237,6 @@ export const translations = {
         name: 'Name',
         email: 'Email',
         memberSince: 'Member Since',
-        dangerTitle: 'Delete Account',
         deleteAccount: 'Delete Account',
         deleteAccountHint: 'Your sounds and clips are deleted permanently.',
         deleteDialog: {
@@ -510,7 +509,6 @@ export const translations = {
         name: 'Nombre',
         email: 'Correo electrónico',
         memberSince: 'Miembro desde',
-        dangerTitle: 'Eliminar cuenta',
         deleteAccount: 'Eliminar cuenta',
         deleteAccountHint: 'Tus sonidos y clips se eliminan permanentemente.',
         deleteDialog: {
@@ -783,7 +781,6 @@ export const translations = {
         name: '姓名',
         email: '电子邮件',
         memberSince: '注册时间',
-        dangerTitle: '删除账户',
         deleteAccount: '删除账户',
         deleteAccountHint: '你的音频和片段将被永久删除。',
         deleteDialog: {

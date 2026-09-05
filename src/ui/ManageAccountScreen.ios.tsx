@@ -135,17 +135,16 @@ export const ManageAccountScreen = ({
 
         {danger ? (
           /**
-           * NO HEADER, A FOOTER — Apple's shape for a destructive group, and
-           * the reason `danger.title` goes unread on this platform.
+           * NO HEADER, A FOOTER — Apple's shape for a destructive group.
            *
            * The header was rendering the SAME WORDS as the only row beneath it
            * ("Delete Account" over Delete Account), which is a category label
            * naming a single item. iOS reserves the space under an irreversible
            * row for what it will DO instead — Settings' own Erase All Content
-           * and Reset sections both read that way — so the supporting line the
-           * Android row carries inline moves here, where it explains the row
-           * rather than repeating it. `title` stays on the shared prop because
-           * Android still draws it as a header.
+           * and Reset sections both read that way — so the description
+           * explains the row rather than repeating it. Android draws the same
+           * shape now (headerless card, legend outside the row), which is why
+           * the shared prop no longer carries a `title` at all.
            */
           <Section
             footer={
