@@ -335,26 +335,36 @@ export const ManageAccountScreen = ({
                             modifiers={[fillMaxWidth()]}
                           >
                             <Text color={colors.onSurface}>{row.label}</Text>
-                            <Text
-                              color={colors.onSurfaceMuted}
-                              style={{ textAlign: 'end' }}
-                              maxLines={1}
-                              overflow="ellipsis"
+                            {/* The chevron sits INSIDE this Row at spacedBy 0,
+                              not in the ListItem's trailing slot: the slot
+                              adds M3's 16dp on top of the 24-box glyph's own
+                              ~8dp left bearing, which put the chevron a
+                              visual ~23dp off the value where the iOS row's
+                              HStack spacing is 8. At 0 the glyph's bearing
+                              IS the gap — ~8dp, the iOS number. */}
+                            <Row
+                              verticalAlignment="center"
                               modifiers={[weight(1)]}
                             >
-                              {row.value}
-                            </Text>
+                              <Text
+                                color={colors.onSurfaceMuted}
+                                style={{ textAlign: 'end' }}
+                                maxLines={1}
+                                overflow="ellipsis"
+                                modifiers={[weight(1)]}
+                              >
+                                {row.value}
+                              </Text>
+                              {row.editor ? (
+                                <Icon
+                                  source={iconSource('chevron')}
+                                  size={24}
+                                  tint={colors.onSurfaceMuted}
+                                />
+                              ) : null}
+                            </Row>
                           </Row>
                         </ListItem.HeadlineContent>
-                        {row.editor ? (
-                          <ListItem.TrailingContent>
-                            <Icon
-                              source={iconSource('chevron')}
-                              size={24}
-                              tint={colors.onSurfaceMuted}
-                            />
-                          </ListItem.TrailingContent>
-                        ) : null}
                       </ListItem>
                     ))}
                   </Column>
