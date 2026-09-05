@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { StyleSheet } from 'react-native';
 
@@ -13,19 +13,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
-import { type SettingsUsernameEditor } from './SettingsAccountSection';
 import {
+  UsernameDialog,
+  type SettingsUsernameEditor,
+} from './SettingsAccountSection';
+import {
+  GROUP_HEADERLESS_TOP_GAP,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,
 } from './settingsGroup';
 
-/** App-resolved colors the manage-account screen paints with. */
+/**
+ * App-resolved colors the manage-account screen paints with.
+ * `surfaceVariant` / `surfaceDialog` exist for the username dialog (the same
+ * `UsernameDialog` the Settings profile row used to open); every app already
+ * passes its full palette, so widening the type costs no caller anything.
+ */
 export type ManageAccountColors = {
   primary: string;
   onSurface: string;
   onSurfaceMuted: string;
   surfaceContainer: string;
+  surfaceVariant: string;
+  surfaceDialog: string;
   danger: string;
   background: string;
 };
@@ -35,14 +46,15 @@ export type ManageAccountInfoRow = {
   label: string;
   value: string;
   /**
-   * iOS only. Makes this read-only fact EDITABLE: tapping the row opens the
-   * native username alert (`UsernameEditRowIos`).
+   * Makes this read-only fact EDITABLE. On iOS tapping the row opens the
+   * native username alert (`UsernameEditRowIos`); on Android it opens the
+   * Material text dialog (`UsernameDialog` — the same one the Settings profile
+   * row used to open, before the account entry moved here).
    *
-   * Topper's Username row uses it. Apple does the same — Settings → Apple
-   * Account keeps Name / Phone / Email editable one level down rather than on
-   * the identity row itself, which is why dropping the editor from the Settings
-   * row did not mean dropping it altogether. Android edits the handle from its
-   * own profile header and passes nothing here.
+   * Topper's Username row uses it on both platforms. Apple does the same —
+   * Settings → Apple Account keeps Name / Phone / Email editable one level
+   * down rather than on the identity row itself, which is why dropping the
+   * editor from the Settings row did not mean dropping it altogether.
    */
   editor?: SettingsUsernameEditor;
 };
@@ -58,13 +70,19 @@ export type ManageAccountNavRow = {
 export type ManageAccountScreenProps = {
   colors: ManageAccountColors;
   /**
-   * iOS only — the app's RESOLVED appearance, forwarded to the `Host` so the
-   * native `Form` follows an explicit Light/Dark choice instead of the device
-   * trait. `SettingsScreen` has always passed this; this screen did not, so
-   * setting Appearance against the system rendered the account sheet in the
-   * system's scheme while every RN surface around it obeyed the app's.
+   * The app's RESOLVED appearance, forwarded to the `Host`s so the native
+   * surfaces follow an explicit Light/Dark choice instead of the device trait.
+   * `SettingsScreen` has always passed this; this screen did not, so setting
+   * Appearance against the system rendered the account sheet in the system's
+   * scheme while every RN surface around it obeyed the app's.
    */
   colorScheme?: 'light' | 'dark';
+  /**
+   * App brand seed forwarded to the Compose `Host`s so the native components
+   * (the username dialog's field and buttons) theme from the same palette
+   * `SettingsScreen` uses. Android-only, exactly as there.
+   */
+  seedColor?: string;
   /**
    * The read-only facts block. Optional: an app with no real session (the
    * starter) has no facts to state and shows only the actions below.
@@ -91,13 +109,13 @@ export type ManageAccountScreenProps = {
   /**
    * Optional destination sections between `info` and `privacy`. Untitled ones
    * render as a bare card, which is what Apple does for a group whose rows say
-   * what they are.
+   * what they are (on Android the bare card asks for the headerless top gap,
+   * the same term the trailing sign-out card takes).
    *
-   * Topper's Trophies and Trash live here on iOS: the Settings sheet's identity
-   * row is a single destination (Apple's Apple Account pattern), so everything
-   * account-shaped sits behind it rather than as loose rows in Settings.
-   * Android keeps them in Settings — Material's own grouping — and passes
-   * nothing here.
+   * Topper's Trophies and Trash live here on BOTH platforms now: Settings is
+   * app configuration only, and everything account-shaped sits behind the
+   * account entry. Android kept them in Settings for as long as it was frozen;
+   * that was the schedule wearing a Material argument's clothes.
    */
   sections?: Array<{ title?: string; rows: ManageAccountNavRow[] }>;
   /**
@@ -148,20 +166,35 @@ export type ManageAccountScreenProps = {
  */
 export const ManageAccountScreen = ({
   colors,
+  colorScheme,
+  seedColor,
   info,
+  sections,
   privacy,
   danger,
   children,
 }: ManageAccountScreenProps) => {
+  const [usernameDialogVisible, setUsernameDialogVisible] = useState(false);
+
+  // At most one row is editable (the username), so the dialog binds to the
+  // first editor it finds rather than tracking which row was tapped.
+  const editor = info?.rows.find(row => row.editor)?.editor;
+
   const rowColors = {
     containerColor: colors.surfaceContainer,
     contentColor: colors.onSurface,
     supportingContentColor: colors.onSurfaceMuted,
   };
 
+  // Ink, not the accent — a group header is a label. These were
+  // `colors.primary` for as long as this screen was frozen; the monochrome
+  // rule crossed to Android on 2026-08-29 and its first bucket is exactly a
+  // header tinted because the framework's own apps tint theirs. The full
+  // argument is on `sectionsTitle` in `SettingsScreen`, whose headers made
+  // the same move.
   const sectionHeader = (title: string, first = false) => (
     <Text
-      color={colors.primary}
+      color={colors.onSurfaceMuted}
       style={{ typography: 'labelLarge' }}
       modifiers={[padding(16, first ? 0 : 16, 16, 8)]}
     >
@@ -169,18 +202,74 @@ export const ManageAccountScreen = ({
     </Text>
   );
 
+  /**
+   * One grouped card of push rows — the destination `sections` and `privacy`
+   * are the same object, so they render through the same term. A HEADERLESS
+   * card asks for the headerless top gap, exactly as the trailing sign-out
+   * card does on the Settings screen: without it the bare card lands hard
+   * against the group above and reads as more rows of it.
+   */
+  const navGroup = (rows: ManageAccountNavRow[], headerless = false) => (
+    <Column
+      modifiers={[
+        fillMaxWidth(),
+        padding(
+          GROUP_SIDE_PADDING,
+          headerless ? GROUP_HEADERLESS_TOP_GAP : 0,
+          GROUP_SIDE_PADDING,
+          0,
+        ),
+      ]}
+      verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+    >
+      {rows.map((row, index) => (
+        <ListItem
+          key={row.id}
+          colors={rowColors}
+          modifiers={[
+            fillMaxWidth(),
+            clip(groupRowShape(index, rows.length)),
+            clickable(row.onPress),
+          ]}
+        >
+          <ListItem.LeadingContent>
+            <Icon
+              source={iconSource(row.icon)}
+              size={24}
+              tint={colors.onSurface}
+            />
+          </ListItem.LeadingContent>
+          <ListItem.HeadlineContent>
+            <Text color={colors.onSurface}>{row.label}</Text>
+          </ListItem.HeadlineContent>
+          <ListItem.TrailingContent>
+            <Icon
+              source={iconSource('chevron')}
+              size={24}
+              tint={colors.onSurfaceMuted}
+            />
+          </ListItem.TrailingContent>
+        </ListItem>
+      ))}
+    </Column>
+  );
+
   return (
     <Screen backgroundColor={colors.background} edges={['left', 'right']}>
       <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-        <Host matchContents={{ vertical: true }} style={styles.host}>
+        <Host
+          matchContents={{ vertical: true }}
+          colorScheme={colorScheme}
+          seedColor={seedColor}
+          style={styles.host}
+        >
           <Column
             modifiers={[fillMaxWidth(), padding(0, 16, 0, 0)]}
             verticalArrangement={{ spacedBy: 8 }}
           >
             {/* `info` / `danger` are optional on the shared type only so the
                 iOS Account sheet can omit them in a session-less app. Every
-                ANDROID caller passes both, so these guards never change what
-                this frozen screen renders. */}
+                ANDROID caller passes both. */}
             {info ? (
               <>
                 {sectionHeader(info.title, true)}
@@ -198,6 +287,14 @@ export const ManageAccountScreen = ({
                       modifiers={[
                         fillMaxWidth(),
                         clip(groupRowShape(index, info.rows.length)),
+                        // The editable fact (the username) opens its dialog
+                        // from the row itself, the same tap the Settings
+                        // profile row used to carry. No trailing affordance:
+                        // this screen signals tappability by the tap, like
+                        // its Settings sibling.
+                        ...(row.editor
+                          ? [clickable(() => setUsernameDialogVisible(true))]
+                          : []),
                       ]}
                     >
                       <ListItem.HeadlineContent>
@@ -212,46 +309,17 @@ export const ManageAccountScreen = ({
               </>
             ) : null}
 
+            {sections?.map((section, index) => (
+              <React.Fragment key={section.title ?? index}>
+                {section.title ? sectionHeader(section.title) : null}
+                {navGroup(section.rows, !section.title)}
+              </React.Fragment>
+            ))}
+
             {privacy ? (
               <>
                 {sectionHeader(privacy.title)}
-                <Column
-                  modifiers={[
-                    fillMaxWidth(),
-                    padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                  ]}
-                  verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                >
-                  {privacy.rows.map((row, index) => (
-                    <ListItem
-                      key={row.id}
-                      colors={rowColors}
-                      modifiers={[
-                        fillMaxWidth(),
-                        clip(groupRowShape(index, privacy.rows.length)),
-                        clickable(row.onPress),
-                      ]}
-                    >
-                      <ListItem.LeadingContent>
-                        <Icon
-                          source={iconSource(row.icon)}
-                          size={24}
-                          tint={colors.onSurface}
-                        />
-                      </ListItem.LeadingContent>
-                      <ListItem.HeadlineContent>
-                        <Text color={colors.onSurface}>{row.label}</Text>
-                      </ListItem.HeadlineContent>
-                      <ListItem.TrailingContent>
-                        <Icon
-                          source={iconSource('chevron')}
-                          size={24}
-                          tint={colors.onSurfaceMuted}
-                        />
-                      </ListItem.TrailingContent>
-                    </ListItem>
-                  ))}
-                </Column>
+                {navGroup(privacy.rows)}
               </>
             ) : null}
 
@@ -296,6 +364,18 @@ export const ManageAccountScreen = ({
           </Column>
         </Host>
       </SafeAreaView>
+
+      {/* Own Host — a dialog mounted inside the rows' Host corrupts their
+          clip shapes on unmount (the same rule SettingsScreen documents). */}
+      {usernameDialogVisible && editor ? (
+        <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+          <UsernameDialog
+            editor={editor}
+            colors={colors}
+            onDismiss={() => setUsernameDialogVisible(false)}
+          />
+        </Host>
+      ) : null}
 
       {children}
     </Screen>
