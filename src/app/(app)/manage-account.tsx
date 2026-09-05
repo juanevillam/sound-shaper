@@ -85,7 +85,6 @@ export default function ManageAccount() {
         title: t('settings.manageAccount.dangerTitle'),
         rowLabel: t('settings.manageAccount.deleteAccount'),
         rowDescription: t('settings.manageAccount.deleteAccountHint'),
-        icon: 'delete-forever',
         onPress: () => setDeleteVisible(true),
         disabled: deleting,
       }}
