@@ -3,14 +3,12 @@ import React, { memo, useCallback, useState } from 'react';
 import { Linking, ScrollView, StyleSheet } from 'react-native';
 
 import {
-  BasicAlertDialog,
   Column,
   Host,
   Icon,
   ListItem,
   RadioButton,
   Row,
-  Surface,
   Switch,
   Text,
   TextButton,
@@ -23,8 +21,6 @@ import {
   padding,
   selectable,
   selectableGroup,
-  Shapes,
-  width,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,8 +34,8 @@ import {
   type SettingsAccountColors,
   type SettingsAccountSectionProps,
 } from './SettingsAccountSection';
+import { SettingsDialog } from './SettingsDialog';
 import {
-  dialogContainer,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,
@@ -168,8 +164,6 @@ export type SettingsScreenProps = {
    */
   scrollProps?: object;
 };
-
-const DIALOG_WIDTH = 312;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -400,7 +394,8 @@ const DevTogglesGroup = ({
 );
 
 /**
- * The single-choice radio dialog a preference row opens. Hosted by the screen
+ * The single-choice radio dialog a preference row opens — the shared
+ * `SettingsDialog` shell around a selectable radio list. Hosted by the screen
  * in its own `<Host>` — mounting it next to the rows corrupts their modifiers
  * (clip shapes mis-assign on unmount) and flickers sibling icons.
  */
@@ -421,70 +416,52 @@ const RadioOptionsDialog = ({
   };
 
   return (
-    <BasicAlertDialog onDismissRequest={onDismiss}>
-      <Surface
-        color={dialogContainer(colors)}
-        modifiers={[width(DIALOG_WIDTH), clip(Shapes.RoundedCorner(28))]}
-      >
-        <Column modifiers={[fillMaxWidth()]}>
-          <Text
-            color={colors.onSurface}
-            style={{
-              typography: 'headlineSmall',
-            }}
-            modifiers={[padding(24, 24, 24, 16)]}
-          >
-            {section.title}
-          </Text>
-          <Column modifiers={[fillMaxWidth(), selectableGroup()]}>
-            {section.options.map(option => {
-              const isSelected = option.value === section.selected;
+    <SettingsDialog
+      title={section.title}
+      colors={colors}
+      onDismissRequest={onDismiss}
+      actions={
+        /* A Compose control themes itself from the NATIVE scheme, which on
+           a One UI palette is the untuned accent `schemePrimary` exists to
+           repair — so every text button in a dialog states its content
+           colour rather than inheriting one the rest of the app no longer
+           uses. Measured: inherited #4979F6 against the app's #B1C5FF. */
+        <TextButton
+          colors={{ contentColor: colors.primary }}
+          onClick={onDismiss}
+        >
+          <Text>{cancelLabel}</Text>
+        </TextButton>
+      }
+    >
+      <Column modifiers={[fillMaxWidth(), selectableGroup()]}>
+        {section.options.map(option => {
+          const isSelected = option.value === section.selected;
 
-              return (
-                <Row
-                  key={option.value}
-                  verticalAlignment="center"
-                  modifiers={[
-                    fillMaxWidth(),
-                    height(48),
-                    selectable(
-                      isSelected,
-                      () => handleSelect(option.value),
-                      'radioButton',
-                    ),
-                    padding(24, 0, 24, 0),
-                  ]}
-                >
-                  <RadioButton selected={isSelected} />
-                  <Text
-                    color={colors.onSurface}
-                    modifiers={[padding(16, 0, 0, 0)]}
-                  >
-                    {option.label}
-                  </Text>
-                </Row>
-              );
-            })}
-          </Column>
-          <Row
-            horizontalArrangement="end"
-            modifiers={[fillMaxWidth(), padding(24, 8, 16, 12)]}
-          >
-            {/* A Compose control themes itself from the NATIVE scheme, which on
-                a One UI palette is the untuned accent `schemePrimary` exists to
-                repair — so every text button in a dialog states its content
-                colour rather than inheriting one the rest of the app no longer
-                uses. Measured: inherited #4979F6 against the app's #B1C5FF. */}
-            <TextButton
-              colors={{ contentColor: colors.primary }}
-              onClick={onDismiss}
+          return (
+            <Row
+              key={option.value}
+              verticalAlignment="center"
+              modifiers={[
+                fillMaxWidth(),
+                height(48),
+                selectable(
+                  isSelected,
+                  () => handleSelect(option.value),
+                  'radioButton',
+                ),
+                padding(24, 0, 24, 0),
+              ]}
             >
-              <Text>{cancelLabel}</Text>
-            </TextButton>
-          </Row>
-        </Column>
-      </Surface>
-    </BasicAlertDialog>
+              <RadioButton selected={isSelected} />
+              <Text color={colors.onSurface} modifiers={[padding(16, 0, 0, 0)]}>
+                {option.label}
+              </Text>
+            </Row>
+          );
+        })}
+      </Column>
+    </SettingsDialog>
   );
 };
 
