@@ -231,7 +231,6 @@ export default function ManageAccount() {
               {
                 id: 'trophies',
                 label: t('trophies.title'),
-                icon: 'trophy',
                 onPress: () => router.push('/trophies'),
               },
             ],
@@ -244,7 +243,6 @@ export default function ManageAccount() {
           // line) — Apple explains a destructive group beneath it rather than
           // heading it with the row's own words. See `ManageAccountScreen.ios`.
           rowDescription: t('settings.manageAccount.deleteAccountHint'),
-          icon: 'delete-forever',
           onPress: confirmDelete,
           disabled: showDeleting,
         }}

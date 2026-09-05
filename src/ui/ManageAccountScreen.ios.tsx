@@ -21,9 +21,10 @@ import { UsernameEditRowIos } from './UsernameEditRow';
  * views and a hardcoded corner radius, which is what one app had drifted into
  * and it read as an imitation of the real thing.
  *
- * `danger.rowDescription` and the row icons are Android-only: an Apple
- * destructive row is a bare red label, and Settings rows either carry colored
- * tile icons or none at all.
+ * `danger.rowDescription` is Android-only inline (here it becomes the danger
+ * section's footer): an Apple destructive row is a bare red label. The rows
+ * carry no icons on either platform — Settings rows either carry colored tile
+ * icons or none at all, and Android followed 2026-09-04.
  *
  * THE `Screen` TAKES NO COLOUR AND NO EDGES, and both halves of that are the
  * corrections its twin already carried:

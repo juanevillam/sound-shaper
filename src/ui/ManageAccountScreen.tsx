@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { Column, Host, Icon, ListItem, Text } from '@expo/ui/jetpack-compose';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { iconSource, type IconName } from './icons';
+import { iconSource } from './icons';
 import { Screen } from './Screen';
 import {
   UsernameDialog,
@@ -59,11 +59,16 @@ export type ManageAccountInfoRow = {
   editor?: SettingsUsernameEditor;
 };
 
-/** A push row, e.g. Topper's blocked-users list. */
+/**
+ * A push row, e.g. Topper's blocked-users list. Label + trailing chevron on
+ * both platforms — no leading icon: Apple's Settings rows carry colored tile
+ * icons or none at all, and Material's own settings rows are text-first too.
+ * The rows here carried Android-only icons until 2026-09-04 (Juan's call:
+ * iOS dropped them, Android follows).
+ */
 export type ManageAccountNavRow = {
   id: string;
   label: string;
-  icon: IconName;
   onPress: () => void;
 };
 
@@ -140,7 +145,6 @@ export type ManageAccountScreenProps = {
      * why the iOS side ignores `title` — see `ManageAccountScreen.ios`).
      */
     rowDescription?: string;
-    icon: IconName;
     onPress: () => void;
     disabled?: boolean;
   };
@@ -192,11 +196,15 @@ export const ManageAccountScreen = ({
   // header tinted because the framework's own apps tint theirs. The full
   // argument is on `sectionsTitle` in `SettingsScreen`, whose headers made
   // the same move.
-  const sectionHeader = (title: string, first = false) => (
+  // The same padding for EVERY header, first included — SettingsScreen's own
+  // shape. The first header used to drop its top 16, which is what stood
+  // "Account Information" visibly higher than Settings' "General" one push
+  // away: the scroller's 16 plus the header's 16 is the shared 32.
+  const sectionHeader = (title: string) => (
     <Text
       color={colors.onSurfaceMuted}
       style={{ typography: 'labelLarge' }}
-      modifiers={[padding(16, first ? 0 : 16, 16, 8)]}
+      modifiers={[padding(16, 16, 16, 8)]}
     >
       {title}
     </Text>
@@ -232,13 +240,6 @@ export const ManageAccountScreen = ({
             clickable(row.onPress),
           ]}
         >
-          <ListItem.LeadingContent>
-            <Icon
-              source={iconSource(row.icon)}
-              size={24}
-              tint={colors.onSurface}
-            />
-          </ListItem.LeadingContent>
           <ListItem.HeadlineContent>
             <Text color={colors.onSurface}>{row.label}</Text>
           </ListItem.HeadlineContent>
@@ -257,112 +258,129 @@ export const ManageAccountScreen = ({
   return (
     <Screen backgroundColor={colors.background} edges={['left', 'right']}>
       <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-        <Host
-          matchContents={{ vertical: true }}
-          colorScheme={colorScheme}
-          seedColor={seedColor}
-          style={styles.host}
-        >
-          <Column
-            modifiers={[fillMaxWidth(), padding(0, 16, 0, 0)]}
-            verticalArrangement={{ spacedBy: 8 }}
+        {/* The SCROLLER IS SettingsScreen's, verbatim — an RN ScrollView over a
+            vertically-matched Host, with the same paddingVertical 16. It was
+            missing entirely: the Host stood unscrollable, the content taller
+            than the screen was simply clipped, and the Delete Account card
+            ended under the OS navigation bar with no way to bring it up. The
+            bottom 16 is also what stands the last card off the gesture strip,
+            exactly as Settings' Sign Out card is. */}
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <Host
+            matchContents={{ vertical: true }}
+            colorScheme={colorScheme}
+            seedColor={seedColor}
+            style={styles.host}
           >
-            {/* `info` / `danger` are optional on the shared type only so the
-                iOS Account sheet can omit them in a session-less app. Every
-                ANDROID caller passes both. */}
-            {info ? (
-              <>
-                {sectionHeader(info.title, true)}
-                <Column
-                  modifiers={[
-                    fillMaxWidth(),
-                    padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                  ]}
-                  verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                >
-                  {info.rows.map((row, index) => (
-                    <ListItem
-                      key={row.label}
-                      colors={rowColors}
-                      modifiers={[
-                        fillMaxWidth(),
-                        clip(groupRowShape(index, info.rows.length)),
-                        // The editable fact (the username) opens its dialog
-                        // from the row itself, the same tap the Settings
-                        // profile row used to carry. No trailing affordance:
-                        // this screen signals tappability by the tap, like
-                        // its Settings sibling.
-                        ...(row.editor
-                          ? [clickable(() => setUsernameDialogVisible(true))]
-                          : []),
-                      ]}
-                    >
-                      <ListItem.HeadlineContent>
-                        <Text color={colors.onSurface}>{row.label}</Text>
-                      </ListItem.HeadlineContent>
-                      <ListItem.SupportingContent>
-                        <Text color={colors.onSurfaceMuted}>{row.value}</Text>
-                      </ListItem.SupportingContent>
-                    </ListItem>
-                  ))}
-                </Column>
-              </>
-            ) : null}
-
-            {sections?.map((section, index) => (
-              <React.Fragment key={section.title ?? index}>
-                {section.title ? sectionHeader(section.title) : null}
-                {navGroup(section.rows, !section.title)}
-              </React.Fragment>
-            ))}
-
-            {privacy ? (
-              <>
-                {sectionHeader(privacy.title)}
-                {navGroup(privacy.rows)}
-              </>
-            ) : null}
-
-            {danger ? (
-              <>
-                {sectionHeader(danger.title)}
-                <Column
-                  modifiers={[
-                    fillMaxWidth(),
-                    padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                  ]}
-                >
-                  <ListItem
-                    colors={{ ...rowColors, contentColor: colors.danger }}
+            <Column
+              modifiers={[fillMaxWidth()]}
+              verticalArrangement={{ spacedBy: 8 }}
+            >
+              {/* `info` / `danger` are optional on the shared type only so the
+                  iOS Account sheet can omit them in a session-less app. Every
+                  ANDROID caller passes both. */}
+              {info ? (
+                <>
+                  {sectionHeader(info.title)}
+                  <Column
                     modifiers={[
                       fillMaxWidth(),
-                      clip(groupRowShape(0, 1)),
-                      ...(danger.disabled ? [] : [clickable(danger.onPress)]),
+                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+                    ]}
+                    verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+                  >
+                    {info.rows.map((row, index) => (
+                      <ListItem
+                        key={row.label}
+                        colors={rowColors}
+                        modifiers={[
+                          fillMaxWidth(),
+                          clip(groupRowShape(index, info.rows.length)),
+                          // The editable fact (the username) opens its dialog
+                          // from the row itself, the same tap the Settings
+                          // profile row used to carry.
+                          ...(row.editor
+                            ? [clickable(() => setUsernameDialogVisible(true))]
+                            : []),
+                        ]}
+                      >
+                        <ListItem.HeadlineContent>
+                          <Text color={colors.onSurface}>{row.label}</Text>
+                        </ListItem.HeadlineContent>
+                        <ListItem.SupportingContent>
+                          <Text color={colors.onSurfaceMuted}>{row.value}</Text>
+                        </ListItem.SupportingContent>
+                        {/* The editable fact takes the disclosure chevron that
+                          marks it tappable — the same statement the iOS twin
+                          makes with `FormDisclosureRowIos`, and the same
+                          glyph this screen's own nav rows carry. A plain
+                          fact stays bare. */}
+                        {row.editor ? (
+                          <ListItem.TrailingContent>
+                            <Icon
+                              source={iconSource('chevron')}
+                              size={24}
+                              tint={colors.onSurfaceMuted}
+                            />
+                          </ListItem.TrailingContent>
+                        ) : null}
+                      </ListItem>
+                    ))}
+                  </Column>
+                </>
+              ) : null}
+
+              {sections?.map((section, index) => (
+                <React.Fragment key={section.title ?? index}>
+                  {section.title ? sectionHeader(section.title) : null}
+                  {navGroup(section.rows, !section.title)}
+                </React.Fragment>
+              ))}
+
+              {privacy ? (
+                <>
+                  {sectionHeader(privacy.title)}
+                  {navGroup(privacy.rows)}
+                </>
+              ) : null}
+
+              {danger ? (
+                <>
+                  {sectionHeader(danger.title)}
+                  <Column
+                    modifiers={[
+                      fillMaxWidth(),
+                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
                     ]}
                   >
-                    <ListItem.LeadingContent>
-                      <Icon
-                        source={iconSource(danger.icon)}
-                        size={24}
-                        tint={colors.danger}
-                      />
-                    </ListItem.LeadingContent>
-                    <ListItem.HeadlineContent>
-                      <Text color={colors.danger}>{danger.rowLabel}</Text>
-                    </ListItem.HeadlineContent>
-                    {danger.rowDescription ? (
-                      <ListItem.SupportingContent>
-                        <Text color={colors.onSurfaceMuted}>
-                          {danger.rowDescription}
-                        </Text>
-                      </ListItem.SupportingContent>
-                    ) : null}
-                  </ListItem>
-                </Column>
-              </>
-            ) : null}
-          </Column>
-        </Host>
+                    <ListItem
+                      colors={{ ...rowColors, contentColor: colors.danger }}
+                      modifiers={[
+                        fillMaxWidth(),
+                        clip(groupRowShape(0, 1)),
+                        ...(danger.disabled ? [] : [clickable(danger.onPress)]),
+                      ]}
+                    >
+                      {/* No leading glyph and no chevron — a destructive row is
+                        a bare red label on both platforms (Apple's own shape;
+                        Android followed 2026-09-04). */}
+                      <ListItem.HeadlineContent>
+                        <Text color={colors.danger}>{danger.rowLabel}</Text>
+                      </ListItem.HeadlineContent>
+                      {danger.rowDescription ? (
+                        <ListItem.SupportingContent>
+                          <Text color={colors.onSurfaceMuted}>
+                            {danger.rowDescription}
+                          </Text>
+                        </ListItem.SupportingContent>
+                      ) : null}
+                    </ListItem>
+                  </Column>
+                </>
+              ) : null}
+            </Column>
+          </Host>
+        </ScrollView>
       </SafeAreaView>
 
       {/* Own Host — a dialog mounted inside the rows' Host corrupts their
@@ -384,5 +402,6 @@ export const ManageAccountScreen = ({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  scroll: { paddingVertical: 16 },
   host: { width: '100%' },
 });
