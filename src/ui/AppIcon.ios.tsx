@@ -37,6 +37,7 @@ const SF_SYMBOLS = {
   'dark-mode': 'circle.lefthalf.filled',
   delete: 'trash',
   'delete-forever': 'trash.slash',
+  'delete-sweep': 'trash.slash',
   devices: 'laptopcomputer.and.iphone',
   'manage-accounts': 'person.crop.circle.badge.checkmark',
   // iOS reorder affordance is the three-line grabber, not the six-dot grid.
