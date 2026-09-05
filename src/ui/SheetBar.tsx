@@ -39,14 +39,27 @@ export function SheetBar({
       <Text style={{ typography: 'titleLarge' }} maxLines={1}>
         {title}
       </Text>
-      <Button onClick={onSave} enabled={saveEnabled && !saving}>
+      {/* MONOCHROME, the welcome-CTA mapping: a filled button's colour is
+          inherited (Material fills with the accent by default), so the commit
+          pill takes the ink — `onSurface` fill, `background` label — exactly
+          as EmptyState's action and the Follow CTA do. The disabled state is
+          Material's own (the pill dims itself), and the spinner takes the
+          label's ink so it reads as the label it replaces. */}
+      <Button
+        onClick={onSave}
+        enabled={saveEnabled && !saving}
+        colors={{
+          containerColor: colors.onSurface,
+          contentColor: colors.background,
+        }}
+      >
         {saving ? (
           <CircularWavyProgressIndicator
-            color={colors.onSurfaceMuted}
+            color={colors.background}
             modifiers={[size(20, 20)]}
           />
         ) : (
-          <Text>{saveLabel}</Text>
+          <Text color={colors.background}>{saveLabel}</Text>
         )}
       </Button>
     </Row>
