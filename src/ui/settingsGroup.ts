@@ -111,6 +111,29 @@ export const dialogContainer = (colors: { surfaceDialog: string }): string =>
   colors.surfaceDialog;
 
 /**
+ * THE CONTAINER A DROPDOWN MENU PAINTS — every `DropdownMenu` opened from an
+ * overflow or icon button, in every app.
+ *
+ * NOT `dialogContainer`, and the difference is the SCRIM: a dialog floats
+ * over a dimmed page, where One UI's ~11 L* light step reads as a layer; a
+ * menu floats over the undimmed page, where the same step reads as a grey
+ * slab (Juan, 2026-09-04 — "too much contrast, unpolished", both modes, on
+ * the M3 default it drew before this existed).
+ *
+ * So the menu takes the quietest surface that still separates in each
+ * appearance: in DARK the dialog step (`surfaceDialog`, 8.5 L* over the
+ * card — the card itself is only 5.7 off the page and a menu over a card
+ * would melt into it); in LIGHT the bright card (`card`, which the light
+ * remap already places ABOVE the page), with Compose's own menu elevation
+ * shadow carrying the edge — the white-menu-plus-shadow look every polished
+ * light menu has.
+ */
+export const menuContainer = (
+  colors: { card: string; surfaceDialog: string },
+  scheme: 'light' | 'dark' | null | undefined,
+): string => (scheme === 'dark' ? colors.surfaceDialog : colors.card);
+
+/**
  * WHERE A PUSHED SHEET-FAMILY SCREEN'S FIRST CONTENT STARTS on Android — the
  * counterpart of iOS's `SHEET_CONTENT_TOP` (84 below the sheet's own edge):
  * the first content BOX (a section header's padding box, or a card's fill)
