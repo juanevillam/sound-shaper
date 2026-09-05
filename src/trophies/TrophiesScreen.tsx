@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   DisclosureChevron,
+  SCREEN_CONTENT_TOP,
   SkeletonBone,
   SkeletonTextLine,
   TEXT_VARIANTS,
@@ -399,7 +400,13 @@ export const TrophiesScreen = ({
 };
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
+  // The family's shared top — the summary card's fill sits where Settings'
+  // first header box does (see SCREEN_CONTENT_TOP).
+  content: {
+    paddingBottom: 32,
+    paddingHorizontal: 16,
+    paddingTop: SCREEN_CONTENT_TOP,
+  },
   // The centred summary card: figure | ring | figure on the row surface,
   // with air below before the trophy card starts.
   header: {
