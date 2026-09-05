@@ -7,6 +7,7 @@ import ArrowBack from '@expo/material-symbols/arrow_back.xml';
 import ArrowDownward from '@expo/material-symbols/arrow_downward.xml';
 import ArrowUpward from '@expo/material-symbols/arrow_upward.xml';
 import Block from '@expo/material-symbols/block.xml';
+import ChatBubble from '@expo/material-symbols/chat_bubble.xml';
 import Check from '@expo/material-symbols/check.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Close from '@expo/material-symbols/close.xml';
@@ -82,6 +83,9 @@ const icons = {
   'arrow-downward': ArrowDownward,
   'arrow-upward': ArrowUpward,
   block: Block,
+  // The comments entry — a single bubble, `bubble.right`'s twin (the two-bubble
+  // `forum` is the EMPTY state's glyph: a conversation, not the door to one).
+  'chat-bubble': ChatBubble,
   check: Check,
   // FILLED, for the verified badge: the check is KNOCKED OUT of the disc, so
   // whatever ground the badge sits on shows through it — the same mechanism

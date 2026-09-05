@@ -29,6 +29,7 @@ const SF_SYMBOLS = {
   'arrow-downward': 'arrow.down',
   'arrow-upward': 'arrow.up',
   block: 'nosign',
+  'chat-bubble': 'bubble.right',
   check: 'checkmark',
   'check-circle-filled': 'checkmark.circle.fill',
   'content-cut': 'scissors',
