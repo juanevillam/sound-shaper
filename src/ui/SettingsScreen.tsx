@@ -167,6 +167,8 @@ export type SettingsScreenProps = {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  // The 16 here plus the first header's own 16 is `SCREEN_CONTENT_TOP` — the
+  // pushed sheet-family's shared top. Change one and the family drifts.
   scroll: { paddingVertical: 16 },
   host: { width: '100%' },
 });

@@ -111,6 +111,24 @@ export const dialogContainer = (colors: { surfaceDialog: string }): string =>
   colors.surfaceDialog;
 
 /**
+ * WHERE A PUSHED SHEET-FAMILY SCREEN'S FIRST CONTENT STARTS on Android — the
+ * counterpart of iOS's `SHEET_CONTENT_TOP` (84 below the sheet's own edge):
+ * the first content BOX (a section header's padding box, or a card's fill)
+ * sits 32dp below the app bar, on every screen of the family.
+ *
+ * Settings and Account derive it STRUCTURALLY — the scroller's 16 plus the
+ * first header's own 16 — and are the reference; a screen whose first content
+ * is a bare card takes the constant outright. Before it existed the family
+ * had drifted to three answers (Settings/Account 32, Trash/Blocked 16,
+ * Trophies 12), which is exactly the per-screen wobble the iOS 84 was
+ * standardized to kill.
+ *
+ * As on iOS, a text-first screen's INK lands a few dp below a card-first
+ * screen's FILL (the glyph's own bearing) — the BOX is the shared edge.
+ */
+export const SCREEN_CONTENT_TOP = 32;
+
+/**
  * THE VALUE BONE'S BOX — one term for both platforms' account-fact rows.
  *
  * iOS measured it first (`FormDisclosureRowIos`: a one-line value's ink at
