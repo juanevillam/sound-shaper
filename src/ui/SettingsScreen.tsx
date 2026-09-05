@@ -11,6 +11,7 @@ import {
   RadioButton,
   Row,
   Surface,
+  Switch,
   Text,
   TextButton,
 } from '@expo/ui/jetpack-compose';
@@ -343,6 +344,62 @@ const InfoGroup = ({
   ) : null;
 
 /**
+ * DEV-ONLY toggle rows — the Android read of the iOS Dev section (which uses
+ * a menu picker only because a `Toggle` in a hosted Form row never delivered
+ * touches there; a Compose `Switch` in a `ListItem` trailing slot works, and
+ * a switch is Material's own on/off row). The prop was declared here and
+ * silently ignored for as long as Android was frozen — Topper's Settings
+ * passed it on iOS only, so the lab could not be flipped at runtime on the
+ * one platform Phase B runs on (Juan, 2026-09-04).
+ */
+const DevTogglesGroup = ({
+  devToggles,
+  colors,
+}: {
+  devToggles: NonNullable<SettingsScreenProps['devToggles']>;
+  colors: SettingsScreenColors;
+}) => (
+  <>
+    {/* Ink, not the accent — see the note on `sectionsTitle`. */}
+    <Text
+      color={colors.onSurfaceMuted}
+      style={{ typography: 'labelLarge' }}
+      modifiers={[padding(16, 16, 16, 8)]}
+    >
+      {devToggles.title}
+    </Text>
+    <Column
+      modifiers={[
+        fillMaxWidth(),
+        padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+      ]}
+      verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+    >
+      {devToggles.rows.map((row, index) => (
+        <ListItem
+          key={row.label}
+          colors={{
+            containerColor: colors.surfaceContainer,
+            contentColor: colors.onSurface,
+          }}
+          modifiers={[
+            fillMaxWidth(),
+            clip(groupRowShape(index, devToggles.rows.length)),
+          ]}
+        >
+          <ListItem.HeadlineContent>
+            <Text>{row.label}</Text>
+          </ListItem.HeadlineContent>
+          <ListItem.TrailingContent>
+            <Switch value={row.value} onCheckedChange={row.onValueChange} />
+          </ListItem.TrailingContent>
+        </ListItem>
+      ))}
+    </Column>
+  </>
+);
+
+/**
  * The single-choice radio dialog a preference row opens. Hosted by the screen
  * in its own `<Host>` — mounting it next to the rows corrupts their modifiers
  * (clip shapes mis-assign on unmount) and flickers sibling icons.
@@ -446,6 +503,7 @@ export const SettingsScreen = ({
   cancelLabel = 'Cancel',
   about,
   legal,
+  devToggles,
   colors,
   colorScheme,
   seedColor,
@@ -600,6 +658,10 @@ export const SettingsScreen = ({
                   rows={legal.rows}
                   colors={colors}
                 />
+              ) : null}
+
+              {devToggles ? (
+                <DevTogglesGroup devToggles={devToggles} colors={colors} />
               ) : null}
 
               {/* A lone sign-out closes the screen instead of sitting under an
