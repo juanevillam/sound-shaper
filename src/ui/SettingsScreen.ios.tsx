@@ -168,15 +168,12 @@ export const SettingsScreen = ({
             build never renders the section.
 
             A REAL SWITCH, matching the Android twin (Juan, 2026-09-05 — the
-            menu picker it replaced read as a workaround, which it was). The
-            KNOWN RISK is written down rather than hidden: on 57 the
-            expo-ui-starter verification found `Toggle` ignoring TAPS (knob
-            DRAG works — re-check per bump), and this change ships without a
-            simulator in the phase. Acceptable here and only here because it
-            is dev chrome with a drag fallback; VERIFY THE TAP on the next
-            iPhone pass, and if it is still dead, this comment is the record
-            of what to revert to (menu `Picker` rows On/Off — the one control
-            this Form had proven tappable).
+            menu picker it replaced was a written-down workaround for 57's
+            Toggle tap-dead bug, from the expo-ui-starter SIMULATOR
+            verification). TAP VERIFIED WORKING on Juan's real iPhone the
+            same day — so that bug is a simulator artefact, fixed upstream,
+            or both; if a future bump regresses it, the workaround to revert
+            to was menu `Picker` rows (On / Off).
 
             `switchOn`, not the Form's `primary` tint: green-means-on is a
             platform semantic (the monochrome rules' own carve-out), and a
