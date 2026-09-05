@@ -82,7 +82,6 @@ export default function ManageAccount() {
       colors={colors}
       info={{ title: t('settings.manageAccount.infoTitle'), rows: infoRows }}
       danger={{
-        title: t('settings.manageAccount.dangerTitle'),
         rowLabel: t('settings.manageAccount.deleteAccount'),
         rowDescription: t('settings.manageAccount.deleteAccountHint'),
         onPress: () => setDeleteVisible(true),

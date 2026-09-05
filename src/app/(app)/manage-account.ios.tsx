@@ -237,7 +237,6 @@ export default function ManageAccount() {
           },
         ]}
         danger={{
-          title: t('settings.manageAccount.dangerTitle'),
           rowLabel: t('settings.manageAccount.deleteAccount'),
           // The card's FOOTER on iOS (Android sets it as the row's second
           // line) — Apple explains a destructive group beneath it rather than

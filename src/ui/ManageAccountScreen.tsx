@@ -136,13 +136,15 @@ export type ManageAccountScreenProps = {
    * where the row sits and how it reads.
    */
   danger?: {
-    title: string;
     rowLabel: string;
     /**
-     * What the row will do, in one line. Android sets it as the list item's
-     * supporting text; iOS keeps the row single-line and renders it as the
-     * SECTION FOOTER, which is where Apple explains a destructive group (and
-     * why the iOS side ignores `title` — see `ManageAccountScreen.ios`).
+     * What the row will do, in one line — the card's FOOTER on both
+     * platforms, outside the pressable row: iOS renders it as the `Section`
+     * footer, Android as a muted legend under the card. That is where Apple
+     * explains a destructive group, and it is also why there is no `title`
+     * here any more: the header was a category label saying the row's own
+     * words, and both platforms now leave the card headerless (the same
+     * shape as the Trophies card).
      */
     rowDescription?: string;
     onPress: () => void;
@@ -344,13 +346,26 @@ export const ManageAccountScreen = ({
                 </>
               ) : null}
 
+              {/* NO HEADER, A FOOTER — Apple's shape for a destructive group,
+                  taken by Android too (Juan, 2026-09-04). The header was a
+                  category label saying the row's own words ("Delete Account"
+                  over Delete Account); the space under an irreversible row
+                  belongs to what it will DO. So the card is headerless like
+                  the Trophies card above — it asks for the same headerless
+                  top gap — and `rowDescription` renders OUTSIDE the pressable
+                  row, as the card's legend, exactly where the iOS `Section`
+                  footer puts it. */}
               {danger ? (
                 <>
-                  {sectionHeader(danger.title)}
                   <Column
                     modifiers={[
                       fillMaxWidth(),
-                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+                      padding(
+                        GROUP_SIDE_PADDING,
+                        GROUP_HEADERLESS_TOP_GAP,
+                        GROUP_SIDE_PADDING,
+                        0,
+                      ),
                     ]}
                   >
                     <ListItem
@@ -367,15 +382,31 @@ export const ManageAccountScreen = ({
                       <ListItem.HeadlineContent>
                         <Text color={colors.danger}>{danger.rowLabel}</Text>
                       </ListItem.HeadlineContent>
-                      {danger.rowDescription ? (
-                        <ListItem.SupportingContent>
-                          <Text color={colors.onSurfaceMuted}>
-                            {danger.rowDescription}
-                          </Text>
-                        </ListItem.SupportingContent>
-                      ) : null}
                     </ListItem>
                   </Column>
+                  {danger.rowDescription ? (
+                    /* The footer's ink lines up with the ROW'S OWN text (the
+                       card inset plus the ListItem's 16dp padding), which is
+                       iOS's rule for a section footer — it explains the row,
+                       so it stands under the row's words rather than under
+                       the card's edge. `bodyMedium` muted is this codebase's
+                       Android supporting-text step (see `Section`). The
+                       parent Column's spacedBy 8 is the card-to-footer gap. */
+                    <Text
+                      color={colors.onSurfaceMuted}
+                      style={{ typography: 'bodyMedium' }}
+                      modifiers={[
+                        padding(
+                          GROUP_SIDE_PADDING + 16,
+                          0,
+                          GROUP_SIDE_PADDING + 16,
+                          0,
+                        ),
+                      ]}
+                    >
+                      {danger.rowDescription}
+                    </Text>
+                  ) : null}
                 </>
               ) : null}
             </Column>
