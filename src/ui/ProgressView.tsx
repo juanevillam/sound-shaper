@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { CircularProgressIndicator, Host } from '@expo/ui/jetpack-compose';
+import { CircularWavyProgressIndicator, Host } from '@expo/ui/jetpack-compose';
 
 import { useAppTheme } from '@portfolio/core';
 
@@ -35,7 +35,10 @@ export function ProgressView() {
         style={styles.box}
         matchContents
       >
-        <CircularProgressIndicator />
+        {/* The WAVY variant — M3 Expressive's indeterminate face, and Juan's
+            call for every Android loading indicator (2026-09-04); the custom
+            pull-to-refresh already draws the expressive ContainedLoadingIndicator. */}
+        <CircularWavyProgressIndicator />
       </Host>
     </View>
   );
