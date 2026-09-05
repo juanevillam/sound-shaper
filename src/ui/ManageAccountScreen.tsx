@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import {
+  Box,
   Column,
   Host,
   Icon,
   ListItem,
+  RNHostView,
   Row,
   Text,
 } from '@expo/ui/jetpack-compose';
@@ -30,7 +32,10 @@ import {
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
   groupRowShape,
+  VALUE_BONE_HEIGHT,
+  VALUE_BONE_WIDTH,
 } from './settingsGroup';
+import { SkeletonBone } from './SkeletonBone';
 
 /**
  * App-resolved colors the manage-account screen paints with.
@@ -104,18 +109,16 @@ export type ManageAccountScreenProps = {
     title: string;
     rows: ManageAccountInfoRow[];
     /**
-     * iOS only. The facts have not arrived yet, so each VALUE stands a
-     * `SkeletonBone` — the same sweeping placeholder every other loading
-     * surface in these apps uses.
+     * The facts have not arrived yet, so each VALUE stands a `SkeletonBone` —
+     * the same sweeping placeholder every other loading surface in these apps
+     * uses. BOTH platforms read it now (Android joined 2026-09-04, the same
+     * shared bone at the same shared box).
      *
      * THE CALLER STILL PASSES A FULL ROW SET while this is true, so the row
      * COUNT is settled from the first frame; the labels are static strings and
      * render immediately, which is what pins each row's height. Nothing moves
      * on hand-off, and no bone is hand-built beside these rows — the real rows
      * stand themselves and only the unknown part is a bone.
-     *
-     * Android does not read it — a pushed screen whose facts come from the
-     * auth object it was navigated with has nothing to wait for.
      */
     loading?: boolean;
   };
@@ -346,15 +349,36 @@ export const ManageAccountScreen = ({
                               verticalAlignment="center"
                               modifiers={[weight(1)]}
                             >
-                              <Text
-                                color={colors.onSurfaceMuted}
-                                style={{ textAlign: 'end' }}
-                                maxLines={1}
-                                overflow="ellipsis"
-                                modifiers={[weight(1)]}
-                              >
-                                {row.value}
-                              </Text>
+                              {info.loading ? (
+                                /* ONLY THE VALUE WAITS — the iOS rule, drawn
+                                   with the same shared bone at the same
+                                   shared box (`VALUE_BONE_*`), bridged in
+                                   through this row's one allowed
+                                   `RNHostView`. The label is static and pins
+                                   the row's height; the spacer Box keeps the
+                                   bone trailing where the value will land. */
+                                <>
+                                  <Box modifiers={[weight(1)]} />
+                                  <RNHostView matchContents>
+                                    <SkeletonBone
+                                      width={VALUE_BONE_WIDTH}
+                                      height={VALUE_BONE_HEIGHT}
+                                    />
+                                  </RNHostView>
+                                </>
+                              ) : (
+                                <Text
+                                  color={colors.onSurfaceMuted}
+                                  style={{ textAlign: 'end' }}
+                                  maxLines={1}
+                                  overflow="ellipsis"
+                                  modifiers={[weight(1)]}
+                                >
+                                  {row.value}
+                                </Text>
+                              )}
+                              {/* The chevron stays through the wait: the row
+                                  still goes somewhere. */}
                               {row.editor ? (
                                 <Icon
                                   source={iconSource('chevron')}

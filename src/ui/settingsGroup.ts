@@ -109,3 +109,15 @@ export const groupRowShape = (index: number, count: number): GroupShape => {
  */
 export const dialogContainer = (colors: { surfaceDialog: string }): string =>
   colors.surfaceDialog;
+
+/**
+ * THE VALUE BONE'S BOX — one term for both platforms' account-fact rows.
+ *
+ * iOS measured it first (`FormDisclosureRowIos`: a one-line value's ink at
+ * default Dynamic Type), and the Android row imports the same numbers rather
+ * than re-deriving them, per the shared-terms rule. It lives HERE, not in the
+ * iOS file, because that file imports `@expo/ui/swift-ui` and cannot be pulled
+ * into an Android bundle just for two constants.
+ */
+export const VALUE_BONE_WIDTH = 110;
+export const VALUE_BONE_HEIGHT = 14;
