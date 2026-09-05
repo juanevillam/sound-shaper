@@ -344,7 +344,10 @@ export const TrophiesScreen = ({
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
-      <View style={styles.header}>
+      {/* The summary sits in a CARD, exactly as the iOS Section takes the
+          grouped default fill — page content in the same container language
+          as the list below it, not figures floating on the page. */}
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <SummaryFigure
           value={String(earned)}
           label={strings.earnedLabel}
@@ -397,15 +400,16 @@ export const TrophiesScreen = ({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
-  // The centred summary block: figure | ring | figure, with air below before
-  // the card starts.
+  // The centred summary card: figure | ring | figure on the row surface,
+  // with air below before the trophy card starts.
   header: {
     alignItems: 'center',
+    borderRadius: OUTER_RADIUS,
     flexDirection: 'row',
     gap: SUMMARY_COLUMN_GAP,
     justifyContent: 'center',
-    paddingBottom: 28,
-    paddingTop: 12,
+    marginBottom: 16,
+    paddingVertical: 20,
   },
   // Both columns take the SAME width so the block is symmetric and the ring
   // lands on the screen's centre (the iOS block's own rule — left to hug
