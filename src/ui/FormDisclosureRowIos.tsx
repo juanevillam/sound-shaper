@@ -11,6 +11,7 @@ import {
 import { foregroundStyle, frame } from '@expo/ui/swift-ui/modifiers';
 
 import { LIST_ROW_ONE_LINE } from './listRowText';
+import { VALUE_BONE_HEIGHT, VALUE_BONE_WIDTH } from './settingsGroup';
 import { SkeletonBone } from './SkeletonBone';
 
 /**
@@ -94,8 +95,9 @@ export const FORM_DISCLOSURE_GLYPH_SIZE = 13;
  * frame. Redaction, by contrast, blanked the label too and changed
  * `LabeledContent`'s stacking with it.
  */
-const VALUE_BONE_WIDTH = 110;
-const VALUE_BONE_HEIGHT = 14;
+// The box is a SHARED TERM — the Android account row stands the same bone.
+// It lives in `settingsGroup` because this file's swift-ui imports keep it
+// out of an Android bundle.
 
 const ValueSlot = ({
   value,
