@@ -13,6 +13,8 @@ import {
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import {
   composeSheetBottomPadding,
+  SHEET_HERO_BADGE_SIZE,
+  SHEET_HERO_GLYPH_SIZE,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,11 +23,28 @@ import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
 import { type ResolvedTrophy } from './types';
 
-const ICON_SIZE = 64;
+// THE HERO IS THE iOS SHEET'S — the glyph on a soft tier-tinted disc (the
+// Game Center idiom; a bare floating icon read unfinished), at the shared
+// badge/glyph sizes `TrophyDetailContent` draws. The two sheets are twins:
+// same disc, same alpha, same ratio — only the container differs.
+const DISC_SIZE = SHEET_HERO_BADGE_SIZE;
+const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
+// Tint strength for the disc behind the trophy glyph — `TrophyDetailContent`'s
+// own number.
+const DISC_ALPHA = 0.16;
+
+// Local alpha helper (the package has no dependency on @portfolio/core): the
+// tier colors are plain hex, so appending a 0–255 alpha byte is exact.
+const withDiscAlpha = (hex: string) =>
+  `${hex}${Math.round(DISC_ALPHA * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
 
 export type TrophyDetailSheetColors = {
   onSurface: string;
   onSurfaceMuted: string;
+  /** Disc fill behind a LOCKED glyph (unlocked tints from the tier color). */
+  lockedDisc: string;
 };
 
 export type TrophyDetailSheetProps = {
@@ -49,9 +68,9 @@ export type TrophyDetailSheetProps = {
 // `TrophyDetailContent` beside this file. Lifted here 2026-08-27: Topper and
 // Sound Shaper each carried a 97.6%-identical copy, differing only in comment
 // wording — the exact second-app re-implementation the shared-code audit hunts.
-// Content: the tier-colored glyph (or a padlock when locked) shown BARE,
-// matching the list rows rather than sitting in a badge, a title, a
-// `tier · status` caption, and the objective — which reads the same whether
+// Content: the tier-colored glyph on its soft tinted disc (the iOS sheet's
+// hero, at the same shared sizes), a title, a `tier · status` caption at
+// labelMedium, and the objective — which reads the same whether
 // the trophy is earned or still locked. Gets its OWN Host: a sheet mounted
 // beside other Compose content flickers its siblings. The glyph is this
 // package's RN SVG, bridged back into Compose via RNHostView.
@@ -91,7 +110,9 @@ export function TrophyDetailSheet({
         <SheetDragHandle />
         <Column
           horizontalAlignment="center"
-          verticalArrangement={{ spacedBy: 12 }}
+          // The iOS sheet's rhythm: 8 between the text lines, with the disc
+          // standing an extra 8 off the title (its wrapper's own padding).
+          verticalArrangement={{ spacedBy: 8 }}
           // The bottom clears the navigation bar — a Compose sheet's window
           // runs to the SCREEN's edge, not to the top of the system bar. This
           // sheet is bottom-anchored and content-sized, so its LAST LINE sits
@@ -106,12 +127,25 @@ export function TrophyDetailSheet({
           ]}
         >
           <RNHostView matchContents>
-            <View style={styles.iconWrap}>
-              <TrophyIcon
-                color={iconColor}
-                size={ICON_SIZE}
-                locked={!trophy.unlocked}
-              />
+            {/* The disc's extra 8 below rides INSIDE the host's box (RN
+                padding), so the bridged measurement already contains it. */}
+            <View style={styles.heroWrap}>
+              <View
+                style={[
+                  styles.disc,
+                  {
+                    backgroundColor: trophy.unlocked
+                      ? withDiscAlpha(tierColor(trophy.tier))
+                      : colors.lockedDisc,
+                  },
+                ]}
+              >
+                <TrophyIcon
+                  color={iconColor}
+                  size={ICON_SIZE}
+                  locked={!trophy.unlocked}
+                />
+              </View>
             </View>
           </RNHostView>
 
@@ -122,9 +156,12 @@ export function TrophyDetailSheet({
             {trophy.title}
           </Text>
 
+          {/* `labelMedium` — the iOS twin's caption step (it wore labelLarge
+              here, a size up from its sibling; Juan: the subtitle reads
+              smaller than the title by more than one step). */}
           <Text
             color={colors.onSurfaceMuted}
-            style={{ typography: 'labelLarge', textAlign: 'center' }}
+            style={{ typography: 'labelMedium', textAlign: 'center' }}
           >
             {caption}
           </Text>
@@ -142,10 +179,21 @@ export function TrophyDetailSheet({
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
+  // The host's box is STATED — width, height, and the disc's 8 extra below —
+  // exactly as the old bare-icon wrapper stated its own. Left unsized, the
+  // bridged host laid the disc out at the sheet's leading edge (seen on the
+  // A54): never leave `matchContents` a box to work out.
+  heroWrap: {
     alignItems: 'center',
-    height: ICON_SIZE,
+    height: DISC_SIZE + 8,
+    justifyContent: 'flex-start',
+    width: DISC_SIZE,
+  },
+  disc: {
+    alignItems: 'center',
+    borderRadius: DISC_SIZE / 2,
+    height: DISC_SIZE,
     justifyContent: 'center',
-    width: ICON_SIZE,
+    width: DISC_SIZE,
   },
 });
