@@ -133,11 +133,11 @@ export type SettingsScreenProps = {
    *  just more `about.rows`. */
   legal?: SettingsLegalConfig;
   /**
-   * DEV-ONLY toggle rows rendered as their own trailing section (iOS variant
-   * only today; the Android variant ignores it, and release builds must not
-   * pass it at all — the host gates on `__DEV__`). Labels arrive as plain
-   * strings: dev chrome is exempt from the translation pipeline, like the
-   * state lab's own copy.
+   * DEV-ONLY toggle rows rendered directly under General on BOTH platforms —
+   * the iOS variant's order, matched here so the two twins read the same way
+   * down. Release builds must not pass it at all — the host gates on
+   * `__DEV__`. Labels arrive as plain strings: dev chrome is exempt from the
+   * translation pipeline, like the state lab's own copy.
    */
   devToggles?: {
     title: string;
@@ -621,6 +621,16 @@ export const SettingsScreen = ({
                 ))}
               </Column>
 
+              {/* Dev sits directly under General — the iOS variant's order
+                  (General → Dev → About), matched so the two twins read the
+                  same way down. It rendered LAST here for as long as Android
+                  was frozen, which was a leftover rather than a Material
+                  argument: Material has no idiom for where dev chrome goes,
+                  so the shared order wins. */}
+              {devToggles ? (
+                <DevTogglesGroup devToggles={devToggles} colors={colors} />
+              ) : null}
+
               {account && accountIsGroup ? (
                 <SettingsAccountSection
                   {...account}
@@ -658,10 +668,6 @@ export const SettingsScreen = ({
                   rows={legal.rows}
                   colors={colors}
                 />
-              ) : null}
-
-              {devToggles ? (
-                <DevTogglesGroup devToggles={devToggles} colors={colors} />
               ) : null}
 
               {/* A lone sign-out closes the screen instead of sitting under an
