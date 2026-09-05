@@ -2,12 +2,20 @@ import React, { useState } from 'react';
 
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { Column, Host, Icon, ListItem, Text } from '@expo/ui/jetpack-compose';
+import {
+  Column,
+  Host,
+  Icon,
+  ListItem,
+  Row,
+  Text,
+} from '@expo/ui/jetpack-compose';
 import {
   clickable,
   clip,
   fillMaxWidth,
   padding,
+  weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -306,17 +314,38 @@ export const ManageAccountScreen = ({
                             : []),
                         ]}
                       >
+                        {/* The VALUE sits trailing on the SAME line — the iOS
+                          twin's `LabeledContent` shape (label left, fact
+                          right), taken here too so a fact is one row tall
+                          and the Delete Account card comes up without a
+                          scroll. Label and value share the HEADLINE slot as
+                          one Row, with the value taking `weight(1)`: that is
+                          what CONSTRAINS it, so a long value (the email)
+                          truncates with an ellipsis instead of winning the
+                          width fight — put in the trailing slot it measured
+                          at its full desired width and wrapped the LABEL
+                          onto two lines. The editable fact keeps the
+                          disclosure chevron in the trailing slot, the
+                          statement `FormDisclosureRowIos` makes; a plain
+                          fact stays chevron-free. */}
                         <ListItem.HeadlineContent>
-                          <Text color={colors.onSurface}>{row.label}</Text>
+                          <Row
+                            verticalAlignment="center"
+                            horizontalArrangement={{ spacedBy: 16 }}
+                            modifiers={[fillMaxWidth()]}
+                          >
+                            <Text color={colors.onSurface}>{row.label}</Text>
+                            <Text
+                              color={colors.onSurfaceMuted}
+                              style={{ textAlign: 'end' }}
+                              maxLines={1}
+                              overflow="ellipsis"
+                              modifiers={[weight(1)]}
+                            >
+                              {row.value}
+                            </Text>
+                          </Row>
                         </ListItem.HeadlineContent>
-                        <ListItem.SupportingContent>
-                          <Text color={colors.onSurfaceMuted}>{row.value}</Text>
-                        </ListItem.SupportingContent>
-                        {/* The editable fact takes the disclosure chevron that
-                          marks it tappable — the same statement the iOS twin
-                          makes with `FormDisclosureRowIos`, and the same
-                          glyph this screen's own nav rows carry. A plain
-                          fact stays bare. */}
                         {row.editor ? (
                           <ListItem.TrailingContent>
                             <Icon
@@ -389,12 +418,14 @@ export const ManageAccountScreen = ({
                        card inset plus the ListItem's 16dp padding), which is
                        iOS's rule for a section footer — it explains the row,
                        so it stands under the row's words rather than under
-                       the card's edge. `bodyMedium` muted is this codebase's
-                       Android supporting-text step (see `Section`). The
-                       parent Column's spacedBy 8 is the card-to-footer gap. */
+                       the card's edge. `bodySmall` — a LEGEND, a step below
+                       the rows it explains, the same drop the iOS footnote
+                       footer takes from its rows (`bodyMedium` rendered as
+                       one more label; Juan called it). The parent Column's
+                       spacedBy 8 is the card-to-footer gap. */
                     <Text
                       color={colors.onSurfaceMuted}
-                      style={{ typography: 'bodyMedium' }}
+                      style={{ typography: 'bodySmall' }}
                       modifiers={[
                         padding(
                           GROUP_SIDE_PADDING + 16,
