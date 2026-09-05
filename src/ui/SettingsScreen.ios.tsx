@@ -11,6 +11,7 @@ import {
   Picker,
   Section,
   Text,
+  Toggle,
 } from '@expo/ui/swift-ui';
 import {
   foregroundStyle,
@@ -166,30 +167,31 @@ export const SettingsScreen = ({
         {/* DEV-ONLY — the host passes this under `__DEV__` alone, so a release
             build never renders the section.
 
-            MENU-PICKER ROWS (On / Off), not switches, after both switch forms
-            failed the tap test on 57:
-              @expo/ui `Toggle`      ignores TAPS outright (knob drag works —
-                                     the library bug from the expo-ui-starter
-                                     verification; re-check per bump);
-              RN `Switch` in a       renders (a real UISwitch) but the Form
-              `LabeledContent` row   row never delivers touches to the hosted
-                                     view — verified on the simulator.
-            The menu picker is the one control this Form has already PROVEN
-            tappable (Language / Appearance), and it keeps the section in the
-            sheet's own idiom. */}
+            A REAL SWITCH, matching the Android twin (Juan, 2026-09-05 — the
+            menu picker it replaced read as a workaround, which it was). The
+            KNOWN RISK is written down rather than hidden: on 57 the
+            expo-ui-starter verification found `Toggle` ignoring TAPS (knob
+            DRAG works — re-check per bump), and this change ships without a
+            simulator in the phase. Acceptable here and only here because it
+            is dev chrome with a drag fallback; VERIFY THE TAP on the next
+            iPhone pass, and if it is still dead, this comment is the record
+            of what to revert to (menu `Picker` rows On/Off — the one control
+            this Form had proven tappable).
+
+            `switchOn`, not the Form's `primary` tint: green-means-on is a
+            platform semantic (the monochrome rules' own carve-out), and a
+            SwiftUI Toggle has to be told because it inherits the ambient
+            accent. */}
         {devToggles ? (
           <Section title={devToggles.title}>
             {devToggles.rows.map(row => (
-              <Picker
+              <Toggle
                 key={row.label}
                 label={row.label}
-                selection={row.value ? 'on' : 'off'}
-                onSelectionChange={value => row.onValueChange(value === 'on')}
-                modifiers={[pickerStyle('menu')]}
-              >
-                <Text modifiers={[tag('on')]}>On</Text>
-                <Text modifiers={[tag('off')]}>Off</Text>
-              </Picker>
+                isOn={row.value}
+                onIsOnChange={row.onValueChange}
+                modifiers={[tint(colors.switchOn)]}
+              />
             ))}
           </Section>
         ) : null}
