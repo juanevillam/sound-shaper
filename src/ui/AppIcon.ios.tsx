@@ -30,6 +30,7 @@ const SF_SYMBOLS = {
   'arrow-upward': 'arrow.up',
   block: 'nosign',
   check: 'checkmark',
+  'check-circle-filled': 'checkmark.circle.fill',
   'content-cut': 'scissors',
   chevron: 'chevron.right',
   'chevron-down': 'chevron.down',
