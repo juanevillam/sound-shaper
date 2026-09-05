@@ -111,6 +111,13 @@ export type SettingsLegalConfig = {
 /** App-resolved colors the settings screen paints with. */
 export type SettingsScreenColors = SettingsAccountColors & {
   background?: string;
+  /**
+   * A switch's ON state — the platform semantic green, never `primary`
+   * (see the monochrome rules). The iOS variant's Dev toggle needs it told
+   * explicitly: a SwiftUI `Toggle` takes the ambient accent, and our Forms
+   * tint theirs `primary` for the menu-picker values.
+   */
+  switchOn: string;
 };
 
 export type SettingsScreenProps = {
