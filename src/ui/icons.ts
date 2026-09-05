@@ -14,6 +14,7 @@ import ContentCut from '@expo/material-symbols/content_cut.xml';
 import DarkMode from '@expo/material-symbols/dark_mode.xml';
 import Delete from '@expo/material-symbols/delete.xml';
 import DeleteForever from '@expo/material-symbols/delete_forever.xml';
+import DeleteSweep from '@expo/material-symbols/delete_sweep.xml';
 import Devices from '@expo/material-symbols/devices.xml';
 import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
@@ -86,6 +87,7 @@ const icons = {
   'dark-mode': DarkMode,
   delete: Delete,
   'delete-forever': DeleteForever,
+  'delete-sweep': DeleteSweep,
   devices: Devices,
   'drag-indicator': DragIndicator,
   edit: Edit,
