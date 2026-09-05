@@ -1,5 +1,6 @@
 import { Platform, type ImageSourcePropType } from 'react-native';
 
+import AccountCircle from '@expo/material-symbols/account_circle.xml';
 import Add from '@expo/material-symbols/add.xml';
 import Apps from '@expo/material-symbols/apps.xml';
 import ArrowBack from '@expo/material-symbols/arrow_back.xml';
@@ -69,6 +70,7 @@ import { Asset } from 'expo-asset';
  * below; the `IconName` union updates automatically.
  */
 const icons = {
+  'account-circle': AccountCircle,
   add: Add,
   apps: Apps,
   'arrow-back': ArrowBack,

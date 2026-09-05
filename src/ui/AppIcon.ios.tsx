@@ -19,6 +19,9 @@ import { type IconName } from './icons';
  * analog and otherwise ignored.
  */
 const SF_SYMBOLS = {
+  // The account entry's glyph — the same symbol Topper's iOS Profile bar
+  // states directly through HeaderGlyphGroupIos.
+  'account-circle': 'person.crop.circle',
   add: 'plus',
   apps: 'square.grid.3x3',
   // iOS back is the chevron, not Material's arrow.
