@@ -83,6 +83,11 @@ const icons = {
   'arrow-upward': ArrowUpward,
   block: Block,
   check: Check,
+  // FILLED, for the verified badge: the check is KNOCKED OUT of the disc, so
+  // whatever ground the badge sits on shows through it — the same mechanism
+  // as `checkmark.circle.fill`. A hand-built primary disc with a white check
+  // shipped ~1.6:1 in dark (white on One UI's light-periwinkle primary).
+  'check-circle-filled': require('./assets/icons/check-circle-filled.xml'),
   'content-cut': ContentCut,
   chevron: ChevronRight,
   'chevron-down': KeyboardArrowDown,
