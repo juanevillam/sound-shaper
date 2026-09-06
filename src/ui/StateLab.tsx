@@ -122,13 +122,22 @@ const NOTE_GHOST = ' \n ';
 const DEFAULT_BOTTOM_OFFSET = 52;
 
 export function StateLab({
+  anchored = false,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   colors,
   groups,
   onSelectGroup,
 }: {
+  /**
+   * The bar floats 8 above the bottom edge of the view it is mounted IN,
+   * which already clears the safe area and the keyboard — a thread area
+   * standing above a keyboard-driven composer (Topper's iOS comments sheet).
+   * Off, the bar reckons from the screen edge: safe inset + `bottomOffset`,
+   * or the keyboard when one is up.
+   */
+  anchored?: boolean;
   /** Height of whatever floats at the bottom of THIS surface — a tab bar on a
-   *  screen, nothing on a sheet. */
+   *  screen, nothing on a sheet. Ignored when `anchored`. */
   bottomOffset?: number;
   colors: StateLabColors;
   groups: readonly StateLabGroup[];
@@ -185,7 +194,9 @@ export function StateLab({
         styles.bar,
         {
           backgroundColor: colors.card,
-          bottom: (keyboard > 0 ? keyboard : bottom + bottomOffset) + 8,
+          bottom:
+            (anchored ? 0 : keyboard > 0 ? keyboard : bottom + bottomOffset) +
+            8,
         },
       ]}
     >
