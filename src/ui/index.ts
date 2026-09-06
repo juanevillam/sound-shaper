@@ -95,6 +95,7 @@ export {
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
 export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
+export { composeLineHeight } from './composeTextLine';
 export { SettingsDialog, DIALOG_WIDTH } from './SettingsDialog';
 export { StateWrap } from './StateWrap';
 export {
