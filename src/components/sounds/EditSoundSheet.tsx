@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import {
+  Box,
   Column,
   ModalBottomSheet,
   OutlinedButton,
@@ -15,6 +16,7 @@ import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 import {
   artworkRadius,
   COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
   SheetDragHandle,
@@ -75,6 +77,9 @@ const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
 // AWAITS the audio upload behind the Save spinner (the one real network wait),
 // then closes; edit-mode metadata writes are latency-compensated, so they close
 // immediately — unless a new cover made it a real upload.
+/** The form's own field-to-field gap. */
+const FORM_GAP = 16;
+
 export function EditSoundSheet({
   pickedFile,
   soundId,
@@ -271,7 +276,7 @@ export function EditSoundSheet({
         >
           <SheetDragHandle />
           <Column
-            verticalArrangement={{ spacedBy: 16 }}
+            verticalArrangement={{ spacedBy: FORM_GAP }}
             // No top padding: the sheet's native drag handle already supplies
             // the gap above the content. The bottom clears the navigation bar
             // — see `composeSheetBottomPadding`.
@@ -285,15 +290,26 @@ export function EditSoundSheet({
               fillMaxWidth(),
             ]}
           >
-            <SheetBar
-              title={t(soundId ? 'app.soundEditExisting' : 'app.soundEdit')}
-              saveLabel={t(
-                soundId ? 'soundEdit.saveExisting' : 'soundEdit.save',
-              )}
-              saving={isSaving}
-              saveEnabled={!nameInvalid}
-              onSave={save}
-            />
+            {/* The header→content gap is the SHEET family's
+                (`COMPOSE_SHEET_HEADER_TO_CONTENT`), not the form's: the two
+                are equal today, and this wrapper is what keeps them from
+                drifting apart silently. */}
+            <Box
+              modifiers={[
+                fillMaxWidth(),
+                padding(0, 0, 0, COMPOSE_SHEET_HEADER_TO_CONTENT - FORM_GAP),
+              ]}
+            >
+              <SheetBar
+                title={t(soundId ? 'app.soundEditExisting' : 'app.soundEdit')}
+                saveLabel={t(
+                  soundId ? 'soundEdit.saveExisting' : 'soundEdit.save',
+                )}
+                saving={isSaving}
+                saveEnabled={!nameInvalid}
+                onSave={save}
+              />
+            </Box>
 
             {/* Cover art at the TOP. A ROUNDED SQUARE, not a disc: this is
                 ARTWORK — a picture standing for a recording — and every other

@@ -106,6 +106,31 @@ export const composeSheetBottomPadding = (insetBottom: number): number =>
 export const COMPOSE_SHEET_GUTTER = 16;
 
 /**
+ * A COMPOSE SHEET'S HEADER ROW — the Android counterpart of the two iOS sheet
+ * terms above (`SHEET_CONTENT_TOP`, `SHEET_TITLE_TO_CONTENT`): one geometry
+ * for where EVERY sheet's first content starts, whether or not the sheet has
+ * a title.
+ *
+ * The anatomy every Compose sheet here shares is `SheetDragHandle` (M3's
+ * 48dp box) → a header row → content. The header row is `SheetBar`, and it
+ * is `COMPOSE_SHEET_HEADER_HEIGHT` tall whether it carries a commit pill (the
+ * editors — a Material `Button` is 40) or only a title (the follow lists,
+ * comments), so a title's ink sits on the same line in both. The first
+ * content BOX — a field, a grouped card, a list row's padding box — starts
+ * `COMPOSE_SHEET_HEADER_TO_CONTENT` under that row; a headerless hero sheet
+ * (an item's read sheet, the creator badge) takes the same gap under the
+ * handle, the way every iOS sheet takes 84 whether its bar has a title or not.
+ *
+ * Before these existed the family had drifted to four answers for one job
+ * (editors 16 by way of their form gap, follow lists 12, comments 8, the hero
+ * sheets 8), which is exactly the per-sheet wobble the iOS 84 was
+ * standardised to kill (Juan, 2026-09-05: standardise the top spacing of
+ * every screen and sheet the way iOS does).
+ */
+export const COMPOSE_SHEET_HEADER_HEIGHT = 40;
+export const COMPOSE_SHEET_HEADER_TO_CONTENT = 16;
+
+/**
  * THE TRAILING PADDING THAT LANDS A BAR GLYPH ON THE GUTTER.
  *
  * An icon button is a 24dp glyph centred in a 48dp touch box, so aligning the
