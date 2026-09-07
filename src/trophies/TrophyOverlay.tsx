@@ -8,7 +8,6 @@ import {
 
 import {
   AccessibilityInfo,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -672,9 +671,16 @@ export const TrophyOverlay = ({
 const styles = StyleSheet.create({
   host: {
     left: 0,
-    // iOS: the screen gutter, so this banner hangs off the side edges by what
-    // the now-playing banner and the toast do. ANDROID IS STILL 12, unreviewed.
-    paddingHorizontal: Platform.select({ ios: SCREEN_PADDING, default: 12 }),
+    /**
+     * THE SCREEN GUTTER, BOTH PLATFORMS, so this banner hangs off the side
+     * edges by what the now-playing banner and the toast do.
+     *
+     * Android drew 12 and this comment called it "unreviewed". It was also
+     * inconsistent inside ANDROID: `SnackbarProvider`'s host takes a flat 16
+     * on both platforms, so the app's two floating surfaces sat at different
+     * side insets on the one platform that shows both.
+     */
+    paddingHorizontal: SCREEN_PADDING,
     position: 'absolute',
     right: 0,
     top: 0,
@@ -683,13 +689,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     /**
-     * iOS: the SHARED floating-surface gap, so this banner stands off the top
-     * safe area by exactly what the now-playing banner stands off the bottom
-     * one — same object, opposite ends. ANDROID STILL KEEPS the 18 it shipped with
-     * ("a little breathing room below the status bar", which was never a
-     * measured number, and is now measurable).
+     * THE SHARED floating-surface gap, BOTH PLATFORMS, so this banner stands
+     * off the top safe area by exactly what the now-playing banner stands off
+     * the bottom one — same object, opposite ends.
+     *
+     * Android kept 18 until 2026-09-07, described in this very comment as
+     * "a little breathing room below the status bar, which was never a
+     * measured number". It is the shared term now: an unmeasured number
+     * sitting beside the term that measures it is a difference nobody chose.
      */
-    marginTop: Platform.select({ ios: FLOATING_EDGE_GAP, default: 18 }),
+    marginTop: FLOATING_EDGE_GAP,
     // NO `overflow: 'hidden'` — it would clip the injected surface's shadow off
     // the box. The one thing that needed clipping (the shine) clips itself, in
     // SVG, against the same radius.
@@ -724,11 +733,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  // iOS: the shared title→supporting step. Android is still 1, unreviewed.
-  textColumn: {
-    flex: 1,
-    gap: Platform.select({ ios: FLOATING_COPY_GAP, default: 1 }),
-  },
+  /**
+   * THE SHARED title→supporting step, BOTH PLATFORMS. Android drew 1 — not a
+   * decision, just what it shipped with, and this comment said so ("Android is
+   * still 1, unreviewed") for as long as it stood.
+   *
+   * It is the one number in this block that was NOT shared: the three type
+   * steps and all three colours already are. So the banner's whole
+   * platform difference was a single point of leading between its lines, and
+   * that point is what made the Android copy read tighter and less resolved
+   * than the iOS one (Juan, 2026-09-07: "in iOS it's more polished overall").
+   */
+  textColumn: { flex: 1, gap: FLOATING_COPY_GAP },
   // iOS TYPE STEPS, not invented sizes — the same correction the snackbar took
   // ("the 14 both platforms shared was Material's body-medium; iOS has no 14pt
   // step at all"). This banner had a 16pt title, and iOS has no 16pt step
