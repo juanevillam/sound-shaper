@@ -113,7 +113,10 @@ const InfoRow = ({
  * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.
  * `cancelLabel` and per-section `icon` are unused here — the native menu
  * dismisses itself. `seedColor` is likewise Android-only (Compose theming);
- * this variant tints from `colors.primary`.
+ * this variant tints from `colors.primary`. `scrollProps` is Android-only
+ * too, deliberately: it exists to drive the M3 on-scroll app bar, and iOS
+ * never paints `headerStyle` — doing so would opt the bar out of the Liquid
+ * Glass scroll-edge effect (the same rule Sound Shaper's adapter records).
  */
 export const SettingsScreen = ({
   account,
@@ -203,8 +206,9 @@ export const SettingsScreen = ({
 
         {/* Policy links in a card of their own, between About and Sign Out —
             Apple's grouping. They are policy, not build info, so they don't
-            belong beside version numbers (which is where Android still shows
-            them — Material's grouping). */}
+            belong beside version numbers. (Android agreed on 2026-08-29 —
+            its twin gives `legal` its own headed group too; the "Material
+            groups legal with About" argument is retired in its file.) */}
         {legal?.rows.length ? (
           <Section title={legal.title}>
             {legal.rows.map(row => (

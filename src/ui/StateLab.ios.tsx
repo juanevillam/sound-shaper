@@ -51,9 +51,11 @@ import type { StateLabGroup } from './StateLab';
  *    control iOS uses to swap between two views of the same thing;
  *  - the steppers are `Button`s carrying SF Symbol chevrons, at `large`
  *    control size, rather than typographic ‹ › in a padded box;
- *  - the bar itself is `glassEffect` — a floating dev HUD over live content is
- *    precisely what iOS 26's Liquid Glass is for, and it means the tool reads
- *    as floating ABOVE the screen rather than as part of it.
+ *  - the bar's SURFACE stays an RN card fill, not `glassEffect` — see the
+ *    note on `styles.card`: `@expo/ui` exposes no `background` modifier, and
+ *    Liquid Glass is for chrome that refracts live content, which a dev HUD
+ *    that only needs to be legible is not. (An earlier version of this
+ *    docblock claimed the bar WAS glass; it never shipped that way.)
  *
  * WHAT STAYS RN: the positioning shell only — absolute placement, the safe-area
  * inset and riding the keyboard. Those are layout, not chrome, and RN owns the
@@ -68,11 +70,20 @@ const CARD_RADIUS = 22;
 const DEFAULT_BOTTOM_OFFSET = 52;
 
 export function StateLab({
+  anchored = false,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   colors,
   groups,
   onSelectGroup,
 }: {
+  /** Float 8 above the bottom of the view the bar is MOUNTED IN, ignoring
+   *  the safe inset and the keyboard — for a bar mounted inside a sheet's
+   *  own content area (the iOS comments sheet), whose parent already stops
+   *  above the composer. Same contract as the base twin's flag; this file
+   *  shipped without it for two days and silently dropped it (`d14c382`
+   *  landed it in `StateLab.tsx` only, which iOS never resolves — the third
+   *  accepted-but-ignored-prop incident this week). */
+  anchored?: boolean;
   bottomOffset?: number;
   colors: {
     card: string;
@@ -130,7 +141,11 @@ export function StateLab({
     <View
       style={[
         styles.shell,
-        { bottom: (keyboard > 0 ? keyboard : bottom + bottomOffset) + 8 },
+        {
+          bottom:
+            (anchored ? 0 : keyboard > 0 ? keyboard : bottom + bottomOffset) +
+            8,
+        },
       ]}
     >
       <View style={[styles.card, { backgroundColor: colors.card }]}>
