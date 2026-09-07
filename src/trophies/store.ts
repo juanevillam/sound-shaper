@@ -43,6 +43,21 @@ type TrophyState = {
   award: (id: string) => void;
   /** Drop the head of the popup queue (the overlay calls this when one finishes). */
   dequeue: () => void;
+  /**
+   * DEV ONLY — pop a trophy's banner WITHOUT awarding it.
+   *
+   * `award` is idempotent by design (the one guard that makes the engine safe
+   * to call from anywhere), so it can never replay a trophy the person has
+   * already earned — which is exactly what reviewing the banner, its sound and
+   * its haptic needs. This enqueues straight onto the popup queue and touches
+   * nothing else: no `awarded` entry, no adapter write, no platinum check. The
+   * real trophy state is left exactly as it was.
+   *
+   * It goes through the SAME queue the real unlock uses, so the overlay's
+   * `onShow` (sound + haptic), its sequencing and its suspend-while-a-sheet-is-
+   * up behaviour are all the production ones.
+   */
+  replay: (id: string) => void;
   /** Clear all state on sign-out, so the next user starts clean. */
   reset: () => void;
 };
@@ -146,6 +161,13 @@ export const useTrophyStore = create<TrophyState>()((set, get) => {
 
     dequeue: () => set(state => ({ queue: state.queue.slice(1) })),
 
+    replay: id => {
+      const config = get().byId[id];
+      if (!config) return;
+
+      set(state => ({ queue: [...state.queue, { id, tier: config.tier }] }));
+    },
+
     reset: () =>
       set({
         configs: [],
@@ -167,6 +189,13 @@ export const configureTrophies = (
   configs: TrophyConfig[],
   adapter: TrophyPersistenceAdapter,
 ) => useTrophyStore.getState().configure(configs, adapter);
+
+/**
+ * DEV ONLY — replay a trophy's banner without awarding it. See `replay` on the
+ * store for why `awardTrophy` cannot do this.
+ */
+export const replayTrophy = (id: string) =>
+  useTrophyStore.getState().replay(id);
 
 /** Imperative reset on sign-out / account switch. */
 export const resetTrophies = () => useTrophyStore.getState().reset();

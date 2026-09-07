@@ -3,6 +3,7 @@
 export {
   awardTrophy,
   configureTrophies,
+  replayTrophy,
   resetTrophies,
   useTrophyStore,
 } from './store';
