@@ -190,16 +190,6 @@ export const SettingsScreen = ({
                 modifiers={[tint(colors.switchOn)]}
               />
             ))}
-            {/* Dev BUTTONS, in the same Section as the switches — a plain
-                tinted Form row, which is what a Form's action row is. Added
-                with the Android side rather than after it: a prop rendered on
-                one platform only is the `.ios` drift this repo keeps paying
-                for. */}
-            {(devToggles.actions ?? []).map(action => (
-              <Button key={action.label} onPress={action.onPress}>
-                <Text>{action.label}</Text>
-              </Button>
-            ))}
           </Section>
         ) : null}
 
