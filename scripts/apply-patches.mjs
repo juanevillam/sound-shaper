@@ -28,8 +28,24 @@ if (!existsSync(patchesDir)) {
   process.exit(0);
 }
 
-for (const pkg of readdirSync(patchesDir, { withFileTypes: true })) {
-  if (!pkg.isDirectory()) continue;
+// A directory starting with `@` is an npm scope, not a package: recurse one
+// level so patches/@expo/ui overlays node_modules/@expo/ui.
+const packageNames = [];
+for (const entry of readdirSync(patchesDir, { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  if (entry.name.startsWith('@')) {
+    for (const child of readdirSync(join(patchesDir, entry.name), {
+      withFileTypes: true,
+    })) {
+      if (child.isDirectory()) packageNames.push(`${entry.name}/${child.name}`);
+    }
+  } else {
+    packageNames.push(entry.name);
+  }
+}
+
+for (const name of packageNames) {
+  const pkg = { name };
   const overlayDir = join(patchesDir, pkg.name);
   const installedDir = join(root, 'node_modules', pkg.name);
 
