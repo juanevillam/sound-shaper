@@ -51,15 +51,35 @@ import { ScrollView, StyleSheet } from 'react-native';
 export function StateWrap({
   children,
   top = false,
+  topInset,
 }: {
   children: ReactNode;
   /** Stand the content where real content starts, rather than centring it. */
   top?: boolean;
+  /**
+   * WHERE real content starts, stated by the caller instead of asked of
+   * UIKit. `automatic` is an async answer, and on a REMOUNT of this scroller
+   * (a lab step swapping branches, a fast retry) it can lose the race and
+   * leave the whole skeleton standing at inset 0, under the bar — the
+   * `PeopleSheetListIos` finding, seen a third time on top-detail's bones.
+   * A surface that knows its chrome's height passes it here; the scroller
+   * then takes `never` and stands the inset as padding, which cannot race.
+   * Only read with `top`.
+   */
+  topInset?: number;
 }) {
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior={top ? 'automatic' : 'never'}
-      contentContainerStyle={top ? undefined : styles.centred}
+      contentInsetAdjustmentBehavior={
+        top && topInset === undefined ? 'automatic' : 'never'
+      }
+      contentContainerStyle={
+        top
+          ? topInset !== undefined
+            ? { paddingTop: topInset }
+            : undefined
+          : styles.centred
+      }
       alwaysBounceVertical={false}
       // Harmless where there is no keyboard, required where there is: Explore
       // reaches these states with the search field focused.
