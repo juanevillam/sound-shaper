@@ -48,7 +48,8 @@ type SnackbarProviderProps = {
    * swipe are the dismissal there). Already translated, since the package has
    * no translator. Defaults to 'OK' — the one hardcoded English string this
    * file shipped with — so an app that has not wired it yet is unchanged.
-   * STILL UNVERIFIED on an Android device — walk it.
+   * Verified on the A54 via Topper's action-less toasts (the localized label
+   * renders in the slot and dismisses on tap).
    */
   dismissLabel?: string;
   /**
