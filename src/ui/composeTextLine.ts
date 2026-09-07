@@ -8,13 +8,15 @@ import { type TextVariant } from './createText';
  *
  * `SkeletonTextLine` measures the box by standing an invisible RN `Text` at
  * the variant — right whenever the real line is RN text, because it is the
- * same engine measuring the same thing. It is WRONG for a row drawn in
- * Compose, and by a lot on two rungs: RN's Android ladder (`ANDROID_VARIANTS`)
- * writes `bodyLarge` at 16/22 and `labelLarge` at 14/18, while Material 3's
- * own type scale — which is what `MaterialTheme.typography` hands a Compose
- * `Text` — draws them at 16/24 and 14/20. A comment bone built from the RN
- * ghost stood 65.78dp against a 72.89dp Compose row on a Galaxy A54
- * (2026-09-05), the whole 7.11 being those two rungs' 2 + 2, scaled.
+ * same engine measuring the same thing. A row drawn in COMPOSE needs this
+ * instead, for two reasons that survive the 2026-09-06 ladder correction
+ * (the RN ladder used to write bodyLarge 22 / labelLarge 18 against M3's
+ * 24/20, which a comment bone measured as 65.78dp against a 72.89dp Compose
+ * row; those rungs now agree): an RN `Text` renders PAST its stated
+ * lineHeight by an amount only the platform knows (the `SkeletonTextLine`
+ * ghost exists for exactly that), while Compose draws the sp value exactly —
+ * so a ghost is right for RN ink and this arithmetic is right for Compose
+ * ink, and they are not interchangeable.
  *
  * SCALED, because sp scales. Compose lays a line out at `lineHeight.sp`, so
  * at the A54's font scale of 1.15 a 24sp body line is 27.6dp on screen. An RN
