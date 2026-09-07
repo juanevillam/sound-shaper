@@ -149,6 +149,13 @@ export type SettingsScreenProps = {
       value: boolean;
       onValueChange: (value: boolean) => void;
     }[];
+    /**
+     * Dev BUTTONS, under the switches in the same group — for a state that can
+     * only be reviewed by firing it (Topper's trophy banners: the engine
+     * refuses to re-award, so the only way to see one again is to replay it).
+     * Same shape as a switch row, minus the value.
+     */
+    actions?: { label: string; onPress: () => void }[];
   };
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
@@ -355,6 +362,10 @@ const InfoGroup = ({
  * passed it on iOS only, so the lab could not be flipped at runtime on the
  * one platform Phase B runs on (Juan, 2026-09-04).
  */
+const devRowCount = (
+  devToggles: NonNullable<SettingsScreenProps['devToggles']>,
+) => devToggles.rows.length + (devToggles.actions?.length ?? 0);
+
 const DevTogglesGroup = ({
   devToggles,
   colors,
@@ -378,6 +389,9 @@ const DevTogglesGroup = ({
       ]}
       verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
     >
+      {/* Switches and buttons share ONE grouped card, so the corner shape is
+          cut against the combined count — two groups would read as two
+          settings, and this is one dev drawer. */}
       {devToggles.rows.map((row, index) => (
         <ListItem
           key={row.label}
@@ -387,7 +401,7 @@ const DevTogglesGroup = ({
           }}
           modifiers={[
             fillMaxWidth(),
-            clip(groupRowShape(index, devToggles.rows.length)),
+            clip(groupRowShape(index, devRowCount(devToggles))),
           ]}
         >
           <ListItem.HeadlineContent>
@@ -396,6 +410,29 @@ const DevTogglesGroup = ({
           <ListItem.TrailingContent>
             <Switch value={row.value} onCheckedChange={row.onValueChange} />
           </ListItem.TrailingContent>
+        </ListItem>
+      ))}
+      {(devToggles.actions ?? []).map((action, index) => (
+        <ListItem
+          key={action.label}
+          colors={{
+            containerColor: colors.surfaceContainer,
+            contentColor: colors.onSurface,
+          }}
+          modifiers={[
+            fillMaxWidth(),
+            clip(
+              groupRowShape(
+                devToggles.rows.length + index,
+                devRowCount(devToggles),
+              ),
+            ),
+            clickable(action.onPress),
+          ]}
+        >
+          <ListItem.HeadlineContent>
+            <Text>{action.label}</Text>
+          </ListItem.HeadlineContent>
         </ListItem>
       ))}
     </Column>
