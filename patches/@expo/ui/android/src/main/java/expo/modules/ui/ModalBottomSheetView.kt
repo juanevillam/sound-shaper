@@ -4,6 +4,9 @@ package expo.modules.ui
 
 import android.graphics.Color
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -111,15 +114,26 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
       shouldDismissOnBackPress = props.properties.shouldDismissOnBackPress,
       shouldDismissOnClickOutside = props.properties.shouldDismissOnClickOutside
     ),
-    // PORTFOLIO OVERLAY (patches/@expo/ui): zero the sheet's own content
-    // window insets. Material3's default (safeDrawing top+bottom) pads the
-    // content END by the navigation-bar inset on the FIRST render and
-    // collapses to 0 after one IME open/close cycle (measured 48dp of drift
-    // on a Galaxy A54, 3-button nav). The JS side clears the bar
-    // deterministically with composeSheetBottomPadding(insets.bottom); an
-    // unstable second contribution cannot be compensated from inside the
-    // sheet. See patches/@expo/ui/README.md.
-    contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+    // PORTFOLIO OVERLAY (patches/@expo/ui): TOP inset only.
+    //
+    // Material3's default is safeDrawing on Top+Bottom, and the BOTTOM half is
+    // unusable here: it pads the content END by the navigation-bar inset on
+    // the FIRST render and collapses to 0 after one IME open/close cycle
+    // (measured 48dp of drift on a Galaxy A54, 3-button nav). The JS side
+    // clears the bar deterministically with
+    // composeSheetBottomPadding(insets.bottom); an unstable second
+    // contribution cannot be compensated from inside the sheet.
+    //
+    // THE TOP HALF IS NOT OPTIONAL, and zeroing it was this overlay's own
+    // bug: a sheet tall enough to reach the top of the screen then drew its
+    // drag handle UNDER the status bar and the camera cutout (Juan,
+    // 2026-09-07 — "the draggable indicator UNDER the phone's camera
+    // cutout"). iOS never has this because a form sheet stops short of the
+    // safe area; on Android the inset IS how a sheet stops short. Material's
+    // own top inset is stable — the sheet consumes it against its current
+    // offset, so it contributes nothing until the sheet actually reaches the
+    // status bar. See patches/@expo/ui/README.md.
+    contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
     modifier = ModifierRegistry.applyModifiers(props.modifiers, appContext, composableScope, globalEventDispatcher)
   ) {
     Children(UIComposableScope(), filter = { !isSlotView(it) })

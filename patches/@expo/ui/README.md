@@ -1,8 +1,9 @@
 # @expo/ui overlay — deterministic ModalBottomSheet content insets (Android)
 
 One file: `android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt`.
-It passes `contentWindowInsets = { WindowInsets(0, 0, 0, 0) }` to Material3's
-`ModalBottomSheet` (plus the import), and nothing else. Kotlin compiles into
+It passes `contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) }`
+to Material3's `ModalBottomSheet` (plus the imports), and nothing else — the
+BOTTOM half of M3's default is replaced, the TOP half is kept. Kotlin compiles into
 the `ExpoUI` module, so changing this needs a **native rebuild** — a Metro
 reload proves nothing.
 
@@ -26,8 +27,24 @@ the keyboard had been up once.
 
 The JS side already owns the deterministic answer:
 `composeSheetBottomPadding(insets.bottom)` (packages/mobile-ui/sheetMetrics)
-pads the content end from the WINDOW edge. With M3's unstable contribution
-zeroed, first render equals settled render on every sheet.
+pads the content end from the WINDOW edge. With M3's unstable BOTTOM
+contribution dropped, first render equals settled render on every sheet.
+
+## Why the TOP inset stays (and why zeroing it was a bug)
+
+This overlay first zeroed BOTH sides, and that broke the other end: a sheet
+tall enough to reach the top of the screen drew its drag handle UNDER the
+status bar and the camera cutout (Juan, 2026-09-07, on the comments sheet and
+the two editors). iOS never shows this because a form sheet stops short of the
+safe area; on Android the content inset IS how a sheet stops short.
+
+The top half does not have the bottom half's instability: M3 consumes it
+against the sheet's own offset (`SheetWindowInsets(sheetState)`), so it
+contributes nothing until the sheet actually reaches the status bar, and the
+full inset exactly when it does. Measured after the fix on the A54: the
+comments sheet's handle pill sits at 55.82dp — the handle's 48dp box starting
+at the status bar's 33.8 — instead of under it, and the composer's foot is
+unchanged.
 
 ## The Android twin of the iOS precompiled trap
 

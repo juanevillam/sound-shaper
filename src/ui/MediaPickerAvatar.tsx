@@ -31,24 +31,21 @@ import { SquashPressable } from './SquashPressable';
 /**
  * Exported so callers deriving a preview radius use the REAL box size.
  *
- * 120 on iOS, the Contacts photo-editor size — the picker floats on the sheet
- * (no row fill to sit in), and at the Android-era 72 it read as a thumbnail
- * rather than the sheet's subject (Juan: "soo small"). ANDROID IS STILL 72,
- * where the disc sits inside a filled Compose row — a different container, so
- * not automatically the same answer, but no longer a decision the freeze made.
+ * 120 ON BOTH, the Contacts photo-editor size. The picker FLOATS on the sheet
+ * — there is no row fill for it to sit in on either platform — and at 72 it
+ * read as a thumbnail rather than the sheet's subject (Juan: "soo small" on
+ * iOS 2026-08, and again on Android 2026-09-07: "way smaller and idk why").
+ *
+ * It was `Platform.select({ ios: 120, default: 72 })`, and the note defending
+ * the 72 said the Android disc "sits inside a filled Compose row — a different
+ * container". That was never true of the editor sheets, which centre it in a
+ * plain column exactly as iOS does; the 72 was the pre-iOS-pass number nobody
+ * had revisited, which the note itself half-admitted ("no longer a decision
+ * the freeze made"). One box, one number.
  */
-export const MEDIA_PICKER_SIZE = Platform.select({
-  ios: 120,
-  default: 72,
-}) as number;
+export const MEDIA_PICKER_SIZE = 120;
 const AVATAR_SIZE = MEDIA_PICKER_SIZE;
 const AVATAR_RADIUS = AVATAR_SIZE / 2;
-/**
- * iOS renders the SHARED empty-media plus — the same spec a create tile draws,
- * since both are "tap to fill this box". ANDROID STILL KEEPS the fullwidth glyph
- * and hand size it shipped with — unreviewed rather than decided.
- */
-const ANDROID_PLUS_FONT_SIZE = 28;
 /** A fallback emoji stands in for the plus where an app has one. */
 const EMOJI_FONT_SIZE = 32;
 
@@ -125,6 +122,13 @@ export function MediaPickerAvatar({
       <SquashPressable
         onPress={disabled ? noop : onPress}
         accessibilityLabel={accessibilityLabel}
+        // CENTRE THE PRESS TARGET'S OWN CHILDREN. The wrapper above centres
+        // this pressable; inside it the avatar is a FIXED-width box beside a
+        // caption that is usually wider ("Change Photo"), and at the default
+        // `stretch` the fixed child lands at flex-start — so the square sat
+        // LEFT of the words under it (Juan, 2026-09-07). Invisible while the
+        // box was wider than its caption, which is why only Android showed it.
+        style={styles.press}
       >
         <View
           style={[
@@ -161,6 +165,7 @@ export function MediaPickerAvatar({
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', width: '100%' },
+  press: { alignItems: 'center' },
   avatar: {
     alignItems: 'center',
     borderRadius: AVATAR_RADIUS,
@@ -179,8 +184,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emoji: { fontSize: EMOJI_FONT_SIZE },
-  plus: Platform.select({
-    ios: emptyMediaPlusStyle(MEDIA_PICKER_SIZE),
-    default: { fontSize: ANDROID_PLUS_FONT_SIZE },
-  }),
+  // THE SHARED SPEC ON BOTH — the glyph is a RATIO of the box it sits in
+  // (`emptyMediaPlusStyle`), which is the rule every create tile follows.
+  // Android had a flat 28, fine in a 72 box and lost in a 120 one; a
+  // hard-coded glyph size cannot survive its container changing.
+  plus: emptyMediaPlusStyle(MEDIA_PICKER_SIZE),
 });
