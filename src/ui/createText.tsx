@@ -25,9 +25,13 @@ export type TextVariant =
 // individually wrong and the whole thing read as not-quite-native, because a
 // platform's type ramp is most of its handwriting.
 //
-// So the steps are per-platform. ANDROID KEEPS ITS EXACT NUMBERS — they are
-// the M3 roles its screens were built against, and moving them would move every
-// Android screen at once. iOS maps each step onto the matching Apple text style at
+// So the steps are per-platform. ANDROID TAKES M3'S OWN NUMBERS — and three
+// of them had to be CORRECTED to say so (2026-09-06): `titleMedium`,
+// `bodyLarge` and `labelLarge` carried line heights two under the spec
+// (22/22/18 against M3's 24/24/20), which is what `composeTextLine.ts`
+// measured as a 7.11dp-short comment bone against the real Compose row —
+// every RN line at those rungs sat 2dp tighter than the same role drawn by
+// Compose one screen over. iOS maps each step onto the matching Apple text style at
 // the default (Large) Dynamic Type size, from the HIG's specification:
 //
 //   Large Title 34/41   Title 1 28/34   Title 2 22/28   Title 3 20/25
@@ -54,17 +58,21 @@ export type TextVariant =
 // (and `titleSmall`, which this scale has no step for). Everything else on the
 // display / headline / body ramps is Regular, and stays unset.
 //
-// `fontSize` and `lineHeight` are untouched, so no layout moves and the
-// dimension-matched skeletons stay matched — this is a weight-only change.
+// The 2026-09-06 line-height correction DOES move layout (+2dp per line at
+// the three rungs). Every ghost-measured bone (`SkeletonTextLine`) follows by
+// construction; the hard-coded boxes that could not follow were converted to
+// ghosts in the same change. The one deliberate holdout is the starter's
+// Android home header, whose padding was solved on-device against the old 18
+// and whose own comment defers this change to its next walk.
 const ANDROID_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: { fontSize: 36, lineHeight: 44 },
   headlineLarge: { fontSize: 28, lineHeight: 36 },
   titleLarge: { fontSize: 22, lineHeight: 28 },
-  titleMedium: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
-  bodyLarge: { fontSize: 16, lineHeight: 22 },
+  titleMedium: { fontSize: 16, lineHeight: 24, fontWeight: '500' },
+  bodyLarge: { fontSize: 16, lineHeight: 24 },
   bodyMedium: { fontSize: 14, lineHeight: 20 },
   bodySmall: { fontSize: 12, lineHeight: 16 },
-  labelLarge: { fontSize: 14, lineHeight: 18, fontWeight: '500' },
+  labelLarge: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
   labelMedium: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
 };
 
