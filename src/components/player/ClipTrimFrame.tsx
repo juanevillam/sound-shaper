@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
-import { SwiftUIHost } from '@portfolio/mobile-ui';
+
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -13,6 +12,8 @@ import Animated, {
   useReducedMotion,
   type SharedValue,
 } from 'react-native-reanimated';
+
+import { CapChevron } from '@/components/player/TrimGlyphs';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -166,7 +167,7 @@ const DRAG_MIN_DISTANCE = 2;
 /** VoiceOver's increment/decrement step, and the label's own granularity. */
 const A11Y_STEP_S = 1;
 
-type ClipTrimFrameIosProps = {
+type ClipTrimFrameProps = {
   durationS: number;
   startS: number;
   endS: number;
@@ -181,14 +182,14 @@ type ClipTrimFrameIosProps = {
   onChange: (startS: number, endS: number) => void;
 };
 
-export function ClipTrimFrameIos({
+export function ClipTrimFrame({
   durationS,
   startS,
   endS,
   startSv,
   endSv,
   onChange,
-}: ClipTrimFrameIosProps) {
+}: ClipTrimFrameProps) {
   const { colors } = useAppTheme();
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
@@ -408,17 +409,13 @@ export function ClipTrimFrameIos({
                   { backgroundColor: colors.primary },
                 ]}
               >
-                <SwiftUIHost
-                  ignoreSafeArea="all"
-                  pointerEvents="none"
-                  style={styles.chevronHost}
-                >
-                  <Image
-                    systemName="chevron.compact.left"
+                <View pointerEvents="none" style={styles.chevronHost}>
+                  <CapChevron
+                    direction="left"
                     size={CHEVRON_SIZE}
                     color={colors.onPrimary}
                   />
-                </SwiftUIHost>
+                </View>
               </View>
             </Animated.View>
           </GestureDetector>
@@ -436,17 +433,13 @@ export function ClipTrimFrameIos({
                   { backgroundColor: colors.primary },
                 ]}
               >
-                <SwiftUIHost
-                  ignoreSafeArea="all"
-                  pointerEvents="none"
-                  style={styles.chevronHost}
-                >
-                  <Image
-                    systemName="chevron.compact.right"
+                <View pointerEvents="none" style={styles.chevronHost}>
+                  <CapChevron
+                    direction="right"
                     size={CHEVRON_SIZE}
                     color={colors.onPrimary}
                   />
-                </SwiftUIHost>
+                </View>
               </View>
             </Animated.View>
           </GestureDetector>

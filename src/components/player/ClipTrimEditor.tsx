@@ -2,13 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { Image } from '@expo/ui/swift-ui';
 import { withAlpha } from '@portfolio/core';
-import {
-  SHEET_CONTENT_TOP,
-  SwiftUIHost,
-  useSheetLanded,
-} from '@portfolio/mobile-ui';
+import { SHEET_CONTENT_TOP, useSheetLanded } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -27,13 +22,18 @@ import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import {
   CAP_TOUCH_OVERHANG,
-  ClipTrimFrameIos,
+  ClipTrimFrame,
   MIN_GAP_S,
   RANGE_FILL_ALPHA,
   TRIM_FRAME_HEIGHT,
-} from '@/components/player/ClipTrimFrameIos';
+} from '@/components/player/ClipTrimFrame';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
+import {
+  SKIP_SECONDS,
+  SkipBackGlyph,
+  SkipForwardGlyph,
+} from '@/components/player/TrimGlyphs';
 
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -45,12 +45,12 @@ import { SCREEN_PADDING } from '@/styles/metrics';
 import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
 
 import {
-  IOS_TRANSPORT_GAP,
-  IOS_TRANSPORT_GLYPH_BOX_RATIO,
-  IOS_TRANSPORT_PLAY_SIZE,
-  IOS_TRANSPORT_ROW_HEIGHT,
-  IOS_TRANSPORT_SKIP_SIZE,
-  usePlayerTransportAnchorIos,
+  TRANSPORT_GAP,
+  TRANSPORT_GLYPH_BOX_RATIO,
+  TRANSPORT_PLAY_SIZE,
+  TRANSPORT_ROW_HEIGHT,
+  TRANSPORT_SKIP_SIZE,
+  usePlayerTransportAnchor,
 } from './chrome';
 
 // ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ import {
 // is an 18,000pt SVG nobody should rasterise whole.
 //
 // THE SELECTION IS ONE STATE WITH TWO SURFACES. The overview strip reuses
-// `ClipTrimFrameIos` — the caps, rails, arbitration, fine-scrub and VoiceOver
+// `ClipTrimFrame` — the caps, rails, arbitration, fine-scrub and VoiceOver
 // work built for the in-player frame — and the zoomed view draws the same
 // shared values as a wash with two draggable edge lines. Both commit through
 // one `onChange`.
@@ -137,7 +137,7 @@ const BAR_WIDTH = 2;
 const EDGE_TOUCH_WIDTH = 44;
 
 /**
- * The overview strip IS the trim frame's box — `ClipTrimFrameIos` rides it,
+ * The overview strip IS the trim frame's box — `ClipTrimFrame` rides it,
  * and that component was designed around exactly this 44 (Apple's minimum,
  * measured against Photos). Stated as the import, not a coincident 44.
  */
@@ -145,7 +145,7 @@ const OVERVIEW_HEIGHT = TRIM_FRAME_HEIGHT;
 const OVERVIEW_BAR_PITCH = 2.5;
 const OVERVIEW_BAR_WIDTH = 1.5;
 
-const SKIP_S = 15;
+const SKIP_S = SKIP_SECONDS;
 /**
  * The skip glyphs take the transport's own skip size AND its own box ratio —
  * one app, one transport. The ratio was a re-declared 1.3, which is precisely
@@ -155,7 +155,7 @@ const SKIP_S = 15;
  * grep-the-term rule — the constant existing is half the job.
  */
 const SKIP_HOST_BOX = Math.round(
-  IOS_TRANSPORT_SKIP_SIZE * IOS_TRANSPORT_GLYPH_BOX_RATIO,
+  TRANSPORT_SKIP_SIZE * TRANSPORT_GLYPH_BOX_RATIO,
 );
 
 /**
@@ -188,7 +188,7 @@ const PLACEHOLDER_LEVEL = 0.18;
 
 type Range = { startS: number; endS: number };
 
-type ClipTrimEditorIosProps = {
+type ClipTrimEditorProps = {
   /** Committed selection — the numbers Save writes. */
   range: Range;
   onRangeChange: (startS: number, endS: number) => void;
@@ -238,10 +238,7 @@ function barsPath(
   return parts.join('');
 }
 
-export function ClipTrimEditorIos({
-  range,
-  onRangeChange,
-}: ClipTrimEditorIosProps) {
+export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const { width: winW, height: winH } = useWindowDimensions();
@@ -505,7 +502,7 @@ export function ClipTrimEditorIos({
    * IT YIELDS TO THE FRAME BY GEOMETRY. The frame's middle slides the clip
    * and its cap wrappers reach `CAP_TOUCH_OVERHANG` past each edge; a scrub
    * STARTING in that territory no-ops instead of racing the frame's own
-   * pans — the arbitration lesson in `ClipTrimFrameIos`: overlapping
+   * pans — the arbitration lesson in `ClipTrimFrame`: overlapping
    * handlers on different views are not guaranteed exclusive, so the loser
    * is decided by arithmetic, not by the gesture system. A drag that starts
    * on bare track and then crosses the frame keeps scrubbing — ownership is
@@ -573,7 +570,7 @@ export function ClipTrimEditorIos({
       .onFinalize(() => {
         // Unrounded — the cap commits exactly where it was dropped. The
         // whole-second policy is the playhead's and the labels'; see
-        // `ClipTrimFrameIos`'s start cap for the full note (Juan,
+        // `ClipTrimFrame`'s start cap for the full note (Juan,
         // 2026-08-27).
         runOnJS(commitEdges)();
       });
@@ -671,13 +668,13 @@ export function ClipTrimEditorIos({
    * anchor is always set by the time this renders; the fallback keeps the
    * sheet standing if that invariant ever breaks.
    */
-  const transportAnchorY = usePlayerTransportAnchorIos();
+  const transportAnchorY = usePlayerTransportAnchor();
   const anchorBottomPad =
     transportAnchorY == null
       ? null
       : Math.max(
           insets.bottom + 8,
-          winH - transportAnchorY - IOS_TRANSPORT_ROW_HEIGHT / 2,
+          winH - transportAnchorY - TRANSPORT_ROW_HEIGHT / 2,
         );
 
   if (!current) return null;
@@ -843,7 +840,7 @@ export function ClipTrimEditorIos({
             ]}
           />
           <View style={styles.overviewFrame} pointerEvents="box-none">
-            <ClipTrimFrameIos
+            <ClipTrimFrame
               durationS={durationS}
               startS={range.startS}
               endS={range.endS}
@@ -891,19 +888,21 @@ export function ClipTrimEditorIos({
         <GlyphButton
           onPress={() => onSkip(-SKIP_S)}
           hitSlop={12}
-          accessibilityLabel={t('player.clips.skipBack')}
+          accessibilityLabel={t('player.clips.skipBack').replace(
+            '{s}',
+            String(SKIP_SECONDS),
+          )}
         >
-          {/* Bare `Image`, TransportGlyphs' reasoning: `AppIcon`'s map is
-              keyed by Material names, and these are Apple's own ±15 glyphs.
-              They draw at the transport's own skip size, so this row and the
-              console's read as one app's controls. */}
-          <SwiftUIHost ignoreSafeArea="all" style={styles.skipHost}>
-            <Image
-              systemName="gobackward.15"
-              size={IOS_TRANSPORT_SKIP_SIZE}
+          {/* The platform's own skip badge at the transport's skip size, so
+              this row and the console's read as one app's controls — SF's
+              ±15 on iOS, Material's ±10 on Android (`TrimGlyphs` has the
+              split's argument). The slot keeps the transport's stated box. */}
+          <View style={styles.skipHost}>
+            <SkipBackGlyph
               color={colors.onSurface}
+              size={TRANSPORT_SKIP_SIZE}
             />
-          </SwiftUIHost>
+          </View>
         </GlyphButton>
         <GlyphButton
           onPress={onTogglePlay}
@@ -913,29 +912,25 @@ export function ClipTrimEditorIos({
           )}
         >
           {playing ? (
-            <PauseGlyph
-              color={colors.onSurface}
-              size={IOS_TRANSPORT_PLAY_SIZE}
-            />
+            <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
           ) : (
-            <PlayGlyph
-              color={colors.onSurface}
-              size={IOS_TRANSPORT_PLAY_SIZE}
-            />
+            <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
           )}
         </GlyphButton>
         <GlyphButton
           onPress={() => onSkip(SKIP_S)}
           hitSlop={12}
-          accessibilityLabel={t('player.clips.skipForward')}
+          accessibilityLabel={t('player.clips.skipForward').replace(
+            '{s}',
+            String(SKIP_SECONDS),
+          )}
         >
-          <SwiftUIHost ignoreSafeArea="all" style={styles.skipHost}>
-            <Image
-              systemName="goforward.15"
-              size={IOS_TRANSPORT_SKIP_SIZE}
+          <View style={styles.skipHost}>
+            <SkipForwardGlyph
               color={colors.onSurface}
+              size={TRANSPORT_SKIP_SIZE}
             />
-          </SwiftUIHost>
+          </View>
         </GlyphButton>
       </View>
 
@@ -1340,7 +1335,7 @@ const styles = StyleSheet.create({
   transport: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: IOS_TRANSPORT_GAP,
+    gap: TRANSPORT_GAP,
     justifyContent: 'center',
   },
   /**
