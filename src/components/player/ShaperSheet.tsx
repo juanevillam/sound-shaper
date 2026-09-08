@@ -13,6 +13,7 @@ import {
   fillMaxHeight,
   fillMaxWidth,
   height,
+  offset,
   padding,
   verticalScroll,
   weight,
@@ -218,12 +219,17 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           {/* Vertical spacing 0, not the horizontal 8: each chip's 32dp face
               sits in Compose's 48dp minimum touch box, so the boxes already
               hold 16dp of visual air between rows — stated 8 rendered as 24
-              (Juan: too far apart). */}
+              (Juan: too far apart). The `offset` pulls the DRAWN chips up by
+              the box's top slack (measured: −4 left 14.2dp vs the EQ section's 11.4; −7 lands both at 11.4), so the title→content gap READS the
+              same as the Equalizer section's (the boxes made it 8dp deeper;
+              offset moves pixels, not layout, so touch targets stay put —
+              Juan, 2026-09-08, section gaps must match). */}
           <FlowRow
             horizontalArrangement={{ spacedBy: 8 }}
             verticalArrangement={{ spacedBy: 0 }}
             modifiers={[
               fillMaxWidth(),
+              offset(0, -7),
               padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
@@ -264,7 +270,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                     thickness={1}
                     color={colors.listSeparator}
                     modifiers={[
-                      padding(COMPOSE_SHEET_GUTTER, 9, COMPOSE_SHEET_GUTTER, 9),
+                      padding(
+                        COMPOSE_SHEET_GUTTER,
+                        12,
+                        COMPOSE_SHEET_GUTTER,
+                        12,
+                      ),
                     ]}
                   />
                 ) : null}
@@ -277,9 +288,15 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                     padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                   ]}
                 >
+                  {/* BOTH texts take the muted ink and the same rung — the
+                      iOS row's own treatment (`mutedText` on both ends), and
+                      the value was the odd one out at full onSurface. The
+                      label centres in its fixed box and the value trails,
+                      exactly iOS's frame alignments, so the two gaps onto
+                      the track read even. */}
                   <Text
                     color={colors.onSurfaceMuted}
-                    style={{ typography: 'labelMedium' }}
+                    style={{ textAlign: 'center', typography: 'labelMedium' }}
                     modifiers={[width(EQ_LABEL_WIDTH)]}
                   >
                     {band.label}
@@ -296,8 +313,8 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                     modifiers={[weight(1)]}
                   />
                   <Text
-                    color={colors.onSurface}
-                    style={{ typography: 'labelMedium' }}
+                    color={colors.onSurfaceMuted}
+                    style={{ textAlign: 'end', typography: 'labelMedium' }}
                     modifiers={[width(EQ_LABEL_WIDTH)]}
                   >
                     {dbLabel(gains[index])}
