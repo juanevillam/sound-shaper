@@ -31,7 +31,6 @@ import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { useI18n } from '@/i18n';
 import { readId3Tags } from '@/lib/id3';
 import { type Sound } from '@/services/firebase/sounds';
@@ -132,15 +131,6 @@ export default function HomeScreen() {
   const rate = usePlayerStore(s => s.rate);
   const sheetExpanded = usePlayerStore(s => s.sheetExpanded);
   const showSkeleton = useDelayedShow(SKELETON_DELAY_MS);
-  /**
-   * M3's on-scroll bar, painted BY THIS SCREEN — the hook reports
-   * the state and never touches the navigator's header. Android's bar here is
-   * a plain View drawn as content (so the expanded player can cover it), which
-   * means there is no `headerStyle` to step; the View below takes `scrolled`
-   * directly. Everything else about the behaviour — the 4dp threshold and the
-   * gesture-end sampling a throttled `onScroll` misses — is the shared hook's.
-   */
-  const { scrolled, scrollProps } = useHeaderScroll();
 
   /**
    * DEV LAB: force a UI state. Applied to the values the screen already
@@ -342,13 +332,15 @@ export default function HomeScreen() {
             style={[
               styles.appBar,
               {
-                // At rest it wears the page's own ground so there is no seam;
-                // it steps to the container colour only once the grid is
-                // behind it. It sat permanently at `surfaceContainer` before,
-                // which band-scanned as #3A3A3D against a #010102 page.
-                backgroundColor: scrolled
-                  ? colors.surfaceContainer
-                  : colors.background,
+                // ONE GROUND, AND IT DOES NOT MOVE — `surface`, the same
+                // static bar every other Android screen in the portfolio
+                // wears (the family retired the on-scroll step; see
+                // `useHeaderScroll` in @portfolio/mobile-ui and this app's
+                // own stack `headerStyle`). This bar stepped
+                // background → surfaceContainer on scroll for a while after
+                // that, the one holdout because it is hand-drawn (Juan,
+                // 2026-09-08: always elevated, like the other apps' bars).
+                backgroundColor: colors.surface,
                 height: insets.top + APP_BAR_HEIGHT,
                 paddingTop: insets.top,
               },
@@ -419,7 +411,6 @@ export default function HomeScreen() {
             // content inset and drives the collapse — without it the first row
             // starts under the expanded title. Android ignores the prop.
             contentInsetAdjustmentBehavior="automatic"
-            {...scrollProps}
             contentContainerStyle={{
               paddingHorizontal: SCREEN_PADDING,
               paddingTop: GRID_TOP_GAP,
