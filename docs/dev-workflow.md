@@ -174,6 +174,59 @@ extra-extra-extra-large` (back with `large`). Use it on any constant that
 - **Android undo-window hazard:** never run slow inspection (uiautomator
   dump) inside a snackbar's undo window — it once committed a real delete.
 
+## Driving the A54 — the recipes Phase B paid for
+
+The standing Android target is the **Galaxy A54 (SM-A546E, Android 16 / API 36,
+adb `RZCWA02YXTB`)**. Density 450 → **dp = px / 2.8125**, and the font scale on
+this device is **1.15** — check `wm density` before any band-scan or every
+number reads 6.25% small. The navigation bar's top edge is at **784.00dp**,
+which is what a sheet has to clear.
+
+- **`df -h /` BEFORE believing any native build failure.** A full disk surfaces
+  as a **clang crash mid-compile**, which reads convincingly as an NDK bug. It
+  cost a session: 233MB free on a 228GB volume. Xcode's DerivedData is the
+  cheap reclaim.
+- **A Bash tool shell does not source `~/.zshrc`**, so `ANDROID_HOME` is unset
+  and every Gradle run fails `SDK location not found`. Export it inline:
+  `export ANDROID_HOME="$HOME/Library/Android/sdk"`.
+- **`expo run:android` rejects `--device RZCWA02YXTB`** with
+  `Could not find device with name: …`. Omit the flag entirely when one device
+  is attached.
+- **WHO IS METRO SERVING — ask before believing ANY screenshot.**
+  `curl -s localhost:8081/ -H "expo-platform: android"` and read
+  **`extra.expoClient.slug`**, which is NOT at the top level (a top-level probe
+  returns nothing and looks like "Metro is down"). The 8081 collision has bitten
+  every session in this series, most recently by rendering Topper fully from
+  cache inside what everyone believed was the starter.
+- **Screenshot before EVERY tap.** A stale frame has opened Samsung Settings,
+  an unintended item sheet, and the wrong app's dev client. And **never press
+  BACK at an app's home root** — it drops to the previous app.
+- **Verify the BUNDLE, not the screen, after an edit:** curl it and grep a tell
+  from your change. The tell must be an **identifier or a string literal** —
+  JSX comments are stripped, so grepping for a comment you just wrote returns 0
+  and means nothing.
+- **`adb shell dumpsys media_session`** is the authoritative instrument for
+  anything now-playing: it prints the published `actions` bitmask, position and
+  state, and is the only way to see why a media card draws no buttons.
+  `actions=310` = PLAY+PAUSE+PREVIOUS+NEXT+SEEK.
+- **Relaunch loop:** `am force-stop` + `am start -n …/.MainActivity`, then poll
+  `dumpsys window displays | grep mCurrentFocus` and tap the dev-server row when
+  `DevLauncherActivity` is focused.
+- **expo-dev-client parks a BLUE FLOATING GEAR** exactly over each app's own
+  Settings gear at the top right. Drag it away
+  (`input swipe 959 212 200 1900 800`) or every tap there opens the dev menu.
+  Its menu dismisses by tapping the scrim ABOVE it, not by its ✕.
+- **Appearance flip:** `adb shell "cmd uimode night no|yes"` — verify BOTH.
+- **A patched C++ or Kotlin file needs a NATIVE rebuild.** `patches/` overlays
+  compile into the pod or the AAR, so a Metro reload proves nothing about them.
+- **Never run slow inspection (a uiautomator dump) inside a snackbar's undo
+  window** — it once committed a real delete.
+- **Band-scan against a HIGH-CONTRAST column.** A scan run through a dark album
+  cover read a false 0 drift. And scan at a thing's CENTRE, never its edge: a
+  column dropped inside a rounded container crosses the CORNER, so the card
+  reads short and the gap reads long, and the numbers still sum correctly —
+  which is what makes it convincing.
+
 ## Pixel-imitation harness — "measured, not guessed" applies to VERIFICATION
 
 House precedent (`formMetrics.ts`, `BrandTile.ios.tsx`, the ictool workflow):
