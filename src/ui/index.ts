@@ -1,5 +1,13 @@
-export { AnimatedEntrance } from './AnimatedEntrance';
-export { AppIcon, type AppIconProps } from './AppIcon';
+/**
+ * THE PACKAGE'S PUBLIC API — every symbol here has a consumer in an app or a
+ * sibling package. Components consumed only INSIDE the package (TextLink,
+ * AnimatedEntrance, SettingsAccountSection, the shared screens' prop types…)
+ * are deliberately not exported; re-add one the day something outside imports
+ * it. Note when auditing: apps also consume via re-export shims and via deep
+ * subpaths (`@portfolio/mobile-ui/sheetMetrics`), so a symbol can be live
+ * without appearing in any barrel import.
+ */
+export { AppIcon } from './AppIcon';
 export {
   CARD_RADIUS,
   CONTINUOUS_CURVE,
@@ -12,23 +20,10 @@ export {
   SHAPE_XS,
   TILE_RADIUS,
 } from './shape';
-export {
-  AUTHOR_CREDIT,
-  AUTHOR_CREDIT_PREFIX,
-  AUTHOR_NAME,
-  AUTHOR_URL,
-  authorUrl,
-  legalUrl,
-  type LegalPage,
-} from './author';
-export { type WelcomeLegal } from './LegalFooter';
+export { legalUrl, type LegalPage } from './author';
 export { confirmDestructiveIos } from './confirmDestructiveIos';
 export { DisclosureChevron } from './DisclosureChevron';
-export {
-  DestructiveConfirmDialog,
-  type DestructiveConfirmDialogContent,
-  type DestructiveConfirmDialogProps,
-} from './DestructiveConfirmDialog';
+export { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 export { artworkRadius } from './artworkRadius';
 export { EmptyState, EMPTY_STATE_STEPS } from './EmptyState';
 export { HeaderIconButton } from './HeaderIconButton';
@@ -45,32 +40,15 @@ export {
 } from './MediaPickerAvatar';
 export {
   MINI_PLAYER_HEIGHT,
-  NOW_PLAYING_BANNER_BOX,
   NOW_PLAYING_BOTTOM_GAP_IOS,
 } from './nowPlayingBanner';
-export {
-  ErrorScreen,
-  type ErrorScreenColors,
-  type ErrorScreenProps,
-} from './ErrorScreen';
-export {
-  GoogleSignInButton,
-  type GoogleSignInButtonProps,
-} from './GoogleSignInButton';
+export { ErrorScreen } from './ErrorScreen';
 export {
   HEADER_CLOSE_GLYPH_SIZE,
-  HEADER_GLYPH_SIZE,
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
-  type HeaderGlyphButtonProps,
 } from './HeaderGlyphButton';
-export {
-  FORM_DISCLOSURE_GLYPH_SIZE,
-  FormDisclosureIndicatorIos,
-  FormDisclosureRowIos,
-  FormValueRowIos,
-  type FormDisclosureColors,
-} from './FormDisclosureRowIos';
+export { FormDisclosureIndicatorIos } from './FormDisclosureRowIos';
 export {
   GROUPED_ROW,
   GROUPED_ROW_PITCH,
@@ -84,19 +62,16 @@ export {
 } from './sheetHero';
 export {
   composeSheetBottomPadding,
-  COMPOSE_SHEET_BOTTOM_GAP,
   COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_HEIGHT,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
-  SHEET_TITLE_TO_CONTENT,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
 export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
 export { composeLineHeight } from './composeTextLine';
-export { SettingsDialog, DIALOG_WIDTH } from './SettingsDialog';
+export { SettingsDialog } from './SettingsDialog';
 export { StateWrap } from './StateWrap';
 export {
   EMPTY_MEDIA_INITIAL_RATIO,
@@ -105,13 +80,7 @@ export {
   type MediaContainer,
 } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
-export {
-  WelcomeScreen,
-  type AuthAction,
-  type AuthActionProvider,
-  type WelcomeScreenProps,
-  type WelcomeFeatureItem,
-} from './WelcomeScreen';
+export { WelcomeScreen, type AuthAction } from './WelcomeScreen';
 export { ProgressOverlayIos } from './ProgressOverlayIos';
 export { ProgressViewIos } from './ProgressViewIos';
 // The platform pair: `ProgressView` resolves to the Compose spinner on Android
@@ -121,52 +90,30 @@ export { ProgressView } from './ProgressView';
 export { Screen } from './Screen';
 export { SheetBar } from './SheetBar';
 export { SheetErrorLine } from './SheetErrorLine';
-export {
-  SnackbarContext,
-  useSnackbar,
-  type SnackbarAction,
-  type SnackbarContextValue,
-} from './snackbar';
+export { useSnackbar } from './snackbar';
 export {
   FLOATING_COPY_GAP,
   FLOATING_EDGE_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
   GlassSurfaceIos,
-  glassFloorColor,
   makeGlassUnderlay,
-  type GlassSurfaceIosProps,
 } from './GlassSurfaceIos';
 export { SnackbarOutlet } from './SnackbarOutlet';
+export { SnackbarProvider } from './SnackbarProvider';
 export {
-  SNACKBAR_BOTTOM_CLEARANCE,
-  SnackbarProvider,
-} from './SnackbarProvider';
-export { TextLink, type TextLinkProps } from './TextLink';
-
-export {
-  BRAND_PRESSED_OPACITY,
   ICON_PRESS_OPACITY,
   ICON_PRESS_SCALE,
-  PRESS_SCALE,
-  PRESS_SPRING,
   PRESSED_OPACITY,
   SquashPressable,
   usePressSquash,
 } from './SquashPressable';
-export { StateLab, type StateLabEntry, type StateLabGroup } from './StateLab';
+export { StateLab, type StateLabGroup } from './StateLab';
 export { SwiftUIHost } from './SwiftUIHost';
 export { useNavigationTheme } from './useNavigationTheme';
-export {
-  createText,
-  TEXT_VARIANTS,
-  type TextProps,
-  type TextVariant,
-} from './createText';
+export { createText, TEXT_VARIANTS, type TextVariant } from './createText';
 export {
   ActionButtonIos,
-  actionButtonModifiersIos,
-  SheetCommitGlyphIos,
   sheetCommitBarOptionsIos,
   SheetFormBodyIos,
   SheetFormDestructiveIos,
@@ -185,41 +132,18 @@ export {
   SCREEN_CONTENT_TOP,
 } from './settingsGroup';
 export {
-  SettingsAccountSection,
-  SettingsSignOutSection,
   UsernameDialog,
-  type SettingsAccountColors,
-  type SettingsAccountLink,
   type SettingsAccountProfile,
-  type SettingsAccountSectionProps,
-  type SettingsNavRow,
   type SettingsUsernameEditor,
 } from './SettingsAccountSection';
-export {
-  ManageAccountScreen,
-  type ManageAccountColors,
-  type ManageAccountInfoRow,
-  type ManageAccountNavRow,
-  type ManageAccountScreenProps,
-} from './ManageAccountScreen';
-export {
-  SettingsScreen,
-  type SettingsAboutConfig,
-  type SettingsLegalConfig,
-  type SettingsAccountConfig,
-  type SettingsInfoRow,
-  type SettingsOption,
-  type SettingsRadioSection,
-  type SettingsScreenColors,
-  type SettingsScreenProps,
-} from './SettingsScreen';
+export { ManageAccountScreen } from './ManageAccountScreen';
+export { SettingsScreen } from './SettingsScreen';
 export {
   buildAboutSettingsSection,
   buildGeneralSettingsSections,
-  type GeneralSettingsState,
 } from './settingsContent';
 export { useSheetKeyboardInset } from './useSheetKeyboardInset';
-export { setSplashHidden, useSplashHidden } from './useSplashHidden';
+export { setSplashHidden } from './useSplashHidden';
 export * from './tokens';
 export { useSheetLanded } from './useSheetLanded';
-export { useHeaderScroll, type HeaderScrollColors } from './useHeaderScroll';
+export { useHeaderScroll } from './useHeaderScroll';
