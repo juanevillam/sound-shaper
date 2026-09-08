@@ -65,6 +65,11 @@
         "buildFromSource": [
           "ExpoImage"
         ]
+      },
+      "android": {
+        "buildFromSource": [
+          "expo-ui"
+        ]
       }
     }
   }
