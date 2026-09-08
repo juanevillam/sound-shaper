@@ -76,18 +76,25 @@ export default function Welcome() {
       features={[
         {
           emoji: '🎵',
+          icon: 'music-note',
           systemImage: 'music.note.list',
           title: t('welcome.features.library.title'),
           subtitle: t('welcome.features.library.subtitle'),
         },
         {
+          // The same two glyphs the player's glass bar names these features
+          // with on Android (`PlayerSheet`): Shape is `tune`, Clips is
+          // `content-cut` — the Material twins of `slider.horizontal.3` and
+          // `scissors`.
           emoji: '🎛️',
+          icon: 'tune',
           systemImage: 'slider.horizontal.3',
           title: t('welcome.features.shape.title'),
           subtitle: t('welcome.features.shape.subtitle'),
         },
         {
           emoji: '✂️',
+          icon: 'content-cut',
           systemImage: 'scissors',
           title: t('welcome.features.clip.title'),
           subtitle: t('welcome.features.clip.subtitle'),
