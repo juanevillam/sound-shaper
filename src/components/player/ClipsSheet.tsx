@@ -24,6 +24,7 @@ import {
   AppIcon,
   COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
   EMPTY_STATE_STEPS,
@@ -44,8 +45,9 @@ import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 
 // The saved-clips manager (the Shape sheet's sibling): play, re-frame or delete
-// what you've framed, or jump into framing a new one — the framing itself
-// happens ON the player's scrubber, where the sound is.
+// what you've framed, or jump into the dedicated `clip-trim` editor for a new
+// one — the same editor iOS pushes; in-place framing left with the console
+// rework (2026-09-08).
 //
 // THE TWIN IS `app/(app)/clips.tsx`, and it has the same parts under the same
 // names: a title with an ADD action (never a commit — this sheet saves nothing),
@@ -73,13 +75,12 @@ const MENU_ICON_SIZE = 24;
 const STATE_PADDING = 32;
 
 export type ClipsSheetProps = {
-  /** Close the sheet and drop the trim brackets on the player's scrubber. */
+  /** Close the sheet and push the `clip-trim` editor. */
   onNewClip: () => void;
   /**
-   * Re-frame an existing clip: close the sheet and drop the brackets on ITS
-   * range rather than around the playhead. Saving updates that clip instead of
-   * creating another — one anatomy for framing and re-framing, which is the
-   * same thing iOS's leading swipe reaches.
+   * Re-frame an existing clip: close the sheet and push the editor seeded
+   * with ITS range. Saving updates that clip instead of creating another —
+   * one anatomy for framing and re-framing.
    */
   onEditClip: (clip: { id: string; startMs: number; endMs: number }) => void;
   onClose: () => void;
@@ -227,7 +228,15 @@ export function ClipsSheet({
               verticalAlignment="center"
               modifiers={[
                 fillMaxWidth(),
-                padding(COMPOSE_SHEET_GUTTER, 4, COMPOSE_SHEET_GLYPH_INSET, 0),
+                // Bottom: the family's header→content gap
+                // (`COMPOSE_SHEET_HEADER_TO_CONTENT`), less the column's own
+                // 12 — the same statement the editors make around `SheetBar`.
+                padding(
+                  COMPOSE_SHEET_GUTTER,
+                  4,
+                  COMPOSE_SHEET_GLYPH_INSET,
+                  COMPOSE_SHEET_HEADER_TO_CONTENT - 12,
+                ),
               ]}
             >
               <Text

@@ -1,6 +1,8 @@
 import {
   Column,
   FilterChip,
+  FlowRow,
+  HorizontalDivider,
   ModalBottomSheet,
   Row,
   Slider,
@@ -11,20 +13,22 @@ import {
   fillMaxHeight,
   fillMaxWidth,
   height,
-  horizontalScroll,
   padding,
   verticalScroll,
   weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 
+import { withAlpha } from '@portfolio/core';
 import {
   COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -38,9 +42,11 @@ import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 // then speed and pitch. Every change is heard live — the sheet edits the
 // playing graph directly.
 //
-// NOTHING HERE COMMITS, so the sheet carries a plain title rather than the
-// portfolio's `SheetBar` (which is a title plus a Save pill). Saving a named
-// shape was built and REMOVED 2026-08-22 — see the note in `store/shaper.ts`.
+// NOTHING HERE COMMITS, so the `SheetBar` renders TITLE-ONLY — its own
+// documented list-sheet mode, which is also what pins this sheet's title ink
+// and header→content gap to the family's terms (Juan, 2026-09-08: the presets
+// sat ~6dp under the title against the family's 16). Saving a named shape was
+// built and REMOVED 2026-08-22 — see the note in `store/shaper.ts`.
 
 const EQ_LABEL_WIDTH = 36;
 // The bands stay COMPACT — Speed is the control people reach for, so it keeps
@@ -84,6 +90,22 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const setRate = usePlayerStore(s => s.setRate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
   const setKeepPitch = usePlayerStore(s => s.setKeepPitch);
+
+  /**
+   * MONOCHROME SLIDERS (Juan, 2026-09-08) — the same first-bucket deletion
+   * the console's scrubber took: M3 fills a slider with the accent by
+   * default, and on this sheet six of them made the accent the loudest thing
+   * on a surface whose information is the CURVE, not the colour. The ticks
+   * inherit the track inks. What keeps its colour here: the Switch (green-on
+   * is the platform semantic) and the selected preset chip (a SELECTION).
+   */
+  const sliderInk = {
+    thumbColor: colors.onSurface,
+    activeTrackColor: colors.onSurface,
+    inactiveTrackColor: withAlpha(colors.onSurface, 0.24),
+    activeTickColor: withAlpha(colors.background, 0.6),
+    inactiveTickColor: withAlpha(colors.onSurface, 0.5),
+  };
 
   const gains = useShaperStore(s => s.gains);
   const setBandGain = useShaperStore(s => s.setBandGain);
@@ -159,43 +181,45 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
           ]}
         >
-          {/* The sheet's title. NOT `SheetBar`: that bar pairs a title with a
-              filled Save pill, and there is nothing here to commit. The sheet
-              supplies its own native drag handle. */}
+          {/* The family's header row — `SheetBar` in its title-only mode
+              (the bar pairs a title with a commit pill only when given one).
+              The box below it opens the family's header→content gap, less the
+              column's own 4. */}
           <Column
             modifiers={[
               fillMaxWidth(),
-              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+              padding(
+                COMPOSE_SHEET_GUTTER,
+                0,
+                COMPOSE_SHEET_GUTTER,
+                COMPOSE_SHEET_HEADER_TO_CONTENT - 4,
+              ),
             ]}
           >
-            <Text
-              color={colors.onSurface}
-              style={{ typography: 'titleLarge' }}
-              maxLines={1}
-            >
-              {t('player.shape.title')}
-            </Text>
+            <SheetBar title={t('player.shape.title')} />
           </Column>
 
           <Text
             color={colors.onSurfaceMuted}
             style={{ typography: 'labelLarge' }}
             modifiers={[
-              padding(COMPOSE_SHEET_GUTTER, 2, COMPOSE_SHEET_GUTTER, 0),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
             {t('player.shape.presets')}
           </Text>
 
-          {/* Built-in presets ("Flat" doubles as reset). Padding AFTER
-              horizontalScroll = content padding: the row bleeds to the sheet
-              edges, the chips start/end on the gutter. */}
-          <Row
-            verticalAlignment="center"
+          {/* Built-in presets ("Flat" doubles as reset). A WRAPPING FlowRow,
+              not a horizontal scroller (Juan, 2026-09-08): six chips overran
+              the A54's width and hid the last ones behind a scroll nothing
+              advertised. The row breaks to a second line exactly when the
+              screen is too narrow — the size-adaptive behaviour wanted, from
+              the platform's own layout rather than a measured branch. */}
+          <FlowRow
             horizontalArrangement={{ spacedBy: 8 }}
+            verticalArrangement={{ spacedBy: 8 }}
             modifiers={[
               fillMaxWidth(),
-              horizontalScroll(),
               padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
@@ -210,7 +234,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 </FilterChip.Label>
               </FilterChip>
             ))}
-          </Row>
+          </FlowRow>
 
           {/* THE equalizer: these five frequency bands and nothing else.
               Speed and keep-pitch below are a separate idea. */}
@@ -235,43 +259,58 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {t('player.eq.hint')}
           </Text>
 
-          <Column
-            verticalArrangement={{ spacedBy: 12 }}
-            modifiers={[fillMaxWidth(), padding(0, 4, 0, 0)]}
-          >
+          {/* A DIVIDER BETWEEN BANDS, iOS's own arrangement (its rows sit in
+              a Form section with separators): five stacked identical sliders
+              read as one texture without the lines saying where one band ends
+              (Juan, 2026-09-08). M3's HorizontalDivider at the list ink,
+              inset to the gutter. */}
+          <Column modifiers={[fillMaxWidth(), padding(0, 4, 0, 0)]}>
             {EQ_BANDS.map((band, index) => (
-              <Row
-                key={band.hz}
-                verticalAlignment="center"
-                horizontalArrangement={{ spacedBy: 8 }}
-                modifiers={[
-                  fillMaxWidth(),
-                  height(EQ_ROW_HEIGHT),
-                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                ]}
-              >
-                <Text
-                  color={colors.onSurfaceMuted}
-                  style={{ typography: 'labelMedium' }}
-                  modifiers={[width(EQ_LABEL_WIDTH)]}
+              <Column key={band.hz} modifiers={[fillMaxWidth()]}>
+                {index > 0 ? (
+                  <HorizontalDivider
+                    thickness={1}
+                    color={colors.listSeparator}
+                    modifiers={[
+                      padding(COMPOSE_SHEET_GUTTER, 5, COMPOSE_SHEET_GUTTER, 5),
+                    ]}
+                  />
+                ) : null}
+                <Row
+                  verticalAlignment="center"
+                  horizontalArrangement={{ spacedBy: 8 }}
+                  modifiers={[
+                    fillMaxWidth(),
+                    height(EQ_ROW_HEIGHT),
+                    padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                  ]}
                 >
-                  {band.label}
-                </Text>
-                <Slider
-                  value={gains[index]}
-                  min={EQ_MIN_DB}
-                  max={EQ_MAX_DB}
-                  onValueChange={value => setBandGain(index, Math.round(value))}
-                  modifiers={[weight(1)]}
-                />
-                <Text
-                  color={colors.onSurface}
-                  style={{ typography: 'labelMedium' }}
-                  modifiers={[width(EQ_LABEL_WIDTH)]}
-                >
-                  {dbLabel(gains[index])}
-                </Text>
-              </Row>
+                  <Text
+                    color={colors.onSurfaceMuted}
+                    style={{ typography: 'labelMedium' }}
+                    modifiers={[width(EQ_LABEL_WIDTH)]}
+                  >
+                    {band.label}
+                  </Text>
+                  <Slider
+                    value={gains[index]}
+                    min={EQ_MIN_DB}
+                    max={EQ_MAX_DB}
+                    colors={sliderInk}
+                    onValueChange={value =>
+                      setBandGain(index, Math.round(value))
+                    }
+                    modifiers={[weight(1)]}
+                  />
+                  <Text
+                    color={colors.onSurface}
+                    style={{ typography: 'labelMedium' }}
+                    modifiers={[width(EQ_LABEL_WIDTH)]}
+                  >
+                    {dbLabel(gains[index])}
+                  </Text>
+                </Row>
+              </Column>
             ))}
           </Column>
 
@@ -299,6 +338,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             min={RATE_MIN}
             max={RATE_MAX}
             steps={RATE_SLIDER_STEPS}
+            colors={sliderInk}
             onValueChange={value =>
               // Float math on 0.1 steps drifts (0.7000000000000001), so snap
               // to one decimal.
