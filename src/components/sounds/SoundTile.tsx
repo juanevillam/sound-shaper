@@ -237,7 +237,6 @@ export function SoundTile({
   onPress,
   onLongPress,
 }: SoundTileProps) {
-  const { colors } = useAppTheme();
   // Derived, never measured — the first frame must already know this, or the
   // cover is fetched at its stored size. See `soundGridCell`.
   const { artRadius, captionInset, cell } = useSoundTileMetrics();
@@ -258,17 +257,12 @@ export function SoundTile({
           </View>
         ) : null}
       </View>
-      {/* ACTIVE IS NOT TINTED ON iOS, and the reason is in the sentence this
-          comment used to end with: the state is ALREADY carried
-          non-chromatically by the bars over the artwork. That made the tint a
-          second encoding of one fact, and redundant chroma is exactly what the
-          portfolio's monochrome rule removes — the bars are white hairlines on
-          a scrim precisely because a brand-coloured badge "reads like a sticker
-          slapped on the cover", and a brand-coloured TITLE is the same
-          instinct one line down.
-
-          ANDROID KEEPS THE TINT: Material marks an active list item with the
-          accent, and that is what a Material surface should draw.
+      {/* ACTIVE IS NOT TINTED — either platform (Juan, 2026-09-08, taking
+          Android's accent too): the state is ALREADY carried non-chromatically
+          by the bars over the artwork, so the tint was a second encoding of
+          one fact — redundant chroma, the monochrome rule's own tell. The
+          2026-09-04 reading that Material marks an active item with the accent
+          was true and beside the point: the badge is the marker here.
 
           Weight is not the alternative — it re-truncates. "Nightmare" measures
           77.00pt regular against 82.00pt semibold, 6.5% wider, so a name that
@@ -278,11 +272,7 @@ export function SoundTile({
         text={sound.name}
         variant={CAPTION_VARIANTS.title}
         numberOfLines={1}
-        style={[
-          styles.name,
-          { paddingLeft: captionInset },
-          isCurrent && Platform.OS !== 'ios' && { color: colors.primary },
-        ]}
+        style={[styles.name, { paddingLeft: captionInset }]}
       />
       <Text
         doNotTranslate

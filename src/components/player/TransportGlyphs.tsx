@@ -76,64 +76,42 @@ export const PauseGlyph = ({ color, size }: TransportGlyphProps) => {
   );
 };
 
+/**
+ * NEXT/PREVIOUS ARE THE DOUBLE TRIANGLE, no bar — iOS's `forward.fill` /
+ * `backward.fill` shape (Juan, 2026-09-08: the two platforms' rows carried
+ * different glyphs; the old drawing was skip_next's triangle-plus-bar). Two
+ * abutting triangles, the same border-drawn technique as play.
+ */
 export const NextGlyph = ({ color, size }: TransportGlyphProps) => {
   const s = (size ?? BASE) / BASE;
+  const triangle = {
+    borderBottomWidth: 7 * s,
+    borderLeftColor: color,
+    borderLeftWidth: 11 * s,
+    borderTopWidth: 7 * s,
+  };
 
   return (
-    <View style={[styles.nextRow, { gap: 1.5 * s }]}>
-      <View
-        style={[
-          styles.nextTriangle,
-          {
-            borderBottomWidth: 7 * s,
-            borderLeftColor: color,
-            borderLeftWidth: 11 * s,
-            borderTopWidth: 7 * s,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.nextBar,
-          {
-            backgroundColor: color,
-            borderRadius: 1 * s,
-            height: 14 * s,
-            width: 2.5 * s,
-          },
-        ]}
-      />
+    <View style={styles.nextRow}>
+      <View style={[styles.nextTriangle, triangle]} />
+      <View style={[styles.nextTriangle, triangle]} />
     </View>
   );
 };
 
 export const PreviousGlyph = ({ color, size }: TransportGlyphProps) => {
   const s = (size ?? BASE) / BASE;
+  const triangle = {
+    borderBottomWidth: 7 * s,
+    borderRightColor: color,
+    borderRightWidth: 11 * s,
+    borderTopWidth: 7 * s,
+  };
 
   return (
-    <View style={[styles.previousRow, { gap: 1.5 * s }]}>
-      <View
-        style={[
-          styles.nextBar,
-          {
-            backgroundColor: color,
-            borderRadius: 1 * s,
-            height: 14 * s,
-            width: 2.5 * s,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.previousTriangle,
-          {
-            borderBottomWidth: 7 * s,
-            borderRightColor: color,
-            borderRightWidth: 11 * s,
-            borderTopWidth: 7 * s,
-          },
-        ]}
-      />
+    <View style={styles.previousRow}>
+      <View style={[styles.previousTriangle, triangle]} />
+      <View style={[styles.previousTriangle, triangle]} />
     </View>
   );
 };
@@ -150,7 +128,6 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderTopColor: 'transparent',
   },
-  nextBar: {},
   previousRow: { alignItems: 'center', flexDirection: 'row' },
   previousTriangle: {
     borderBottomColor: 'transparent',

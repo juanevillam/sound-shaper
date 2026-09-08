@@ -8,6 +8,7 @@ import {
   Text,
 } from '@expo/ui/jetpack-compose';
 import {
+  fillMaxHeight,
   fillMaxWidth,
   height,
   horizontalScroll,
@@ -147,7 +148,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // to the screen edge, so a bare 16 put the 4k band's slider under the
           // Back/Home glyphs at this sheet's resting detent — measured on the
           // A54. See `composeSheetBottomPadding`.
+          // FULL HEIGHT — iOS presents this sheet at [1] (`IOS_FORM_SHEETS`:
+          // a primary surface, like Settings), and Topper's list sheets made
+          // the same move on Android (`fillMaxHeight` on the follow sheets).
+          // A hugging sheet also resized itself whenever a section did.
           modifiers={[
+            fillMaxHeight(),
             fillMaxWidth(),
             verticalScroll(),
             padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),

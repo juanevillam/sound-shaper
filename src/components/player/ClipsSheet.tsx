@@ -14,6 +14,7 @@ import {
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
+  fillMaxHeight,
   fillMaxWidth,
   padding,
   size,
@@ -207,8 +208,12 @@ export function ClipsSheet({
             // sheet's chips row. The bottom clears the navigation bar — a
             // Compose sheet's window runs to the screen edge. See
             // `composeSheetBottomPadding`.
+            // FULL HEIGHT — every list sheet in the portfolio is: iOS's [1]
+            // (an empty list at 0.6 left three quarters of the sheet dead the
+            // moment it filled), Topper's follow sheets on Android.
             modifiers={[
               padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
+              fillMaxHeight(),
               fillMaxWidth(),
             ]}
           >
