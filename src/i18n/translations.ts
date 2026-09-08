@@ -111,7 +111,9 @@ export const translations = {
         editAction: 'Edit',
         preview: 'Preview',
         saveClip: 'Save',
-        empty: 'Frame your favorite part above and save it.',
+        // The editor's door is the + above — the old copy described the
+        // retired on-scrubber framing.
+        empty: 'Tap + to save your favorite part.',
         none: 'No Clips Yet',
         // THE BAR'S SUMMARY, not the sheet's empty title. `none` above is an
         // empty-STATE title and was being used as a VALUE under the label
@@ -396,7 +398,7 @@ export const translations = {
         editAction: 'Editar',
         preview: 'Previsualizar',
         saveClip: 'Guardar',
-        empty: 'Encuadra tu parte favorita arriba y guárdala.',
+        empty: 'Toca + para guardar tu parte favorita.',
         none: 'Aún no hay clips',
         noneSummary: 'Ninguno',
         count: '{n} guardados',
@@ -662,7 +664,7 @@ export const translations = {
         editAction: '编辑',
         preview: '预览',
         saveClip: '存储',
-        empty: '在上方框选你最喜欢的部分并存储。',
+        empty: '轻点+即可存储你最喜欢的部分。',
         none: '还没有片段',
         noneSummary: '无',
         count: '已存储 {n} 个',
