@@ -240,7 +240,12 @@ function barsPath(
 
 export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
+  // The selection's accent steps to the container pair in dark — see the
+  // frame's own note (`ClipTrimFrame`); wash and edge lines are the same
+  // selection and take the same ink.
+  const frameAccent =
+    scheme === 'dark' ? colors.primaryContainer : colors.primary;
   const { width: winW, height: winH } = useWindowDimensions();
 
   const current = usePlayerStore(s => s.current);
@@ -733,10 +738,7 @@ export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
                 style={[
                   styles.wash,
                   {
-                    backgroundColor: withAlpha(
-                      colors.primary,
-                      RANGE_FILL_ALPHA,
-                    ),
+                    backgroundColor: withAlpha(frameAccent, RANGE_FILL_ALPHA),
                   },
                   washStyle,
                 ]}
@@ -749,20 +751,14 @@ export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
               <GestureDetector gesture={startEdgePan}>
                 <Animated.View style={[styles.edgeTouch, startEdgeStyle]}>
                   <View
-                    style={[
-                      styles.edgeLine,
-                      { backgroundColor: colors.primary },
-                    ]}
+                    style={[styles.edgeLine, { backgroundColor: frameAccent }]}
                   />
                 </Animated.View>
               </GestureDetector>
               <GestureDetector gesture={endEdgePan}>
                 <Animated.View style={[styles.edgeTouch, endEdgeStyle]}>
                   <View
-                    style={[
-                      styles.edgeLine,
-                      { backgroundColor: colors.primary },
-                    ]}
+                    style={[styles.edgeLine, { backgroundColor: frameAccent }]}
                   />
                 </Animated.View>
               </GestureDetector>
