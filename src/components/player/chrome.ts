@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 
 import { artworkRadius, type IconName } from '@portfolio/mobile-ui';
 import {
@@ -281,7 +281,19 @@ export const playerArtSize = (winW: number): number =>
  * gone and the console's only glyph-only control is a compartment of the glass
  * bar, which takes the bar's geometry rather than a bar item's.
  */
-const ART_TOP_GAP = 12;
+/**
+ * iOS: 12 under the Dynamic Island — the cover's breathing room beneath its
+ * shadow, landing the art top at 74pt on the iPhone 15/17 (insets.top 59–62).
+ *
+ * ANDROID DOES NOT SHARE THE NUMBER, BECAUSE IT MUST SHARE THE RESULT: the
+ * A54's status inset is ~34dp against the island's ~60, so the same +12 put
+ * the cover 45.8dp from the top — visibly crowding the status bar and reading
+ * oversized where the identical cover ratio reads right on the iPhone (Juan,
+ * 2026-09-08). The gap is widened until the RENDERED air matches iOS's 74:
+ * 34 + 38 = 71.8dp on the A54. One result, two derivations — the same split
+ * `bannerBottomOffset` already makes at the other edge.
+ */
+const ART_TOP_GAP = Platform.select({ ios: 12, default: 38 }) as number;
 
 export const playerArtTop = (topInset: number): number =>
   topInset + ART_TOP_GAP;
