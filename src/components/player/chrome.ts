@@ -289,11 +289,13 @@ export const playerArtSize = (winW: number): number =>
  * A54's status inset is ~34dp against the island's ~60, so the same +12 put
  * the cover 45.8dp from the top — visibly crowding the status bar and reading
  * oversized where the identical cover ratio reads right on the iPhone (Juan,
- * 2026-09-08). The gap is widened until the RENDERED air matches iOS's 74:
- * 34 + 38 = 71.8dp on the A54. One result, two derivations — the same split
- * `bannerBottomOffset` already makes at the other edge.
+ * 2026-09-08). Matching iOS's full 74 was tried first (+38) and read as too
+ * much air on the A54's shorter chrome — the island EARNS its clearance and a
+ * flat status bar does not — so Android splits the difference: 34 + 24 =
+ * ~58dp rendered, judged on device between the two. One result class, two
+ * derivations — the same split `bannerBottomOffset` makes at the other edge.
  */
-const ART_TOP_GAP = Platform.select({ ios: 12, default: 38 }) as number;
+const ART_TOP_GAP = Platform.select({ ios: 12, default: 24 }) as number;
 
 export const playerArtTop = (topInset: number): number =>
   topInset + ART_TOP_GAP;
