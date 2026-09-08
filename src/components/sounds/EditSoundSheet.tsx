@@ -3,8 +3,11 @@ import { useRef, useState } from 'react';
 import {
   Box,
   Column,
+  DropdownMenu,
+  DropdownMenuItem,
+  Icon,
+  ListItem,
   ModalBottomSheet,
-  OutlinedButton,
   OutlinedTextField,
   RNHostView,
   Text,
@@ -12,13 +15,22 @@ import {
   type ModalBottomSheetRef,
   type TextFieldRef,
 } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
+import {
+  clickable,
+  clip,
+  fillMaxWidth,
+  padding,
+} from '@expo/ui/jetpack-compose/modifiers';
 import {
   artworkRadius,
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
+  emptyMediaColor,
+  groupRowShape,
+  iconSource,
+  menuContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,9 +57,11 @@ import {
 } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
+import { SECTION_GAP } from '@/styles/metrics';
 import { SHAPE_MD } from '@/styles/shape';
 
 /** The picture fills the slot the package sized and clipped. */
+const MENU_ICON_SIZE = 24;
 const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
 
 /** A freshly picked .mp3, parsed: the parent runs the document picker + ID3
@@ -86,7 +100,7 @@ export function EditSoundSheet({
   onClose,
 }: EditSoundSheetProps) {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
 
@@ -113,7 +127,13 @@ export function EditSoundSheet({
   const [artist, setArtist] = useState(initialArtist);
   const [isSaving, setIsSaving] = useState(false);
   const { pickCover, uploadCover } = useCoverPicker();
-  const [showNameError, setShowNameError] = useState(false);
+  /** Artwork removed this session — the preview hides and Save writes the
+   *  clear. Deferred like the pick; the iOS route's own state. */
+  const [artCleared, setArtCleared] = useState(false);
+  // Change / Remove, offered on the picture itself — the twin of the iOS
+  // route's action sheet (Topper's item editor made the same move,
+  // 2026-09-07).
+  const [mediaMenuOpen, setMediaMenuOpen] = useState(false);
   /**
    * A FAILURE THAT LEAVES THIS SHEET STANDING has to be said in the sheet — the
    * toast draws behind a Compose sheet's own window. See `SheetErrorLine`.
@@ -135,29 +155,46 @@ export function EditSoundSheet({
 
     void pickCover()
       .then(picked => {
-        if (picked) setPickedCover(picked);
+        if (picked) {
+          setPickedCover(picked);
+          setArtCleared(false);
+        }
       })
       .catch(() => setFailure(t('snackbar.sound-save-failed')));
   };
 
   // The preview: a picked cover, else the ID3-embedded picture (create) or the
-  // uploaded art (edit).
-  const artPreviewUri =
-    pickedCover?.uri ??
-    (tags?.picture
-      ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
-      : editingSound?.artUrl || undefined);
+  // uploaded art (edit) — unless this session removed it.
+  const artPreviewUri = artCleared
+    ? (pickedCover?.uri ?? undefined)
+    : (pickedCover?.uri ??
+      (tags?.picture
+        ? `data:${tags.picture.mime};base64,${tags.picture.base64}`
+        : editingSound?.artUrl || undefined));
+
+  // With art present the press OFFERS (menu); with none it picks. Same branch
+  // the iOS route takes before opening its action sheet.
+  const openMedia = () => {
+    if (isSaving) return;
+    if (artPreviewUri) setMediaMenuOpen(true);
+    else onPickCover();
+  };
+
+  const removeCover = () => {
+    setPickedCover(null);
+    setArtCleared(true);
+  };
 
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
-  const nameError = showNameError && nameInvalid;
 
   const save = async () => {
     if (savingRef.current) return;
 
-    if (nameInvalid) {
-      setShowNameError(true);
-      return;
-    }
+    // TOO SHORT A NAME DISABLES SAVE, AND SAYS NOTHING ELSE — Apple's
+    // commit-modal rule (Topper's editors adopted it first); this branch is
+    // only reachable through the keyboard's Done, which declines the same
+    // silent way.
+    if (nameInvalid) return;
 
     const trimmedName = name.trim();
     const trimmedArtist = artist.trim();
@@ -206,6 +243,7 @@ export function EditSoundSheet({
 
       updateSound({
         artist: trimmedArtist,
+        ...(artCleared ? { cover: null } : {}),
         name: trimmedName,
         soundId,
       })
@@ -227,9 +265,10 @@ export function EditSoundSheet({
       await createSound({
         artist: trimmedArtist,
         cover: picked,
-        art: tags?.picture
-          ? { base64: tags.picture.base64, mime: tags.picture.mime }
-          : null,
+        art:
+          tags?.picture && !artCleared
+            ? { base64: tags.picture.base64, mime: tags.picture.mime }
+            : null,
         localAudioUri: pickedFile.uri,
         name: trimmedName,
       });
@@ -311,68 +350,110 @@ export function EditSoundSheet({
               />
             </Box>
 
-            {/* Cover art at the TOP. A ROUNDED SQUARE, not a disc: this is
-                ARTWORK — a picture standing for a recording — and every other
-                place the app draws one (the grid cover, the player, the banner)
-                is a rounded square at `artworkRadius`. The slot defaults to a
-                full circle because that is the shape a PERSON'S photo takes in
-                Topper's editors, and this app inherited it; a disc crop of an
-                album cover is the one crop this app renders nowhere else.
-                RNHostView matchContents sizes the avatar without blanking the
-                fields below it. */}
-            <Column
-              horizontalAlignment="center"
-              verticalArrangement={{ spacedBy: 8 }}
-              modifiers={[fillMaxWidth()]}
-            >
-              <RNHostView matchContents>
-                <MediaPickerAvatar
-                  onPress={onPickCover}
-                  accessibilityLabel={t('common.pickMedia')}
-                  disabled={isSaving}
-                  surfaceColor={colors.surfaceVariant}
-                  contentColor={colors.onSurfaceMuted}
-                  // Android's own Material shape step — `artworkRadius` returns
-                  // the discrete step here rather than iOS's ratio, so the
-                  // corner stays on Material's 4/8/12/16/28 scale.
-                  radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
-                  emoji="🎵"
-                  // Same `ArtImage` the slot rendered internally before it
-                  // moved to the package; this keeps its output identical,
-                  // tokens and circle included.
-                  preview={
-                    artPreviewUri ? (
-                      <ArtImage
-                        uri={artPreviewUri}
-                        // Display-sized fetch for an EXISTING sound's remote
-                        // cover; a local pick and the ID3 tag's `data:` bytes
-                        // pass through `thumbUrl` untouched.
-                        displayWidth={MEDIA_PICKER_SIZE}
-                        style={MEDIA_PREVIEW_FILL}
-                      />
-                    ) : null
-                  }
-                />
-              </RNHostView>
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'labelMedium' }}
+            {/* Cover art at the TOP — a rounded square (artwork, not a
+                person's disc; the corner is Material's own step), the caption
+                INSIDE the press target and in the ACCENT, exactly the iOS
+                route's arrangement (and Topper's item editor's). With art
+                present the press OFFERS Change / Remove through a Material
+                DropdownMenu — the twin of the iOS ActionSheet on the same tap
+                — and with none it picks straight away. */}
+            <Column horizontalAlignment="center" modifiers={[fillMaxWidth()]}>
+              <DropdownMenu
+                color={menuContainer(colors, scheme)}
+                expanded={mediaMenuOpen}
+                onDismissRequest={() => setMediaMenuOpen(false)}
               >
-                {t(
-                  isSaving
-                    ? 'soundEdit.uploading'
-                    : artPreviewUri
-                      ? 'soundEdit.art.change'
-                      : 'soundEdit.art.add',
-                )}
-              </Text>
+                <DropdownMenu.Trigger>
+                  <RNHostView matchContents>
+                    <MediaPickerAvatar
+                      onPress={openMedia}
+                      accessibilityLabel={t('common.pickMedia')}
+                      disabled={isSaving}
+                      // THE EMPTY-MEDIA MATERIAL, the shared term — this drew
+                      // `surfaceVariant` by hand, the exact drift the term
+                      // exists to kill (the iOS route already imports it).
+                      surfaceColor={emptyMediaColor({
+                        colors,
+                        container: 'sheet',
+                        scheme,
+                      })}
+                      contentColor={colors.onSurface}
+                      radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
+                      emoji="🎵"
+                      caption={t(
+                        isSaving
+                          ? 'soundEdit.uploading'
+                          : artPreviewUri
+                            ? 'soundEdit.art.change'
+                            : 'soundEdit.art.add',
+                      )}
+                      // The accent says it's the action (a text action keeps
+                      // its tint); muted while the sheet commits.
+                      captionColor={
+                        isSaving ? colors.onSurfaceMuted : colors.primary
+                      }
+                      preview={
+                        artPreviewUri ? (
+                          <ArtImage
+                            uri={artPreviewUri}
+                            // Display-sized fetch for an EXISTING sound's
+                            // remote cover; a local pick and the ID3 tag's
+                            // `data:` bytes pass through `thumbUrl` untouched.
+                            displayWidth={MEDIA_PICKER_SIZE}
+                            style={MEDIA_PREVIEW_FILL}
+                          />
+                        ) : null
+                      }
+                    />
+                  </RNHostView>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Items>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMediaMenuOpen(false);
+                      onPickCover();
+                    }}
+                  >
+                    <DropdownMenuItem.Text>
+                      <Text color={colors.onSurface}>
+                        {t('soundEdit.art.change')}
+                      </Text>
+                    </DropdownMenuItem.Text>
+                    <DropdownMenuItem.LeadingIcon>
+                      <Icon
+                        source={iconSource('image')}
+                        size={MENU_ICON_SIZE}
+                        tint={colors.onSurface}
+                      />
+                    </DropdownMenuItem.LeadingIcon>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMediaMenuOpen(false);
+                      removeCover();
+                    }}
+                  >
+                    <DropdownMenuItem.Text>
+                      <Text color={colors.danger}>
+                        {t('soundEdit.art.remove')}
+                      </Text>
+                    </DropdownMenuItem.Text>
+                    <DropdownMenuItem.LeadingIcon>
+                      <Icon
+                        source={iconSource('delete')}
+                        size={MENU_ICON_SIZE}
+                        tint={colors.danger}
+                      />
+                    </DropdownMenuItem.LeadingIcon>
+                  </DropdownMenuItem>
+                </DropdownMenu.Items>
+              </DropdownMenu>
             </Column>
 
             <OutlinedTextField
               value={nameState}
               onValueChange={setName}
               singleLine
-              isError={nameError}
               keyboardOptions={{
                 capitalization: 'sentences',
                 imeAction: 'next',
@@ -388,11 +469,6 @@ export function EditSoundSheet({
               <OutlinedTextField.Placeholder>
                 <Text>{t('soundEdit.name.placeholder')}</Text>
               </OutlinedTextField.Placeholder>
-              {nameError && (
-                <OutlinedTextField.SupportingText>
-                  <Text>{t('soundEdit.name.error')}</Text>
-                </OutlinedTextField.SupportingText>
-              )}
             </OutlinedTextField>
 
             {/* TWO FIELDS. Album and Release Year are gone (Juan, 2026-08-21)
@@ -425,13 +501,35 @@ export function EditSoundSheet({
             {failure ? <SheetErrorLine message={failure} /> : null}
 
             {soundId ? (
-              <OutlinedButton
-                onClick={() => setDeleteVisible(true)}
-                enabled={!isSaving}
-                modifiers={[fillMaxWidth()]}
+              /* DELETE is the Account screen's destructive row — a red label
+                 in its own headerless grouped card on a SECTION break — the
+                 shape Topper's editors already take; the outlined button it
+                 replaces was a control Material spends on secondary actions,
+                 not destructions. */
+              <Column
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(0, SECTION_GAP - FORM_GAP, 0, 0),
+                ]}
               >
-                <Text color={colors.danger}>{t('soundEdit.delete')}</Text>
-              </OutlinedButton>
+                <ListItem
+                  colors={{
+                    containerColor: colors.surfaceContainer,
+                    contentColor: colors.danger,
+                  }}
+                  modifiers={[
+                    fillMaxWidth(),
+                    clip(groupRowShape(0, 1)),
+                    ...(isSaving
+                      ? []
+                      : [clickable(() => setDeleteVisible(true))]),
+                  ]}
+                >
+                  <ListItem.HeadlineContent>
+                    <Text color={colors.danger}>{t('soundEdit.delete')}</Text>
+                  </ListItem.HeadlineContent>
+                </ListItem>
+              </Column>
             ) : null}
           </Column>
         </ModalBottomSheet>
