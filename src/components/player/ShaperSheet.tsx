@@ -49,26 +49,22 @@ import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 // built and REMOVED 2026-08-22 — see the note in `store/shaper.ts`.
 
 const EQ_LABEL_WIDTH = 36;
+/** One step per whole dB (−12…+12); the thumb quantizes natively, ticks
+ *  hidden — see the stepped-sliders note below. */
+const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 // The bands stay COMPACT — Speed is the control people reach for, so it keeps
 // its full size while the five bands read as a tighter group. The gap between
 // them comes from the column's spacing, not from padding each row out.
 const EQ_ROW_HEIGHT = 34;
 /**
- * THE BANDS SNAP WITHOUT DRAWING TICKS; SPEED DRAWS THEM.
- *
- * A Compose `Slider` renders one tick per step, which is right for a small set
- * of discrete values and wrong for a large one: the five bands span 24 whole dB,
- * so `steps` drew 23 dots across each of five stacked tracks and the group read
- * as a dotted texture rather than as five controls. M3 asks for tick marks only
- * where the count is small enough to aim at, and iOS's twin draws none at all.
- *
- * Dropping `steps` does NOT drop the snapping: the store rounds in
- * `onValueChange` and the slider is controlled off that rounded value, so the
- * thumb settles on whole dB exactly as before. Verified by dragging the 80 Hz
- * band on the A54 — it reads +5, never +5.3.
- *
- * SPEED KEEPS ITS TICKS, and the contrast is the point: ten stops between 0.5×
- * and 1.5× is a count you can aim at, and the dots say so.
+ * EVERY SLIDER IS STEPPED, AND NONE DRAWS ITS TICKS — iOS's arrangement
+ * exactly (its sliders are stepped and SwiftUI draws nothing). Compose
+ * couples the two: `steps` quantizes the thumb AND renders a dot per step,
+ * which on the bands' 24 whole dB was a dotted texture across five stacked
+ * tracks. The split used to be "drop `steps`, round in `onValueChange`" —
+ * that snapped the VALUE but let the thumb glide; Juan asked for the real
+ * stepped feel (2026-09-08), so `steps` is back everywhere and the ticks are
+ * hidden through transparent tick colors instead (`sliderInk`).
  */
 const RATE_MIN = 0.5;
 const RATE_MAX = 1.5;
@@ -103,8 +99,12 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
     thumbColor: colors.onSurface,
     activeTrackColor: colors.onSurface,
     inactiveTrackColor: withAlpha(colors.onSurface, 0.24),
-    activeTickColor: withAlpha(colors.background, 0.6),
-    inactiveTickColor: withAlpha(colors.onSurface, 0.5),
+    // STEPPED, NEVER DOTTED: every slider on this sheet snaps to its steps
+    // exactly as iOS's do, and iOS draws no tick marks — a transparent tick
+    // is how Compose says the same thing (the `steps` prop is what makes the
+    // THUMB quantize; the dots were only its default rendering).
+    activeTickColor: 'transparent',
+    inactiveTickColor: 'transparent',
   };
 
   const gains = useShaperStore(s => s.gains);
@@ -215,9 +215,13 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               advertised. The row breaks to a second line exactly when the
               screen is too narrow — the size-adaptive behaviour wanted, from
               the platform's own layout rather than a measured branch. */}
+          {/* Vertical spacing 0, not the horizontal 8: each chip's 32dp face
+              sits in Compose's 48dp minimum touch box, so the boxes already
+              hold 16dp of visual air between rows — stated 8 rendered as 24
+              (Juan: too far apart). */}
           <FlowRow
             horizontalArrangement={{ spacedBy: 8 }}
-            verticalArrangement={{ spacedBy: 8 }}
+            verticalArrangement={{ spacedBy: 0 }}
             modifiers={[
               fillMaxWidth(),
               padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
@@ -247,18 +251,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           >
             {t('player.eq.title')}
           </Text>
-          {/* The band numbers are hertz, which means nothing to most people —
-              say what the ends of the range actually sound like. */}
-          <Text
-            color={colors.onSurfaceMuted}
-            style={{ typography: 'bodySmall' }}
-            modifiers={[
-              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-            ]}
-          >
-            {t('player.eq.hint')}
-          </Text>
-
           {/* A DIVIDER BETWEEN BANDS, iOS's own arrangement (its rows sit in
               a Form section with separators): five stacked identical sliders
               read as one texture without the lines saying where one band ends
@@ -272,7 +264,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                     thickness={1}
                     color={colors.listSeparator}
                     modifiers={[
-                      padding(COMPOSE_SHEET_GUTTER, 5, COMPOSE_SHEET_GUTTER, 5),
+                      padding(COMPOSE_SHEET_GUTTER, 9, COMPOSE_SHEET_GUTTER, 9),
                     ]}
                   />
                 ) : null}
@@ -296,6 +288,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                     value={gains[index]}
                     min={EQ_MIN_DB}
                     max={EQ_MAX_DB}
+                    steps={EQ_SLIDER_STEPS}
                     colors={sliderInk}
                     onValueChange={value =>
                       setBandGain(index, Math.round(value))
@@ -313,6 +306,24 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               </Column>
             ))}
           </Column>
+
+          {/* The band numbers are hertz, which means nothing to most people —
+              say what the ends of the range actually sound like. A LEGEND
+              UNDER THE GROUP, iOS's Section-footer position — which Android
+              already draws for the Account screen's destructive card (legend
+              below the card, bodySmall muted, inset to the content). Under
+              the header it read as a second title; under the sliders it
+              explains what you just used, the same size as Preserve Pitch's
+              own legend below. */}
+          <Text
+            color={colors.onSurfaceMuted}
+            style={{ typography: 'bodySmall' }}
+            modifiers={[
+              padding(COMPOSE_SHEET_GUTTER, 2, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
+            {t('player.eq.hint')}
+          </Text>
 
           {/* Speed — stepped quarter increments, live value beside the header. */}
           <Row
