@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  Button,
   Host,
   Icon,
   OutlinedButton,
@@ -10,11 +9,7 @@ import {
 } from '@expo/ui/jetpack-compose';
 import { alpha, fillMaxWidth, width } from '@expo/ui/jetpack-compose/modifiers';
 
-import {
-  GOOGLE_BUTTON_VARIANTS,
-  GOOGLE_DISABLED_LABEL,
-  GOOGLE_DISABLED_OPACITY,
-} from './GoogleLogo';
+import { GOOGLE_BUTTON_VARIANTS, GOOGLE_DISABLED_OPACITY } from './GoogleLogo';
 
 const googleG = require('./assets/icons/google-g.xml');
 
@@ -26,7 +21,7 @@ export type GoogleSignInButtonProps = {
   /** Per the spec: "Sign in with Google" / "Continue with Google", localized. */
   label: string;
   onPress: () => void | Promise<void>;
-  /** Picks the spec variant (light → white + stroke, dark → neutral gray). */
+  /** Picks the spec variant (light → white, dark → dark; both stroked). */
   scheme?: 'light' | 'dark';
   disabled?: boolean;
 };
@@ -35,10 +30,13 @@ export type GoogleSignInButtonProps = {
  * "Continue with Google" per Google's branding guidelines, rendered as a real
  * Compose button so the ripple, pill shape, and Roboto Medium 14 label all
  * come from Material natively. Colors are pinned to the spec variants in
- * `GOOGLE_BUTTON_VARIANTS` instead of the app palette. In light mode the spec's
- * white variant needs its gray stroke; expo-ui's `border()` modifier draws
- * rectangles, so the stroke comes from `OutlinedButton`'s native pill border
- * (themed outline — visually equivalent to the spec gray). The multicolor "G"
+ * `GOOGLE_BUTTON_VARIANTS` instead of the app palette. Both spec variants
+ * carry a gray stroke; expo-ui's `border()` modifier draws rectangles, so the
+ * stroke comes from `OutlinedButton`'s native pill border — the THEMED
+ * outline, which ButtonColors cannot override. Measured on the A54: light is
+ * visually the spec gray; dark renders One UI's outline #44464E against the
+ * spec's #8E918F — dimmer, accepted as the same themed-outline trade rather
+ * than a missing stroke. The multicolor "G"
  * is a plain 4-path vector drawable rendered with `tint={null}` so its
  * mandated colors survive untinted.
  * iOS counterpart in `GoogleSignInButton.ios.tsx`; tsc resolves this base.
@@ -49,22 +47,26 @@ export const GoogleSignInButton = ({
   scheme = 'light',
   disabled = false,
 }: GoogleSignInButtonProps) => {
-  // FROZEN mapping — dark resolves to Google's `neutral` variant (light-gray
-  // fill, no stroke), which is what shipped and was approved. Identical values
-  // to before the spec table gained its third row; iOS maps dark → `dark`.
-  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'neutral' : 'light'];
-  const ButtonComponent = scheme === 'dark' ? Button : OutlinedButton;
+  // Each mode takes the matching row of Google's table, exactly as iOS does —
+  // the dark variant is a dark button (#131314 + stroke), not the light-gray
+  // neutral slab, which on a dark welcome screen was the brightest thing on it
+  // (Juan, 2026-09-08, retiring the frozen `neutral` mapping). Both variants
+  // carry a stroke, so both render through `OutlinedButton`.
+  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
     <Host matchContents={{ vertical: true }} colorScheme={scheme}>
-      <ButtonComponent
+      <OutlinedButton
         onClick={onPress}
         enabled={!disabled}
         colors={{
           containerColor: spec.fill,
           contentColor: spec.label,
           disabledContainerColor: spec.fill,
-          disabledContentColor: GOOGLE_DISABLED_LABEL,
+          // The spec's disabled treatment is the label at 38% opacity — of
+          // whichever label this variant carries, so it dims on the dark
+          // button too instead of going near-black on near-black.
+          disabledContentColor: `${spec.label}61`,
         }}
         // Google's branding guidelines give Android "12px left padding before
         // the Google logo, 10px right padding after the Google logo and 12px
@@ -85,7 +87,7 @@ export const GoogleSignInButton = ({
         />
         <Spacer modifiers={[width(LOGO_GAP)]} />
         <Text>{label}</Text>
-      </ButtonComponent>
+      </OutlinedButton>
     </Host>
   );
 };

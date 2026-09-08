@@ -14,20 +14,18 @@ import Svg, { Path } from 'react-native-svg';
  * own decision, made in its button:
  *
  *   iOS      light → `light`   dark → `dark`
+ *   Android  light → `light`   dark → `dark`
  *            Each mode takes the matching row, so the button sits IN the UI
- *            rather than glowing on top of it.
- *   Android  light → `light`   dark → `neutral`
- *            FROZEN — the light-gray slab is what shipped and was approved.
- *            Do not "align" it with iOS without an explicit ask.
+ *            rather than glowing on top of it. Android held the `neutral`
+ *            light-gray slab in dark until 2026-09-08, when Juan asked for
+ *            the iOS mapping: on a dark welcome screen the slab was the
+ *            brightest thing on it.
  */
 export const GOOGLE_BUTTON_VARIANTS = {
   light: { fill: '#FFFFFF', stroke: '#747775', label: '#1F1F1F' },
   dark: { fill: '#131314', stroke: '#8E918F', label: '#E3E3E3' },
   neutral: { fill: '#F2F2F2', stroke: undefined, label: '#1F1F1F' },
 } as const;
-
-/** Label at 38% opacity — the disabled treatment. */
-export const GOOGLE_DISABLED_LABEL = '#1F1F1F61';
 
 export const GOOGLE_DISABLED_OPACITY = 0.38;
 
