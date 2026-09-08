@@ -51,6 +51,7 @@ import {
   type PlayerCard,
 } from '@/components/player/chrome';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
+import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import {
   PlayerBackdrop,
@@ -1002,6 +1003,14 @@ export function PlayerSheet() {
   // the dedicated Voice Memos-style editor (`clip-trim`), which the Clips
   // sheet pushes.
   const [clipsVisible, setClipsVisible] = useState(false);
+  /**
+   * The clip editor, as an RN SHEET over the player (Android's presentation
+   * — see `ClipTrimSheet`; iOS pushes its `/clip-trim` route instead).
+   * `null` closed; `{ editing: null }` is New Clip.
+   */
+  const [clipTrim, setClipTrim] = useState<{
+    editing: { clipId: string; endMs: number; startMs: number } | null;
+  } | null>(null);
   const [editVisible, setEditVisible] = useState(false);
 
   /**
@@ -1346,20 +1355,25 @@ export function PlayerSheet() {
         <ClipsSheet
           onNewClip={() => {
             setClipsVisible(false);
-            router.push('/clip-trim');
+            setClipTrim({ editing: null });
           }}
           onEditClip={clip => {
             setClipsVisible(false);
-            router.push({
-              pathname: '/clip-trim',
-              params: {
+            setClipTrim({
+              editing: {
                 clipId: clip.id,
-                startMs: String(clip.startMs),
-                endMs: String(clip.endMs),
+                endMs: clip.endMs,
+                startMs: clip.startMs,
               },
             });
           }}
           onClose={() => setClipsVisible(false)}
+        />
+      )}
+      {clipTrim && (
+        <ClipTrimSheet
+          editing={clipTrim.editing}
+          onClose={() => setClipTrim(null)}
         />
       )}
       {editVisible && (
