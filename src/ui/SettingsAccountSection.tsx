@@ -36,6 +36,7 @@ import {
 
 const personIcon = iconSource('person');
 const logoutIcon = iconSource('logout');
+const chevronIcon = iconSource('chevron');
 
 /** App-resolved colors the account section paints with. */
 export type SettingsAccountColors = {
@@ -125,13 +126,13 @@ export type SettingsUsernameEditor = {
  *    gear. So the entry comes here, and the identity card does the work
  *    instead of being decoration.
  *
- * iOS ONLY. Android renders the account entry as a `navRow` inside the account
- * group, which is Material's own idiom — Google's apps put the destination in
- * the group rather than turning the identity card into the tap target. (That
- * used to be written as "Material's own idiom, and frozen for release"; the
- * freeze lifted on 2026-08-29 and the Material half never needed it.) So the
- * Compose variant reads `profile` and ignores this — the prop is declared here
- * because this is the file the shared prop type lives in.
+ * BOTH PLATFORMS. It shipped iOS-only, with Android rendering the entry as a
+ * `navRow` inside the account group on the reading that Google's apps put the
+ * destination in the group rather than on the identity card — but One UI's own
+ * Settings leads with exactly this banner (avatar, name, legend, chevron, the
+ * Samsung account row), and Juan asked for the same object on both sides
+ * (2026-09-08). The Compose side draws it as `SettingsAccountBanner`, a
+ * grouped card leading the screen the way the iOS Form's identity card does.
  *
  * Mutually exclusive with `usernameEditor`: both claim the profile row's tap
  * and its second line. No app wants both — an app with usernames is a social
@@ -171,7 +172,8 @@ export type SettingsAccountSectionProps = {
   usernameEditor?: SettingsUsernameEditor;
   /**
    * When provided, the profile row BECOMES the account destination — see
-   * `SettingsAccountLink`. iOS only; the Compose variant ignores it.
+   * `SettingsAccountLink`. Both platforms: the iOS Form renders it as the
+   * identity card, `SettingsScreen` (Compose) as `SettingsAccountBanner`.
    */
   profileLink?: SettingsAccountLink;
   /**
@@ -279,6 +281,106 @@ const ProfileRow = memo(
 );
 
 ProfileRow.displayName = 'ProfileRow';
+
+/**
+ * The identity banner's avatar — 55dp, the App Store Apple Account sheet's
+ * measured art size, which the iOS banner already renders. One number both
+ * platforms, so the two banners read as the same object at a glance; the
+ * plain profile row's 40dp slot stays what it was.
+ */
+const BANNER_AVATAR_SIZE = 55;
+
+/**
+ * THE ACCOUNT BANNER, Compose side — the `SettingsAccountLink` card: avatar,
+ * name, a legend naming what is behind it, and a disclosure chevron, leading
+ * the screen. The chevron is deliberate where this screen's other rows carry
+ * none: every other row acts in place or opens a dialog, and this is the one
+ * row that LEAVES for a sub-screen — One UI's own Settings draws its Samsung
+ * account banner exactly this way.
+ *
+ * A single-row group, so it takes both outer corners (`groupRowShape(0, 1)`).
+ */
+const AccountBanner = memo(
+  ({
+    profile,
+    link,
+    colors,
+  }: {
+    profile: SettingsAccountProfile;
+    link: SettingsAccountLink;
+    colors: SettingsAccountColors;
+  }) => (
+    <Column
+      modifiers={[
+        fillMaxWidth(),
+        padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
+      ]}
+    >
+      <ListItem
+        colors={listItemColors(colors)}
+        modifiers={[
+          fillMaxWidth(),
+          clip(groupRowShape(0, 1)),
+          clickable(link.onPress),
+        ]}
+      >
+        <ListItem.LeadingContent>
+          <Box
+            contentAlignment="center"
+            modifiers={[
+              size(BANNER_AVATAR_SIZE, BANNER_AVATAR_SIZE),
+              clip(Shapes.Circle),
+              background(colors.surfaceVariant),
+            ]}
+          >
+            {profile.photoUrl ? (
+              <RNHostView matchContents>
+                <Image
+                  source={{ uri: profile.photoUrl }}
+                  style={styles.bannerAvatar}
+                  contentFit="cover"
+                />
+              </RNHostView>
+            ) : (
+              <Icon
+                source={personIcon}
+                size={32}
+                tint={colors.onSurfaceMuted}
+              />
+            )}
+          </Box>
+        </ListItem.LeadingContent>
+        <ListItem.HeadlineContent>
+          {/* A step above the plain rows' face, as the iOS banner's `headline`
+              is a step above its rows — M3's emphasized row title. */}
+          <Text color={colors.onSurface} style={{ typography: 'titleMedium' }}>
+            {profile.displayName}
+          </Text>
+        </ListItem.HeadlineContent>
+        <ListItem.SupportingContent>
+          <Text
+            color={colors.onSurfaceMuted}
+            style={{ typography: 'bodyMedium' }}
+          >
+            {link.subtitle}
+          </Text>
+        </ListItem.SupportingContent>
+        <ListItem.TrailingContent>
+          <Icon source={chevronIcon} size={24} tint={colors.onSurfaceMuted} />
+        </ListItem.TrailingContent>
+      </ListItem>
+    </Column>
+  ),
+);
+
+AccountBanner.displayName = 'AccountBanner';
+
+/**
+ * Standalone export for `SettingsScreen`, which renders the banner FIRST —
+ * above General, the position the iOS Form gives its identity card ("Apple
+ * puts the person first", and so does One UI).
+ */
+export const SettingsAccountBanner = AccountBanner;
 
 /**
  * Text-input dialog in the Material settings idiom — the shared
@@ -488,6 +590,8 @@ NavRow.displayName = 'NavRow';
 const styles = StyleSheet.create({
   // Fills the 40dp leading slot; the parent Box clips it to a circle.
   avatar: { height: LEADING_SLOT_SIZE, width: LEADING_SLOT_SIZE },
+  // The banner's larger disc; same clipping arrangement.
+  bannerAvatar: { height: BANNER_AVATAR_SIZE, width: BANNER_AVATAR_SIZE },
 });
 
 /**
