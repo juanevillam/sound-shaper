@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { StateWrap, EmptyState } from '@portfolio/mobile-ui';
+import { StateWrap, EmptyState, useHeaderScroll } from '@portfolio/mobile-ui';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
@@ -188,6 +188,13 @@ export default function HomeScreen() {
   const error = lab ? labState === 'error' : rawError;
   const rows = toGridRows(sounds);
 
+  // Android's hand-drawn bar takes the same on-scroll step as every navigator
+  // bar in the portfolio: the page's own ground at rest, `surface` once the
+  // grid is behind it. The SHARED hook, with no colours — this bar is not the
+  // navigator's, so the screen paints from `scrolled` itself (the omit case
+  // the hook's docblock names). No-op on iOS, where the system bar owns it.
+  const { scrolled, scrollProps } = useHeaderScroll();
+
   const renderCell = useCallback(
     (cell: Sound | 'add' | null) => {
       if (cell === null) return <View style={styles.cell} />;
@@ -332,15 +339,13 @@ export default function HomeScreen() {
             style={[
               styles.appBar,
               {
-                // ONE GROUND, AND IT DOES NOT MOVE — `surface`, the same
-                // static bar every other Android screen in the portfolio
-                // wears (the family retired the on-scroll step; see
-                // `useHeaderScroll` in @portfolio/mobile-ui and this app's
-                // own stack `headerStyle`). This bar stepped
-                // background → surfaceContainer on scroll for a while after
-                // that, the one holdout because it is hand-drawn (Juan,
-                // 2026-09-08: always elevated, like the other apps' bars).
-                backgroundColor: colors.surface,
+                // M3's on-scroll bar, hand-drawn: the page's own ground at
+                // rest — no band at all — stepping to `surface` once the grid
+                // is behind it, same pair as every navigator bar in the
+                // portfolio (Juan, 2026-09-08, reversing the same-day
+                // "always elevated" call along with the family's static bar;
+                // the shared hook's docblock carries the full history).
+                backgroundColor: scrolled ? colors.surface : colors.background,
                 height: insets.top + APP_BAR_HEIGHT,
                 paddingTop: insets.top,
               },
@@ -411,6 +416,10 @@ export default function HomeScreen() {
             // content inset and drives the collapse — without it the first row
             // starts under the expanded title. Android ignores the prop.
             contentInsetAdjustmentBehavior="automatic"
+            // Android only: feeds the hand-drawn bar's on-scroll step above.
+            // Not spread on iOS — the system bar arms its own edge effect and
+            // nothing here reads `scrolled`.
+            {...(IS_IOS ? null : scrollProps)}
             contentContainerStyle={{
               paddingHorizontal: SCREEN_PADDING,
               paddingTop: GRID_TOP_GAP,

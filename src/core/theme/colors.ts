@@ -415,8 +415,10 @@ const cardMaterial = (m: MaterialColors): string => {
 };
 
 /**
- * THE CHROME GROUND — the app bar's one colour (see each app's Android stack
- * options: "one ground, and it does not move").
+ * THE CHROME GROUND — what an Android app bar wears once content is behind it
+ * (the top bars rest on the page and step up here on scroll, since
+ * 2026-09-08 — see `useHeaderScroll` in @portfolio/mobile-ui; the bottom
+ * NavigationBar wears it permanently).
  *
  * `m.surface` is the right token until the card resolution lands ON it, which
  * is exactly what the lighter-than-page card pick did on the A54 in light:
