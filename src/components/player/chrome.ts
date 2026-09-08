@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { type StyleProp, type ViewStyle, Platform } from 'react-native';
+import { type StyleProp, type ViewStyle } from 'react-native';
 
 import { artworkRadius, type IconName } from '@portfolio/mobile-ui';
 import {
@@ -18,44 +18,13 @@ type AnimatedViewStyle = StyleProp<AnimatedStyle<ViewStyle>>;
 type AnyGesture = ComposedGesture | GestureType;
 
 // Shared contracts for the player-console pieces that have platform twins
-// (`PlayerScrubber`, `PlayerCards`, `PlayerMenuButton`, `ClipActionsRow`,
-// `ClipHandles`).
+// (`PlayerScrubber`, and the two consoles).
 //
 // These live in their OWN module rather than in each component's base file on
 // purpose: from inside `Foo.ios.tsx`, an import of `./Foo` resolves back to
 // `Foo.ios.tsx` — Metro prefers the platform extension — so the file imports
 // itself. Types survive that (they are erased), but any shared VALUE comes
 // back `undefined`. A neutral module has no platform variant to collide with.
-
-/**
- * Fixed height of the Shape/Clips card row. Android keeps the M3 two-line
- * card it shipped with; iOS runs shorter — the content is one title over one
- * caption, and an iOS list-style tile hugs that instead of padding it out.
- */
-export const CARDS_HEIGHT = Platform.select({ ios: 76, default: 96 }) as number;
-
-/** Fixed height of the clip-framing action row that replaces the cards. */
-export const CLIP_ACTIONS_HEIGHT = 56;
-
-/**
- * Extra room under the scrubber WHILE FRAMING A CLIP only. Framing adds a
- * third line (the range) under the elapsed/total pair, which without this
- * crowds straight into the play button. The default player keeps its original
- * tight column — there is no third line to make room for. iOS gets more: SF's
- * shorter labels leave less optical air of their own.
- */
-export const CLIP_FRAMING_GAP = Platform.select({
-  ios: 16,
-  default: 8,
-}) as number;
-
-/**
- * ANDROID's trim-bracket band, laid over the scrubber's top edge. iOS states
- * its own box instead (`TRIM_FRAME_HEIGHT` in `ClipTrimFrameIos`), which is
- * deliberately TALLER than the slider host it rides so the caps clear
- * Apple's minimum touch target.
- */
-export const HANDLES_REGION_HEIGHT = 44;
 
 /**
  * The scrubber's box. It was 32 while this was a SwiftUI `Slider`, because a
@@ -96,18 +65,18 @@ export const IOS_SLIDER_TRACK_CENTER = 4;
  * with its box rather than stepping a type ladder — a symbol has no Dynamic
  * Type ramp to break.
  */
-export const IOS_TRANSPORT_SKIP_SIZE = 34;
-export const IOS_TRANSPORT_PLAY_SIZE = 52;
+export const TRANSPORT_SKIP_SIZE = 34;
+export const TRANSPORT_PLAY_SIZE = 52;
 /** Between the boxes, so the three read as one group rather than a spread row. */
-export const IOS_TRANSPORT_GAP = 34;
+export const TRANSPORT_GAP = 34;
 
 /**
  * The box a transport glyph's Host reserves, as a multiple of its POINT SIZE —
  * `TransportGlyphs.ios`'s ratio, moved here the day the row's HEIGHT became a
- * shared term too (see `IOS_TRANSPORT_ROW_HEIGHT`). The full reasoning — why a
+ * shared term too (see `TRANSPORT_ROW_HEIGHT`). The full reasoning — why a
  * ratio, why 1.45 — stays with the glyphs.
  */
-export const IOS_TRANSPORT_GLYPH_BOX_RATIO = 1.45;
+export const TRANSPORT_GLYPH_BOX_RATIO = 1.45;
 
 /**
  * A transport ROW's height — its tallest child, the play glyph's box. The clip
@@ -115,8 +84,8 @@ export const IOS_TRANSPORT_GLYPH_BOX_RATIO = 1.45;
  * answer: a row that reports its height a frame late moves the very control
  * this anchoring exists to hold still.
  */
-export const IOS_TRANSPORT_ROW_HEIGHT = Math.round(
-  IOS_TRANSPORT_PLAY_SIZE * IOS_TRANSPORT_GLYPH_BOX_RATIO,
+export const TRANSPORT_ROW_HEIGHT = Math.round(
+  TRANSPORT_PLAY_SIZE * TRANSPORT_GLYPH_BOX_RATIO,
 );
 
 /* -------------------------------------------------------------------------- */
@@ -143,16 +112,16 @@ let transportAnchorY: number | null = null;
 let transportMeasurer: (() => void) | null = null;
 const transportAnchorListeners = new Set<() => void>();
 
-export function registerPlayerTransportMeasurerIos(fn: (() => void) | null) {
+export function registerPlayerTransportMeasurer(fn: (() => void) | null) {
   transportMeasurer = fn;
 }
 
 /** Called by the sheet when the expand settles; no-op until a console registers. */
-export function measurePlayerTransportIos() {
+export function measurePlayerTransport() {
   transportMeasurer?.();
 }
 
-export function setPlayerTransportAnchorIos(y: number) {
+export function setPlayerTransportAnchor(y: number) {
   if (y === transportAnchorY) return;
   transportAnchorY = y;
   transportAnchorListeners.forEach(l => l());
@@ -164,7 +133,7 @@ const subscribeTransportAnchor = (l: () => void) => {
 };
 const readTransportAnchor = () => transportAnchorY;
 
-export function usePlayerTransportAnchorIos(): number | null {
+export function usePlayerTransportAnchor(): number | null {
   return useSyncExternalStore(subscribeTransportAnchor, readTransportAnchor);
 }
 
@@ -177,12 +146,6 @@ export type PlayerScrubberProps = {
   duration: number;
   /** The real track length, for the right-hand label. */
   totalDuration: number;
-  /**
-   * Centre label while framing a clip ("0:36 – 0:42"), else null. ANDROID'S
-   * ONLY — iOS frames in the dedicated `clip-trim` editor, which draws its own
-   * caption from the live shared values.
-   */
-  clipLabel?: string | null;
   onDrag: (value: number) => void;
   onDragEnd: () => void;
 };
@@ -193,40 +156,6 @@ export type PlayerCard = {
   label: string;
   onPress: () => void;
   summary: string;
-};
-
-export type PlayerCardsProps = {
-  cards: readonly PlayerCard[];
-};
-
-export type PlayerMenuButtonProps = {
-  onInfo: () => void;
-  onEdit: () => void;
-};
-
-export type ClipActionsRowProps = {
-  onCancel: () => void;
-  onPreview: () => void;
-  onSave: () => void;
-  /**
-   * Re-framing an existing clip rather than making one. Only the row's LABEL
-   * changes — the surface, the gestures and Save are the same anatomy, which is
-   * the point of reaching edit through it (see `PlayerSheet`'s `onEditClip`).
-   */
-  editing: boolean;
-  /**
-   * Measured content-box width. iOS draws this row as the glass bar it stands
-   * in for, and `GlassSurfaceIos` takes a real box rather than a flex one.
-   * Android ignores it — its row is a plain Compose surface.
-   */
-  width?: number;
-};
-
-export type ClipHandlesProps = {
-  durationS: number;
-  startS: number;
-  endS: number;
-  onChange: (startS: number, endS: number) => void;
 };
 
 /**
@@ -286,21 +215,9 @@ export type PlayerConsoleProps = {
    * commit a finished scrub. */
   onSeek: (seconds: number) => void;
 
-  /* Clip framing — the brackets and the action row that replaces the footer. */
-  clipMode: boolean;
-  clipRange: { startS: number; endS: number };
-  trimmerDuration: number;
-  onClipRangeChange: (startS: number, endS: number) => void;
-  onClipCancel: () => void;
-  onClipPreview: () => void;
-  onClipSave: () => void;
-  /** Framing is re-framing an existing clip — see `ClipActionsRowProps`. */
-  clipEditing: boolean;
-
-  /* The two studios, and the overflow behind the title. */
+  /* The two studios, and the bar's third compartment. */
   cards: readonly PlayerCard[];
   onCollapse: () => void;
-  onInfo: () => void;
   onEdit: () => void;
 
   /* Gestures owned by the sheet — the console only attaches them. */
@@ -319,29 +236,25 @@ export type PlayerConsoleProps = {
 // ---------------------------------------------------------------------------
 
 /**
- * iOS: ONE CONTENT BOX, and the artwork is simply as wide as it.
+ * ONE CONTENT BOX, and the artwork is simply as wide as it — BOTH PLATFORMS
+ * since 2026-09-08 (Juan: bring Android's console to the iOS result).
  *
  * The console's title, scrubber, transport and footer all run to the same two
  * edges, and the artwork lines up with them rather than being a separately
  * chosen fraction. That is a rule instead of a number, which is the whole
  * point — the previous 0.58-of-width was a fraction with nothing under it, and
  * it left 164pt of dead screen below the console (band-scanned: content ended
- * at 676 on an 874pt screen).
+ * at 676 on an 874pt screen). Android carried that same fraction (a moderate
+ * square capped at 260dp) for as long as its console was the old Material
+ * screen; the fraction went with the screen.
  *
- * ANDROID KEEPS ITS OWN: a moderate square with the Material console stacked
- * under it.
+ * The inset is the app's own screen gutter — also the collapsed banner's, so
+ * the surface's edges never move as it expands.
  */
-export const PLAYER_SIDE_PADDING = Platform.select({
-  // The app's own screen gutter — also the collapsed banner's side inset, so
-  // the surface's edges never move as it expands into a screen.
-  ios: SCREEN_PADDING,
-  default: 24,
-}) as number;
+export const PLAYER_SIDE_PADDING = SCREEN_PADDING;
 
 export const playerArtSize = (winW: number): number =>
-  Platform.OS === 'ios'
-    ? winW - PLAYER_SIDE_PADDING * 2
-    : Math.min(Math.round(winW * 0.58), 260);
+  winW - PLAYER_SIDE_PADDING * 2;
 
 /**
  * Where the artwork's top edge sits, below the screen's top inset.
@@ -368,13 +281,13 @@ export const playerArtSize = (winW: number): number =>
  * gone and the console's only glyph-only control is a compartment of the glass
  * bar, which takes the bar's geometry rather than a bar item's.
  */
-const IOS_ART_TOP_GAP = 12;
+const ART_TOP_GAP = 12;
 
 export const playerArtTop = (topInset: number): number =>
-  Platform.OS === 'ios' ? topInset + IOS_ART_TOP_GAP : topInset + 60;
+  topInset + ART_TOP_GAP;
 
 /** The gap between the artwork's bottom edge and the console's first line. */
-const ART_TO_CONSOLE = Platform.select({ ios: 28, default: 36 }) as number;
+const ART_TO_CONSOLE = 28;
 
 export const playerConsoleTop = (artTop: number, artSize: number): number =>
   artTop + artSize + ART_TO_CONSOLE;

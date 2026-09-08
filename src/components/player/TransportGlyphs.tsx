@@ -8,65 +8,152 @@ import { StyleSheet, View } from 'react-native';
  * is the whole point of this file existing separately: it used to be the
  * justification on both platforms, so iOS inherited a Compose workaround and
  * drew SF Symbols' job out of CSS triangles. See `TransportGlyphs.ios`.
+ *
+ * SIZED SINCE 2026-09-08: the expanded console took the iOS transport's
+ * size-not-fill hierarchy (play larger than the skips, no FAB), so the glyphs
+ * scale from a `size` prop — the same point-size contract the iOS twins take,
+ * with the drawn ink at a fixed ratio of it so the two platforms' rows read
+ * the same weight. Omitting `size` keeps the collapsed banner's original
+ * small set exactly (BASE below reproduces the old numbers at 1×).
  */
 
 export type TransportGlyphProps = {
   color: string;
-  /** iOS only — the SF Symbol's point size. Ignored here; these are drawn. */
+  /** The glyph's point size; omit for the banner's original small set. */
   size?: number;
 };
 
-export const PlayGlyph = ({ color }: TransportGlyphProps) => (
-  <View style={[styles.playTriangle, { borderLeftColor: color }]} />
-);
+/** The old drawn set's implicit box — `size` scales relative to this. */
+const BASE = 18;
 
-export const PauseGlyph = ({ color }: TransportGlyphProps) => (
-  <View style={styles.pauseRow}>
-    <View style={[styles.pauseBar, { backgroundColor: color }]} />
-    <View style={[styles.pauseBar, { backgroundColor: color }]} />
-  </View>
-);
+export const PlayGlyph = ({ color, size }: TransportGlyphProps) => {
+  const s = (size ?? BASE) / BASE;
 
-export const NextGlyph = ({ color }: TransportGlyphProps) => (
-  <View style={styles.nextRow}>
-    <View style={[styles.nextTriangle, { borderLeftColor: color }]} />
-    <View style={[styles.nextBar, { backgroundColor: color }]} />
-  </View>
-);
+  return (
+    <View
+      style={[
+        styles.playTriangle,
+        {
+          borderBottomWidth: 9 * s,
+          borderLeftColor: color,
+          borderLeftWidth: 14 * s,
+          borderTopWidth: 9 * s,
+          marginLeft: 3 * s,
+        },
+      ]}
+    />
+  );
+};
 
-export const PreviousGlyph = ({ color }: TransportGlyphProps) => (
-  <View style={styles.previousRow}>
-    <View style={[styles.nextBar, { backgroundColor: color }]} />
-    <View style={[styles.previousTriangle, { borderRightColor: color }]} />
-  </View>
-);
+export const PauseGlyph = ({ color, size }: TransportGlyphProps) => {
+  const s = (size ?? BASE) / BASE;
+
+  return (
+    <View style={[styles.pauseRow, { gap: 4 * s }]}>
+      <View
+        style={[
+          styles.pauseBar,
+          {
+            backgroundColor: color,
+            borderRadius: 1.5 * s,
+            height: 16 * s,
+            width: 4.5 * s,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.pauseBar,
+          {
+            backgroundColor: color,
+            borderRadius: 1.5 * s,
+            height: 16 * s,
+            width: 4.5 * s,
+          },
+        ]}
+      />
+    </View>
+  );
+};
+
+export const NextGlyph = ({ color, size }: TransportGlyphProps) => {
+  const s = (size ?? BASE) / BASE;
+
+  return (
+    <View style={[styles.nextRow, { gap: 1.5 * s }]}>
+      <View
+        style={[
+          styles.nextTriangle,
+          {
+            borderBottomWidth: 7 * s,
+            borderLeftColor: color,
+            borderLeftWidth: 11 * s,
+            borderTopWidth: 7 * s,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.nextBar,
+          {
+            backgroundColor: color,
+            borderRadius: 1 * s,
+            height: 14 * s,
+            width: 2.5 * s,
+          },
+        ]}
+      />
+    </View>
+  );
+};
+
+export const PreviousGlyph = ({ color, size }: TransportGlyphProps) => {
+  const s = (size ?? BASE) / BASE;
+
+  return (
+    <View style={[styles.previousRow, { gap: 1.5 * s }]}>
+      <View
+        style={[
+          styles.nextBar,
+          {
+            backgroundColor: color,
+            borderRadius: 1 * s,
+            height: 14 * s,
+            width: 2.5 * s,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.previousTriangle,
+          {
+            borderBottomWidth: 7 * s,
+            borderRightColor: color,
+            borderRightWidth: 11 * s,
+            borderTopWidth: 7 * s,
+          },
+        ]}
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   playTriangle: {
     borderBottomColor: 'transparent',
-    borderBottomWidth: 9,
-    borderLeftWidth: 14,
     borderTopColor: 'transparent',
-    borderTopWidth: 9,
-    marginLeft: 3,
   },
-  pauseRow: { flexDirection: 'row', gap: 4 },
-  pauseBar: { borderRadius: 1.5, height: 16, width: 4.5 },
-  nextRow: { alignItems: 'center', flexDirection: 'row', gap: 1.5 },
+  pauseRow: { flexDirection: 'row' },
+  pauseBar: {},
+  nextRow: { alignItems: 'center', flexDirection: 'row' },
   nextTriangle: {
     borderBottomColor: 'transparent',
-    borderBottomWidth: 7,
-    borderLeftWidth: 11,
     borderTopColor: 'transparent',
-    borderTopWidth: 7,
   },
-  nextBar: { borderRadius: 1, height: 14, width: 2.5 },
-  previousRow: { alignItems: 'center', flexDirection: 'row', gap: 1.5 },
+  nextBar: {},
+  previousRow: { alignItems: 'center', flexDirection: 'row' },
   previousTriangle: {
     borderBottomColor: 'transparent',
-    borderBottomWidth: 7,
-    borderRightWidth: 11,
     borderTopColor: 'transparent',
-    borderTopWidth: 7,
   },
 });

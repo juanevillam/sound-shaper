@@ -1,14 +1,13 @@
 import { Column, Row, Slider, Text } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
+import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
+
+import { withAlpha } from '@portfolio/core';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 
 import { type PlayerScrubberProps } from './chrome';
-
-// Drop below the elapsed/total row, so the range reads as its own line.
-const CLIP_LABEL_GAP = 6;
 
 // THE scrubber — Material's native Slider plus the elapsed/total labels.
 // Extracted from PlayerSheet so the iOS twin can swap in a SwiftUI Slider
@@ -17,7 +16,6 @@ export function PlayerScrubber({
   position,
   duration,
   totalDuration,
-  clipLabel,
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
@@ -30,10 +28,20 @@ export function PlayerScrubber({
         verticalArrangement={{ spacedBy: 0 }}
         modifiers={[fillMaxWidth()]}
       >
+        {/* NO ACCENT — the console's rule 3: the backdrop wash carries the
+            colour, the track takes the ink. M3 fills a slider with the accent
+            by default, which is the monochrome rule's first bucket (a colour
+            the framework gave it, saying nothing); the SwiftUI twin was
+            detinted the same day for the same reason. */}
         <Slider
           value={Math.min(position, duration)}
           min={0}
           max={duration}
+          colors={{
+            thumbColor: colors.onSurface,
+            activeTrackColor: colors.onSurface,
+            inactiveTrackColor: withAlpha(colors.onSurface, 0.24),
+          }}
           onValueChange={onDrag}
           onValueChangeFinished={onDragEnd}
           modifiers={[fillMaxWidth()]}
@@ -54,19 +62,6 @@ export function PlayerScrubber({
             {totalDuration > 0 ? formatTime(totalDuration) : '-:--'}
           </Text>
         </Row>
-        {/* The clip range gets its OWN line under the playhead/total pair,
-            never their baseline: it belongs to the brackets above, not to the
-            track's own readout, and sharing a row made the three read as one
-            crowded strip. */}
-        {clipLabel ? (
-          <Text
-            color={colors.onSurface}
-            style={{ typography: 'labelMedium' }}
-            modifiers={[padding(0, CLIP_LABEL_GAP, 0, 0)]}
-          >
-            {clipLabel}
-          </Text>
-        ) : null}
       </Column>
     </ThemedHost>
   );

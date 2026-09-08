@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image, type ImageProps } from '@expo/ui/swift-ui';
 import { SwiftUIHost } from '@portfolio/mobile-ui';
 
-import { IOS_TRANSPORT_GLYPH_BOX_RATIO } from './chrome';
+import { TRANSPORT_GLYPH_BOX_RATIO } from './chrome';
 import { type TransportGlyphProps } from './TransportGlyphs';
 
 /**
@@ -61,7 +61,7 @@ const GLYPH_POINT_SIZE = 19;
  * that governs `artworkRadius` and `emptyMediaPlusStyle`. The point size it
  * multiplies is the thing that steps.
  */
-const GLYPH_BOX_RATIO = IOS_TRANSPORT_GLYPH_BOX_RATIO;
+const GLYPH_BOX_RATIO = TRANSPORT_GLYPH_BOX_RATIO;
 
 const Glyph = ({
   color,

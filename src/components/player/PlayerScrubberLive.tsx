@@ -26,15 +26,12 @@ import { usePlayerStore } from '@/store/player';
 type PlayerScrubberLiveProps = {
   /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
   copyInset?: number;
-  /** Centre label while framing a clip ("0:36 – 0:42"), else null. Android's. */
-  clipLabel?: string | null;
   /** Commit a scrub. Also ends any clip replay — see the store's `seek`. */
   onSeek: (seconds: number) => void;
 };
 
 export function PlayerScrubberLive({
   copyInset,
-  clipLabel,
   onSeek,
 }: PlayerScrubberLiveProps) {
   const storePosition = usePlayerStore(s => s.position);
@@ -51,7 +48,6 @@ export function PlayerScrubberLive({
       // Never 0, so the track is never degenerate before the duration lands.
       duration={storeDuration > 0 ? storeDuration : 1}
       totalDuration={storeDuration}
-      clipLabel={clipLabel}
       onDrag={value => {
         lastDragRef.current = value;
         setDragValue(value);
