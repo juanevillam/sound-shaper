@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
 
 /**
  * iOS counterpart of `GoogleSignInButton` — same scheme-adaptive spec variants
- * (light → white + exact spec stroke, dark → neutral gray) and multicolor "G",
+ * (light → white, dark → dark, each with its spec stroke) and multicolor "G",
  * drawn with a plain Pressable since there is no Compose here. RN borders
  * follow the pill radius, so the light variant gets the spec's exact stroke.
  */
@@ -52,7 +52,7 @@ export const GoogleSignInButton = ({
   // iOS takes the matching row of Google's table in each mode — the dark
   // variant is a dark button (#131314 + #8E918F stroke), not the light-gray
   // neutral slab, so it reads as a control on a dark screen instead of the
-  // brightest thing on it. Android deliberately still shows `neutral`.
+  // brightest thing on it. Android maps the same way since 2026-09-08.
   const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
