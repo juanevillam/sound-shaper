@@ -18,6 +18,7 @@ import {
   clickable,
   clip,
   fillMaxWidth,
+  height,
   padding,
   Shapes,
   size,
@@ -291,6 +292,17 @@ ProfileRow.displayName = 'ProfileRow';
 const BANNER_AVATAR_SIZE = 55;
 
 /**
+ * The banner card's height — stated, because a Compose `ListItem` sizes every
+ * row to the same two-line 72dp, which rendered the PRIMARY item on the screen
+ * exactly as tall as the Language row beside it (measured on the A54; Juan,
+ * 2026-09-08: the iOS banner is visibly the primary item, Android's was not).
+ * 96 is the M3 grid's next full step above the three-line 88: 1.7× the
+ * one-line row (iOS's banner is 85pt against ~44pt rows, the same class of
+ * step), and it gives the 55dp avatar 20dp of air against the current 8.5.
+ */
+const BANNER_HEIGHT = 96;
+
+/**
  * THE ACCOUNT BANNER, Compose side — the `SettingsAccountLink` card: avatar,
  * name, a legend naming what is behind it, and a disclosure chevron, leading
  * the screen. The chevron is deliberate where this screen's other rows carry
@@ -320,6 +332,7 @@ const AccountBanner = memo(
         colors={listItemColors(colors)}
         modifiers={[
           fillMaxWidth(),
+          height(BANNER_HEIGHT),
           clip(groupRowShape(0, 1)),
           clickable(link.onPress),
         ]}
