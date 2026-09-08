@@ -6,7 +6,6 @@ import {
   emptyMediaPlusStyle,
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
-  TEXT_VARIANTS,
 } from '@portfolio/mobile-ui';
 
 import { NowPlayingBars } from '@/components/sounds/NowPlayingBars';
@@ -22,8 +21,6 @@ import { CONTINUOUS_CURVE, SHAPE_MD } from '@/styles/shape';
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the
 // music glyph) with the title + artist under it — YT Music's album-tile
 // language, one sound per tile. Tap = play, long-press = edit.
-
-const IS_IOS = Platform.OS === 'ios';
 
 /**
  * THE GRID CELL — DERIVED FROM THE WINDOW, NOT MEASURED AND NOT A CONSTANT.
@@ -105,9 +102,14 @@ export const soundGridCell = (winW: number): number =>
  * competition with the cover. 17/500 was rejected outright: Medium is not a
  * named iOS style, the same defect that ruled out 16/14 above.
  *
- * The `+ 5` leading below is not a house rule either: it reproduces Apple's own
- * for both, 17/22 and 15/20. If either size moves off this pair, check the
- * leading against the real style rather than keeping the arithmetic.
+ * The leading is Apple's own for both, 17/22 and 15/20 — which is exactly what
+ * the shared scale's iOS `bodyLarge` (Body) and `bodyMedium` (Subheadline)
+ * already state, so the tile renders THE VARIANTS and carries no size override.
+ * It used to: the sizes rode a style patch over the smaller `bodyMedium` /
+ * `bodySmall`, which the skeleton's ghost `Text` could not see — its line boxes
+ * came to 20 + 18 against the rendered 22 + 20, 4pt of jump per tile on settle
+ * (Juan caught it by eye, 2026-09-08). A variant IS the box; a style override
+ * on top of one is a second geometry the bone cannot share.
  *
  * ANDROID STEPS TOO, AND FOR THE SAME MEASURED REASON — it was left on the
  * shared scale while iOS moved, and so sat at exactly the ratio this note
@@ -121,42 +123,23 @@ export const soundGridCell = (winW: number): number =>
  * setting, and 16/168 = **0.095** against iOS's 0.096 — the two twins now
  * caption a large cover at the same proportion, each in its own type language.
  */
-const CAPTION_TITLE = 17;
-const CAPTION_SUB = 15;
-
 /**
- * Android's caption steps, named once so the tile and its skeleton cannot
- * disagree — `LINES` reads its line boxes straight off these.
- */
-const ANDROID_CAPTION_TITLE = 'bodyLarge' as const;
-const ANDROID_CAPTION_SUB = 'bodyMedium' as const;
-
-/**
- * THE TWO VARIANTS THE CAPTIONS ARE TYPESET IN, resolved per platform and
- * EXPORTED — the tile renders them and `SoundTileSkeleton` stands an invisible
- * `Text` at the same two to reserve its line boxes.
+ * THE TWO VARIANTS THE CAPTIONS ARE TYPESET IN, EXPORTED — the tile renders
+ * them and `SoundTileSkeleton` stands an invisible `Text` at the same two to
+ * reserve its line boxes.
  *
  * It is the variant that is shared rather than the line height, and that is the
  * whole point: an Android `Text` does not render at its stated `lineHeight`,
  * so a bone built from the number was 3.91dp short per row even though the
- * number itself was correctly imported. See `CaptionLine`.
+ * number itself was correctly imported. One NAME per platform pair, no fork:
+ * `bodyLarge` / `bodyMedium` resolve to 17/22 + 15/20 on iOS (Body /
+ * Subheadline) and 16/24 + 14/20 on Android — the two ladders' own steps the
+ * note above argues for.
  */
 export const CAPTION_VARIANTS = {
-  title: (IS_IOS ? 'bodyMedium' : ANDROID_CAPTION_TITLE) as TextVariant,
-  subtitle: (IS_IOS ? 'bodySmall' : ANDROID_CAPTION_SUB) as TextVariant,
+  title: 'bodyLarge' as TextVariant,
+  subtitle: 'bodyMedium' as TextVariant,
 };
-
-/**
- * TYPE IS NOT GEOMETRY, so these do NOT follow the cell — see `CAPTION_TITLE`.
- * They are the only terms below that stay fixed while the box moves.
- */
-const LINES = Platform.select({
-  ios: { title: CAPTION_TITLE + 5, subtitle: CAPTION_SUB + 5 },
-  default: {
-    title: TEXT_VARIANTS[ANDROID_CAPTION_TITLE].lineHeight as number,
-    subtitle: TEXT_VARIANTS[ANDROID_CAPTION_SUB].lineHeight as number,
-  },
-}) as { title: number; subtitle: number };
 
 /**
  * THE TILE'S GEOMETRY, EXPORTED FOR ITS SKELETON — style objects, not a copy of
@@ -197,7 +180,6 @@ export type SoundTileMetrics = {
   captionInset: number;
   /** The gap the title's own `marginBottom` opens under it. */
   titleGap: number;
-  lines: { title: number; subtitle: number };
 };
 
 /**
@@ -228,7 +210,6 @@ export const soundTileMetrics = (cell: number): SoundTileMetrics => {
       default: 0,
     }) as number,
     titleGap: 1,
-    lines: LINES,
   };
 };
 
@@ -309,7 +290,7 @@ export function SoundTile({
         text={sound.artist || ' '}
         variant={CAPTION_VARIANTS.subtitle}
         numberOfLines={1}
-        style={[styles.artist, { paddingLeft: captionInset }]}
+        style={{ paddingLeft: captionInset }}
       />
     </SquashPressable>
   );
@@ -379,7 +360,7 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
         muted
         text="home.addSoundFormat"
         variant={CAPTION_VARIANTS.subtitle}
-        style={[styles.artist, { paddingLeft: captionInset }]}
+        style={{ paddingLeft: captionInset }}
       />
     </SquashPressable>
   );
@@ -397,22 +378,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...CONTINUOUS_CURVE,
   },
-  // iOS's sizes come from CAPTION_TITLE / CAPTION_SUB above; Android's come
-  // from its variant (`ANDROID_CAPTION_TITLE` / `_SUB`), so nothing is stated
-  // twice.
+  // Both captions' sizes come entirely from CAPTION_VARIANTS — no style
+  // override, so the skeleton's ghost line stands the identical box.
   // The optical nudge stays iOS-only: the caption sits under the artwork's
   // rounded bottom corners, which curve the edge inward right where the text
   // starts, so flush to the true edge it reads as hanging past the cover.
   // Android's corner is the flat M3 step rather than a continuous curve, so
   // there is far less edge to compensate for and it keeps the flush edge.
-  name: {
-    marginBottom: 1,
-    ...Platform.select({
-      ios: { fontSize: CAPTION_TITLE, lineHeight: CAPTION_TITLE + 5 },
-    }),
-  },
-  artist:
-    Platform.select({
-      ios: { fontSize: CAPTION_SUB, lineHeight: CAPTION_SUB + 5 },
-    }) ?? {},
+  name: { marginBottom: 1 },
 });
