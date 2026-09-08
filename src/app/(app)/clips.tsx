@@ -13,6 +13,7 @@ import { foregroundStyle, tint } from '@expo/ui/swift-ui/modifiers';
 import {
   EmptyState,
   HeaderGlyphButtonIos,
+  HeaderGlyphGroupIos,
   ProgressViewIos,
   SheetFormBodyIos,
   StateWrap,
@@ -112,11 +113,24 @@ function ClipsSheetScreen() {
               onPress={() => router.back()}
             />
           ),
+          // Shape beside the add, one merged pill — the clip editor's own
+          // trailing arrangement, so the sound stays shapeable from every
+          // clip surface (Juan, 2026-09-08: Shape was unreachable from
+          // here).
           headerRight: () => (
-            <HeaderGlyphButtonIos
-              systemName="plus"
-              label={t('player.clips.new')}
-              onPress={onNewClip}
+            <HeaderGlyphGroupIos
+              glyphs={[
+                {
+                  systemName: 'slider.horizontal.3',
+                  label: t('player.shape.title'),
+                  onPress: () => router.push('/shaper'),
+                },
+                {
+                  systemName: 'plus',
+                  label: t('player.clips.new'),
+                  onPress: onNewClip,
+                },
+              ]}
             />
           ),
         }}

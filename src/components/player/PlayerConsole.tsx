@@ -34,6 +34,7 @@ import {
   registerPlayerTransportMeasurer,
   setPlayerTransportAnchor,
   TRANSPORT_GAP,
+  TRANSPORT_GLYPH_BOX_RATIO,
   TRANSPORT_PLAY_SIZE,
   TRANSPORT_SKIP_SIZE,
   type PlayerCard,
@@ -368,11 +369,17 @@ export function PlayerConsole({
 
         {/* Plain glyphs, equal weight, hierarchy by SIZE — the FAB is gone
             with the accent it wore. Same sizes as the iOS transport, from the
-            shared terms. */}
+            shared terms. EACH GLYPH STANDS IN A STATED BOX
+            (`TRANSPORT_GLYPH_BOX_RATIO`, the iOS hosts' own contract): the
+            drawn play and pause glyphs have different intrinsic widths, so an
+            unboxed row re-laid the skips sideways on every toggle — the
+            horizontal CLS iOS never had, because its hosts always stated
+            their boxes (Juan, 2026-09-08). */}
         <View ref={transportRowRef} style={styles.transportRow}>
           <GlyphButton
             onPress={onPrevious}
             hitSlop={12}
+            style={styles.skipBox}
             accessibilityLabel={t('player.previous')}
           >
             <PreviousGlyph
@@ -383,6 +390,7 @@ export function PlayerConsole({
           <GlyphButton
             onPress={onToggle}
             hitSlop={12}
+            style={styles.playBox}
             accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
           >
             {playing ? (
@@ -394,6 +402,7 @@ export function PlayerConsole({
           <GlyphButton
             onPress={onNext}
             hitSlop={12}
+            style={styles.skipBox}
             accessibilityLabel={t('player.next')}
           >
             <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
@@ -451,6 +460,19 @@ const styles = StyleSheet.create({
     gap: TRANSPORT_GAP,
     justifyContent: 'center',
     width: '100%',
+  },
+  // Stated glyph boxes — see the transport comment above.
+  skipBox: {
+    alignItems: 'center',
+    height: Math.round(TRANSPORT_SKIP_SIZE * TRANSPORT_GLYPH_BOX_RATIO),
+    justifyContent: 'center',
+    width: Math.round(TRANSPORT_SKIP_SIZE * TRANSPORT_GLYPH_BOX_RATIO),
+  },
+  playBox: {
+    alignItems: 'center',
+    height: Math.round(TRANSPORT_PLAY_SIZE * TRANSPORT_GLYPH_BOX_RATIO),
+    justifyContent: 'center',
+    width: Math.round(TRANSPORT_PLAY_SIZE * TRANSPORT_GLYPH_BOX_RATIO),
   },
   // The footer bar — the banner's chrome, stated (see `Footer`). No outline:
   // tone + the elevation shadow are Material's floating grammar (Juan,

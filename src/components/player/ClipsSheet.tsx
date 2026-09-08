@@ -35,6 +35,7 @@ import {
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -92,6 +93,10 @@ export function ClipsSheet({
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
   const [confirmClipId, setConfirmClipId] = useState<string | null>(null);
+  // Shape stacks over this sheet — its own Compose window, exactly as the
+  // clip editor hosts it (Juan, 2026-09-08: the sound's Shape was
+  // unreachable from here).
+  const [shaperVisible, setShaperVisible] = useState(false);
   /** A delete that failed, said here because the toast cannot be seen from
    *  inside a Compose sheet — see `SheetErrorLine`. */
   const [failure, setFailure] = useState<string | null>(null);
@@ -241,6 +246,16 @@ export function ClipsSheet({
               >
                 {t('player.clips.title')}
               </Text>
+              {/* Shape beside the add — the same trailing pair the clip
+                  editor's bar carries (tune, then the commit slot's action),
+                  so the sound stays shapeable from every clip surface. */}
+              <IconButton onClick={() => setShaperVisible(true)}>
+                <AppIcon
+                  name="tune"
+                  tint={colors.onSurface}
+                  contentDescription={t('player.shape.title')}
+                />
+              </IconButton>
               <IconButton onClick={() => void leave(onNewClip)}>
                 <AppIcon
                   name="add"
@@ -480,6 +495,8 @@ export function ClipsSheet({
       {/* Its OWN Host — a dialog mounted beside other Compose content in one
           Host flickers the siblings, which is the note `EditSoundSheet` records
           for the identical arrangement. */}
+      {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
+
       {confirmClipId ? (
         <ThemedHost matchContents>
           <DestructiveConfirmDialog

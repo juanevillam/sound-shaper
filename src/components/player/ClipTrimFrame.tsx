@@ -190,7 +190,21 @@ export function ClipTrimFrame({
   endSv,
   onChange,
 }: ClipTrimFrameProps) {
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
+  /**
+   * THE SELECTION KEEPS THE ACCENT (the one deliberate exception to the
+   * player's no-accent rule — brackets mark a SELECTION), but dark takes the
+   * CONTAINER step: M3's dark `primary` is a pastel built for small ink, and
+   * as a filled frame it was the brightest object on a near-black editor
+   * (Juan, 2026-09-08 — "too much contrast"; light mode reads right and is
+   * untouched). `primaryContainer` is the same hue at container depth, with
+   * `onPrimaryContainer` as its own ink — the pairing Material ships for
+   * exactly this fill-vs-ink split.
+   */
+  const frameAccent =
+    scheme === 'dark' ? colors.primaryContainer : colors.primary;
+  const onFrameAccent =
+    scheme === 'dark' ? colors.onPrimaryContainer : colors.onPrimary;
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);
@@ -375,20 +389,13 @@ export function ClipTrimFrame({
               accessibilityValue={{
                 text: `${formatTime(startS)} – ${formatTime(endS)}`,
               }}
-              style={[
-                styles.frame,
-                { borderColor: colors.primary },
-                frameStyle,
-              ]}
+              style={[styles.frame, { borderColor: frameAccent }, frameStyle]}
             >
               <View
                 style={[
                   styles.rangeFill,
                   {
-                    backgroundColor: withAlpha(
-                      colors.primary,
-                      RANGE_FILL_ALPHA,
-                    ),
+                    backgroundColor: withAlpha(frameAccent, RANGE_FILL_ALPHA),
                   },
                 ]}
               />
@@ -406,14 +413,14 @@ export function ClipTrimFrame({
                 style={[
                   styles.cap,
                   styles.capStart,
-                  { backgroundColor: colors.primary },
+                  { backgroundColor: frameAccent },
                 ]}
               >
                 <View pointerEvents="none" style={styles.chevronHost}>
                   <CapChevron
                     direction="left"
                     size={CHEVRON_SIZE}
-                    color={colors.onPrimary}
+                    color={onFrameAccent}
                   />
                 </View>
               </View>
@@ -430,14 +437,14 @@ export function ClipTrimFrame({
                 style={[
                   styles.cap,
                   styles.capEnd,
-                  { backgroundColor: colors.primary },
+                  { backgroundColor: frameAccent },
                 ]}
               >
                 <View pointerEvents="none" style={styles.chevronHost}>
                   <CapChevron
                     direction="right"
                     size={CHEVRON_SIZE}
-                    color={colors.onPrimary}
+                    color={onFrameAccent}
                   />
                 </View>
               </View>
