@@ -229,7 +229,6 @@ export const translations = {
         // description, not a label.
         summary: 'Account info and trophies',
       },
-      trophies: 'Trophies',
       manageAccount: {
         title: 'Manage Account',
         infoTitle: 'Account Information',
@@ -500,7 +499,6 @@ export const translations = {
         noName: 'Tu cuenta',
         summary: 'Información de la cuenta y trofeos',
       },
-      trophies: 'Trofeos',
       manageAccount: {
         title: 'Gestionar cuenta',
         infoTitle: 'Información de la cuenta',
@@ -771,7 +769,6 @@ export const translations = {
         noName: '你的账户',
         summary: '账户信息和奖杯',
       },
-      trophies: '奖杯',
       manageAccount: {
         title: '管理账户',
         infoTitle: '账户信息',

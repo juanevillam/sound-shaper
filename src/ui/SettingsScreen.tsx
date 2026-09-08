@@ -28,6 +28,7 @@ import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
 import {
+  SettingsAccountBanner,
   SettingsAccountSection,
   SettingsSignOutSection,
   UsernameDialog,
@@ -532,15 +533,19 @@ export const SettingsScreen = ({
    * is the ONE headerless card on that side). Two platforms, one reason: a
    * header names a group, and this is not one.
    *
-   * Apps WITH an identity group are deliberately untouched here. Whether their
-   * account block should lead the screen the way Apple's does is a real
-   * question — it is row 8 of the 2026-08-29 parity audit — but answering it
-   * moves Topper's and Sound Shaper's Settings, and neither was on the device
-   * for this pass.
+   * A `profileLink` answers row 8 of the 2026-08-29 parity audit the way
+   * Apple does: the identity becomes the BANNER leading the screen (see
+   * `SettingsAccountBanner`), so the profile no longer makes the account block
+   * a group — an app passing profile + profileLink + sign-out gets the banner
+   * first and the lone sign-out card last, which is Sound Shaper's shape on
+   * both platforms now.
    */
+  const hasBanner = Boolean(account?.profileLink && account.profile);
   const accountIsGroup = Boolean(
     account &&
-    (account.profile || account.navRows?.length || account.dangerRows?.length),
+    ((account.profile && !hasBanner) ||
+      account.navRows?.length ||
+      account.dangerRows?.length),
   );
 
   return (
@@ -557,6 +562,18 @@ export const SettingsScreen = ({
               modifiers={[fillMaxWidth()]}
               verticalArrangement={{ spacedBy: 8 }}
             >
+              {/* THE ACCOUNT BANNER LEADS THE SCREEN — the iOS Form's order
+                  ("Apple puts the person first"), and One UI's: Samsung's own
+                  Settings opens on its account banner above every group. No
+                  header, as on iOS — the avatar and the name say what it is. */}
+              {hasBanner && account?.profile && account.profileLink ? (
+                <SettingsAccountBanner
+                  profile={account.profile}
+                  link={account.profileLink}
+                  colors={colors}
+                />
+              ) : null}
+
               {/* A GROUP HEADER IS A LABEL, SO IT TAKES THE INK.
                   It used to be `colors.primary`, which on a wallpaper-derived
                   palette rendered #4979F6 on the A54 — the same accent in both

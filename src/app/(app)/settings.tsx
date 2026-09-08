@@ -102,89 +102,56 @@ export default function Settings() {
         // identical across the portfolio: General, About, Legal, Sign Out.
         // Everything else account-shaped sits behind the Account entry.
         //
-        // THE ACCOUNT ENTRY IS THIS SHEET'S OWN IDENTITY BANNER ON iOS —
-        // avatar, name, legend, chevron, leading the form — and that is the
-        // whole reason home's bar carries one glyph. A personal app has no
-        // Profile tab to hang the account on the way Topper does, and growing
-        // the home bar a second glyph to carry it made the app's first screen
-        // read as busy where every other app's opens on a single gear. Apple's
-        // answer to the same problem is the Apple Account banner at the top of
-        // Settings, which is what this is (see `SettingsAccountLink`).
-        //
-        // Android keeps its `navRows` entry — Material's own idiom — so the
-        // two twins reach the same sheet in their own language. A real
-        // divergence, not an artifact of the lifted freeze.
-        {...(Platform.OS === 'ios'
+        // THE ACCOUNT ENTRY IS THIS SCREEN'S OWN IDENTITY BANNER, BOTH
+        // PLATFORMS — avatar, name, legend, chevron, leading the screen — and
+        // that is the whole reason home's bar carries one glyph. A personal
+        // app has no Profile tab to hang the account on the way Topper does,
+        // and growing the home bar a second glyph to carry it made the app's
+        // first screen read as busy where every other app's opens on a single
+        // gear. Apple's answer is the Apple Account banner at the top of
+        // Settings, One UI's is the Samsung account banner in the same spot,
+        // and both are this (see `SettingsAccountLink`). Android carried a
+        // profile row + Trophies + Manage Account group here until 2026-09-08;
+        // Trophies moved behind manage-account with the rest of the
+        // account-shaped rows, exactly as iOS has had it.
+        account={{
+          title: t('settings.account.title'),
+          profile,
+          profileLink: {
+            subtitle: t('settings.account.summary'),
+            onPress: () => router.push('/manage-account'),
+          },
+          signOutLabel: t('settings.signOut'),
+          signOutDialog: {
+            title: t('settings.signOutDialog.title'),
+            message: t('settings.signOutDialog.message'),
+            confirm: t('settings.signOutDialog.confirm'),
+            cancel: t('settings.signOutDialog.cancel'),
+          },
+          onSignOut: signOut,
+        }}
+        /**
+         * DEV-ONLY — gated on `__DEV__` itself, not just hidden: a release
+         * build passes no prop and the section cannot exist. BOTH platforms,
+         * as in Topper. Plain-English labels on purpose; dev chrome is exempt
+         * from the translation pipeline (the same exemption the state lab's
+         * own copy takes). The switch lives in `store/devSettings`, seeded
+         * from `dev/flags.ts`.
+         */
+        {...(__DEV__
           ? {
-              account: {
-                title: t('settings.account.title'),
-                profile,
-                profileLink: {
-                  subtitle: t('settings.account.summary'),
-                  onPress: () => router.push('/manage-account'),
-                },
-                signOutLabel: t('settings.signOut'),
-                signOutDialog: {
-                  title: t('settings.signOutDialog.title'),
-                  message: t('settings.signOutDialog.message'),
-                  confirm: t('settings.signOutDialog.confirm'),
-                  cancel: t('settings.signOutDialog.cancel'),
-                },
-                onSignOut: signOut,
-              },
-              /**
-               * DEV-ONLY — gated on `__DEV__` itself, not just hidden: a
-               * release build passes no prop and the section cannot exist.
-               * Plain-English labels on purpose; dev chrome is exempt from the
-               * translation pipeline (the same exemption the state lab's own
-               * copy takes). The switch lives in `store/devSettings`, seeded
-               * from `dev/flags.ts`. Matches Topper's Dev section.
-               */
-              ...(__DEV__
-                ? {
-                    devToggles: {
-                      title: 'Dev',
-                      rows: [
-                        {
-                          label: 'State Lab',
-                          value: devStateLabBar,
-                          onValueChange: setDevStateLabBar,
-                        },
-                      ],
-                    },
-                  }
-                : {}),
-            }
-          : {
-              account: {
-                title: t('settings.account.title'),
-                profile,
-                // Deletion lives behind manage-account (the WhatsApp/Google
-                // idiom).
-                navRows: [
+              devToggles: {
+                title: 'Dev',
+                rows: [
                   {
-                    id: 'trophies',
-                    label: t('settings.trophies'),
-                    icon: 'trophy' as const,
-                    onPress: () => router.push('/trophies'),
-                  },
-                  {
-                    id: 'manage-account',
-                    label: t('settings.manageAccount.title'),
-                    icon: 'manage-accounts' as const,
-                    onPress: () => router.push('/manage-account'),
+                    label: 'State Lab',
+                    value: devStateLabBar,
+                    onValueChange: setDevStateLabBar,
                   },
                 ],
-                signOutLabel: t('settings.signOut'),
-                signOutDialog: {
-                  title: t('settings.signOutDialog.title'),
-                  message: t('settings.signOutDialog.message'),
-                  confirm: t('settings.signOutDialog.confirm'),
-                  cancel: t('settings.signOutDialog.cancel'),
-                },
-                onSignOut: signOut,
               },
-            })}
+            }
+          : {})}
         sections={buildGeneralSettingsSections(translate, {
           locale,
           setLocale,

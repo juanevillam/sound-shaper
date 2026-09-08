@@ -4,6 +4,7 @@ import {
   DestructiveConfirmDialog,
   ManageAccountScreen,
 } from '@portfolio/mobile-ui';
+import { router } from 'expo-router';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -81,6 +82,21 @@ export default function ManageAccount() {
     <ManageAccountScreen
       colors={colors}
       info={{ title: t('settings.manageAccount.infoTitle'), rows: infoRows }}
+      // Trophies lives here on BOTH platforms now (2026-09-08): Settings'
+      // account banner is the one entry, and everything account-shaped sits
+      // behind it — the arrangement iOS has had since the banner landed.
+      // Untitled card — the label says what it is.
+      sections={[
+        {
+          rows: [
+            {
+              id: 'trophies',
+              label: t('trophies.title'),
+              onPress: () => router.push('/trophies'),
+            },
+          ],
+        },
+      ]}
       danger={{
         rowLabel: t('settings.manageAccount.deleteAccount'),
         rowDescription: t('settings.manageAccount.deleteAccountHint'),
