@@ -76,7 +76,6 @@ import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
 import {
   CONTINUOUS_CURVE,
-  HAIRLINE,
   SHAPE_SM,
   TILE_RADIUS,
   innerRadius,
@@ -153,18 +152,6 @@ const BANNER_ELEVATION = 8;
 // disappear. Matches the surface's colour cross-fade, so the whole "this is a
 // floating object" story ends at once.
 const BANNER_CHROME_FADE = 0.35;
-
-// Material's linear progress indicator is 4dp and Apple's accent bars land in
-// the same place. A 2pt hairline was legible as a LINE but not as a QUANTITY —
-// you could see it was there without being able to read how far in you were.
-const PROGRESS_HEIGHT = 4;
-// The unplayed remainder, as a tint of the content colour.
-const PROGRESS_TRACK_ALPHA = 0.2;
-
-// How far into the expansion the progress bar is gone. Deliberately tiny: its
-// mask is the collapsed banner's shape, so it may only be seen while the
-// banner still HAS that shape.
-const PROGRESS_FADE_END = 0.04;
 
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
 // The artwork is ONE element scaled between the two states, so a fixed
@@ -251,22 +238,12 @@ const BANNER_GLASS_FADE = 0.12;
 const BANNER_GLASS_FLOOR = GLASS_FLOOR;
 
 /**
- * The pill's outline — ANDROID ONLY now, and the change is the portfolio's one
- * edge rule rather than this banner's own taste.
- *
- * iOS separates surfaces by EDGE and Android by TONE, and this used to read
- * that as "so iOS draws a hairline". On Liquid Glass it does not: the material
- * draws its OWN edge — a specular rim, plus the +15 luminance step into the
- * gutter this file already measured when it deleted the iOS drop shadow for
- * being twice UIKit's whole treatment. A hairline on top of that is the same
- * mistake one layer over.
- *
- * Every floating glass surface in the portfolio therefore takes the material's
- * own edge and nothing else — no border here, no SwiftUI shadow on the trophy
- * banner, nothing on the snackbar. Android keeps its outline, and its tonal
- * pill with it.
+ * NO OUTLINE ON EITHER PLATFORM (Juan, 2026-09-08 — "it shouldn't have border
+ * colors; a cool shadow is enough"). iOS's glass draws its own edge; Android's
+ * pill floats on its ELEVATION shadow alone now, the hairline retired with the
+ * borders on the expanded console's footer. Tone + shadow is Material's own
+ * floating grammar — the outline was belt-and-braces.
  */
-const ANDROID_ONLY_HAIRLINE = Platform.OS === 'ios' ? 0 : HAIRLINE;
 
 /**
  * WHERE THE CONSOLE FADES IN, as a window of the expansion — and the window is
@@ -377,21 +354,6 @@ const WARM_COOL_MS = 2000;
  * Android keeps its rule: it is a Material surface, and that is its own
  * bottom rule rather than a control dropped into padding.
  */
-function BannerProgressFill({ color }: { color: string }) {
-  const position = usePlayerStore(s => s.position);
-  const duration = usePlayerStore(s => s.duration);
-  const ratio = duration > 0 ? Math.min(position / duration, 1) : 0;
-
-  return (
-    <View
-      style={[
-        styles.progressFill,
-        { backgroundColor: color, width: `${ratio * 100}%` },
-      ]}
-    />
-  );
-}
-
 export function PlayerSheet() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -420,7 +382,7 @@ export function PlayerSheet() {
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
   /**
-   * `position` IS DELIBERATELY NOT READ HERE — see `BannerProgressFill` and
+   * `position` IS DELIBERATELY NOT READ HERE — see
    * `PlayerScrubberLive`, the two leaves that draw it. The transport ticks it
    * ten times a second; subscribing on this component made the entire sheet
    * (both neighbour covers, every gesture recipe, the whole console tree)
@@ -935,7 +897,6 @@ export function PlayerSheet() {
         [colors.surfaceContainer, colors.background],
       ),
       borderRadius: BANNER_RADIUS * (1 - p),
-      borderWidth: ANDROID_ONLY_HAIRLINE * chrome,
       elevation: BANNER_ELEVATION * chrome,
       height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
       left: BANNER_SIDE_INSET * (1 - p),
@@ -1032,22 +993,6 @@ export function PlayerSheet() {
     transform: [{ translateY: (winH - MINI_PLAYER_HEIGHT) * progress.value }],
   }));
 
-  const progressLineStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0, PROGRESS_FADE_END],
-      [1, 0],
-      Extrapolation.CLAMP,
-    ),
-    // Rides the surface's BOTTOM EDGE down. The mask is the banner's box, but
-    // the surface grows 800pt over the expansion — so even a few percent in it
-    // is already tens of points taller, and a bar pinned to the banner's box
-    // hangs in the middle of it as a rounded line attached to nothing. This is
-    // the whole artifact: not the corner, but the edge the corner belongs to
-    // having moved. A transform, not `top`, so the mask's children keep their
-    // layout.
-    transform: [{ translateY: (winH - MINI_PLAYER_HEIGHT) * progress.value }],
-  }));
   // -------------------------------------------------------------------------
 
   // The bottom sheets + the title overflow menu.
@@ -1198,26 +1143,6 @@ export function PlayerSheet() {
             <PlayerBackdrop artUrl={current.artUrl || undefined} />
           </Animated.View>
         ) : null}
-
-        {/* COLLAPSED PROGRESS — ANDROID ONLY. See `BannerProgressFill` for
-            why iOS's mini player carries none. */}
-        {Platform.OS === 'ios' ? null : (
-          <Animated.View style={[styles.progressClip, progressLineStyle]}>
-            <View
-              style={[
-                styles.progressTrack,
-                {
-                  backgroundColor: withAlpha(
-                    colors.onSurface,
-                    PROGRESS_TRACK_ALPHA,
-                  ),
-                },
-              ]}
-            >
-              <BannerProgressFill color={colors.primary} />
-            </View>
-          </Animated.View>
-        )}
 
         <GestureDetector gesture={dragUp}>
           <Animated.View
@@ -1494,8 +1419,6 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
             : colors.surfaceContainer,
           // The same floating island the loaded banner resolves to — parked,
           // so it needs none of the animation, only the shape.
-          borderColor: colors.border,
-          borderWidth: ANDROID_ONLY_HAIRLINE,
           bottom: bannerBottomOffset(bottomInset),
         },
       ]}
@@ -1646,26 +1569,6 @@ const styles = StyleSheet.create({
     right: BANNER_SIDE_INSET,
     top: 0,
   },
-  progressClip: {
-    // Constant corner: this mask is only ever visible on the settled banner,
-    // so it has no reason to animate towards the expanded player's square one.
-    borderRadius: BANNER_RADIUS,
-    height: MINI_PLAYER_HEIGHT,
-    left: BANNER_SIDE_INSET,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: BANNER_SIDE_INSET,
-    top: 0,
-    ...CONTINUOUS_CURVE,
-  },
-  progressTrack: {
-    bottom: 0,
-    height: PROGRESS_HEIGHT,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  progressFill: { height: '100%' },
   miniRow: {
     alignItems: 'center',
     flexDirection: 'row',

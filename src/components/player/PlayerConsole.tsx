@@ -63,7 +63,7 @@ import {
 //    file). BACK and the drag both still put the player away.
 //
 // What stays Material: the footer is the collapsed banner's own tonal chrome
-// (surfaceContainer + hairline + elevation) rather than Liquid Glass — the
+// (surfaceContainer + elevation) rather than Liquid Glass — the
 // same split `BannerGlass` documents — and the transport glyphs are the
 // hand-drawn Android set.
 //
@@ -86,8 +86,9 @@ const SPACER_LOWER_WEIGHT = 1.55;
  * THE FOOTER IS THE COLLAPSED BANNER'S BOX, EXACTLY — same width, height,
  * corner and place on screen, so expanding reads as the bar staying put while
  * its contents change. Same statement the iOS file makes; the CHROME is the
- * Android banner's own (tonal fill, hairline, elevation) instead of glass.
- * `FOOTER_ELEVATION` is the banner's `BANNER_ELEVATION`.
+ * Android banner's own (tonal fill, elevation) instead of glass.
+ * `FOOTER_ELEVATION` is the banner's `BANNER_ELEVATION`; neither wears an
+ * outline any more — tone + shadow only (Juan, 2026-09-08).
  */
 const FOOTER_HEIGHT = MINI_PLAYER_HEIGHT;
 const FOOTER_ELEVATION = 8;
@@ -195,7 +196,6 @@ function Footer({
         styles.footer,
         {
           backgroundColor: colors.surfaceContainer,
-          borderColor: colors.border,
           height: FOOTER_HEIGHT,
           width,
         },
@@ -452,10 +452,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  // The footer bar — the banner's chrome, stated (see `Footer`).
+  // The footer bar — the banner's chrome, stated (see `Footer`). No outline:
+  // tone + the elevation shadow are Material's floating grammar (Juan,
+  // 2026-09-08, retiring the hairline here and on the banner in one breath).
   footer: {
     borderRadius: FLOATING_RADIUS,
-    borderWidth: HAIRLINE,
     elevation: FOOTER_ELEVATION,
   },
   footerRow: { flexDirection: 'row', height: '100%', width: '100%' },
