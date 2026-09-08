@@ -152,7 +152,6 @@ export const translations = {
       name: {
         label: 'Title',
         placeholder: 'Nightcall',
-        error: 'Use at least 2 characters.',
       },
       subtitle: {
         label: 'Subtitle (Optional)',
@@ -421,7 +420,6 @@ export const translations = {
       name: {
         label: 'Título',
         placeholder: 'Nightcall',
-        error: 'Usa al menos 2 caracteres.',
       },
       subtitle: {
         label: 'Subtítulo (opcional)',
@@ -687,7 +685,6 @@ export const translations = {
       name: {
         label: '标题',
         placeholder: 'Nightcall',
-        error: '请至少输入 2 个字符。',
       },
       subtitle: {
         label: '副标题（可选）',

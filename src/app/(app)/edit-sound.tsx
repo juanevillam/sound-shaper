@@ -74,7 +74,6 @@ function EditSoundSheetScreen() {
   );
   const [isSaving, setIsSaving] = useState(false);
   const { pickCover, uploadCover } = useCoverPicker();
-  const [showNameError, setShowNameError] = useState(false);
 
   // Re-entry guard: a field's keyboard "done" can call save() directly, which
   // is not gated by the disabled Save button.
@@ -142,15 +141,15 @@ function EditSoundSheetScreen() {
   };
 
   const nameInvalid = name.trim().length < MIN_NAME_LENGTH;
-  const nameError = showNameError && nameInvalid;
 
   const save = async () => {
     if (savingRef.current) return;
 
-    if (nameInvalid) {
-      setShowNameError(true);
-      return;
-    }
+    // TOO SHORT A NAME DISABLES SAVE, AND SAYS NOTHING ELSE — Apple's
+    // commit-modal rule (Topper's editors adopted it first); this branch is
+    // only reachable through the keyboard's Done, which declines the same
+    // silent way.
+    if (nameInvalid) return;
 
     const trimmedName = name.trim();
     const trimmedArtist = artist.trim();
@@ -377,7 +376,6 @@ function EditSoundSheetScreen() {
             value={name}
             onChangeText={setName}
             placeholder={t('soundEdit.name.label')}
-            error={nameError ? t('soundEdit.name.error') : null}
           />
           {/* TWO FIELDS, AND THE SECOND ONE IS A SUBTITLE.
               
