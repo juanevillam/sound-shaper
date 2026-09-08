@@ -152,16 +152,21 @@ export default function AppLayout() {
             }}
           />
         ))}
-        {/* iOS-only native form sheets (Android presents these surfaces as
-            Compose ModalBottomSheets mounted in-place; nothing navigates to
-            these routes there). The route list + detents live in
-            IOS_FORM_SHEETS, shared with useIosSheetPresented. */}
+        {/* Native form sheets on iOS. Android presents most of these surfaces
+            as Compose ModalBottomSheets mounted in-place and never navigates
+            here — the ONE exception is `clip-trim`, which Android pushes as an
+            ordinary full-screen editor (Material's full-screen-dialog shape;
+            a formSheet presentation is broken on Android and the waveform
+            editor wants the whole screen anyway). So the sheet chrome is
+            iOS-only and Android takes the stack's own pushed bar plus the
+            title. The route list + detents live in IOS_FORM_SHEETS, shared
+            with useIosSheetPresented. */}
         {IOS_FORM_SHEETS.map(({ name, detents, titled, titleKey }) => (
           <Stack.Screen
             key={name}
             name={name}
             options={{
-              ...sheetOptions(detents, titled),
+              ...(Platform.OS === 'ios' ? sheetOptions(detents, titled) : {}),
               ...(titleKey ? { title: t(titleKey as TranslationKey) } : {}),
             }}
           />
