@@ -1,7 +1,6 @@
 import {
   Column,
   FilterChip,
-  FlowRow,
   HorizontalDivider,
   ModalBottomSheet,
   Row,
@@ -13,6 +12,7 @@ import {
   fillMaxHeight,
   fillMaxWidth,
   height,
+  horizontalScroll,
   offset,
   padding,
   verticalScroll,
@@ -210,26 +210,23 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {t('player.shape.presets')}
           </Text>
 
-          {/* Built-in presets ("Flat" doubles as reset). A WRAPPING FlowRow,
-              not a horizontal scroller (Juan, 2026-09-08): six chips overran
-              the A54's width and hid the last ones behind a scroll nothing
-              advertised. The row breaks to a second line exactly when the
-              screen is too narrow — the size-adaptive behaviour wanted, from
-              the platform's own layout rather than a measured branch. */}
-          {/* Vertical spacing 0, not the horizontal 8: each chip's 32dp face
-              sits in Compose's 48dp minimum touch box, so the boxes already
-              hold 16dp of visual air between rows — stated 8 rendered as 24
-              (Juan: too far apart). The `offset` pulls the DRAWN chips up by
-              the box's top slack (measured: −4 left 14.2dp vs the EQ section's 11.4; −7 lands both at 11.4), so the title→content gap READS the
-              same as the Equalizer section's (the boxes made it 8dp deeper;
-              offset moves pixels, not layout, so touch targets stay put —
-              Juan, 2026-09-08, section gaps must match). */}
-          <FlowRow
+          {/* Built-in presets ("Flat" doubles as reset), ONE ROW, SCROLLING —
+              a wrapping FlowRow was tried and Juan rejected the two-row look
+              the same day (2026-09-08), so the scroll came back. Padding
+              AFTER horizontalScroll = content padding: the row bleeds to the
+              sheet edges, the chips start/end on the gutter. The `offset`
+              pulls the DRAWN chips up by the 48dp touch box's slack over the
+              32dp face, so the title→content gap READS as the Equalizer
+              section's (measured: −7 lands 11.0dp vs its 11.4; without it
+              the boxes buried the face 8dp deeper). Offset moves pixels, not
+              layout — touch targets stay put. */}
+          <Row
+            verticalAlignment="center"
             horizontalArrangement={{ spacedBy: 8 }}
-            verticalArrangement={{ spacedBy: 0 }}
             modifiers={[
               fillMaxWidth(),
               offset(0, -7),
+              horizontalScroll(),
               padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
@@ -244,7 +241,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 </FilterChip.Label>
               </FilterChip>
             ))}
-          </FlowRow>
+          </Row>
 
           {/* THE equalizer: these five frequency bands and nothing else.
               Speed and keep-pitch below are a separate idea. */}
