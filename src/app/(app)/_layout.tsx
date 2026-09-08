@@ -102,13 +102,12 @@ export default function AppLayout() {
           // UNSET headerStyle is still not an option on the Android side.
           //
           // ANDROID'S DEFAULT IS THE AT-REST GROUND, NOT THE SCROLLED ONE.
-          // This was `surfaceContainer` for every pushed screen, which is M3's
-          // colour for a bar with content BEHIND it — so a screen sitting at
-          // the top of its list drew a hard seam against the page. Band-scanned
-          // on the A54 in dark: bar #3A3A3D against a #010102 page, unscrolled,
-          // on Settings (seam at 89.96dp) and on home. A screen that scrolls
-          // steps up from here through `useHeaderScroll`; a screen that cannot
-          // scroll (manage-account is a short Compose column) correctly stays.
+          // The bar wears the page's own `background` — no band at all — and
+          // a screen that scrolls steps up to `surface` through
+          // `useHeaderScroll` (Juan, 2026-09-08, reversing the static "one
+          // ground" bar — the shared hook's docblock carries the full
+          // history). A screen that cannot scroll (manage-account is a short
+          // Compose column) correctly stays bare.
           ...(Platform.OS === 'ios'
             ? {
                 headerTransparent: true,
@@ -116,10 +115,7 @@ export default function AppLayout() {
                 headerLargeTitleStyle: { color: colors.onSurface },
               }
             : {
-                // ONE GROUND, AND IT DOES NOT MOVE — `surface` at every
-                // scroll offset. See the note in `useHeaderScroll`
-                // (`@portfolio/mobile-ui`) for why the on-scroll step went.
-                headerStyle: { backgroundColor: colors.surface },
+                headerStyle: { backgroundColor: colors.background },
               }),
           headerShadowVisible: false,
           headerTintColor: colors.onSurface,

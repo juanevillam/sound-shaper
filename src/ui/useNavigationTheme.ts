@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import { Platform } from 'react-native';
+
 import { useAppTheme } from '@portfolio/core';
 import { DarkTheme, DefaultTheme } from 'expo-router';
 
@@ -29,13 +31,14 @@ export function useNavigationTheme() {
       colors: {
         ...base.colors,
         background: colors.background,
-        // The CHROME ground, not the card's: this is what react-native-screens
-        // paints the native bars with, and `surface` is the one colour every
-        // Android app bar here wears ("one ground, and it does not move").
-        // It was `surfaceContainer`, which now resolves WITH the card — so a
-        // js-tabs bar wore the row colour while every pushed screen's bar wore
-        // `surface`, one hair apart in dark and identical in light.
-        card: colors.surface,
+        // What react-native-screens paints the native bars with before any
+        // `headerStyle` lands. On Android the bar now RESTS on the page's own
+        // `background` (M3's on-scroll bar — `useHeaderScroll` steps it to
+        // `surface` once content is behind it), so the initial paint matches
+        // the at-rest ground and nothing flashes. iOS keeps `surface`: its
+        // bars are `headerTransparent`, and this only feeds the Liquid Glass
+        // items' initial appearance.
+        card: Platform.OS === 'android' ? colors.background : colors.surface,
         text: colors.onSurface,
         border: colors.border,
         primary: colors.primary,

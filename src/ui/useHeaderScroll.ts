@@ -39,22 +39,27 @@ export type HeaderScrollColors = {
  * all, and because it sat permanently at the scrolled colour it also left a
  * hard seam against the #010102 page on every screen that used it.
  *
- * THE BAR RESTS ON `surface` AND LIFTS TO `surfaceRaised`, ON EVERY SCREEN.
+ * THE BAR RESTS ON THE PAGE AND LIFTS TO `surface`, ON EVERY SCREEN
+ * (Juan, 2026-09-08). At rest the bar has no ground of its own — it wears the
+ * page's `background`, so an unscrolled screen is one unbroken sheet from the
+ * status bar down — and it steps to `surface` (the chrome ground the static
+ * bar used to wear permanently) once content is behind it. A screen that
+ * never scrolls (Settings, manage-account) therefore shows no bar band at
+ * all, and that is now the point rather than a defect.
  *
- * It used to rest on the caller's `background` and lift to `surfaceContainer`,
- * which is the spec's own pair and was wrong twice on a One UI palette. The
- * lifted colour arrived as a slab — `surfaceContainer` sits 24 L* off a
- * near-black page there, heavier than anything else on screen — and resting on
- * `background` meant a screen that never scrolls (Settings) had no bar at all,
- * just an unbroken sheet of page colour from the status bar down.
+ * This pair has moved three times, and each stop is worth keeping:
  *
- * Fixing that per screen was tried first and is the wrong shape: it gave
- * Settings its own at-rest colour, so two screens of one app had different
- * chrome (Juan, 2026-08-29 — "we can't have diff screens having bg of diff
- * colors"). One pair, everywhere. `surface` is M3's own top-app-bar ground and
- * reads as chrome without being an event; `surfaceRaised` is a measured step
- * above it rather than a named token, because Samsung's container ladder is not
- * monotonic — see `raisedMaterial` in `@portfolio/core`.
+ * - `background` → `surfaceContainer` (the spec's own pair) arrived as a slab
+ *   on a One UI palette — `surfaceContainer` sits 24 L* off a near-black page
+ *   there, heavier than anything else on screen.
+ * - `surface` → `surfaceRaised` fixed the slab, and then the step itself was
+ *   retired: "ONE GROUND, AND IT DOES NOT MOVE" (Juan, 2026-08-29) — resting
+ *   on `surface` made the bar legible as chrome before anything scrolled, and
+ *   keeping the step as well left two mechanisms saying one thing.
+ * - 2026-09-08 reverses THAT: the permanent band reads worse than no band,
+ *   so the bar rests bare and the old static colour became the lifted one.
+ *   The one-pair-everywhere rule survives every swing: whatever the pair is,
+ *   it is the same pair on every screen of every app.
  *
  * IT MUST WATCH THE END OF THE GESTURE, NOT ONLY THE STREAM — this is the half
  * that was missing, and it made the bar a one-way trip. A throttled `onScroll`
