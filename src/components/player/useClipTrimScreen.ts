@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { awardTrophy } from '@portfolio/trophies';
-import { router, useLocalSearchParams } from 'expo-router';
 
 import { TROPHY_IDS } from '@/constants/trophies';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -19,25 +18,33 @@ import { usePlayerStore } from '@/store/player';
  * guard, and the one commit with its two shapes (create vs re-frame).
  *
  * Extracted 2026-09-08, when Android retired in-place framing for this
- * editor; the reasoning comments live where the code came from and are kept
- * verbatim below.
+ * editor. IT TAKES ITS PARAMS AND ITS EXIT AS ARGUMENTS rather than reading
+ * the router: iOS's chrome is a ROUTE (which passes search params and
+ * router.back), Android's is an RN SHEET mounted by the player (which passes
+ * props and its own dismiss) — one logic, two doors.
  */
-export function useClipTrimScreen() {
+export function useClipTrimScreen({
+  editing,
+  onDone,
+}: {
+  /**
+   * EDITING AN EXISTING CLIP — without it the surface is New Clip. One
+   * editor, two commits: the anatomy of re-framing a clip IS the anatomy of
+   * framing one (Juan, 2026-08-27).
+   */
+  editing?: { clipId: string; endMs: number; startMs: number } | null;
+  /** Leave the surface — a route pops, a sheet dismisses. */
+  onDone: () => void;
+}) {
   const { t } = useI18n();
   const { showSnackbar } = useSnackbar();
 
   const current = usePlayerStore(s => s.current);
-  /**
-   * EDITING AN EXISTING CLIP — the Clips list's Edit action pushes this same
-   * screen with the clip's identity and range as params; without them it is
-   * New Clip exactly as before. One editor, two commits: the anatomy of
-   * re-framing a clip IS the anatomy of framing one (Juan, 2026-08-27).
-   */
-  const params = useLocalSearchParams<{
-    clipId?: string;
-    startMs?: string;
-    endMs?: string;
-  }>();
+  const params = {
+    clipId: editing?.clipId,
+    startMs: editing == null ? undefined : String(editing.startMs),
+    endMs: editing == null ? undefined : String(editing.endMs),
+  };
   const editingClipId =
     typeof params.clipId === 'string' && params.clipId.length > 0
       ? params.clipId
@@ -81,8 +88,10 @@ export function useClipTrimScreen() {
   // The sound changed under the editor (skip from the island, deletion):
   // the selection no longer describes anything — leave.
   const soundIdRef = useRef(current?.id);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   useEffect(() => {
-    if (current?.id !== soundIdRef.current) router.back();
+    if (current?.id !== soundIdRef.current) onDoneRef.current();
   }, [current?.id]);
 
   const onSave = () => {
@@ -119,7 +128,7 @@ export function useClipTrimScreen() {
           undefined,
           { scope: 'app' },
         );
-        router.back();
+        onDone();
       })
       .catch(() => {
         setSaving(false);

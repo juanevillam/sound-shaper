@@ -4,7 +4,7 @@ import {
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
 } from '@portfolio/mobile-ui';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { ClipTrimEditor } from '@/components/player/ClipTrimEditor';
 import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
@@ -22,8 +22,23 @@ import { useI18n } from '@/i18n';
 export default function ClipTrimScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  // The route door: search params in, router.back out — the Android sheet
+  // passes the same two as props (see `useClipTrimScreen`).
+  const params = useLocalSearchParams<{
+    clipId?: string;
+    startMs?: string;
+    endMs?: string;
+  }>();
+  const editing =
+    typeof params.clipId === 'string' && params.clipId.length > 0
+      ? {
+          clipId: params.clipId,
+          endMs: Number(params.endMs),
+          startMs: Number(params.startMs),
+        }
+      : null;
   const { current, editingClipId, onSave, range, saving, setRange } =
-    useClipTrimScreen();
+    useClipTrimScreen({ editing, onDone: () => router.back() });
 
   if (!current) return <View style={{ backgroundColor: colors.sheet }} />;
 
