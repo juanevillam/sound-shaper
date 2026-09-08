@@ -339,13 +339,18 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             {t('player.eq.hint')}
           </Text>
 
-          {/* Speed — stepped quarter increments, live value beside the header. */}
+          {/* Speed — stepped quarter increments, live value beside the header.
+              The top padding is the LEGEND→HEADER boundary, and it takes the
+              same make-up iOS measured for this exact seam (Settings puts
+              footer ink 31pt above the next header's; the sheet's default
+              left the EQ legend crowding this title — Juan read it on
+              Android too, 2026-09-08). Measured after: 30.2dp ink to ink, against iOS's 30.66. */}
           <Row
             verticalAlignment="center"
             horizontalArrangement="spaceBetween"
             modifiers={[
               fillMaxWidth(),
-              padding(COMPOSE_SHEET_GUTTER, 12, COMPOSE_SHEET_GUTTER, 0),
+              padding(COMPOSE_SHEET_GUTTER, 19, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
             <Text
