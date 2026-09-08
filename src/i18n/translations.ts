@@ -85,19 +85,12 @@ export const translations = {
       },
       menu: {
         label: 'Sound Options',
-        info: 'Get Info',
         edit: 'Edit Sound',
         // THE BAR'S LABEL, one word. `edit` above is the full phrase and stays
         // the compartment's accessibility label, where the extra word is worth
         // having; on the bar it is a card title beside "Shape" and "Clips" and
         // has to read as one of them.
         editShort: 'Edit',
-      },
-      info: {
-        artist: 'Artist',
-        album: 'Album',
-        year: 'Release Year',
-        none: 'This sound has no additional information.',
       },
       eq: {
         title: 'Equalizer',
@@ -149,8 +142,8 @@ export const translations = {
         selection: 'Clip',
         startHandle: 'Clip start',
         endHandle: 'Clip end',
-        skipBack: 'Skip back 15 seconds',
-        skipForward: 'Skip forward 15 seconds',
+        skipBack: 'Skip back {s} seconds',
+        skipForward: 'Skip forward {s} seconds',
       },
     },
     soundEdit: {
@@ -384,12 +377,6 @@ export const translations = {
         edit: 'Editar sonido',
         editShort: 'Editar',
       },
-      info: {
-        artist: 'Artista',
-        album: 'Álbum',
-        year: 'Año de lanzamiento',
-        none: 'Este sonido no tiene información adicional.',
-      },
       eq: {
         title: 'Ecualizador',
         hint: 'Graves a la izquierda, agudos a la derecha',
@@ -424,8 +411,8 @@ export const translations = {
         selection: 'Clip',
         startHandle: 'Inicio del clip',
         endHandle: 'Fin del clip',
-        skipBack: 'Retroceder 15 segundos',
-        skipForward: 'Avanzar 15 segundos',
+        skipBack: 'Retroceder {s} segundos',
+        skipForward: 'Avanzar {s} segundos',
       },
     },
     soundEdit: {
@@ -656,12 +643,6 @@ export const translations = {
         edit: '编辑音频',
         editShort: '编辑',
       },
-      info: {
-        artist: '艺人',
-        album: '专辑',
-        year: '发行年份',
-        none: '此音频没有其他信息。',
-      },
       eq: {
         title: '均衡器',
         hint: '左侧低音，右侧高音',
@@ -696,8 +677,8 @@ export const translations = {
         selection: '片段',
         startHandle: '片段起点',
         endHandle: '片段终点',
-        skipBack: '后退15秒',
-        skipForward: '前进15秒',
+        skipBack: '后退{s}秒',
+        skipForward: '前进{s}秒',
       },
     },
     soundEdit: {

@@ -15,7 +15,6 @@ import {
   FLOATING_RADIUS,
   GLASS_FLOOR,
 } from '@portfolio/mobile-ui';
-import { awardTrophy } from '@portfolio/trophies';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -44,7 +43,7 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import {
-  measurePlayerTransportIos,
+  measurePlayerTransport,
   playerArtRadius,
   playerArtSize,
   playerArtTop,
@@ -59,7 +58,6 @@ import {
 } from '@/components/player/PlayerBackdrop';
 import { PlayerConsole } from '@/components/player/PlayerConsole';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
-import { SoundInfoSheet } from '@/components/player/SoundInfoSheet';
 import {
   NextGlyph,
   PauseGlyph,
@@ -69,16 +67,11 @@ import {
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { TROPHY_IDS } from '@/constants/trophies';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
-import { haptics } from '@/lib/haptics';
-import { createClip, updateClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
-import { useClipsSavedStore } from '@/store/clipsSaved';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
 import {
@@ -419,14 +412,11 @@ export function PlayerSheet() {
   }, [insets.bottom, launchBottomInset]);
   const { width: winW, height: winH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
-  const { showSnackbar } = useSnackbar();
-
   const current = usePlayerStore(s => s.current);
   const queue = usePlayerStore(s => s.queue);
   const toggle = usePlayerStore(s => s.toggle);
   const nextSound = usePlayerStore(s => s.next);
   const previous = usePlayerStore(s => s.previous);
-  const playClip = usePlayerStore(s => s.playClip);
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
   /**
@@ -437,13 +427,10 @@ export function PlayerSheet() {
    * re-render at that rate, whether the player was open or a 46pt pill.
    *
    * The handful of places here that genuinely need a playhead READ IT ONCE, at
-   * the moment of the action, via `usePlayerStore.getState()` — clip framing
-   * and the swipe's restart test both already did.
-   *
-   * `duration` stays a subscription: it lands once per sound, and the clip
-   * trimmer needs it in layout.
+   * the moment of the action, via `usePlayerStore.getState()` — the swipe's
+   * restart test already did. (`duration` left with clip framing: the editor
+   * route reads its own.)
    */
-  const storeDuration = usePlayerStore(s => s.duration);
   const expandNonce = usePlayerStore(s => s.expandNonce);
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
@@ -535,7 +522,7 @@ export function PlayerSheet() {
   useAnimatedReaction(
     () => progress.value >= 0.999,
     (atRest, wasAtRest) => {
-      if (atRest && !wasAtRest) runOnJS(measurePlayerTransportIos)();
+      if (atRest && !wasAtRest) runOnJS(measurePlayerTransport)();
     },
     [],
   );
@@ -858,13 +845,9 @@ export function PlayerSheet() {
   }, [current?.id, queue, readNeighbours, recentre]);
 
   // Same one-instance-per-region rule as the drag-down recipe above.
-  // DISABLED WHILE FRAMING, like the skip buttons it mirrors: a sound change
-  // drops the mode and the clip's edits with it, and the buttons already fade
-  // out for exactly that reason — an accidental horizontal swipe on the
-  // artwork was the one path left that could throw the frame away silently.
   const makeSkipSwipe = () =>
     Gesture.Pan()
-      .enabled(expanded && !clipMode)
+      .enabled(expanded)
       .activeOffsetX([-SKIP_ACTIVATE_X, SKIP_ACTIVATE_X])
       .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
       .onUpdate(event => {
@@ -1070,46 +1053,10 @@ export function PlayerSheet() {
   // The bottom sheets + the title overflow menu.
   const [shaperVisible, setShaperVisible] = useState(false);
 
-  // Clip framing ON the scrubber: entered from the Clips sheet's "New clip",
-  // exited by save / dismiss / track change.
-  const [clipMode, setClipMode] = useState(false);
-  const [clipRange, setClipRange] = useState({ startS: 0, endS: 0 });
-  /**
-   * WHICH clip framing is editing, or null for a new one. Re-framing reuses the
-   * whole framing surface rather than growing a second one — one anatomy for
-   * framing and re-framing, which is the rule iOS's `clip-trim` states for its
-   * own editor. Only the COMMIT differs, below.
-   */
-  const [editingClipId, setEditingClipId] = useState<string | null>(null);
-
-  /**
-   * LEAVING FRAMING RELEASES THE PREVIEW'S END-STOP. `activeClip` survives
-   * the mode otherwise, and both halves of the trap were reachable: cancel
-   * while a preview is sounding and the resting player pauses itself at the
-   * old end cap minutes later, playhead jumping backwards; or pause
-   * mid-preview, cancel, and a later resume from the banner hits the same
-   * phantom boundary. The music itself is left alone — only the stop is
-   * disarmed. A track change needs none of this (`loadReset` clears the
-   * clip), which is why the `current?.id` effect below stays a plain
-   * `setClipMode`.
-   */
-  const exitFraming = useCallback(() => {
-    setClipMode(false);
-    setEditingClipId(null);
-    const { activeClip, clearActiveClip } = usePlayerStore.getState();
-    if (activeClip?.clipId === 'preview') clearActiveClip();
-  }, []);
-
-  useEffect(() => {
-    setClipMode(false);
-  }, [current?.id]);
-
-  // iOS framing-on-the-scrubber is GONE — a clip is made in the dedicated
-  // Voice Memos-style editor (`clip-trim`), which the Clips sheet pushes.
-  // `clipMode` below survives for ANDROID, whose in-place sheet still frames
-  // on the scrubber through `onStartFraming`.
+  // Framing-on-the-scrubber is GONE on BOTH platforms — a clip is made in
+  // the dedicated Voice Memos-style editor (`clip-trim`), which the Clips
+  // sheet pushes.
   const [clipsVisible, setClipsVisible] = useState(false);
-  const [infoVisible, setInfoVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
   /**
@@ -1151,109 +1098,6 @@ export function PlayerSheet() {
   const onToggle = toggle;
   const onNext = nextSound;
   const onPrevious = previous;
-
-  const trimmerDuration = Math.floor(storeDuration);
-
-  // From the Clips sheet: close it, drop the brackets around the playhead.
-  const onStartFraming = () => {
-    setClipsVisible(false);
-    setEditingClipId(null);
-    // Read once, at the moment of the action — the sheet no longer holds a
-    // live playhead, and a clip framed "around here" only ever meant the
-    // instant the button was pressed anyway.
-    const start = Math.max(
-      0,
-      Math.round(usePlayerStore.getState().position - 7),
-    );
-    const end = Math.min(trimmerDuration || 15, start + 15);
-    setClipRange({ startS: start, endS: Math.max(end, start + 1) });
-    // Framing is a quiet mode — see the store's `pause`.
-    usePlayerStore.getState().pause();
-    setClipMode(true);
-  };
-
-  /**
-   * RE-FRAME AN EXISTING CLIP, from the Clips sheet's overflow. Same surface,
-   * same gestures, same Save — seeded with the clip's own range instead of a
-   * window around the playhead, and committing an UPDATE. It is what iOS's
-   * leading swipe reaches; Android says it in an overflow menu because that is
-   * where Material hides a row's actions.
-   */
-  const onEditClip = (clip: { id: string; startMs: number; endMs: number }) => {
-    setClipsVisible(false);
-    setEditingClipId(clip.id);
-    setClipRange({ startS: clip.startMs / 1000, endS: clip.endMs / 1000 });
-    // Framing is a quiet mode — see the store's `pause`.
-    usePlayerStore.getState().pause();
-    setClipMode(true);
-  };
-
-  /**
-   * PLAY WHILE FRAMING: FROM THE PLAYHEAD, STOPPING AT THE END CAP.
-   *
-   * It replayed the selection from its start on every press, and finding a
-   * clip's END meant sitting through the whole thing each time — "if a clip
-   * is 50 secs this may get annoying" (Juan, 2026-08-25, on device). With the
-   * scrubber live during framing, the playhead is the person's own cursor:
-   * scrub INTO the selection near the moment in question, press play, hear
-   * it land on the end cap. The boundary parks the playhead back where this press started
-   * (`playClip` stores its own start), so pressing play again repeats the
-   * exact passage — the listen-nudge-listen loop framing actually is.
-   *
-   * OUTSIDE THE SELECTION — before the start cap as well as past the end —
-   * the press previews the WHOLE clip, jumping the playhead to the start
-   * cap. The first cut of this rule played from any playhead short of the
-   * end, and it made a clip framed ahead of the playhead unreachable: park
-   * at 0:30, frame 2:00–2:30, and play served two minutes of lead-in
-   * instead of the clip (Juan, 2026-08-25, on device). Photos is the model
-   * here: play plays the selection. Only a playhead the person has placed
-   * INSIDE the clip changes where it starts.
-   */
-  const onPreviewClip = () => {
-    const { position } = usePlayerStore.getState();
-    const { startS, endS } = clipRange;
-    const fromS =
-      position >= startS && position < endS - 0.5 ? position : startS;
-    playClip('preview', fromS * 1000, endS * 1000);
-  };
-
-  const onSaveClip = () => {
-    haptics.selection();
-    const clipId = editingClipId;
-    exitFraming();
-
-    // RE-FRAMING UPDATES, IT DOES NOT ADD. It also earns nothing: the trophies
-    // below count clips a person has SAVED, and moving one clip's edges is not
-    // a second clip.
-    if (clipId) {
-      updateClip({
-        clipId,
-        soundId: current.id,
-        startMs: clipRange.startS * 1000,
-        endMs: clipRange.endS * 1000,
-      })
-        .then(() => showSnackbar(t('snackbar.clip-updated')))
-        .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
-      return;
-    }
-
-    createClip({
-      soundId: current.id,
-      startMs: clipRange.startS * 1000,
-      endMs: clipRange.endS * 1000,
-      label: '',
-    })
-      .then(() => {
-        // Awarded here rather than from a store: the clips cache only holds
-        // sounds you have opened, so it can't answer "have you ever saved one".
-        // The running total the GOLD trophy counts is banked in the same place,
-        // and for the same reason — see `store/clipsSaved.ts`.
-        awardTrophy(TROPHY_IDS.firstClip);
-        useClipsSavedStore.getState().saved();
-        showSnackbar(t('snackbar.clip-created'));
-      })
-      .catch(() => showSnackbar(t('snackbar.clip-save-failed')));
-  };
 
   const subtitle = current.artist || ' ';
 
@@ -1453,21 +1297,10 @@ export function PlayerSheet() {
         {playerMounted ? (
           <PlayerConsole
             cards={cards}
-            clipEditing={editingClipId !== null}
-            clipMode={clipMode}
-            clipRange={clipRange}
             consoleStyle={expandedStyle}
             contentTop={contentTop}
             expanded={expanded}
             neighbours={neighbours}
-            onClipCancel={exitFraming}
-            onClipPreview={onPreviewClip}
-            onClipRangeChange={(startS, endS) => {
-              setClipRange({ startS, endS });
-              // A sounding preview follows the end cap live — see the store.
-              usePlayerStore.getState().retargetClipEnd(endS);
-            }}
-            onClipSave={onSaveClip}
             onCollapse={collapse}
             onEdit={() =>
               Platform.OS === 'ios'
@@ -1477,11 +1310,6 @@ export function PlayerSheet() {
                   })
                 : setEditVisible(true)
             }
-            // ANDROID ONLY. iOS's console dropped its overflow menu with the
-            // bar row it hung off (see `PlayerConsole.ios`), and the info sheet
-            // went with it — with album and release year no longer handled, all
-            // it listed was the title and artist already set under the cover.
-            onInfo={() => setInfoVisible(true)}
             onNext={onNext}
             onPrevious={onPrevious}
             // The playhead and the drag-local value both live in
@@ -1497,7 +1325,6 @@ export function PlayerSheet() {
             title={current.name}
             titleGesture={titleGesture}
             topGesture={topGesture}
-            trimmerDuration={trimmerDuration}
             winW={winW}
           />
         ) : null}
@@ -1592,13 +1419,23 @@ export function PlayerSheet() {
       {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
       {clipsVisible && (
         <ClipsSheet
-          onNewClip={onStartFraming}
-          onEditClip={onEditClip}
+          onNewClip={() => {
+            setClipsVisible(false);
+            router.push('/clip-trim');
+          }}
+          onEditClip={clip => {
+            setClipsVisible(false);
+            router.push({
+              pathname: '/clip-trim',
+              params: {
+                clipId: clip.id,
+                startMs: String(clip.startMs),
+                endMs: String(clip.endMs),
+              },
+            });
+          }}
           onClose={() => setClipsVisible(false)}
         />
-      )}
-      {infoVisible && (
-        <SoundInfoSheet sound={current} onClose={() => setInfoVisible(false)} />
       )}
       {editVisible && (
         <EditSoundSheet

@@ -1,14 +1,20 @@
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
 
+import { Pressable, StyleSheet, View } from 'react-native';
+
+import { withAlpha } from '@portfolio/core';
+import {
+  AppIcon,
+  FLOATING_RADIUS,
+  MINI_PLAYER_HEIGHT,
+  usePressSquash,
+} from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClipActionsRow } from '@/components/player/ClipActionsRow';
-import { ClipHandles } from '@/components/player/ClipHandles';
+import { bannerBottomOffset } from '@/components/player/bannerMetrics';
 import { GlyphButton } from '@/components/player/GlyphButton';
-import { PlayerCards } from '@/components/player/PlayerCards';
-import { PlayerMenuButton } from '@/components/player/PlayerMenuButton';
 import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
   NextGlyph,
@@ -16,57 +22,226 @@ import {
   PlayGlyph,
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
-import { IconButton } from '@/components/ui/IconButton';
 import { Text as AppText } from '@/components/ui/Text';
+import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { formatTime } from '@/lib/player';
+import { HAIRLINE } from '@/styles/shape';
 
 import {
-  CARDS_HEIGHT,
-  CLIP_FRAMING_GAP,
-  HANDLES_REGION_HEIGHT,
+  PLAYER_SIDE_PADDING,
+  playerArtSize,
+  registerPlayerTransportMeasurer,
+  setPlayerTransportAnchor,
+  TRANSPORT_GAP,
+  TRANSPORT_PLAY_SIZE,
+  TRANSPORT_SKIP_SIZE,
+  type PlayerCard,
   type PlayerConsoleProps,
 } from './chrome';
 
 // ---------------------------------------------------------------------------
-// ANDROID'S EXPANDED CONSOLE — moved here verbatim from `PlayerSheet` when the
-// iOS twin was written. Nothing in this file changed in the move; if it reads
-// as Material, that is because it is Material and is meant to be. The iOS
-// surface is `PlayerConsole.ios.tsx`.
+// ANDROID'S EXPANDED CONSOLE — the iOS console's RESULT, said in Material.
 //
-// IT IS VERIFIED NOW. This file spent months carrying a note saying nothing
-// Android was installed and so nothing here could be checked; that stopped
-// being true on 2026-08-28, when the A54 became the standing target and this
-// console was walked on it. Features and flows still need an explicit ask,
-// but feel does not, and "written but unverified" is no longer an acceptable
-// state for anything in here.
+// What stood here until 2026-09-08 was the old Material now-playing screen the
+// iOS rewrite describes and rejects: a 64dp filled-primary FAB, two outlined
+// cards, an overflow menu behind a chevron bar row, and in-place clip framing
+// on the scrubber. Juan asked for the iOS arrangement on both platforms, so
+// this file now mirrors `PlayerConsole.ios.tsx` rule for rule:
 //
-// A fixed column, nothing scrolls, so nothing can fight the drag-to-close
-// gesture: art (owned by the sheet, above), title with an overflow menu, the
-// scrubber, transport, and two cards — Shape and Clips — that open their own
-// bottom sheets.
+// 1. ONE CONTENT BOX — artwork, title, scrubber, transport and footer all run
+//    to the same two edges (`PLAYER_SIDE_PADDING`, the app's screen gutter and
+//    the collapsed banner's inset). See `chrome.ts`.
+// 2. THE COLUMN FILLS THE SCREEN — two flexible spacers distribute the air,
+//    the lower one heavier (the optical-centre rule measured on iOS).
+// 3. NO ACCENT — the backdrop wash carries the colour; every control takes
+//    `onSurface`. The old FAB and the slider's theme tint were both the
+//    framework's default saying nothing (the monochrome rule's first bucket).
+// 4. NO BAR ROW — nothing above the artwork but the artwork. The overflow's
+//    two entries went where iOS sent them: Edit is the footer's third
+//    compartment, and Get Info is deleted (nothing left to say — see the iOS
+//    file). BACK and the drag both still put the player away.
+//
+// What stays Material: the footer is the collapsed banner's own tonal chrome
+// (surfaceContainer + hairline + elevation) rather than Liquid Glass — the
+// same split `BannerGlass` documents — and the transport glyphs are the
+// hand-drawn Android set.
+//
+// Clip framing is GONE from this console on Android too: a clip is made in
+// the dedicated `clip-trim` editor, which the Clips sheet pushes.
 // ---------------------------------------------------------------------------
 
-const PLAY_BUTTON_SIZE = 64;
-const SIDE_PADDING = 24;
+/**
+ * The title pair steps the ladder exactly as iOS's does: the console is the
+ * one surface where the sound is the SCREEN'S subject, so it takes
+ * `titleLarge` (22/28 — the same 22/28 iOS lands on) over `bodyLarge` muted.
+ */
+const TITLE_VARIANT = 'titleLarge' as const;
+const ARTIST_VARIANT = 'bodyLarge' as const;
+
+/** See `SPACER_LOWER_WEIGHT` in the iOS file — the optical centre. */
+const SPACER_LOWER_WEIGHT = 1.55;
+
+/**
+ * THE FOOTER IS THE COLLAPSED BANNER'S BOX, EXACTLY — same width, height,
+ * corner and place on screen, so expanding reads as the bar staying put while
+ * its contents change. Same statement the iOS file makes; the CHROME is the
+ * Android banner's own (tonal fill, hairline, elevation) instead of glass.
+ * `FOOTER_ELEVATION` is the banner's `BANNER_ELEVATION`.
+ */
+const FOOTER_HEIGHT = MINI_PLAYER_HEIGHT;
+const FOOTER_ELEVATION = 8;
+const FOOTER_ICON = 24;
+/** The compartments' end padding — the iOS bar's `GLASS_ROW_PADDING`. */
+const FOOTER_ROW_PADDING = 16;
+
+function FooterHalf({ card }: { card: PlayerCard }) {
+  const { colors } = useAppTheme();
+  const squash = usePressSquash();
+
+  return (
+    <Animated.View style={[styles.footerHalf, squash.style]}>
+      <Pressable
+        accessibilityLabel={`${card.label}, ${card.summary}`}
+        accessibilityRole="button"
+        onPress={card.onPress}
+        onPressIn={squash.onPressIn}
+        onPressOut={squash.onPressOut}
+        style={styles.footerHalfPress}
+      >
+        <ThemedHost pointerEvents="none" style={styles.footerIconHost}>
+          <AppIcon
+            name={card.icon}
+            size={FOOTER_ICON}
+            tint={colors.onSurface}
+          />
+        </ThemedHost>
+        <View style={styles.footerCopy}>
+          {/* bodyLarge over bodySmall — the Android ladder's read of the iOS
+              Body-over-Footnote split: the LABEL keeps its presence, the
+              SUMMARY (the long string) takes the small step and buys the
+              width. */}
+          <AppText
+            doNotTranslate
+            text={card.label}
+            variant="bodyLarge"
+            numberOfLines={1}
+          />
+          <AppText
+            doNotTranslate
+            muted
+            text={card.summary}
+            variant="bodySmall"
+            numberOfLines={1}
+          />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function FooterEdit({
+  a11yLabel,
+  label,
+  onPress,
+}: {
+  a11yLabel: string;
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+  const squash = usePressSquash();
+
+  return (
+    <Animated.View style={[styles.footerHalf, squash.style]}>
+      <Pressable
+        accessibilityLabel={a11yLabel}
+        accessibilityRole="button"
+        onPress={onPress}
+        onPressIn={squash.onPressIn}
+        onPressOut={squash.onPressOut}
+        style={styles.footerEditPress}
+      >
+        <ThemedHost pointerEvents="none" style={styles.footerIconHost}>
+          <AppIcon name="edit" size={FOOTER_ICON} tint={colors.onSurface} />
+        </ThemedHost>
+        {/* One line, vertically centred — the compartment has no live state to
+            put on a second one, which is what separates it from the two cards
+            (the iOS file's argument, unchanged). */}
+        <AppText doNotTranslate text={label} variant="bodyLarge" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function Footer({
+  cards,
+  editA11yLabel,
+  editLabel,
+  onEdit,
+  width,
+}: {
+  cards: readonly PlayerCard[];
+  editA11yLabel: string;
+  editLabel: string;
+  onEdit: () => void;
+  width: number;
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View
+      style={[
+        styles.footer,
+        {
+          backgroundColor: colors.surfaceContainer,
+          borderColor: colors.border,
+          height: FOOTER_HEIGHT,
+          width,
+        },
+      ]}
+    >
+      <View style={styles.footerRow}>
+        {cards.map((card, index) => (
+          <View key={card.key} style={styles.footerHalfSlot}>
+            {index > 0 ? (
+              <View
+                style={[
+                  styles.footerDivider,
+                  { backgroundColor: withAlpha(colors.onSurface, 0.12) },
+                ]}
+              />
+            ) : null}
+            <FooterHalf card={card} />
+          </View>
+        ))}
+
+        <View style={styles.footerEditSlot}>
+          <View
+            style={[
+              styles.footerDivider,
+              { backgroundColor: withAlpha(colors.onSurface, 0.12) },
+            ]}
+          />
+          <FooterEdit
+            a11yLabel={editA11yLabel}
+            label={editLabel}
+            onPress={onEdit}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export function PlayerConsole({
   cards,
-  clipEditing,
-  clipMode,
-  clipRange,
   consoleStyle,
   contentTop,
   expanded,
   neighbours,
-  onClipCancel,
-  onClipPreview,
-  onClipRangeChange,
-  onClipSave,
   onCollapse,
   onEdit,
-  onInfo,
   onNext,
   onPrevious,
   onSeek,
@@ -77,62 +252,88 @@ export function PlayerConsole({
   title,
   titleGesture,
   topGesture,
-  trimmerDuration,
   winW,
 }: PlayerConsoleProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const contentWidth = playerArtSize(winW);
+
+  const copy = (sound: { artist: string; name: string }) => (
+    <>
+      <AppText
+        doNotTranslate
+        text={sound.name}
+        variant={TITLE_VARIANT}
+        numberOfLines={1}
+        style={styles.title}
+      />
+      <AppText
+        doNotTranslate
+        muted
+        text={sound.artist || ' '}
+        variant={ARTIST_VARIANT}
+        numberOfLines={1}
+      />
+    </>
+  );
+
+  /**
+   * THE TRANSPORT ANCHOR'S WRITER — same contract as the iOS console (see
+   * `chrome.ts`): the clip editor pins its own transport to this spot so the
+   * two surfaces share one play button with zero shift.
+   */
+  const transportRowRef = useRef<View>(null);
+  useEffect(() => {
+    registerPlayerTransportMeasurer(() => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          transportRowRef.current?.measureInWindow((_x, y, _w, h) => {
+            if (h > 0) setPlayerTransportAnchor(y + h / 2);
+          });
+        }),
+      );
+    });
+    return () => registerPlayerTransportMeasurer(null);
+  }, [transportRowRef]);
 
   return (
     <Animated.View
-      style={[styles.expanded, consoleStyle]}
+      style={[styles.console, consoleStyle]}
       pointerEvents={expanded ? 'auto' : 'none'}
     >
-      {/* One full-width drag-to-close zone spanning everything above the
-          console (header row, the gutters beside the art). Buttons and
-          the art render ABOVE it, so they keep their own touches. */}
+      {/* The drag-to-close zone — the gutters beside the artwork and the air
+          over it. Labelled, so accessibility keeps a dismiss control now that
+          the chevron row is gone (BACK works too, but a target on screen
+          costs nothing). */}
       <GestureDetector gesture={topGesture}>
-        <View style={[styles.dragZone, { height: contentTop }]} />
+        <View
+          accessibilityLabel={t('common.back')}
+          accessibilityRole="button"
+          onAccessibilityTap={onCollapse}
+          style={[styles.dragZone, { height: contentTop }]}
+        />
       </GestureDetector>
 
-      <View style={[styles.expandedTop, { paddingTop: insets.top + 4 }]}>
-        <IconButton
-          name="chevron-down"
-          onPress={onCollapse}
-          accessibilityLabel={t('common.back')}
-        />
-        {/* Sound overflow: metadata + the same edit/delete sheet the
-            library's long-press opens. Compose anchors a dropdown to the
-            trigger. Both twins size their own touch target, so there is no
-            wrapper here — one would only decentre the smaller of the two. */}
-        <PlayerMenuButton onInfo={onInfo} onEdit={onEdit} />
-      </View>
-
-      {/* The console below the art — a fixed column, nothing scrolls. */}
-      <View style={[styles.expandedBody, { top: contentTop }]}>
+      <View
+        style={[
+          styles.body,
+          {
+            // The BANNER's clearance — the footer must stand on the collapsed
+            // banner's own line or the same-object statement is false.
+            paddingBottom: bannerBottomOffset(insets.bottom),
+            top: contentTop,
+          },
+        ]}
+      >
         <GestureDetector gesture={titleGesture}>
           <View style={styles.titleSlot}>
             <Animated.View style={[styles.titleBlock, pagerStyle]}>
-              <AppText
-                doNotTranslate
-                text={title}
-                variant="titleLarge"
-                numberOfLines={1}
-                style={styles.titleText}
-              />
-              <AppText
-                doNotTranslate
-                muted
-                text={subtitle}
-                variant="bodyMedium"
-                numberOfLines={1}
-              />
+              {copy({ artist: subtitle, name: title })}
             </Animated.View>
 
-            {/* The neighbours' text rides the same pager as their artwork,
-                so the title arrives WITH the swipe. Absolutely positioned,
-                so they never affect the console's layout. */}
+            {/* The neighbours' copy rides the same pager as their artwork, so
+                the title arrives WITH the swipe. */}
             {expanded
               ? (
                   [
@@ -151,20 +352,7 @@ export function PlayerConsole({
                         pagerStyle,
                       ]}
                     >
-                      <AppText
-                        doNotTranslate
-                        text={sound.name}
-                        variant="titleLarge"
-                        numberOfLines={1}
-                        style={styles.titleText}
-                      />
-                      <AppText
-                        doNotTranslate
-                        muted
-                        text={sound.artist || ' '}
-                        variant="bodyMedium"
-                        numberOfLines={1}
-                      />
+                      {copy(sound)}
                     </Animated.View>
                   ) : null,
                 )
@@ -172,171 +360,131 @@ export function PlayerConsole({
           </View>
         </GestureDetector>
 
-        {/* THE scrubber — always the native slider. While framing, the
-            tertiary trim brackets ride on top (Google Photos): edges
-            resize, the tinted middle slides the whole clip. */}
-        <View
-          style={[styles.sliderBlock, clipMode && styles.sliderBlockFraming]}
-        >
-          <PlayerScrubberLive
-            clipLabel={
-              clipMode
-                ? `${formatTime(clipRange.startS)} – ${formatTime(clipRange.endS)}`
-                : null
-            }
-            onSeek={onSeek}
-          />
-          {clipMode ? (
-            <View style={styles.handlesRegion} pointerEvents="box-none">
-              <ClipHandles
-                durationS={trimmerDuration}
-                startS={clipRange.startS}
-                endS={clipRange.endS}
-                onChange={onClipRangeChange}
-              />
-            </View>
-          ) : null}
+        <View style={styles.sliderBlock}>
+          <PlayerScrubberLive onSeek={onSeek} />
         </View>
 
-        {/* Transport in RN, not Compose: a Compose IconButton's state
-            layer is invisible on this dark surface. Feedback is the app's
-            squash, which — unlike the ripple these used to carry — also
-            exists on iOS. */}
-        <View style={styles.transportRow}>
+        <View style={styles.spacer} />
+
+        {/* Plain glyphs, equal weight, hierarchy by SIZE — the FAB is gone
+            with the accent it wore. Same sizes as the iOS transport, from the
+            shared terms. */}
+        <View ref={transportRowRef} style={styles.transportRow}>
           <GlyphButton
             onPress={onPrevious}
             hitSlop={12}
-            style={styles.transportSide}
             accessibilityLabel={t('player.previous')}
           >
-            <PreviousGlyph color={colors.onSurface} />
+            <PreviousGlyph
+              color={colors.onSurface}
+              size={TRANSPORT_SKIP_SIZE}
+            />
           </GlyphButton>
           <GlyphButton
             onPress={onToggle}
             hitSlop={12}
-            style={[styles.transportPlay, { backgroundColor: colors.primary }]}
             accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
           >
             {playing ? (
-              <PauseGlyph color={colors.onPrimary} />
+              <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             ) : (
-              <PlayGlyph color={colors.onPrimary} />
+              <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
             )}
           </GlyphButton>
           <GlyphButton
             onPress={onNext}
             hitSlop={12}
-            style={styles.transportSide}
             accessibilityLabel={t('player.next')}
           >
-            <NextGlyph color={colors.onSurface} />
+            <NextGlyph color={colors.onSurface} size={TRANSPORT_SKIP_SIZE} />
           </GlyphButton>
         </View>
 
-        {/* While framing a clip, the action row takes the cards' place. */}
-        {clipMode ? (
-          <View style={styles.firstCardHost}>
-            <ClipActionsRow
-              editing={clipEditing}
-              onCancel={onClipCancel}
-              onPreview={onClipPreview}
-              onSave={onClipSave}
-            />
-          </View>
-        ) : (
-          /* Shape + Clips — the two studios, side by side as the
-             console's footer. Outlined, not filled: a filled surface sat
-             as two slabs on top of the artwork wash and cut the gradient
-             in half. A hairline outline keeps the wash running edge to
-             edge, and one row of two instead of two stacked rows gives
-             ~90dp of it back. */
-          <View style={[styles.cardHost, styles.firstCardHost]}>
-            <PlayerCards cards={cards} />
-          </View>
-        )}
+        <View style={styles.spacerLower} />
+
+        <Footer
+          cards={cards}
+          editA11yLabel={t('player.menu.edit')}
+          editLabel={t('player.menu.editShort')}
+          onEdit={onEdit}
+          width={contentWidth}
+        />
       </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  expanded: {
+  console: {
     bottom: 0,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
-  expandedTop: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingLeft: 12,
-    paddingRight: 12,
-  },
-  // The invisible drag-to-close surface behind the whole header region.
   dragZone: {
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
-  expandedBody: {
+  // A flex column from the artwork's bottom edge to the banner's line, so the
+  // spacers can distribute what used to be dead screen.
+  body: {
     bottom: 0,
     left: 0,
-    paddingHorizontal: SIDE_PADDING,
+    paddingHorizontal: PLAYER_SIDE_PADDING,
     position: 'absolute',
     right: 0,
   },
+  spacer: { flex: 1 },
+  spacerLower: { flex: SPACER_LOWER_WEIGHT },
   titleSlot: { width: '100%' },
-  titleBlock: {
-    gap: 3,
-    paddingBottom: 18,
-    width: '100%',
-  },
-  // Overlays the real title block, so a neighbour's text costs no layout.
+  // The copy's breathing room — the iOS file's one hand-placed gap.
+  titleBlock: { paddingBottom: 30, width: '100%' },
   titleGhost: { position: 'absolute', top: 0 },
-  titleText: { fontWeight: '700' },
+  title: { fontWeight: '700' },
+  sliderBlock: { position: 'relative', width: '100%' },
   transportRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 28,
+    gap: TRANSPORT_GAP,
     justifyContent: 'center',
-    paddingVertical: 4,
     width: '100%',
   },
-  transportSide: {
-    alignItems: 'center',
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
+  // The footer bar — the banner's chrome, stated (see `Footer`).
+  footer: {
+    borderRadius: FLOATING_RADIUS,
+    borderWidth: HAIRLINE,
+    elevation: FOOTER_ELEVATION,
   },
-  transportPlay: {
-    alignItems: 'center',
-    borderRadius: PLAY_BUTTON_SIZE / 2,
-    height: PLAY_BUTTON_SIZE,
-    justifyContent: 'center',
-    width: PLAY_BUTTON_SIZE,
-  },
-  sliderBlock: { position: 'relative', width: '100%' },
-  sliderBlockFraming: { marginBottom: CLIP_FRAMING_GAP },
-  // The brackets ride the slider row — never down into the time labels.
-  handlesRegion: {
-    height: HANDLES_REGION_HEIGHT,
+  footerRow: { flexDirection: 'row', height: '100%', width: '100%' },
+  footerHalfSlot: { flex: 1 },
+  footerDivider: {
+    bottom: 12,
     left: 0,
     position: 'absolute',
-    right: 0,
-    top: 0,
+    top: 12,
+    width: HAIRLINE,
   },
-  // The cards' own height, from the term `PlayerCards` already imports — it was
-  // a re-typed 96 beside it, which is the same value on Android and the wrong
-  // way to say it.
-  // Only ever applied together with `firstCardHost`, which is why it states no
-  // top margin of its own — it carried a 12 that the 28 below always won.
-  cardHost: {
-    height: CARDS_HEIGHT,
-    width: '100%',
+  footerHalf: { height: '100%', width: '100%' },
+  // Leading-aligned rows — the iOS file's argument about where slack reads
+  // as emptiness.
+  footerHalfPress: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    height: '100%',
+    paddingHorizontal: FOOTER_ROW_PADDING,
   },
-  // Extra air between the transport and the first card.
-  firstCardHost: { marginTop: 28 },
+  footerIconHost: { height: FOOTER_ICON, width: FOOTER_ICON },
+  footerCopy: { flex: 1, gap: 1 },
+  footerEditSlot: { flexShrink: 0 },
+  footerEditPress: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    height: '100%',
+    paddingHorizontal: FOOTER_ROW_PADDING,
+  },
 });

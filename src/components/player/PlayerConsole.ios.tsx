@@ -30,12 +30,12 @@ import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
-  IOS_TRANSPORT_GAP,
-  IOS_TRANSPORT_PLAY_SIZE,
-  IOS_TRANSPORT_SKIP_SIZE,
+  TRANSPORT_GAP,
+  TRANSPORT_PLAY_SIZE,
+  TRANSPORT_SKIP_SIZE,
   PLAYER_SIDE_PADDING,
-  registerPlayerTransportMeasurerIos,
-  setPlayerTransportAnchorIos,
+  registerPlayerTransportMeasurer,
+  setPlayerTransportAnchor,
   playerArtRadius,
   playerArtSize,
   type PlayerCard,
@@ -143,9 +143,6 @@ const ARTIST_LEADING = 22;
  * editor grew a second transport row (2026-08-26) — the single-source rule:
  * two surfaces drawing one control share the term, or they drift.
  */
-const TRANSPORT_SKIP_SIZE = IOS_TRANSPORT_SKIP_SIZE;
-const TRANSPORT_PLAY_SIZE = IOS_TRANSPORT_PLAY_SIZE;
-const TRANSPORT_GAP = IOS_TRANSPORT_GAP;
 
 /**
  * THE TRANSPORT IS CENTRED OPTICALLY, NOT MATHEMATICALLY, and the difference is
@@ -345,10 +342,10 @@ function GlassFooter({
      * `ClipActionsRow`'s own entrance" — the bar used to be SWAPPED OUT for
      * the clip-framing action row, and the fade covered that content change
      * inside one standing bar. iOS framing left this console on 2026-08-26
-     * for the dedicated `clip-trim` sheet, and `ClipActionsRow` is Android's
-     * alone now. Nothing has swapped with this bar since, so the entrance had
-     * nothing left to enter for — it was animating an arrival that no longer
-     * happens, and failing at it.
+     * for the dedicated `clip-trim` sheet (Android followed on 2026-09-08,
+     * retiring `ClipActionsRow` entirely). Nothing has swapped with this bar
+     * since, so the entrance had nothing left to enter for — it was animating
+     * an arrival that no longer happens, and failing at it.
      *
      * The console's own fade (`CONSOLE_FADE_START` → `_END`) is what brings
      * this bar in with everything else, which is what should carry it: the
@@ -588,7 +585,7 @@ export function PlayerConsole({
 
   /**
    * THE TRANSPORT ANCHOR'S WRITER — see `chrome.ts`. The sheet calls
-   * `measurePlayerTransportIos()` when the expand spring settles; this is the
+   * `measurePlayerTransport()` when the expand spring settles; this is the
    * function it reaches. Double rAF before measuring, `useSheetLanded`'s own
    * reasoning: the spring reporting done is not the same instant as the final
    * layout pass, and a measurement taken between the two bakes a stale
@@ -596,16 +593,16 @@ export function PlayerConsole({
    */
   const transportRowRef = useRef<View>(null);
   useEffect(() => {
-    registerPlayerTransportMeasurerIos(() => {
+    registerPlayerTransportMeasurer(() => {
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           transportRowRef.current?.measureInWindow((_x, y, _w, h) => {
-            if (h > 0) setPlayerTransportAnchorIos(y + h / 2);
+            if (h > 0) setPlayerTransportAnchor(y + h / 2);
           });
         }),
       );
     });
-    return () => registerPlayerTransportMeasurerIos(null);
+    return () => registerPlayerTransportMeasurer(null);
   }, [transportRowRef]);
 
   return (
