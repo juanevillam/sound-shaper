@@ -8,12 +8,13 @@ import {
   IconButton,
   ModalBottomSheet,
   Row,
-  Shape,
-  Surface,
   Text,
   type ModalBottomSheetRef,
 } from '@expo/ui/jetpack-compose';
 import {
+  background,
+  clickable,
+  clip,
   fillMaxHeight,
   fillMaxWidth,
   padding,
@@ -28,6 +29,8 @@ import {
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
   EMPTY_STATE_STEPS,
+  GROUP_ROW_GAP,
+  groupRowShape,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,15 +59,6 @@ import { usePlayerStore } from '@/store/player';
 // delete on opposed swipe edges because that is where iOS hides row actions;
 // Material puts them in an overflow menu, which is also what removes the
 // unguarded single-tap delete this sheet used to carry.
-
-const CLIP_ROW_SHAPE = Shape.RoundedCorner({
-  cornerRadii: {
-    topStart: 12,
-    topEnd: 12,
-    bottomStart: 12,
-    bottomEnd: 12,
-  },
-});
 
 const NO_CLIPS: never[] = [];
 
@@ -311,9 +305,16 @@ export function ClipsSheet({
                   ),
                 ]}
               >
-                <Text style={{ fontSize: EMPTY_STATE_STEPS.emojiSize }}>
-                  ✂️
-                </Text>
+                {/* The Material twin of iOS's `scissors` mark, at the shared
+                    steps — the 2026-09-04 sweep retired emoji unavailable
+                    states portfolio-wide and this sheet was still carrying
+                    one (Juan, 2026-09-08). */}
+                <AppIcon
+                  name="content-cut"
+                  size={EMPTY_STATE_STEPS.iconSize}
+                  tint={colors.onSurfaceMuted}
+                  modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+                />
                 <Text
                   color={colors.onSurface}
                   style={{
@@ -334,17 +335,28 @@ export function ClipsSheet({
                 </Text>
               </Column>
             ) : (
+              /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
+                 (clip → sheetField → clickable, 2dp seams, first/last
+                 corners): iOS lists the clips in a native grouped List, and
+                 this is that statement in Material (Juan, 2026-09-08). The
+                 stack is inset to the gutter, so the ripple is the card's —
+                 bounded — rather than the old edge-to-edge transparent row. */
               <Column
-                verticalArrangement={{ spacedBy: 2 }}
-                modifiers={[fillMaxWidth()]}
+                verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
               >
-                {clips.map(clip => {
-                  const isActive = activeClip?.clipId === clip.id;
-                  const range = `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
+                {clips.map((rowClip, rowIndex) => {
+                  const isActive = activeClip?.clipId === rowClip.id;
+                  const range = `${formatTime(rowClip.startMs / 1000)} – ${formatTime(rowClip.endMs / 1000)}`;
 
                   return (
-                    <Surface
-                      key={clip.id}
+                    <Row
+                      key={rowClip.id}
+                      verticalAlignment="center"
+                      horizontalArrangement={{ spacedBy: 12 }}
                       // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
                       // does. Playing one is a request to HEAR it, and the thing
                       // that shows what is sounding — the artwork, the scrubber,
@@ -355,123 +367,108 @@ export function ClipsSheet({
                       // press is a request to HEAR this, and the answer should
                       // not wait on an animation. The sheet then slides away
                       // over a player that is already playing.
-                      onClick={() => {
-                        playClip(clip.id, clip.startMs, clip.endMs);
-                        void leave(onClose);
-                      }}
-                      color="transparent"
-                      shape={CLIP_ROW_SHAPE}
-                      modifiers={[fillMaxWidth()]}
+                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's
+                      // twin does — the sound starts BEFORE the hide so the
+                      // answer never waits on the animation (full reasoning
+                      // in git history).
+                      modifiers={[
+                        fillMaxWidth(),
+                        clip(groupRowShape(rowIndex, clips.length)),
+                        background(colors.sheetField),
+                        clickable(() => {
+                          playClip(rowClip.id, rowClip.startMs, rowClip.endMs);
+                          void leave(onClose);
+                        }),
+                        padding(16, 4, 8, 4),
+                      ]}
                     >
-                      <Row
-                        verticalAlignment="center"
-                        horizontalArrangement={{ spacedBy: 12 }}
-                        // The ROW is inset, not the Surface around it, so the
-                        // press ripple reaches the sheet's edges the way
-                        // Material's own list rows do — and the range lands on
-                        // the same gutter as the title above it. It used to
-                        // carry a bare 12 inside a Column already padded 24,
-                        // which put the text 11.73dp inboard of that title
-                        // (measured 25.60 against 37.33 on the A54) and bought
-                        // no bleed in return.
-                        modifiers={[
-                          fillMaxWidth(),
-                          padding(
-                            COMPOSE_SHEET_GUTTER,
-                            4,
-                            COMPOSE_SHEET_GLYPH_INSET,
-                            4,
-                          ),
-                        ]}
+                      <Column
+                        verticalArrangement={{ spacedBy: 1 }}
+                        modifiers={[weight(1)]}
                       >
-                        <Column
-                          verticalArrangement={{ spacedBy: 1 }}
-                          modifiers={[weight(1)]}
+                        <Text
+                          color={isActive ? colors.primary : colors.onSurface}
+                          style={{ typography: 'bodyLarge' }}
+                          maxLines={1}
                         >
-                          <Text
-                            color={isActive ? colors.primary : colors.onSurface}
-                            style={{ typography: 'bodyLarge' }}
-                            maxLines={1}
-                          >
-                            {range}
-                          </Text>
-                        </Column>
-                        {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
+                          {range}
+                        </Text>
+                      </Column>
+                      {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
                           Material marks an active list item with the accent and
                           that stays, but COLOUR ALONE IS NOT AN INDICATOR for
                           anyone who cannot see this particular colour — the
                           accent was the only marker here, where iOS has always
                           paired it with a mark. Music does the same. */}
-                        {isActive ? (
-                          <AppIcon
-                            name="graphic-eq"
-                            size={MENU_ICON_SIZE}
-                            tint={colors.primary}
-                            contentDescription={t('player.clips.playing')}
-                          />
-                        ) : null}
-                        <DropdownMenu
-                          expanded={menuClipId === clip.id}
-                          onDismissRequest={() => setMenuClipId(null)}
-                        >
-                          <DropdownMenu.Trigger>
-                            <IconButton onClick={() => setMenuClipId(clip.id)}>
+                      {isActive ? (
+                        <AppIcon
+                          name="graphic-eq"
+                          size={MENU_ICON_SIZE}
+                          tint={colors.primary}
+                          contentDescription={t('player.clips.playing')}
+                        />
+                      ) : null}
+                      <DropdownMenu
+                        expanded={menuClipId === rowClip.id}
+                        onDismissRequest={() => setMenuClipId(null)}
+                      >
+                        <DropdownMenu.Trigger>
+                          <IconButton onClick={() => setMenuClipId(rowClip.id)}>
+                            <AppIcon
+                              name="more-vert"
+                              tint={colors.onSurfaceMuted}
+                              contentDescription={t('player.menu.label')}
+                            />
+                          </IconButton>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Items>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setMenuClipId(null);
+                              void leave(() =>
+                                onEditClip({
+                                  id: rowClip.id,
+                                  startMs: rowClip.startMs,
+                                  endMs: rowClip.endMs,
+                                }),
+                              );
+                            }}
+                          >
+                            <DropdownMenuItem.Text>
+                              <Text color={colors.onSurface}>
+                                {t('player.clips.editAction')}
+                              </Text>
+                            </DropdownMenuItem.Text>
+                            <DropdownMenuItem.LeadingIcon>
                               <AppIcon
-                                name="more-vert"
-                                tint={colors.onSurfaceMuted}
-                                contentDescription={t('player.menu.label')}
+                                name="edit"
+                                size={MENU_ICON_SIZE}
+                                tint={colors.onSurface}
                               />
-                            </IconButton>
-                          </DropdownMenu.Trigger>
-                          <DropdownMenu.Items>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setMenuClipId(null);
-                                void leave(() =>
-                                  onEditClip({
-                                    id: clip.id,
-                                    startMs: clip.startMs,
-                                    endMs: clip.endMs,
-                                  }),
-                                );
-                              }}
-                            >
-                              <DropdownMenuItem.Text>
-                                <Text color={colors.onSurface}>
-                                  {t('player.clips.editAction')}
-                                </Text>
-                              </DropdownMenuItem.Text>
-                              <DropdownMenuItem.LeadingIcon>
-                                <AppIcon
-                                  name="edit"
-                                  size={MENU_ICON_SIZE}
-                                  tint={colors.onSurface}
-                                />
-                              </DropdownMenuItem.LeadingIcon>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setMenuClipId(null);
-                                setConfirmClipId(clip.id);
-                              }}
-                            >
-                              <DropdownMenuItem.Text>
-                                <Text color={colors.danger}>
-                                  {t('player.clips.delete')}
-                                </Text>
-                              </DropdownMenuItem.Text>
-                              <DropdownMenuItem.LeadingIcon>
-                                <AppIcon
-                                  name="delete"
-                                  size={MENU_ICON_SIZE}
-                                  tint={colors.danger}
-                                />
-                              </DropdownMenuItem.LeadingIcon>
-                            </DropdownMenuItem>
-                          </DropdownMenu.Items>
-                        </DropdownMenu>
-                      </Row>
-                    </Surface>
+                            </DropdownMenuItem.LeadingIcon>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setMenuClipId(null);
+                              setConfirmClipId(rowClip.id);
+                            }}
+                          >
+                            <DropdownMenuItem.Text>
+                              <Text color={colors.danger}>
+                                {t('player.clips.delete')}
+                              </Text>
+                            </DropdownMenuItem.Text>
+                            <DropdownMenuItem.LeadingIcon>
+                              <AppIcon
+                                name="delete"
+                                size={MENU_ICON_SIZE}
+                                tint={colors.danger}
+                              />
+                            </DropdownMenuItem.LeadingIcon>
+                          </DropdownMenuItem>
+                        </DropdownMenu.Items>
+                      </DropdownMenu>
+                    </Row>
                   );
                 })}
               </Column>
