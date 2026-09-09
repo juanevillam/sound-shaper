@@ -286,16 +286,22 @@ export const playerArtSize = (winW: number): number =>
  * shadow, landing the art top at 74pt on the iPhone 15/17 (insets.top 59–62).
  *
  * ANDROID DOES NOT SHARE THE NUMBER, BECAUSE IT MUST SHARE THE RESULT: the
- * A54's status inset is ~34dp against the island's ~60, so the same +12 put
- * the cover 45.8dp from the top — visibly crowding the status bar and reading
- * oversized where the identical cover ratio reads right on the iPhone (Juan,
- * 2026-09-08). Matching iOS's full 74 was tried first (+38) and read as too
+ * A54's status inset is ~34dp against the island's ~60, so iOS's +12 put
+ * the cover 45.8dp from the top and matching iOS's full 74 (+38) read as too
  * much air on the A54's shorter chrome — the island EARNS its clearance and a
- * flat status bar does not — so Android splits the difference: 34 + 24 =
- * ~58dp rendered, judged on device between the two. One result class, two
- * derivations — the same split `bannerBottomOffset` makes at the other edge.
+ * flat status bar does not. One result class, two derivations — the same
+ * split `bannerBottomOffset` makes at the other edge.
+ *
+ * The split landed at 24 first (34 + 24 = ~58dp rendered) and came down to 16
+ * the day the Android screen tops did (Juan, 2026-09-08, "too away from the
+ * status bar"): 16 is the portfolio's one clearance under Android chrome now
+ * (`SCREEN_CONTENT_TOP`, the showcase frame's top), and 34 + 16 = 50dp keeps
+ * the cover clear of the status bar without the band of dead page the 58
+ * left. The freed 8dp falls into the console's two spacers at their measured
+ * 1 : 1.55 split — the optical-centre rule redistributes it by construction,
+ * nothing else moves.
  */
-const ART_TOP_GAP = Platform.select({ ios: 12, default: 24 }) as number;
+const ART_TOP_GAP = Platform.select({ ios: 12, default: 16 }) as number;
 
 export const playerArtTop = (topInset: number): number =>
   topInset + ART_TOP_GAP;
