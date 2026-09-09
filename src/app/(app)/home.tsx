@@ -67,16 +67,20 @@ const APP_BAR_HEIGHT = 64;
  * reads as a bigger gap only because a text row has leading above its ink and
  * a cover has none.
  *
- * Android's static app bar sits directly on the content, so this IS the gap,
- * and it is set to match Topper: band-scanned on the A54, Topper's bar bottom
- * is 97.78dp and the "Your Tops" ink starts 123.38 — 25.6dp of gap. Topper
- * reaches that figure by accident — list padding plus the header text's own
- * leading — so copying the outcome is the only way to actually match it, and
- * it DRIFTS when Topper's home is reworked: this was 29.5 against a measured
- * 31.6 until the 2026-09-04 rail-tile rework moved Topper's first ink, found
- * 3.9dp adrift on 2026-09-08. A retune re-measures Topper first.
+ * Android's app bar sits directly on the content, so this IS the gap, and it
+ * is set to match Topper: copying the outcome is the only way to actually
+ * match it — Topper reaches its figure by accident (list padding plus the
+ * header text's own leading) — and it DRIFTS when Topper's home is reworked:
+ * this was 29.5 against a measured 31.6 until the 2026-09-04 rail-tile rework
+ * moved Topper's first ink, found 3.9dp adrift on 2026-09-08. A retune
+ * re-measures Topper first.
+ *
+ * 21.6, since the 2026-09-08 screen-top halving that followed the on-scroll
+ * bar (Topper's list top went 12 → 8, so its "Your Tops" ink gap went
+ * 25.6 → 21.6 — measured on the A54: ink 347px → 336px below one fixed bar,
+ * exactly the 4dp).
  */
-const GRID_TOP_GAP = IS_IOS ? 24 : 25.6;
+const GRID_TOP_GAP = IS_IOS ? 24 : 21.6;
 
 /**
  * ROWS OF BONES the first-load skeleton stands.

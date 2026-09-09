@@ -498,8 +498,10 @@ export const ManageAccountScreen = ({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  // The 16 here plus the first header's own 16 is `SCREEN_CONTENT_TOP` — the
-  // pushed sheet-family's shared top. Change one and the family drifts.
-  scroll: { paddingVertical: 16 },
+  // The 0 here plus the first header's own 16 is `SCREEN_CONTENT_TOP` — the
+  // pushed sheet-family's shared top. Change one and the family drifts. (The
+  // scroller supplied 16 while the family top was 32; the header's own
+  // padding is mid-list rhythm too, so the halving all came off here.)
+  scroll: { paddingTop: 0, paddingBottom: 16 },
   host: { width: '100%' },
 });
