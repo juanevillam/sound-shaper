@@ -45,7 +45,7 @@ import {
 import {
   measurePlayerTransport,
   playerArtRadius,
-  playerArtSize,
+  playerArtFullSize,
   playerArtTop,
   playerConsoleTop,
   type PlayerCard,
@@ -403,7 +403,10 @@ export function PlayerSheet() {
   // The console's box is SHARED with whichever twin renders it — see
   // `chrome.ts`. The sheet may only place the artwork (it is the element that
   // travels), so the two halves of one geometry cannot be derived twice.
-  const artFull = playerArtSize(winW);
+  // Height-capped: on a short window the cover gives, never the console's
+  // air — see `playerArtFullSize`. On every iPhone here the width wins and
+  // this is exactly `playerArtSize(winW)`.
+  const artFull = playerArtFullSize(winW, winH, insets.top, bottomInset);
   /**
    * THE COVER'S CORNER IS A RATIO OF THE COVER, not a container constant.
    * This drew `TILE_RADIUS` — the grouped-CARD radius, 26 whatever the box —
@@ -412,7 +415,7 @@ export function PlayerSheet() {
    * 0.070 of it, against the term's 0.15. `artworkRadius` exists for exactly
    * this drift and the player was the one caller that never adopted it.
    */
-  const artFullRadius = playerArtRadius(winW, TILE_RADIUS);
+  const artFullRadius = playerArtRadius(artFull, TILE_RADIUS);
   const artExpandedX = (winW - artFull) / 2;
   const artExpandedY = playerArtTop(insets.top);
   const artScaleMin = MINI_ART_SIZE / artFull;

@@ -2,13 +2,18 @@ import { useSyncExternalStore } from 'react';
 
 import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 
-import { artworkRadius, type IconName } from '@portfolio/mobile-ui';
+import {
+  artworkRadius,
+  MINI_PLAYER_HEIGHT,
+  type IconName,
+} from '@portfolio/mobile-ui';
 import {
   type ComposedGesture,
   type GestureType,
 } from 'react-native-gesture-handler';
 import { type AnimatedStyle } from 'react-native-reanimated';
 
+import { bannerBottomOffset } from '@/components/player/bannerMetrics';
 import { SCREEN_PADDING } from '@/styles/metrics';
 
 /** A style produced by `useAnimatedStyle` and handed down to a twin. */
@@ -257,6 +262,55 @@ export const playerArtSize = (winW: number): number =>
   winW - PLAYER_SIDE_PADDING * 2;
 
 /**
+ * THE COVER IS HEIGHT-CAPPED SO THE CONSOLE'S AIR HAS A FLOOR (Juan,
+ * 2026-09-08: "the player controls too tight on top and bottom" on the A54,
+ * while the identical layout reads right on the iPhone 15). The two devices
+ * differ only in vertical budget — the A54's window is 832dp against the
+ * iPhone's 852pt, with a full-width square cover spending most of it — so a
+ * width-driven cover silently pays the difference out of the two flexible
+ * spacers around the transport: measured 45.6dp of total spacer air on the
+ * A54 against the iPhone 15's 56. Apple's own answer on short screens is the
+ * same one (Music shrinks the artwork on an SE rather than crowding the
+ * transport).
+ *
+ * So the cover takes the SMALLER of the width box and what the height can
+ * afford: window height, less the art's own top, the art→console gap, the
+ * console's fixed content, the air floor and the banner clearance. On any
+ * screen tall enough (every iPhone here) the width wins and nothing changes;
+ * on a short one the cover gives, never the controls.
+ *
+ * - `CONSOLE_COPY_HEIGHT` (150) is the title block + scrubber block, measured
+ *   on the A54 (body top 430.0 → transport box top 597.4, less the upper
+ *   spacer's 17.9). Font metrics, so re-measure if the title pair or the
+ *   scrubber change their ladder rungs.
+ * - `CONSOLE_AIR_FLOOR` (56) is the iPhone 15's OWN rendered spacer total —
+ *   the reference device where Juan called the layout right — set just at it
+ *   so that device stays width-driven and every screen is guaranteed at
+ *   least the air it has. The 1 : 1.55 spacer split then distributes the
+ *   floor exactly as it distributes surplus.
+ */
+const CONSOLE_COPY_HEIGHT = 150;
+const CONSOLE_AIR_FLOOR = 56;
+
+export const playerArtFullSize = (
+  winW: number,
+  winH: number,
+  topInset: number,
+  bottomInset: number,
+): number =>
+  Math.min(
+    playerArtSize(winW),
+    winH -
+      playerArtTop(topInset) -
+      ART_TO_CONSOLE -
+      CONSOLE_COPY_HEIGHT -
+      TRANSPORT_ROW_HEIGHT -
+      MINI_PLAYER_HEIGHT -
+      CONSOLE_AIR_FLOOR -
+      bannerBottomOffset(bottomInset),
+  );
+
+/**
  * Where the artwork's top edge sits, below the screen's top inset.
  *
  * iOS CLEARS NOTHING. It used to clear a 43pt BAR ROW — `chevron.down` leading,
@@ -317,6 +371,12 @@ export const playerConsoleTop = (artTop: number, artSize: number): number =>
  * sheet places the artwork and the console captions it, so both need this and
  * neither may derive it: `PlayerSheet` interpolates it as the shared element
  * travels, and `PlayerConsole.ios` feeds it to `opticalTextInset`.
+ *
+ * Takes the ART SIZE, not the window width, since the cover became
+ * height-capped (`playerArtFullSize`): the sheet passes the actual rendered
+ * cover. `PlayerConsole.ios` passes its content-box width — on iOS the cap
+ * never binds today, and its `opticalTextInset` consumer is a sub-point nudge
+ * that has no business knowing the window height.
  */
-export const playerArtRadius = (winW: number, androidStep: number): number =>
-  artworkRadius(playerArtSize(winW), androidStep);
+export const playerArtRadius = (artSize: number, androidStep: number): number =>
+  artworkRadius(artSize, androidStep);
