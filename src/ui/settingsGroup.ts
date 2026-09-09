@@ -137,19 +137,27 @@ export const menuContainer = (
  * WHERE A PUSHED SHEET-FAMILY SCREEN'S FIRST CONTENT STARTS on Android — the
  * counterpart of iOS's `SHEET_CONTENT_TOP` (84 below the sheet's own edge):
  * the first content BOX (a section header's padding box, or a card's fill)
- * sits 32dp below the app bar, on every screen of the family.
+ * sits 16dp below the app bar, on every screen of the family.
  *
- * Settings and Account derive it STRUCTURALLY — the scroller's 16 plus the
- * first header's own 16 — and are the reference; a screen whose first content
- * is a bare card takes the constant outright. Before it existed the family
- * had drifted to three answers (Settings/Account 32, Trash/Blocked 16,
- * Trophies 12), which is exactly the per-screen wobble the iOS 84 was
- * standardized to kill.
+ * IT WAS 32, AND THE ON-SCROLL BAR IS WHAT HALVED IT (Juan, 2026-09-08, the
+ * same day the bar went to resting on the page): with the bar band gone at
+ * rest, the old 32 read as part of the bar — a too-tall stretch of bare page
+ * between the title and the content. 16 is M3's own content inset and the
+ * family's side gutter (`GROUP_SIDE_PADDING`), so the top now matches the
+ * sides. iOS is untouched — its bar draws the title in the modern large
+ * style, so the air under it never read as bar.
+ *
+ * Settings and Account derive it STRUCTURALLY — the scroller supplies 0 and
+ * the first header's own 16 is the whole gap — and are the reference; a
+ * screen whose first content is a bare card takes the constant outright.
+ * Before the term existed the family had drifted to three answers
+ * (Settings/Account 32, Trash/Blocked 16, Trophies 12), which is exactly the
+ * per-screen wobble the iOS 84 was standardized to kill.
  *
  * As on iOS, a text-first screen's INK lands a few dp below a card-first
  * screen's FILL (the glyph's own bearing) — the BOX is the shared edge.
  */
-export const SCREEN_CONTENT_TOP = 32;
+export const SCREEN_CONTENT_TOP = 16;
 
 /**
  * THE VALUE BONE'S BOX — one term for both platforms' account-fact rows.

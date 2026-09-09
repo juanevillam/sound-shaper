@@ -313,12 +313,14 @@ const BANNER_HEIGHT = 96;
  *
  * A single-row group, so it takes both outer corners (`groupRowShape(0, 1)`).
  *
- * ITS TOP IS THE FAMILY'S `SCREEN_CONTENT_TOP` (32): the screen's scroller
- * supplies 16 and this Column supplies the rest, the same 16 + 16 derivation
- * the General header makes with its own padding. A first card with no header
- * above it takes the constant's value outright — the rule that term states —
- * and without this half the banner stood at 16, one header-slot above every
- * other screen in the family (measured; Juan asked, 2026-09-08).
+ * ITS TOP IS THE FAMILY'S `SCREEN_CONTENT_TOP` (16): the screen's scroller
+ * supplies 0 now, so this Column supplies the whole value — the same
+ * derivation the General header makes with its own 16 of padding. A first
+ * card with no header above it takes the constant's value outright — the
+ * rule that term states. (While the family top was 32 the scroller supplied
+ * 16 and this Column the other 16; without its half the banner stood one
+ * header-slot above every other screen in the family — measured; Juan asked,
+ * 2026-09-08.)
  */
 const AccountBanner = memo(
   ({
@@ -333,12 +335,7 @@ const AccountBanner = memo(
     <Column
       modifiers={[
         fillMaxWidth(),
-        padding(
-          GROUP_SIDE_PADDING,
-          SCREEN_CONTENT_TOP - 16,
-          GROUP_SIDE_PADDING,
-          0,
-        ),
+        padding(GROUP_SIDE_PADDING, SCREEN_CONTENT_TOP, GROUP_SIDE_PADDING, 0),
       ]}
     >
       <ListItem
