@@ -563,7 +563,7 @@ export function PlayerConsole({
    * compensates for, and this cover's radius is the largest in the portfolio
    * (56 against a home tile's 27), so the correction doubles to 12.
    */
-  const copyInset = opticalTextInset(playerArtRadius(winW, 0));
+  const copyInset = opticalTextInset(playerArtRadius(contentWidth, 0));
 
   const copy = (sound: { artist: string; name: string }) => (
     <>
