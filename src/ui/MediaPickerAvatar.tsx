@@ -46,8 +46,6 @@ import { SquashPressable } from './SquashPressable';
 export const MEDIA_PICKER_SIZE = 120;
 const AVATAR_SIZE = MEDIA_PICKER_SIZE;
 const AVATAR_RADIUS = AVATAR_SIZE / 2;
-/** A fallback emoji stands in for the plus where an app has one. */
-const EMOJI_FONT_SIZE = 32;
 
 export type MediaPickerAvatarProps = {
   onPress: () => void;
@@ -66,8 +64,6 @@ export type MediaPickerAvatarProps = {
    * WHERE it goes and what shape it is clipped to.
    */
   preview?: React.ReactNode;
-  /** Placeholder glyph when there is no artwork and the app has an emoji. */
-  emoji?: string;
   /** No-op the press, e.g. while the sheet is committing. */
   disabled?: boolean;
   /**
@@ -108,7 +104,6 @@ export function MediaPickerAvatar({
   surfaceColor,
   contentColor,
   preview,
-  emoji,
   disabled = false,
   radius = AVATAR_RADIUS,
   caption,
@@ -139,14 +134,16 @@ export function MediaPickerAvatar({
             },
           ]}
         >
-          {preview ??
-            (emoji ? (
-              <Text style={styles.emoji}>{emoji}</Text>
-            ) : (
-              <Text style={[styles.plus, { color: contentColor }]}>
-                {Platform.OS === 'ios' ? EMPTY_MEDIA_PLUS : '＋'}
-              </Text>
-            ))}
+          {/* THE PLUS, ALWAYS — the affordance every media picker in the
+              portfolio draws for an empty slot. An `emoji` fallback prop stood
+              here and Sound Shaper's Android editor was its one caller,
+              drawing 🎵 where its own iOS twin and every Topper picker draw
+              the plus (Juan, 2026-09-10); the prop went with the drift. */}
+          {preview ?? (
+            <Text style={[styles.plus, { color: contentColor }]}>
+              {Platform.OS === 'ios' ? EMPTY_MEDIA_PLUS : '＋'}
+            </Text>
+          )}
         </View>
         {caption ? (
           <Text
@@ -183,7 +180,6 @@ const styles = StyleSheet.create({
     marginTop: EMPTY_MEDIA_CAPTION_GAP,
     textAlign: 'center',
   },
-  emoji: { fontSize: EMOJI_FONT_SIZE },
   // THE SHARED SPEC ON BOTH — the glyph is a RATIO of the box it sits in
   // (`emptyMediaPlusStyle`), which is the rule every create tile follows.
   // Android had a flat 28, fine in a 72 box and lost in a 120 one; a

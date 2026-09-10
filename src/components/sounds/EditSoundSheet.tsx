@@ -379,7 +379,6 @@ export function EditSoundSheet({
                       })}
                       contentColor={colors.onSurface}
                       radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
-                      emoji="🎵"
                       caption={t(
                         isSaving
                           ? 'soundEdit.uploading'
