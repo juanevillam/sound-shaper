@@ -67,8 +67,6 @@ const NO_CLIPS: never[] = [];
 /** The M3 loading indicator's box, matching `SheetBar`'s commit spinner. */
 const SPINNER_SIZE = 20;
 const MENU_ICON_SIZE = 24;
-/** Vertical air around the two state branches, so neither sits on the bar. */
-const STATE_PADDING = 32;
 
 export type ClipsSheetProps = {
   /** Close the sheet and push the `clip-trim` editor. */
@@ -278,16 +276,16 @@ export function ClipsSheet({
             ) : null}
 
             {!settled ? (
+              // CENTRED IN THE LEFTOVER HEIGHT, like the empty state below —
+              // `StateWrap` centres both on iOS, and this sheet's column is
+              // the full-height frame to centre in.
               <Column
                 horizontalAlignment="center"
+                verticalArrangement="center"
                 modifiers={[
+                  weight(1),
                   fillMaxWidth(),
-                  padding(
-                    COMPOSE_SHEET_GUTTER,
-                    STATE_PADDING,
-                    COMPOSE_SHEET_GUTTER,
-                    STATE_PADDING,
-                  ),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                 ]}
               >
                 {showSpinner ? (
@@ -308,47 +306,55 @@ export function ClipsSheet({
                and the steps are IMPORTED (`EMPTY_STATE_STEPS`) rather than
                matched by hand, which is what they were. Only the container
                differs. */
+              // TWO COLUMNS, because the arrangement type is one-or-the-other:
+              // `spacedBy` carries no alignment, so the WEIGHTED outer column
+              // centres the block in the sheet's leftover height (what
+              // `StateWrap` does for iOS's EmptyState — it sat pinned under
+              // the header here; Juan, 2026-09-10) and the inner one keeps the
+              // steps' gap.
               <Column
                 horizontalAlignment="center"
-                verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
+                verticalArrangement="center"
                 modifiers={[
+                  weight(1),
                   fillMaxWidth(),
-                  padding(
-                    COMPOSE_SHEET_GUTTER,
-                    STATE_PADDING,
-                    COMPOSE_SHEET_GUTTER,
-                    STATE_PADDING,
-                  ),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                 ]}
               >
-                {/* The Material twin of iOS's `scissors` mark, at the shared
+                <Column
+                  horizontalAlignment="center"
+                  verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
+                  modifiers={[fillMaxWidth()]}
+                >
+                  {/* The Material twin of iOS's `scissors` mark, at the shared
                     steps — the 2026-09-04 sweep retired emoji unavailable
                     states portfolio-wide and this sheet was still carrying
                     one (Juan, 2026-09-08). */}
-                <AppIcon
-                  name="content-cut"
-                  size={EMPTY_STATE_STEPS.iconSize}
-                  tint={colors.onSurfaceMuted}
-                  modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
-                />
-                <Text
-                  color={colors.onSurface}
-                  style={{
-                    typography: EMPTY_STATE_STEPS.title,
-                    textAlign: 'center',
-                  }}
-                >
-                  {t('player.clips.none')}
-                </Text>
-                <Text
-                  color={colors.onSurfaceMuted}
-                  style={{
-                    typography: EMPTY_STATE_STEPS.subtitle,
-                    textAlign: 'center',
-                  }}
-                >
-                  {t('player.clips.empty')}
-                </Text>
+                  <AppIcon
+                    name="content-cut"
+                    size={EMPTY_STATE_STEPS.iconSize}
+                    tint={colors.onSurfaceMuted}
+                    modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+                  />
+                  <Text
+                    color={colors.onSurface}
+                    style={{
+                      typography: EMPTY_STATE_STEPS.title,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t('player.clips.none')}
+                  </Text>
+                  <Text
+                    color={colors.onSurfaceMuted}
+                    style={{
+                      typography: EMPTY_STATE_STEPS.subtitle,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t('player.clips.empty')}
+                  </Text>
+                </Column>
               </Column>
             ) : (
               /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
