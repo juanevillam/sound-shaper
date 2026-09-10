@@ -31,6 +31,7 @@ import {
   EMPTY_STATE_STEPS,
   GROUP_ROW_GAP,
   groupRowShape,
+  menuContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,7 +88,7 @@ export function ClipsSheet({
   onClose,
 }: ClipsSheetProps) {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
@@ -424,6 +425,10 @@ export function ClipsSheet({
                         />
                       ) : null}
                       <DropdownMenu
+                        // The portfolio's one menu surface — every overflow
+                        // menu takes `menuContainer`; unset, Compose draws the
+                        // raw One UI token this term exists to repair.
+                        color={menuContainer(colors, scheme)}
                         expanded={menuClipId === rowClip.id}
                         onDismissRequest={() => setMenuClipId(null)}
                       >
