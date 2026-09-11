@@ -488,8 +488,13 @@ export function ClipTrimEditor({
 
   const commitEdges = useCallback(() => {
     edgeDraggingRef.current = false;
+    // RELEASE THE SHEET TOO. This cleared only the ref, so a cap drag left
+    // `sheetGesturesEnabled` off permanently — swipe-to-dismiss was dead for
+    // the rest of the editor's life, and the leak was invisible because the
+    // symptom is a gesture that STOPS working rather than one that misfires.
+    onBandTouch?.(false);
     onRangeChange(startSv.value, endSv.value);
-  }, [onRangeChange, startSv, endSv]);
+  }, [onBandTouch, onRangeChange, startSv, endSv]);
 
   // --- Tiled strip ---------------------------------------------------------
   // The strip lives in ABSOLUTE track coordinates (translateX derives from
@@ -963,6 +968,7 @@ export function ClipTrimEditor({
               startSv={startSv}
               endSv={endSv}
               onChange={onRangeChange}
+              onBandTouch={onBandTouch}
             />
           </View>
         </View>
