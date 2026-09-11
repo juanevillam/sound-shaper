@@ -61,10 +61,13 @@ export {
   SHEET_HERO_SYMBOL_SIZE,
 } from './sheetHero';
 export {
+  composeSheetBodyHeight,
   composeSheetBottomPadding,
   COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HANDLE_BOX,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
+  COMPOSE_SHEET_TOP_GAP,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
 } from './sheetMetrics';

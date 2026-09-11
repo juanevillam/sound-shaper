@@ -3,7 +3,11 @@ import { useEffect, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
-import { SHEET_DRAG_HANDLE, sheetContainer } from '@portfolio/mobile-ui';
+import {
+  COMPOSE_SHEET_TOP_GAP,
+  SHEET_DRAG_HANDLE,
+  sheetContainer,
+} from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -153,7 +157,11 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
             // in dark the two surfaces in one flow were #252528 and #121318
             // (Juan, 2026-09-10). See `sheetContainer`.
             backgroundColor: sheetContainer(colors, scheme),
-            top: insets.top + 12,
+            // The family's line — where One UI's own full-height sheet
+            // stops, and now where the three Compose sheets stop too. This
+            // was a hand-picked 12, which rendered 45.87dp against the system
+            // share sheet's 43.73 (measured on the A54).
+            top: insets.top + COMPOSE_SHEET_TOP_GAP,
           },
           sheetStyle,
         ]}
