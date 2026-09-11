@@ -1,5 +1,3 @@
-import { useWindowDimensions } from 'react-native';
-
 import {
   Column,
   FilterChip,
@@ -11,6 +9,7 @@ import {
   Text,
 } from '@expo/ui/jetpack-compose';
 import {
+  fillMaxHeight,
   fillMaxWidth,
   height,
   horizontalScroll,
@@ -26,7 +25,6 @@ import {
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
-  composeSheetBodyHeight,
   sheetContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
@@ -85,7 +83,6 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t, locale } = useI18n();
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { height: winH } = useWindowDimensions();
 
   const rate = usePlayerStore(s => s.rate);
   const setRate = usePlayerStore(s => s.setRate);
@@ -183,17 +180,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           // the same move on Android (`fillMaxHeight` on the follow sheets).
           // A hugging sheet also resized itself whenever a section did.
           modifiers={[
-            // NOT `fillMaxHeight()` — that takes the SCREEN, corners and all,
-            // because @expo/ui names no window insets (see the note above).
-            // The content states the height instead, so the sheet's top edge
-            // stops where One UI's own full-height sheet stops.
-            // Height FIRST — see `composeSheetBodyHeight`: stated after the
-            // padding it would measure 64dp taller and the sheet would clamp
-            // back to full-bleed.
-            height(composeSheetBodyHeight(winH, insets.top)),
-            padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
+            fillMaxHeight(),
             fillMaxWidth(),
             verticalScroll(),
+            padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
           ]}
         >
           {/* The family's header row — `SheetBar` in its title-only mode

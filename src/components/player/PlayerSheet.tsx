@@ -51,7 +51,6 @@ import {
   type PlayerCard,
 } from '@/components/player/chrome';
 import { ClipsSheet } from '@/components/player/ClipsSheet';
-import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import {
   PlayerBackdrop,
@@ -1006,14 +1005,6 @@ export function PlayerSheet() {
   // the dedicated Voice Memos-style editor (`clip-trim`), which the Clips
   // sheet pushes.
   const [clipsVisible, setClipsVisible] = useState(false);
-  /**
-   * The clip editor, as an RN SHEET over the player (Android's presentation
-   * — see `ClipTrimSheet`; iOS pushes its `/clip-trim` route instead).
-   * `null` closed; `{ editing: null }` is New Clip.
-   */
-  const [clipTrim, setClipTrim] = useState<{
-    editing: { clipId: string; endMs: number; startMs: number } | null;
-  } | null>(null);
   const [editVisible, setEditVisible] = useState(false);
 
   /**
@@ -1354,52 +1345,11 @@ export function PlayerSheet() {
       </Animated.View>
 
       {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
-      {clipsVisible && (
-        <ClipsSheet
-          onNewClip={() => {
-            setClipsVisible(false);
-            setClipTrim({ editing: null });
-          }}
-          onEditClip={clip => {
-            setClipsVisible(false);
-            setClipTrim({
-              editing: {
-                clipId: clip.id,
-                endMs: clip.endMs,
-                startMs: clip.startMs,
-              },
-            });
-          }}
-          onClose={() => setClipsVisible(false)}
-        />
-      )}
-      {clipTrim && (
-        <ClipTrimSheet
-          editing={clipTrim.editing}
-          /**
-           * IT GOES BACK TO THE LIST IT CAME FROM. iOS stacks `clip-trim`
-           * OVER the clips sheet, so dismissing it uncovers the list; Android
-           * had the editor replace the list and dismiss to the bare player,
-           * which is a different flow rather than the same one in Material
-           * (Juan, 2026-09-10).
-           *
-           * IT CANNOT LITERALLY NEST, and that is the whole reason the two
-           * differ: a Compose `ModalBottomSheet` is its own window ABOVE the
-           * RN root, so a Clips sheet left standing would draw OVER this
-           * RN-drawn editor rather than under it. The list therefore closes on
-           * the way in and comes back on the way out — same start, same end,
-           * one surface in flight at a time.
-           *
-           * This runs after the editor's exit spring (`ClipTrimSheet` calls
-           * `onClose` from the animation's completion), so the list's window
-           * opens onto a screen the editor has already left.
-           */
-          onClose={() => {
-            setClipTrim(null);
-            setClipsVisible(true);
-          }}
-        />
-      )}
+      {/* ONE SHEET FOR BOTH CLIP SURFACES — the list and the editor are two
+          MODES of it, so nothing closes as the other opens. It used to take
+          `onNewClip` / `onEditClip` and hand the editor back here as a second
+          sheet; see `ClipsSheet` for why that had to go. */}
+      {clipsVisible && <ClipsSheet onClose={() => setClipsVisible(false)} />}
       {editVisible && (
         <EditSoundSheet
           soundId={current.id}

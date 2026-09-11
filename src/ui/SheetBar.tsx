@@ -1,23 +1,106 @@
+import { type ReactNode } from 'react';
+
 import {
   Button,
   CircularWavyProgressIndicator,
+  FilledTonalIconButton,
   Row,
   Text,
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, height, size } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme, withAlpha } from '@portfolio/core';
 
+import { AppIcon } from './AppIcon';
+import { type IconName } from './icons';
 import { COMPOSE_SHEET_HEADER_HEIGHT } from './sheetMetrics';
+
+/** The gap between two bar actions, and between the last one and the pill. */
+const ACTION_GAP = 8;
+const ACTION_ICON = 24;
+/**
+ * A TONAL CONTAINER, NOT THE ACCENT ONE. M3's `FilledTonalIconButton` fills
+ * itself with `secondaryContainer` — the framework tinting a control by
+ * default, which is the first thing the monochrome rule takes. A flat wash of
+ * the sheet's own ink contains the glyph without saying anything with colour,
+ * and steps the same amount in both appearances (a token would not: One UI's
+ * container ladder is not monotonic).
+ */
+const ACTION_CONTAINER_ALPHA = 0.08;
 
 type SheetBarProps = {
   title: string;
+  /**
+   * A glyph action LEADING the title — `SheetBarAction`.
+   *
+   * Only a sheet that SWAPPED its content has one: Sound Shaper's clips sheet
+   * becomes the clip editor in place, and going back up is an on-screen
+   * affordance because the hardware BACK cannot be reached. A Compose sheet is
+   * its own dialog window and consumes the press before RN's `BackHandler`
+   * sees it — measured on the A54: with the sheet's own
+   * `shouldDismissOnBackPress` left on, BACK closed the whole sheet; turned
+   * off, BACK did nothing at all and the handler never fired.
+   */
+  leading?: ReactNode;
+  /**
+   * Glyph actions, leading the commit pill — `SheetBarAction` elements.
+   *
+   * THEY ARE CONTAINED, and that is the whole reason they go through this bar
+   * rather than being dropped in by each sheet. Sound Shaper's clips and clip
+   * editor hand-rolled their own `Row` of bare `IconButton`s, which on a sheet
+   * read as glyphs floating on the page — iOS gets away with the same
+   * arrangement because its bar items are Liquid Glass capsules, i.e. already
+   * contained (Juan, 2026-09-10).
+   */
+  actions?: ReactNode;
   /** The commit pill. Omit all three for a TITLE-ONLY header (a list sheet). */
   saveLabel?: string;
   saving?: boolean;
   saveEnabled?: boolean;
   onSave?: () => void;
 };
+
+/**
+ * ONE BAR ACTION — the contained icon button a sheet bar carries.
+ *
+ * The commit stays a LABELLED PILL beside these (`saveLabel`), which is the
+ * Android half of a deliberate split: iOS commits with a ✓ glyph in a glass
+ * capsule, Material commits with a filled button carrying the word and, while
+ * it works, a spinner in the word's place. Same job, each platform's own
+ * grammar — the portfolio's rule, not an oversight.
+ */
+export function SheetBarAction({
+  icon,
+  label,
+  onPress,
+  enabled = true,
+}: {
+  icon: IconName;
+  /** Already-translated screen-reader label — a glyph has no text of its own. */
+  label: string;
+  onPress: () => void;
+  enabled?: boolean;
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <FilledTonalIconButton
+      onClick={onPress}
+      enabled={enabled}
+      colors={{
+        containerColor: withAlpha(colors.onSurface, ACTION_CONTAINER_ALPHA),
+        contentColor: colors.onSurface,
+      }}
+    >
+      <AppIcon
+        name={icon}
+        size={ACTION_ICON}
+        tint={colors.onSurface}
+        contentDescription={label}
+      />
+    </FilledTonalIconButton>
+  );
+}
 
 // THE header row of every Compose ModalBottomSheet: title on the left and, on
 // an editor, a filled Save pill on the right. Pure Compose — renders inside the
@@ -30,6 +113,8 @@ type SheetBarProps = {
 // that component for why. Destructive delete lives at the BOTTOM, not here.
 export function SheetBar({
   title,
+  leading,
+  actions,
   saveLabel,
   saving = false,
   saveEnabled = true,
@@ -43,34 +128,52 @@ export function SheetBar({
       horizontalArrangement="spaceBetween"
       modifiers={[fillMaxWidth(), height(COMPOSE_SHEET_HEADER_HEIGHT)]}
     >
-      <Text style={{ typography: 'titleLarge' }} maxLines={1}>
-        {title}
-      </Text>
-      {/* MONOCHROME, the welcome-CTA mapping: a filled button's colour is
-          inherited (Material fills with the accent by default), so the commit
-          pill takes the ink — `onSurface` fill, `background` label — exactly
-          as EmptyState's action and the Follow CTA do. The disabled state is
-          Material's own (the pill dims itself), and the spinner takes the
-          label's ink so it reads as the label it replaces. */}
-      {saveLabel === undefined || onSave === undefined ? null : (
-        <Button
-          onClick={onSave}
-          enabled={saveEnabled && !saving}
-          colors={{
-            containerColor: colors.onSurface,
-            contentColor: colors.background,
-          }}
-        >
-          {saving ? (
-            <CircularWavyProgressIndicator
-              color={colors.background}
-              modifiers={[size(20, 20)]}
-            />
-          ) : (
-            <Text color={colors.background}>{saveLabel}</Text>
-          )}
-        </Button>
-      )}
+      {/* The leading group — a back action, then the title, so the two read
+          as one object at the bar's start. */}
+      <Row
+        verticalAlignment="center"
+        horizontalArrangement={{ spacedBy: ACTION_GAP }}
+      >
+        {leading}
+        <Text style={{ typography: 'titleLarge' }} maxLines={1}>
+          {title}
+        </Text>
+      </Row>
+      {/* ONE TRAILING GROUP — glyph actions, then the commit — so the bar has
+          a single trailing edge whether it carries none, one or both. Stated
+          as its own Row rather than as siblings of the title, which
+          `spaceBetween` would spread across the bar. */}
+      <Row
+        verticalAlignment="center"
+        horizontalArrangement={{ spacedBy: ACTION_GAP }}
+      >
+        {actions}
+        {/* MONOCHROME, the welcome-CTA mapping: a filled button's colour is
+            inherited (Material fills with the accent by default), so the
+            commit pill takes the ink — `onSurface` fill, `background` label —
+            exactly as EmptyState's action and the Follow CTA do. The disabled
+            state is Material's own (the pill dims itself), and the spinner
+            takes the label's ink so it reads as the label it replaces. */}
+        {saveLabel === undefined || onSave === undefined ? null : (
+          <Button
+            onClick={onSave}
+            enabled={saveEnabled && !saving}
+            colors={{
+              containerColor: colors.onSurface,
+              contentColor: colors.background,
+            }}
+          >
+            {saving ? (
+              <CircularWavyProgressIndicator
+                color={colors.background}
+                modifiers={[size(20, 20)]}
+              />
+            ) : (
+              <Text color={colors.background}>{saveLabel}</Text>
+            )}
+          </Button>
+        )}
+      </Row>
     </Row>
   );
 }
