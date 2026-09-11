@@ -85,23 +85,6 @@ export type AccountState = 'live' | 'skeleton' | 'deleting';
 export type TrophiesState = 'live' | 'skeleton';
 
 /**
- * THE EXPANDED PLAYER'S REACTIVE LIGHT — a VARIANT picker, not a state one,
- * and the one place in this lab where that is true.
- *
- * Juan asked for a background that answers to the music and rejected the first
- * two attempts on sight (invisible, then messy — `PlayerBloom` carries both
- * post-mortems). Rather than guess a third time, the two surviving candidates
- * are both built and switched here so they can be compared on the real screen,
- * against real music, one after the other — which is exactly what this lab is
- * for, even though what it pins is a treatment rather than a branch.
- *
- * `live` is the app as it ships: the static wash, no reactive light at all. It
- * stays the default until Juan picks, so nothing here can leak into a release
- * before that decision — and if he picks neither, `live` is already the answer.
- */
-export type PlayerState = 'live' | 'artwork' | 'edges';
-
-/**
  * WHICH SURFACE A PICKER IS SHOWING. Defined here rather than in the bar
  * because several files need it and only one can own the bar: `UiStateLabBar`
  * renders it (one cross-platform file — the `.ios` twin and its Android stub
@@ -109,7 +92,7 @@ export type PlayerState = 'live' | 'artwork' | 'edges';
  * iOS, and the two Android routes that are pushed screens rather than sheets
  * mount it themselves.
  */
-export type LabScreen = 'home' | 'account' | 'trophies' | 'player';
+export type LabScreen = 'home' | 'account' | 'trophies';
 
 type Labelled<T> = { value: T; label: string; note: string };
 
@@ -155,24 +138,6 @@ export const ACCOUNT_STATES: Labelled<AccountState>[] = [
   },
 ];
 
-export const PLAYER_STATES: Labelled<PlayerState>[] = [
-  {
-    value: 'live',
-    label: 'No light',
-    note: 'The static wash — the app as it ships. The baseline to judge the other two against.',
-  },
-  {
-    value: 'artwork',
-    label: 'Artwork halo',
-    note: "Light escaping from behind the cover. Contained; the console's ground never moves.",
-  },
-  {
-    value: 'edges',
-    label: 'Screen edges',
-    note: 'The literal backlight — the cover’s colour on the screen’s rim only, centre untouched.',
-  },
-];
-
 export const TROPHIES_STATES: Labelled<TrophiesState>[] = [
   {
     value: 'live',
@@ -189,21 +154,17 @@ export const TROPHIES_STATES: Labelled<TrophiesState>[] = [
 type LabStore = {
   account: AccountState;
   home: HomeState;
-  player: PlayerState;
   trophies: TrophiesState;
   setAccount: (state: AccountState) => void;
   setHome: (state: HomeState) => void;
-  setPlayer: (state: PlayerState) => void;
   setTrophies: (state: TrophiesState) => void;
 };
 
 export const useUiStateLab = create<LabStore>(set => ({
   account: 'live',
   home: 'live',
-  player: 'live',
   trophies: 'live',
   setAccount: account => set({ account }),
   setHome: home => set({ home }),
-  setPlayer: player => set({ player }),
   setTrophies: trophies => set({ trophies }),
 }));

@@ -4,13 +4,11 @@ import {
   ACCOUNT_STATES,
   HOME_STATES,
   HOME_LAB_BOTTOM_OFFSET,
-  PLAYER_STATES,
   TROPHIES_STATES,
   useUiStateLab,
   type AccountState,
   type HomeState,
   type LabScreen,
-  type PlayerState,
   type TrophiesState,
 } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -66,13 +64,7 @@ import { useDevSettingsStore } from '@/store/devSettings';
  * inset already covers, while this app's banner is an RN view inside the
  * screen that no inset knows about.
  */
-/**
- * `player` sits at 0 like a sheet, and deliberately OVER the glass footer
- * rather than above it. At HOME's offset the picker landed on the TRANSPORT —
- * the one control you need while comparing a light that only moves when the
- * music does. Shape / Clips / Edit are the right things to cover; play is not.
- */
-const SHEET_SCREENS = new Set<LabScreen>(['account', 'trophies', 'player']);
+const SHEET_SCREENS = new Set<LabScreen>(['account', 'trophies']);
 
 export function UiStateLabBar({ screen }: { screen: LabScreen }) {
   const { colors } = useAppTheme();
@@ -86,11 +78,9 @@ export function UiStateLabBar({ screen }: { screen: LabScreen }) {
 
   const account = useUiStateLab(s => s.account);
   const home = useUiStateLab(s => s.home);
-  const player = useUiStateLab(s => s.player);
   const trophies = useUiStateLab(s => s.trophies);
   const setAccount = useUiStateLab(s => s.setAccount);
   const setHome = useUiStateLab(s => s.setHome);
-  const setPlayer = useUiStateLab(s => s.setPlayer);
   const setTrophies = useUiStateLab(s => s.setTrophies);
 
   const groups: Record<LabScreen, StateLabGroup> = {
@@ -107,13 +97,6 @@ export function UiStateLabBar({ screen }: { screen: LabScreen }) {
       onChange: value => setHome(value as HomeState),
       states: HOME_STATES,
       value: home,
-    },
-    player: {
-      key: 'player',
-      label: 'Player light',
-      onChange: value => setPlayer(value as PlayerState),
-      states: PLAYER_STATES,
-      value: player,
     },
     trophies: {
       key: 'trophies',
