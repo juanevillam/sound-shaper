@@ -202,6 +202,31 @@ const SKIP_HOST_BOX = Math.round(
 const TRACK_EDGE_PAD = 40;
 
 /**
+ * THE BAND'S INNER BOTTOM ROOM — half the horizontal pad, so the card reads
+ * as "nothing on top, X at the sides, half X underneath" (Juan, 2026-09-10).
+ *
+ * The ruler's labels used to sit against the card's bottom edge, which is
+ * also what made the controls below feel cramped against it. Nothing is drawn
+ * in this band: the tiles state their own height and stand at the top, so the
+ * panel simply continues past the last label.
+ */
+const BAND_BOTTOM_PAD = TRACK_EDGE_PAD / 2;
+
+/**
+ * HOW FAR THE PLAYHEAD'S DOTS STICK OUT of the band, and therefore how much
+ * room the WRAPPER keeps for them outside the card.
+ *
+ * The dots are Voice Memos' lollipop and are meant to protrude — the card
+ * clips its content to the rounded corner, so they are drawn OUTSIDE it. On
+ * iOS a view does not clip to its bounds and the top dot showed anyway; on
+ * Android it is cut flat by the wrapper (Juan, 2026-09-10). Reserving the
+ * overhang makes the dots fit INSIDE the wrapper on both platforms rather
+ * than relying on a platform's clipping behaviour, which is the kind of
+ * thing that differs.
+ */
+const PLAYHEAD_DOT_OVERHANG = 5;
+
+/**
  * ONE GAP BETWEEN THE EDITOR'S GROUPS — wave card, overview, timecode,
  * transport. The first cut used three invented numbers (28/40/36); the
  * console's own block gap is 30 (`titleBlock`), and one value close to it
@@ -226,6 +251,22 @@ type ClipTrimEditorProps = {
   /** Committed selection — the numbers Save writes. */
   range: Range;
   onRangeChange: (startS: number, endS: number) => void;
+  /**
+   * A FINGER IS ON THE BAND — true on touch-down, false when it lifts.
+   *
+   * Android's editor lives in a Compose `ModalBottomSheet`, whose own
+   * drag-to-dismiss is a NATIVE gesture in the window above RN's. Scrubbing
+   * is never purely horizontal, so the sheet kept claiming the drag and
+   * sliding away mid-trim — on the one interaction this surface exists for
+   * (Juan, 2026-09-10). The sheet takes this to turn `sheetGesturesEnabled`
+   * off while the finger is down, so the two are no longer racing.
+   *
+   * It fires from `onBegin`, i.e. on touch-down rather than on activation,
+   * because by the time a pan activates the sheet may already have won.
+   * iOS passes nothing: its sheet is a real `UISheetPresentationController`
+   * and arbitrates with the scroller itself.
+   */
+  onBandTouch?: (down: boolean) => void;
 };
 
 /**
@@ -272,7 +313,11 @@ function barsPath(
   return parts.join('');
 }
 
-export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
+export function ClipTrimEditor({
+  range,
+  onRangeChange,
+  onBandTouch,
+}: ClipTrimEditorProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   // Each platform's own accent, no branch — see the frame's note
@@ -313,6 +358,9 @@ export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const panningRef = useRef(false);
   const setPanning = (value: boolean) => {
     panningRef.current = value;
+    // The sheet under this editor stops competing for the drag — see
+    // `onBandTouch`.
+    onBandTouch?.(value);
   };
 
   /**
@@ -391,6 +439,8 @@ export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const edgeDraggingRef = useRef(false);
   const setEdgeDragging = (value: boolean) => {
     edgeDraggingRef.current = value;
+    // Dragging a cap is the same competition as scrubbing — see `onBandTouch`.
+    onBandTouch?.(value);
   };
   useEffect(() => {
     if (edgeDraggingRef.current) return;
@@ -1246,17 +1296,23 @@ const styles = StyleSheet.create({
    */
   zoomWrap: {
     alignSelf: 'center',
-    height: WAVE_HEIGHT + RULER_HEIGHT,
+    // The card's own height plus the dots' overhang at BOTH ends, so the
+    // lollipop is inside this box and no platform has to be asked not to
+    // clip it. See `PLAYHEAD_DOT_OVERHANG`.
+    height:
+      WAVE_HEIGHT + RULER_HEIGHT + BAND_BOTTOM_PAD + PLAYHEAD_DOT_OVERHANG * 2,
     marginTop: Platform.select({ ios: SHEET_CONTENT_TOP, default: 0 }),
   },
   zoomCard: {
     borderRadius: CARD_RADIUS,
-    bottom: 0,
+    // Inset by the dots' overhang: the CARD is the visible band, the wrapper
+    // is only bigger so the dots have somewhere to be.
+    bottom: PLAYHEAD_DOT_OVERHANG,
     left: 0,
     overflow: 'hidden',
     position: 'absolute',
     right: 0,
-    top: 0,
+    top: PLAYHEAD_DOT_OVERHANG,
     ...CONTINUOUS_CURVE,
   },
   /**
@@ -1286,14 +1342,14 @@ const styles = StyleSheet.create({
     top: 0,
   },
   wash: {
-    bottom: RULER_HEIGHT,
+    bottom: RULER_HEIGHT + BAND_BOTTOM_PAD,
     left: 0,
     position: 'absolute',
     top: 0,
   },
   edgeTouch: {
     alignItems: 'center',
-    bottom: RULER_HEIGHT,
+    bottom: RULER_HEIGHT + BAND_BOTTOM_PAD,
     left: 0,
     position: 'absolute',
     top: 0,
@@ -1308,9 +1364,12 @@ const styles = StyleSheet.create({
   },
   playheadWrap: {
     alignItems: 'center',
-    bottom: RULER_HEIGHT,
+    // Card-relative, stated against the WRAPPER: the card starts an overhang
+    // down, and the wave ends a ruler plus the bottom pad above the card's
+    // own floor.
+    bottom: PLAYHEAD_DOT_OVERHANG + BAND_BOTTOM_PAD + RULER_HEIGHT,
     position: 'absolute',
-    top: 0,
+    top: PLAYHEAD_DOT_OVERHANG,
     width: 2.5,
   },
   playheadLine: { bottom: 0, position: 'absolute', top: 0, width: 2.5 },
