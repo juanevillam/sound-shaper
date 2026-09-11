@@ -552,3 +552,69 @@ moving switch and extra steps.
 defaults to on again. The auto-off idea above stays rejected — every reason it
 died is about a control moving on its own and a saved value lying, none of
 which the stretcher's quality ever changed.
+
+## An AUDIO-REACTIVE BACKGROUND for the expanded player — REJECTED 2026-09-11, after three builds
+
+Juan asked for it directly ("a dynamic wave bg or something that MATCHES the
+pace of the sound playing, no matter the playback speed"), with the light strip
+behind a television as the reference — immersion, colour from the media, motion
+that follows it. Three versions were built and shown; the verdict was **no
+playing animation in the expanded player at all**, because the idea was
+overcomplicating a screen whose whole case is being calm.
+
+Recorded in full, because the instinct to reach for a visualiser on a music
+player is strong and every one of these looked right in the abstract.
+
+**The technical half WORKED and is not what failed.** An `AnalyserNode` between
+the last band and `destination` is rate-correct BY CONSTRUCTION — it measures
+what is being heard, at whatever speed, with no multiplier to keep in sync.
+That is strictly better than the app's existing precedent (`NowPlayingBars`
+divides its durations by `rate`, which tracks speed but ignores content), and
+it answered the "no matter the playback speed" half of the brief for free.
+Polled at 24Hz into a Reanimated shared value, it re-rendered React never.
+
+**Attempt 1 — scale on the full-bleed wash. INVISIBLE.** `PlayerBackdrop`'s
+source is blurred at 60pt and overscanned by 320, and blur destroys exactly the
+spatial detail scale moves. A 12% swell changed nothing the eye could catch.
+Predictable in hindsight and worth stating as a rule: **you cannot animate a
+heavily blurred layer by scaling it.**
+
+**Attempt 2 — opacity on that same wash. "Too messy, unclean, unelegant."**
+Measured at only 6.23/255 of movement in the side gutter, which is small — and
+still wrong, because of WHERE it was. **The wash is the GROUND the title,
+transport and cards are read against, and a moving ground reads as instability
+rather than atmosphere.** There is no amplitude at which that is elegant; going
+from invisible to unpleasant with nothing in between is the tell that the
+target was wrong, not the tuning. The reference says so too: a backlight does
+not move the picture, it lights the wall.
+
+**Attempt 3 — two PERIPHERAL candidates behind a dev switch**, so the console's
+ground never moved: a halo bleeding out from behind the cover, and the literal
+screen-edge rim. Juan preferred the edges and then rejected the whole idea
+anyway. Its failure mode was the envelope rather than the placement, and the
+two fixes are the findings most worth keeping:
+
+- **An INSTANT ATTACK IS A STROBE.** The first envelope took a rising sample
+  outright (`raw > smoothed ? raw : …`) and eased only the fall, so every
+  transient snapped the light to peak — "the animation is FLASHING me and its
+  really unpleasant". Easing both halves (~0.17s up, ~0.83s down, a
+  compressor's shape) dropped the max frame-to-frame movement to 0.68/255.
+- **THE RMS BAND WAS GUESSED AND THE GUESS WAS OFF BY AN ORDER OF MAGNITUDE.**
+  Assumed 0.03–0.22; measured off the real graph on the A54 over 60 consecutive
+  polls, a normal track at 1×: **min 0.103, p10 0.177, median 0.456, p90 0.757,
+  max 0.941**. Nearly every sample clamped to the top of the assumed band, so
+  the light sat perfectly flat — 0.2/255 across fourteen frames. A 32-sample
+  window reads far higher than an intuition trained on long-window RMS. If any
+  of this is ever rebuilt, **measure the distribution first**; it is one
+  `console.log` in the poll.
+
+**Two constraints any future attempt still inherits.** No TIME AXIS — the
+waveform-strip rejection above still bars a track-shaped surface from this
+player, and a glow has no left or right, which is the only reason these were
+admissible at all. And an ART-LESS sound has no colour to light itself with:
+both candidates used a blurred copy of the cover, so a sound without one got
+nothing, and the art-less wash is `onSurface` INK rather than a hue — a real
+design question rather than a missing branch.
+
+Everything was reverted (`00917b5`). The expanded player keeps its static
+gradient.
