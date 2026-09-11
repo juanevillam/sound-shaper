@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 
@@ -193,18 +193,29 @@ export function ClipTrimFrame({
   const { colors, scheme } = useAppTheme();
   /**
    * THE SELECTION KEEPS THE ACCENT (the one deliberate exception to the
-   * player's no-accent rule — brackets mark a SELECTION), but dark takes the
-   * CONTAINER step: M3's dark `primary` is a pastel built for small ink, and
-   * as a filled frame it was the brightest object on a near-black editor
-   * (Juan, 2026-09-08 — "too much contrast"; light mode reads right and is
-   * untouched). `primaryContainer` is the same hue at container depth, with
-   * `onPrimaryContainer` as its own ink — the pairing Material ships for
-   * exactly this fill-vs-ink split.
+   * player's no-accent rule — brackets mark a SELECTION).
+   *
+   * THE DARK STEP IS ANDROID'S, AND IT LEAKED ONTO iOS. M3's dark `primary`
+   * is a pastel built for small ink, and as a filled frame it was the
+   * brightest object on a near-black editor (Juan, 2026-09-08 — "too much
+   * contrast"), so dark takes `primaryContainer`: the same hue at container
+   * depth, with `onPrimaryContainer` as its own ink. That argument is about
+   * MATERIAL'S palette, and this file has no `.ios` twin — so iOS took the
+   * step too and drew the frame in a navy nobody uses anywhere else in the
+   * portfolio (Juan, 2026-09-10).
+   *
+   * Apple's palette needs nothing: `primary` IS systemBlue, and its dark
+   * value is already the LIGHTER of the pair (#0A84FF against light's
+   * #007AFF) — the platform ships the step this code was hand-rolling.
    */
   const frameAccent =
-    scheme === 'dark' ? colors.primaryContainer : colors.primary;
+    Platform.OS === 'android' && scheme === 'dark'
+      ? colors.primaryContainer
+      : colors.primary;
   const onFrameAccent =
-    scheme === 'dark' ? colors.onPrimaryContainer : colors.onPrimary;
+    Platform.OS === 'android' && scheme === 'dark'
+      ? colors.onPrimaryContainer
+      : colors.onPrimary;
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);
