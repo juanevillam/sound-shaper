@@ -184,6 +184,28 @@ const loadReset = (nonce: number, sound?: Sound | null) => ({
   pendingStart: true,
 });
 
+/**
+ * THE TEARDOWN A VANISHED SOUND GETS, WHOEVER NOTICED IT GO.
+ *
+ * It was inline in `soundDeleted` while a tap in this app's own editor was the
+ * only way a sound could disappear. It is shared now because there is a SECOND
+ * road: the library listener, carrying a delete made on another device signed
+ * into the same account. Both have to end in the same place — playback
+ * stopped, the banner gone, the queue honest — or the two roads drift.
+ */
+const clearedForMissing = (
+  state: PlayerState,
+  queue: Sound[],
+): Partial<PlayerState> => ({
+  queue,
+  current: null,
+  playing: false,
+  activeClip: null,
+  position: 0,
+  duration: 0,
+  loadNonce: state.loadNonce + 1,
+});
+
 export const usePlayerStore = create<PlayerState>()((set, get) => ({
   current: null,
   queue: [],
@@ -373,15 +395,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // The loaded sound was deleted — stop playback and clear the player so the
     // banner disappears (a deleted sound must not stay playable).
     audioEngine.pause();
-    set(state => ({
-      queue: nextQueue,
-      current: null,
-      playing: false,
-      activeClip: null,
-      position: 0,
-      duration: 0,
-      loadNonce: state.loadNonce + 1,
-    }));
+    set(state => clearedForMissing(state, nextQueue));
   },
 
   /**
@@ -400,28 +414,58 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
    * back re-wrote it on every load. `bankSoundDuration` says "once"; this is
    * what makes that true.
    *
-   * A sound MISSING from the snapshot is left alone on purpose — that is
-   * `soundDeleted`'s job, and it tears playback down rather than swapping a
-   * field.
+   * A SOUND MISSING FROM THE SNAPSHOT IS A DELETION, AND IT USED TO BE
+   * IGNORED HERE.
+   *
+   * This block used to `return` on a missing sound, on the reading that
+   * tearing playback down was `soundDeleted`'s job. That was true of the only
+   * deletion anyone had wired — a tap in this app's own editor — and it left
+   * the other one with no road at all: delete a sound from a SECOND device on
+   * the same account and the snapshot is the only thing that ever says so.
+   *
+   * Measured on a Galaxy A54 against a throwaway document deleted from an iOS
+   * client (2026-09-11): the grid dropped the tile, and the player carried on
+   * from a `404` — transport live, Shape/Clips/Edit live, audio still
+   * streaming, because the Cloudinary asset outlives the document (the known
+   * orphan gap). The queue kept it too, so seven `next` presses wrapped the
+   * library and landed back on the deleted sound.
+   *
+   * There is no snapshot that legitimately omits a sound that still exists —
+   * the listener carries the WHOLE collection with no limit — so a removal
+   * here is the real thing.
    */
   syncLibrary: sounds => {
     const { current, queue } = get();
     if (!current) return;
 
-    const fresh = sounds.find(sound => sound.id === current.id);
-    if (!fresh) return;
+    const bySoundId = new Map(sounds.map(sound => [sound.id, sound]));
 
-    const nextQueue = queue.map(
-      queued => sounds.find(sound => sound.id === queued.id) ?? queued,
-    );
+    // The queue drops what the library no longer holds and refreshes the rest,
+    // rather than keeping a stale copy with `?? queued` — that fallback is
+    // what let a deleted sound stay reachable by skipping.
+    const nextQueue = queue.flatMap(queued => {
+      const fresh = bySoundId.get(queued.id);
+      return fresh ? [fresh] : [];
+    });
+
+    const freshCurrent = bySoundId.get(current.id);
+
+    if (!freshCurrent) {
+      audioEngine.pause();
+      set(state => clearedForMissing(state, nextQueue));
+      return;
+    }
 
     const changed =
-      !sameSound(current, fresh) ||
+      !sameSound(current, freshCurrent) ||
+      // Length first: once the queue has shrunk the index-wise compare below
+      // is lining up different sounds.
+      nextQueue.length !== queue.length ||
       nextQueue.some((sound, index) => !sameSound(sound, queue[index]));
 
     if (!changed) return;
 
-    set({ current: fresh, queue: nextQueue });
+    set({ current: freshCurrent, queue: nextQueue });
   },
 
   reset: () => {
