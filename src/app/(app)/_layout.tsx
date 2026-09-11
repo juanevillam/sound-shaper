@@ -148,15 +148,20 @@ export default function AppLayout() {
             }}
           />
         ))}
-        {/* Native form sheets on iOS. Android presents most of these surfaces
-            as Compose ModalBottomSheets mounted in-place and never navigates
-            here — the ONE exception is `clip-trim`, which Android pushes as an
-            ordinary full-screen editor (Material's full-screen-dialog shape;
-            a formSheet presentation is broken on Android and the waveform
-            editor wants the whole screen anyway). So the sheet chrome is
-            iOS-only and Android takes the stack's own pushed bar plus the
-            title. The route list + detents live in IOS_FORM_SHEETS, shared
-            with useIosSheetPresented. */}
+        {/* Native form sheets on iOS. Android presents every one of these
+            surfaces in place — Compose ModalBottomSheets, or an RN sheet over
+            the player for the clip editor — and navigates to NONE of them;
+            each route's base file is an `iosOnlyRoute` stub that exists to
+            guard the external deep link.
+
+            `clip-trim` used to be a real exception here, pushed as an ordinary
+            full-screen editor, and it was one for a day: a full route replaced
+            the whole player mid-flow and broke the sheet-over-player rhythm
+            every other clip surface keeps (Juan, 2026-09-08). Its own stub
+            carries the story.
+
+            So the sheet chrome is iOS-only. The route list + detents live in
+            IOS_FORM_SHEETS, shared with useIosSheetPresented. */}
         {IOS_FORM_SHEETS.map(({ name, detents, titled, titleKey }) => (
           <Stack.Screen
             key={name}
