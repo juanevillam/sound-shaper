@@ -202,15 +202,19 @@ const SKIP_HOST_BOX = Math.round(
 const TRACK_EDGE_PAD = 40;
 
 /**
- * THE BAND'S INNER BOTTOM ROOM — half the horizontal pad, so the card reads
- * as "nothing on top, X at the sides, half X underneath" (Juan, 2026-09-10).
+ * THE BAND'S INNER BOTTOM ROOM — a QUARTER of the horizontal pad, so the card
+ * reads as nothing on top, X at the sides, X/4 underneath.
  *
  * The ruler's labels used to sit against the card's bottom edge, which is
  * also what made the controls below feel cramped against it. Nothing is drawn
  * in this band: the tiles state their own height and stand at the top, so the
  * panel simply continues past the last label.
+ *
+ * It went in at X/2 and was halved on sight the same day (Juan, 2026-09-10:
+ * "too much bottom spacing"). Kept as a RATIO of the horizontal pad rather
+ * than a number of its own, so the band's three edges stay one statement.
  */
-const BAND_BOTTOM_PAD = TRACK_EDGE_PAD / 2;
+const BAND_BOTTOM_PAD = TRACK_EDGE_PAD / 4;
 
 /**
  * HOW FAR THE PLAYHEAD'S DOTS STICK OUT of the band, and therefore how much
