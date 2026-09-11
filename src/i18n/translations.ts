@@ -164,7 +164,6 @@ export const translations = {
         // picture a file was shipped with is not one the person has to keep.
         remove: 'Remove Artwork',
       },
-      uploading: 'Uploading sound…',
       save: 'Add',
       saveExisting: 'Save',
       delete: 'Delete Sound',
@@ -430,7 +429,6 @@ export const translations = {
         change: 'Cambiar ilustración',
         remove: 'Quitar ilustración',
       },
-      uploading: 'Subiendo el sonido…',
       save: 'Añadir',
       saveExisting: 'Guardar',
       delete: 'Eliminar sonido',
@@ -696,7 +694,6 @@ export const translations = {
         change: '更换插图',
         remove: '移除插图',
       },
-      uploading: '正在上传音频…',
       save: '添加',
       saveExisting: '存储',
       delete: '删除音频',

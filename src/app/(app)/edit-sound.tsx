@@ -347,12 +347,22 @@ function EditSoundSheetScreen() {
                 // renders as a rounded square, so previewing one as a disc
                 // showed a shape the app never draws.
                 radius={artworkRadius(MEDIA_PICKER_SIZE, 0)}
+                /* THE CAPTION IS THE ACTION AND NEVER THE STATUS, which is
+                   this slot's own stated contract — and the reason is
+                   measurable as well as conceptual. It swapped to
+                   "Uploading sound…" while saving, and that string is WIDER
+                   than either action; the caption's intrinsic width is what
+                   sizes the pressable, so the swap resized the control and
+                   the words under the artwork jumped outward mid-save (Juan,
+                   on iOS, and Android ran the identical branch).
+
+                   The status was redundant anyway: the sheet's own commit
+                   glyph already takes `busy` above, which is where the
+                   portfolio puts a spinner for work you can watch without
+                   being blocked. Two indicators for one fact, one of them
+                   inside a press target. */
                 caption={t(
-                  isSaving
-                    ? 'soundEdit.uploading'
-                    : artPreviewUri
-                      ? 'soundEdit.art.change'
-                      : 'soundEdit.art.add',
+                  artPreviewUri ? 'soundEdit.art.change' : 'soundEdit.art.add',
                 )}
                 captionColor={isSaving ? colors.onSurfaceMuted : colors.primary}
                 preview={
