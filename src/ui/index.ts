@@ -120,7 +120,7 @@ export {
   SheetFormFieldIos,
   SheetFormMediaIos,
 } from './SheetFormIos';
-export { SheetDragHandle } from './SheetDragHandle';
+export { SHEET_DRAG_HANDLE, SheetDragHandle } from './SheetDragHandle';
 export {
   dialogContainer,
   GROUP_INNER_RADIUS,
@@ -130,6 +130,7 @@ export {
   groupRowShape,
   menuContainer,
   SCREEN_CONTENT_TOP,
+  sheetContainer,
 } from './settingsGroup';
 export {
   UsernameDialog,

@@ -25,6 +25,7 @@ import {
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
+  sheetContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,7 +81,7 @@ export type ShaperSheetProps = {
 
 export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t, locale } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const rate = usePlayerStore(s => s.rate);
@@ -154,6 +155,9 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
           No ref either: nothing here dismisses the sheet programmatically —
           every row applies live and the person leaves when they are done. */}
       <ModalBottomSheet
+        // The family's one ground, stated — unset, Compose picks the OEM
+        // token and the RN clip editor beside it cannot share the answer.
+        containerColor={sheetContainer(colors, scheme)}
         onDismissRequest={onClose}
         skipPartiallyExpanded
         showDragHandle={false}

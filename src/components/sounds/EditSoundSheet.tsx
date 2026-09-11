@@ -31,6 +31,7 @@ import {
   groupRowShape,
   iconSource,
   menuContainer,
+  sheetContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -307,6 +308,8 @@ export function EditSoundSheet({
       <ThemedHost matchContents>
         <ModalBottomSheet
           ref={sheetRef}
+          // The family's one ground, stated — see `sheetContainer`.
+          containerColor={sheetContainer(colors, scheme)}
           onDismissRequest={() => {
             if (!isSaving) onClose();
           }}

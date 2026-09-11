@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
+import { SHEET_DRAG_HANDLE, sheetContainer } from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -42,9 +43,6 @@ import { useI18n } from '@/i18n';
 // ---------------------------------------------------------------------------
 
 const SHEET_RADIUS = 28;
-const HANDLE_BOX = 24;
-const HANDLE_WIDTH = 32;
-const HANDLE_HEIGHT = 4;
 /** Drag-down farther than this (or flick) dismisses. */
 const DISMISS_DRAG = 120;
 const SPRING = { damping: 34, mass: 0.7, stiffness: 320 };
@@ -57,7 +55,7 @@ export type ClipTrimSheetProps = {
 
 export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [shaperVisible, setShaperVisible] = useState(false);
 
@@ -149,7 +147,12 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
         style={[
           styles.sheet,
           {
-            backgroundColor: colors.sheet,
+            // THE FAMILY'S GROUND, the same term the three Compose sheets
+            // state. This drew `colors.sheet`, which is `card` on Android —
+            // the fill of the clip ROWS in the list that opens this editor, so
+            // in dark the two surfaces in one flow were #252528 and #121318
+            // (Juan, 2026-09-10). See `sheetContainer`.
+            backgroundColor: sheetContainer(colors, scheme),
             top: insets.top + 12,
           },
           sheetStyle,
@@ -157,11 +160,20 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
       >
         <GestureDetector gesture={headerPan}>
           <View>
+            {/* The Compose sheets' own handle, drawn in views — the spec is
+                imported (`SHEET_DRAG_HANDLE`) rather than copied, which is
+                what it had been: a 24dp box against M3's 48, and the pill at
+                full muted ink instead of `onSurface` at 0.4. */}
             <View style={styles.handleBox}>
               <View
                 style={[
                   styles.handle,
-                  { backgroundColor: colors.onSurfaceMuted },
+                  {
+                    backgroundColor: withAlpha(
+                      colors.onSurface,
+                      SHEET_DRAG_HANDLE.alpha,
+                    ),
+                  },
                 ]}
               />
             </View>
@@ -231,14 +243,14 @@ const styles = StyleSheet.create({
   },
   handleBox: {
     alignItems: 'center',
-    height: HANDLE_BOX,
+    height: SHEET_DRAG_HANDLE.box,
     justifyContent: 'center',
     width: '100%',
   },
   handle: {
-    borderRadius: HANDLE_HEIGHT / 2,
-    height: HANDLE_HEIGHT,
-    width: HANDLE_WIDTH,
+    borderRadius: SHEET_DRAG_HANDLE.height / 2,
+    height: SHEET_DRAG_HANDLE.height,
+    width: SHEET_DRAG_HANDLE.width,
   },
   bar: {
     alignItems: 'center',
