@@ -9,8 +9,25 @@ full Firebase (Spark), no self-hosted backend.
 
 **No tabs, no playlists.** Home is the single root screen: a 2-column grid of
 SONG tiles (cover art + title/artist) plus an Add-song tile — you upload a
-song and it's just there (flat library at `users/{uid}/songs`, newest first;
-playlists were dropped 2026-07-19). The player is NOT a route: a bottom banner
+song and it's just there (flat library at `users/{uid}/songs`; playlists were
+dropped 2026-07-19).
+
+**THE GRID IS HAND-ORDERED, IN BOTH DIRECTIONS** (2026-09-11). It used to be
+newest-first and nothing else. Long-press a tile and drag it anywhere — across
+columns as well as down rows — and the ADD TILE is an entry in that order too,
+parked wherever you like rather than pinned first. New uploads append past
+everything.
+
+The order is a FRACTIONAL INDEX (`src/lib/gridOrder.ts`, 23 unit tests), and
+the reason is the two-phone case: a move writes ONE document, so two devices
+dragging at once merge instead of interleaving into an order neither person
+chose — which is exactly what Topper's `position: index` batch does. Read that
+file before touching any of this; it carries the float-vs-string-key trade and
+the two defects the feature found in itself (a backfill that handed out
+duplicate positions, and a repair that clobbered across devices by rewriting
+from a CACHED snapshot). Both are guarded now: `needsPositionRepair` heals a
+damaged order, and nothing rewrites a whole collection while
+`subscribeToSounds` reports `fromCache`. The player is NOT a route: a bottom banner
 that expands in place (PlayerSheet). There is NO Explore and NO profile
 screen. Don't reintroduce social affordances (visibility toggles, feeds,
 follows) or playlists — simplicity is the point.
@@ -999,9 +1016,12 @@ stranded by the 250 → 50ms change. Pruned once per session off the first
 `getWaveform`; `deleteSound` now calls `forgetWaveform`. Deliberately NOT wired
 into the account sweep, which deletes sound docs directly — see that comment.
 
-**Confirmed sound, so nobody re-opens them:** `toGridRows` un-memoized (O(n)
-over a personal library, and FlashList wants a fresh `data` identity when the
-playing tile changes anyway), `eqResponse`'s 128-point sweep (~0.02 ms, run per
+**Confirmed sound, so nobody re-opens them:** the grid's cell list un-memoized
+(O(n) over a personal library, and the sortable wants a fresh `data` identity
+when the playing tile changes anyway — it was `toGridRows` over a FlashList
+when this was written; the FlashList went with the reorder, since
+`Sortable.Grid` needs a real scroller it can drive for edge auto-scroll),
+`eqResponse`'s 128-point sweep (~0.02 ms, run per
 drag tick on purpose), the scrubber and trim-frame `onLayout` widths (genuinely
 variable, and they feed gesture math rather than a fetch), and the transport
 anchor re-measuring per expand (equality-guarded, and insets move).
