@@ -90,6 +90,57 @@ export const composeSheetBottomPadding = (insetBottom: number): number =>
   insetBottom + COMPOSE_SHEET_BOTTOM_GAP;
 
 /**
+ * WHERE A FULL-HEIGHT SHEET'S TOP EDGE STOPS, below the status-bar inset.
+ *
+ * A BOTTOM SHEET THAT REACHES THE SCREEN'S EDGE HAS STOPPED BEING A SHEET —
+ * its corners curve against nothing, no scrim shows above it, and the status
+ * bar sits directly on its surface. That is what `fillMaxHeight()` gives you
+ * here: @expo/ui 57's `ModalBottomSheetView.kt` names no window insets, so a
+ * content column asking for the full height takes the SCREEN, and Sound
+ * Shaper's clips and shape sheets both band-scanned with their top edge at
+ * 0.00dp on a Galaxy A54 (Juan, 2026-09-10 — the open call this closes).
+ *
+ * THE NUMBER IS ONE UI'S OWN, MEASURED. The system share sheet, dragged to
+ * full height on the same device, puts its top edge at 43.73dp against a
+ * 34dp status inset — 9.73 past it, i.e. this 10. Sound Shaper's RN clip
+ * editor had independently picked 12 and rendered 45.87, which is why the
+ * two families looked related and the Compose ones looked wrong: the odd one
+ * out was the pair that filled the screen, not the one that stopped.
+ *
+ * `composeSheetBodyHeight` is the lever, because the SHEET is sized by its
+ * CONTENT: there is no inset prop to set, so a full-height column asks for
+ * this height instead of `fillMaxHeight()`. A content-sized sheet (the sound
+ * editor) needs nothing — it is already shorter than this.
+ *
+ * IT IS THE BODY'S HEIGHT, NOT THE SHEET'S, and the difference is the whole
+ * reason to have a function rather than a subtraction at each call site: the
+ * drag handle is a SIBLING of the body column, so a body asking for the
+ * sheet's full height makes the sheet 48dp taller than the screen and Compose
+ * clamps it straight back to full-bleed — failing in a way that looks exactly
+ * like not having tried. Measured on the A54: window 832, inset 33.78, so the
+ * body is 740.22 and the sheet lands on 43.73 with the handle on top.
+ *
+ * ORDER MATTERS AT THE CALL SITE TOO. Compose applies modifiers outside-in,
+ * so `padding(P).height(H)` measures H + P: state the height FIRST and the
+ * sheet's nav-bar padding lands inside it. Stated second it added 64 here and
+ * clamped the sheet the same way.
+ */
+export const COMPOSE_SHEET_TOP_GAP = 10;
+
+/**
+ * M3's drag-handle box, reserved above every Compose sheet's body — the
+ * geometry lives here rather than in `SheetDragHandle` because this module
+ * has to subtract it and cannot import a Compose component.
+ */
+export const COMPOSE_SHEET_HANDLE_BOX = 48;
+
+export const composeSheetBodyHeight = (
+  windowHeight: number,
+  insetTop: number,
+): number =>
+  windowHeight - insetTop - COMPOSE_SHEET_TOP_GAP - COMPOSE_SHEET_HANDLE_BOX;
+
+/**
  * HOW FAR IN A COMPOSE SHEET'S CONTENT STARTS FROM ITS SIDE EDGES.
  *
  * M3's own bottom-sheet content inset, and what most of Topper's sheets

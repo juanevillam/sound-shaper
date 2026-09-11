@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 
+import { useWindowDimensions } from 'react-native';
+
 import {
   CircularWavyProgressIndicator,
   Column,
@@ -15,8 +17,8 @@ import {
   background,
   clickable,
   clip,
-  fillMaxHeight,
   fillMaxWidth,
+  height,
   padding,
   size,
   weight,
@@ -27,6 +29,7 @@ import {
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
+  composeSheetBodyHeight,
   DestructiveConfirmDialog,
   EMPTY_STATE_STEPS,
   GROUP_ROW_GAP,
@@ -89,6 +92,7 @@ export function ClipsSheet({
   const { t } = useI18n();
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
@@ -216,8 +220,20 @@ export function ClipsSheet({
             // (an empty list at 0.6 left three quarters of the sheet dead the
             // moment it filled), Topper's follow sheets on Android.
             modifiers={[
+              // FULL HEIGHT, stated rather than `fillMaxHeight()`: that one
+              // takes the SCREEN — corners curving against nothing, status bar
+              // on the surface — because @expo/ui names no window insets. See
+              // `composeSheetBodyHeight`.
+              //
+              // IT MUST COME BEFORE THE PADDING. Compose applies modifiers
+              // outside-in, so `padding(P).height(H)` measures H + P and
+              // `height(H).padding(P)` measures H with the padding inside it.
+              // Stated second, the nav-bar padding (48 + 16 here) pushed the
+              // column to 852 against an 832dp window and the sheet clamped
+              // back to the full screen — the exact bug this line fixes,
+              // looking identical to not having tried.
+              height(composeSheetBodyHeight(winH, insets.top)),
               padding(0, 0, 0, composeSheetBottomPadding(insets.bottom)),
-              fillMaxHeight(),
               fillMaxWidth(),
             ]}
           >
