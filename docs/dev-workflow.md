@@ -219,6 +219,16 @@ which is what a sheet has to clear.
 - **Appearance flip:** `adb shell "cmd uimode night no|yes"` — verify BOTH.
 - **A patched C++ or Kotlin file needs a NATIVE rebuild.** `patches/` overlays
   compile into the pod or the AAR, so a Metro reload proves nothing about them.
+- **`input swipe` CANNOT TEST A LONG-PRESS DRAG.** It interpolates start → end
+  over the duration and never holds still, so a gesture that has to activate on
+  a long press (anything `react-native-sortables` drives) is simply never
+  armed. Use the raw event stream in ONE `adb shell` string, so the shell does
+  not reopen between the down and the move:
+  `input motionevent DOWN x y; sleep 0.7; input motionevent MOVE x y; …; input
+motionevent UP x y`. The iOS side of the same test is the simulator MCP's
+  `touch_path`, which takes a `dt_ms` per sample and so can hold the first
+  point — worth knowing because a plain synthetic TAP is dead on some RN
+  gesture surfaces there while `touch_path` drives them fine.
 - **Never run slow inspection (a uiautomator dump) inside a snackbar's undo
   window** — it once committed a real delete.
 - **Band-scan against a HIGH-CONTRAST column.** A scan run through a dark album
