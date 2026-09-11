@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 import { SHEET_CONTENT_TOP, useSheetLanded } from '@portfolio/mobile-ui';
@@ -18,7 +18,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Path, Text as SvgText } from 'react-native-svg';
 
 import {
   CAP_TOUCH_OVERHANG,
@@ -119,6 +119,28 @@ const WAVE_INK_RATIO = 0.78;
 const WAVE_BAR_ALPHA = 0.6;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
+
+/**
+ * HOW FAR EACH TILE'S CANVAS OVERHANGS ITS OWN STRETCH OF TRACK, so a ruler
+ * label sitting ON a tile boundary is drawn whole.
+ *
+ * A label is `textAnchor="middle"` on its tick, and a tile's seconds start at
+ * `Math.ceil(fromS)` — so the FIRST label of every tile is centred on the
+ * tile's own x=0 and its left half falls outside the `<Svg>`, which clips.
+ * At 0:00 that is the most visible one on the surface: the sound's own
+ * "0:00" rendered as "00" against the panel's leading edge (Juan,
+ * 2026-09-10, on an iPhone 15 — reproduced on the iPhone 17 simulator).
+ *
+ * The CARD is not what cuts it, which is worth knowing before reaching for
+ * padding there: the panel already leads the first bar by `TRACK_EDGE_PAD`,
+ * and the cut lands on the tick, not on the panel's edge.
+ *
+ * 18 is half of "0:00" at the ruler's 11pt (≈12) plus margin; the widest
+ * label this ruler draws is the same four characters at any duration the app
+ * handles. The tile shifts left by this much and widens by twice it, so
+ * every bar and tick keeps the screen position it had.
+ */
+const RULER_LABEL_BLEED = 18;
 /**
  * Bars: one per 45ms — DENSER than the decode's own 50ms grid, interpolated
  * by the same aggregation — with a THIN 2pt bar. The by-eye passes kept
@@ -241,11 +263,13 @@ function barsPath(
 export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const { t } = useI18n();
   const { colors, scheme } = useAppTheme();
-  // The selection's accent steps to the container pair in dark — see the
-  // frame's own note (`ClipTrimFrame`); wash and edge lines are the same
-  // selection and take the same ink.
+  // The selection's accent steps to the container pair in dark ON ANDROID
+  // only — see the frame's own note (`ClipTrimFrame`); wash and edge lines
+  // are the same selection and take the same ink.
   const frameAccent =
-    scheme === 'dark' ? colors.primaryContainer : colors.primary;
+    Platform.OS === 'android' && scheme === 'dark'
+      ? colors.primaryContainer
+      : colors.primary;
   const { width: winW, height: winH } = useWindowDimensions();
 
   const current = usePlayerStore(s => s.current);
@@ -1049,36 +1073,49 @@ const WaveTile = memo(function WaveTile({
       pointerEvents="none"
       entering={FadeIn.duration(220)}
       exiting={FadeOut.duration(180)}
-      style={[styles.tile, { left: fromS * PPS, width }]}
+      style={[
+        styles.tile,
+        {
+          left: fromS * PPS - RULER_LABEL_BLEED,
+          width: width + RULER_LABEL_BLEED * 2,
+        },
+      ]}
     >
-      <Svg width={width} height={WAVE_HEIGHT + RULER_HEIGHT}>
-        <Path d={wavePath} fill={barColor} />
-        {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
+      <Svg
+        width={width + RULER_LABEL_BLEED * 2}
+        height={WAVE_HEIGHT + RULER_HEIGHT}
+      >
+        {/* Everything is drawn in the tile's own coordinates and shifted into
+            the bleed, so the canvas grew without anything moving. */}
+        <G x={RULER_LABEL_BLEED}>
+          <Path d={wavePath} fill={barColor} />
+          {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
             BELOW them (Voice Memos, Juan's screenshots). */}
-        <Path
-          d={ticks
-            .map(
-              tick =>
-                `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
-            )
-            .join('')}
-          stroke={mutedColor}
-          strokeWidth={1}
-        />
-        {ticks.map(tick =>
-          tick.major ? (
-            <SvgText
-              key={`l${tick.x}`}
-              x={tick.x}
-              y={WAVE_HEIGHT + 23}
-              fontSize={11}
-              textAnchor="middle"
-              fill={mutedColor}
-            >
-              {tick.label}
-            </SvgText>
-          ) : null,
-        )}
+          <Path
+            d={ticks
+              .map(
+                tick =>
+                  `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
+              )
+              .join('')}
+            stroke={mutedColor}
+            strokeWidth={1}
+          />
+          {ticks.map(tick =>
+            tick.major ? (
+              <SvgText
+                key={`l${tick.x}`}
+                x={tick.x}
+                y={WAVE_HEIGHT + 23}
+                fontSize={11}
+                textAnchor="middle"
+                fill={mutedColor}
+              >
+                {tick.label}
+              </SvgText>
+            ) : null,
+          )}
+        </G>
       </Svg>
     </Animated.View>
   );
