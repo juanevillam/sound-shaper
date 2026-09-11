@@ -871,6 +871,44 @@ load. `syncLibrary` takes each snapshot; it compares FIELD-WISE, because
 Firestore hands back new objects every time and a reference check would
 re-render the player whenever anything anywhere in the library moved.
 
+**AND A REMOVAL IS A CHANGE TOO — THAT HALF WAS MISSING UNTIL 2026-09-11.**
+`syncLibrary` used to `return` on a sound missing from the snapshot, with a
+comment saying the teardown was `soundDeleted`'s job. True of the only deletion
+anyone had wired — a tap in this app's own editor, which calls `soundDeleted`
+directly — and it left the OTHER one with no road at all. **A personal app is
+still multi-device**: the same account on a phone and a tablet, and the
+snapshot is the only thing that ever says a sound went.
+
+Measured on a Galaxy A54 against a throwaway document deleted through the real
+`deleteSound` flow on an iOS client: the grid dropped the tile and the player
+carried on from a **`404`** — transport live, Shape / Clips / Edit live, audio
+still streaming, because **the Cloudinary asset outlives the document** (the
+orphan gap below, which is what makes a ghost audible rather than a dead
+stream). The queue kept it too, via `?? queued`, so seven `next` presses
+wrapped the library and landed back on the deleted sound.
+
+Both roads share `clearedForMissing` now, so they cannot drift; the queue drops
+what the library no longer holds instead of falling back to its stale copy; and
+the `changed` check compares LENGTHS before comparing index-wise, since a
+shrunk queue otherwise lines up different sounds. No "has it settled" guard was
+needed — `subscribeToSounds` carries the whole collection with no limit, so
+there is no snapshot that legitimately omits a sound that still exists.
+
+**What is deliberately NOT fixed is the cold-start window.** Firestore
+persistence answers the first snapshot from the local cache, so an app reopened
+after a delete made elsewhere shows the dead sound for **~4–6s** (measured:
+airplane mode with Metro over USB served it from cache indefinitely; restoring
+the network reconciled between two frames of a 2s burst). `IdleBanner` is
+primed with the first library sound, so during that window the parked banner is
+the dead one. Pressing play there now ends in the correct teardown rather than
+a ghost, which makes the remainder cosmetic — and un-priming until the first
+non-cache snapshot would cost the parked-bar behaviour, which is worth more.
+
+**Topper has none of this, and not by luck:** `subscribeToTop` emits `null` on
+`!snapshot.exists()`, so every detail screen has a real "gone" branch. This
+player was the portfolio's only surface holding a detached snapshot that also
+kept PRODUCING OUTPUT from one.
+
 **Confirmed still intentional, so nobody re-opens them:** `subscribeToSounds`
 is unbounded (capping hides someone's own library; the honest fix is paging),
 `upsertOwnProfile`'s one extra `getDoc` per sign-in (Firestore has no
@@ -1000,8 +1038,11 @@ over a patched stretcher — see the stretcher note above), clips (personal
 replay bookmarks), and background playback via the plugin's media foreground
 service.
 
-**THE SYSTEM NOW PLAYING SESSION IS PUBLISHED — iOS only** (2026-08-26,
-`NowPlayingBridgeIos`). The Dynamic Island's audio pill, the Lock Screen
+**THE SYSTEM NOW PLAYING SESSION IS PUBLISHED — BOTH PLATFORMS** (iOS
+2026-08-26, Android 2026-08-28; the component is `NowPlayingBridge`, one file,
+no platform twin — the paragraphs below still say "iOS only" and
+`NowPlayingBridgeIos` in places, and that is the state they were written in).
+The Dynamic Island's audio pill, the Lock Screen
 player and Control Center's card are ONE system surface, drawn by iOS for
 whichever app owns the now-playing session; the bridge publishes it through
 the library's `PlaybackNotificationManager` (`MPNowPlayingInfoCenter` +
@@ -1061,9 +1102,30 @@ verified there is the contract: every `enableControl` resolving (all seven,
 including the two `false`) and the published payload itself
 (`speed=1 state=playing` → `speed=0 state=paused elapsed=32.1` → `speed=1
 state=playing elapsed=32.1` across a play/pause/resume). Verify the payload
-on the simulator; verify the PIXELS on hardware. Android's media
-notification uses the same manager but needs notification permissions and a
-verified device; wire it when the freeze lifts.
+on the simulator; verify the PIXELS on hardware. **Android was wired
+2026-08-28** — the same manager, a `POST_NOTIFICATIONS` request made on the
+first loaded sound rather than at launch, and the same `REMOTE_CONTROLS` set.
+It is verifiable far better than iOS's is, because `adb shell dumpsys
+media_session` prints the session's real metadata and action bitmask:
+`metadata: size=` counts the keys it carries (5 with artwork, 4 without) and
+`actions=` is non-zero only if the control set actually took.
+
+**AN EMPTY ARTWORK MEANS REMOVE, AND THAT TOOK AN OVERLAY** (2026-09-11). A
+sound with no cover used to inherit whichever cover was published last — sound
+1's artwork under sound 2's title, on the island, the Lock Screen and the
+shade. A now-playing publish is a **PATCH, not a PUT**, on both platforms, so
+OMITTING the key changed nothing: iOS merges over the centre's existing
+dictionary, Android holds the decoded bitmap in a field that outlives the
+track, and `""` / `null` both fell through to a load that failed and left every
+field standing. Nothing a caller could send cleared it short of `hide()`, which
+on Android releases the MediaSession and zeroes the control bitmask. The bridge
+now publishes `artwork: ''` and
+[`patches/react-native-audio-api`](../../patches/react-native-audio-api/README.md)
+makes that mean REMOVE on both sides, with a generation counter so a late
+artwork load cannot land on a session that has moved on. What the emptied slot
+falls back to is each platform's own art-less placeholder — what Music and
+Podcasts show, and what this app already showed for a sound that never had a
+cover, so both cover-less cases finally agree.
 
 Deliberate gaps, in build order: Cloudinary media on account deletion (the
 audio and artwork orphan — deleting them needs a signed backend call this app

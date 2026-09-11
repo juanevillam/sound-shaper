@@ -462,6 +462,78 @@ not rebasing it.
 
 ---
 
+## A now-playing artwork that can be CLEARED — PATCHED LOCALLY 2026-09-11, nothing filed upstream
+
+**Where this stands.** Sound Shaper publishes `artwork: ''` for a cover-less
+sound and the system's own art-less placeholder appears, on the Dynamic Island,
+the Lock Screen, Control Center and Android's media card. Before the patch that
+publish was an omission, and an omission changed nothing.
+
+**What we wanted.** A cover-less sound shows the PLATFORM's placeholder — what
+Music and Podcasts show, and what this app already showed for a sound that had
+never had a cover. The two cover-less cases disagreed: a sound that never had
+artwork was drawn correctly, and a sound reached by passing THROUGH one that had
+artwork wore the other one's cover under its own title. Reported on device
+2026-09-11.
+
+**Why it wasn't reachable.** A now-playing publish is a PATCH, not a PUT, on
+both platforms, and neither exposes a removal.
+
+- iOS `PlaybackNotification.mm` → `updateNowPlayingInfo:` copies the center's
+  existing dictionary and writes only the keys the payload carries, so
+  `MPMediaItemPropertyArtwork` survives; `_currentInfo[@"artwork"]` and
+  `self.artworkUrl` survive with it, and `updateArtworkIfNeeded:` opens with
+  `if (!artworkUrl) return;`.
+- Android `PlaybackNotification.kt` → the decoded cover lives in an
+  `artwork: Bitmap?` field, and `updateInternal`'s tail re-stamps it onto a
+  metadata builder that is otherwise rebuilt from scratch each publish.
+
+Omitting the key, `""` and `null` all leave every one of those in place. The
+one thing that does clear is `hide()`, and on Android `hide()` releases the
+`MediaSessionCompat` and zeroes the `controls` bitmask — so calling it between
+tracks re-posts the notification with `actions=0`, the exact failure
+`NowPlayingBridge.tsx` documents from `dumpsys media_session`. There was no
+supported way to do this.
+
+**A SECOND staleness path, found doing the first and able to mask it.** The
+artwork load is a blocking network read with no cancellation — iOS never
+cancelled, and Android's `interrupt()` does not abort a socket read — so
+skipping tracks quickly leaves several in flight and the LAST to COMPLETE wins
+the slot, which need not be the one playing. Without a session token the
+outgoing track's late load would have stamped its cover back over the cleared
+one, and the clear would have looked broken. Both halves are in the patch; a
+generation counter is bumped by every new load, every clear and `hide`.
+
+**A THIRD thing was found in the same block and fixed with it, Android only.**
+Upstream interrupted the load thread and started a fresh network read on EVERY
+publish — and a player publishes on every pause, every rate change and every
+scrub. iOS has always had the guard (`updateArtworkIfNeeded:` returns early on
+an unchanged url whose image is in place); Android now does too, and a cover
+that fails to load falls back to the system placeholder rather than to the
+previous track's.
+
+**Verified on the Galaxy A54** (2026-09-11) through
+`adb shell dumpsys media_session`, whose `metadata: size=` counts the keys the
+session carries — 5 with a cover, 4 without. Covered → `size=5`; skip to a
+cover-less sound → `size=4` and a shade card with no inherited artwork and the
+transport intact (`actions=310`); skip on → `size=5` again; four skips fired
+back to back settle on the sound the app is actually playing. The full table is
+in the overlay's README.
+
+**On a version bump** `scripts/apply-patches.mjs` fails the install until the
+overlay is re-verified. Check for BOTH halves upstream — a removal for
+`artwork`, and a cancellation or session token on the load. Both present:
+delete the two `PlaybackNotification` files from the overlay. One present:
+rebase the other, since `NowPlayingBridge.tsx` depends on the pair. Everything
+else in those two files is upstream's, so a rebase is a re-apply of the blocks
+marked `PATCH:`.
+
+**Nothing is being filed upstream**, on the same standing call as the two
+changes above (2026-08-22) rather than because this one is unfileable — it is a
+plain defect and would be a clean report.
+
+---
+
 ## Inline links that are the PLATFORM'S OWN — blocked on `@expo/ui` (both sides)
 
 **What we want.** The welcome screen's tappable runs of prose — the author
