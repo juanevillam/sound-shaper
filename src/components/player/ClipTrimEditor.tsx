@@ -237,6 +237,13 @@ const PLAYHEAD_DOT_OVERHANG = 5;
  * keeps the sheet reading as that family.
  */
 const GROUP_GAP = 28;
+
+/**
+ * How much longer than the interval it replays each follower tween runs —
+ * see the PLAYING regime. Just over 1: enough that a late tick still finds
+ * the tween moving, small enough that the added lag stays invisible.
+ */
+const TICK_TWEEN_OVERRUN = 1.35;
 /**
  * The measured half-delta that makes the timecode's INK gaps equal under the
  * two equal `airEven` spacers: box-symmetric, the ink read 49.5 above / 61.3
@@ -425,10 +432,37 @@ export function ClipTrimEditor({
           playheadSv.value = state.position;
           return;
         }
+        /**
+         * THE TWEEN IS DELIBERATELY LONGER THAN THE GAP IT REPLAYS, and that
+         * is what took the last stutter out of playback.
+         *
+         * Each tick replays the interval just consumed over the interval
+         * about to be: aim at the engine's reported position, span the wall
+         * time that delta took. Sized EXACTLY, it finishes the moment the
+         * next tick is due — and a tick is delivered by the JS thread, so it
+         * is routinely a few ms late. The tween then completes and HOLDS at
+         * its target until the next one arrives, which is a stall of a frame
+         * or two, every tick, on a surface whose whole job is smooth tape
+         * motion (Juan, 2026-09-10).
+         *
+         * `TICK_TWEEN_OVERRUN` makes it outlast the gap, so a tick always
+         * retargets a tween still in flight and the line never idles. It
+         * cannot run AHEAD of the sound: the target is still the engine's
+         * last reported position and never an extrapolation past it, so the
+         * "involuntary, not in control" overshoot recorded in the PAUSED
+         * regime above cannot come back this way. The cost is that the line
+         * trails by a fraction more of one tick, which is below what the eye
+         * resolves at this zoom.
+         */
         playheadSv.value = withTiming(state.position, {
           duration: Math.min(
             700,
-            Math.max(80, (Math.abs(delta) / Math.max(state.rate, 0.25)) * 1000),
+            Math.max(
+              80,
+              (Math.abs(delta) / Math.max(state.rate, 0.25)) *
+                1000 *
+                TICK_TWEEN_OVERRUN,
+            ),
           ),
           easing: Easing.linear,
         });
