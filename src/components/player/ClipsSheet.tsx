@@ -1,7 +1,5 @@
 import { useRef, useState } from 'react';
 
-import { useWindowDimensions } from 'react-native';
-
 import {
   CircularWavyProgressIndicator,
   Column,
@@ -26,7 +24,6 @@ import {
 import {
   AppIcon,
   COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_HEIGHT,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
   DestructiveConfirmDialog,
@@ -37,12 +34,11 @@ import {
   SheetBar,
   SheetBarAction,
   sheetContainer,
-  SHEET_DRAG_HANDLE,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClipTrimPane } from '@/components/player/ClipTrimPane';
+import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
@@ -75,47 +71,29 @@ const NO_CLIPS: never[] = [];
 const SPINNER_SIZE = 20;
 const MENU_ICON_SIZE = 24;
 
-/**
- * THE EDITOR PANE'S BOX, stated by the sheet because the pane's host cannot
- * discover it: `RNHostView` reports its size after the fact, which inside a
- * sheet is a shift on the frame the content mounts (the repo's standing rule
- * about `matchContents` in a native container).
- *
- * The sheet is full-bleed — every list sheet here is, and Juan asked for that
- * back on 2026-09-10 — so what the editor gets is the window less the drag
- * handle, the bar row with its header gap, and the navigation-bar clearance
- * the sheet's own column already pads.
- */
-const clipEditorHeight = (
-  windowHeight: number,
-  insets: { bottom: number },
-): number =>
-  windowHeight -
-  SHEET_DRAG_HANDLE.box -
-  COMPOSE_SHEET_HEADER_HEIGHT -
-  COMPOSE_SHEET_HEADER_TO_CONTENT -
-  composeSheetBottomPadding(insets.bottom);
-
 export type ClipsSheetProps = {
   onClose: () => void;
 };
 
 /**
- * THE CLIP EDITOR IS A MODE OF THIS SHEET, not a sheet of its own (Juan,
- * 2026-09-10). iOS stacks `clip-trim` over the clips list and Android cannot —
- * a Compose `ModalBottomSheet` is its own window above the RN root — so the
- * list used to CLOSE as the editor opened and the pair read as two surfaces
- * trading places rather than one surface going deeper. A sheet that swaps its
- * own content is the Material answer to what stacking says on iOS, and it
- * deletes the whole hand-built RN sheet that used to carry the editor
- * (`ClipTrimSheet`: a scrim, a spring, a drag-to-dismiss, a handle and a bar,
- * all of which this sheet already has).
+ * THE CLIP EDITOR STACKS OVER THIS SHEET — `ClipTrimSheet`, mounted here
+ * exactly as `ShaperSheet` is, so the list stays standing underneath and
+ * dismissing the editor uncovers it. That is what iOS gets by pushing
+ * `clip-trim` over `clips`.
+ *
+ * IT TOOK THE LONG WAY ROUND, on one claim nobody re-tested: that a Compose
+ * `ModalBottomSheet` is its own window above the RN root and so the two could
+ * not stack. The editor was a pushed route, then a hand-built RN sheet over
+ * the player, then a MODE this sheet swapped into — each one working around a
+ * window it was never barred from. The Shape sheet had been stacking over both
+ * of these surfaces the whole time, which is how Juan spotted it (2026-09-10).
+ * A stacked sheet also needs no back affordance: BACK and the scrim dismiss
+ * the top sheet and reveal the list, which is what a person expects.
  */
 export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const { t } = useI18n();
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { height: winH, width: winW } = useWindowDimensions();
   const sheetRef = useRef<ModalBottomSheetRef>(null);
   const [menuClipId, setMenuClipId] = useState<string | null>(null);
   /** The clip whose destructive confirmation is up — see `onDelete`. */
@@ -256,17 +234,7 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
               fillMaxWidth(),
             ]}
           >
-            {trim ? (
-              <ClipTrimPane
-                editing={trim.editing}
-                onBack={() => setTrim(null)}
-                onShape={() => setShaperVisible(true)}
-                width={winW}
-                height={clipEditorHeight(winH, insets)}
-              />
-            ) : (
-              <>
-                {/* THE FAMILY'S BAR, with contained glyph actions. This was a
+            {/* THE FAMILY'S BAR, with contained glyph actions. This was a
                 hand-rolled `Row` of bare `IconButton`s on the argument that
                 `SheetBar` pairs a title with a filled Save pill and this sheet
                 COMMITS NOTHING. That half still holds — there is no pill here —
@@ -274,71 +242,71 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                 way the title ink, the row height and the header→content gap are
                 the family's, and the two glyphs are CONTAINED rather than
                 floating on the sheet (Juan, 2026-09-10). */}
-                <Column
-                  modifiers={[
-                    fillMaxWidth(),
-                    padding(
-                      COMPOSE_SHEET_GUTTER,
-                      0,
-                      COMPOSE_SHEET_GUTTER,
-                      COMPOSE_SHEET_HEADER_TO_CONTENT - 12,
-                    ),
-                  ]}
-                >
-                  <SheetBar
-                    title={t('player.clips.title')}
-                    actions={
-                      <>
-                        {/* Shape beside the add — the sound stays shapeable from
+            <Column
+              modifiers={[
+                fillMaxWidth(),
+                padding(
+                  COMPOSE_SHEET_GUTTER,
+                  0,
+                  COMPOSE_SHEET_GUTTER,
+                  COMPOSE_SHEET_HEADER_TO_CONTENT - 12,
+                ),
+              ]}
+            >
+              <SheetBar
+                title={t('player.clips.title')}
+                actions={
+                  <>
+                    {/* Shape beside the add — the sound stays shapeable from
                         every clip surface. */}
-                        <SheetBarAction
-                          icon="tune"
-                          label={t('player.shape.title')}
-                          onPress={() => setShaperVisible(true)}
-                        />
-                        <SheetBarAction
-                          icon="add"
-                          label={t('player.clips.new')}
-                          onPress={() => setTrim({ editing: null })}
-                        />
-                      </>
-                    }
+                    <SheetBarAction
+                      icon="tune"
+                      label={t('player.shape.title')}
+                      onPress={() => setShaperVisible(true)}
+                    />
+                    <SheetBarAction
+                      icon="add"
+                      label={t('player.clips.new')}
+                      onPress={() => setTrim({ editing: null })}
+                    />
+                  </>
+                }
+              />
+            </Column>
+
+            {failure ? (
+              <Column
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
+              >
+                <SheetErrorLine message={failure} />
+              </Column>
+            ) : null}
+
+            {!settled ? (
+              // CENTRED IN THE LEFTOVER HEIGHT, like the empty state below —
+              // `StateWrap` centres both on iOS, and this sheet's column is
+              // the full-height frame to centre in.
+              <Column
+                horizontalAlignment="center"
+                verticalArrangement="center"
+                modifiers={[
+                  weight(1),
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
+              >
+                {showSpinner ? (
+                  <CircularWavyProgressIndicator
+                    color={colors.primary}
+                    modifiers={[size(SPINNER_SIZE, SPINNER_SIZE)]}
                   />
-                </Column>
-
-                {failure ? (
-                  <Column
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                    ]}
-                  >
-                    <SheetErrorLine message={failure} />
-                  </Column>
                 ) : null}
-
-                {!settled ? (
-                  // CENTRED IN THE LEFTOVER HEIGHT, like the empty state below —
-                  // `StateWrap` centres both on iOS, and this sheet's column is
-                  // the full-height frame to centre in.
-                  <Column
-                    horizontalAlignment="center"
-                    verticalArrangement="center"
-                    modifiers={[
-                      weight(1),
-                      fillMaxWidth(),
-                      padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                    ]}
-                  >
-                    {showSpinner ? (
-                      <CircularWavyProgressIndicator
-                        color={colors.primary}
-                        modifiers={[size(SPINNER_SIZE, SPINNER_SIZE)]}
-                      />
-                    ) : null}
-                  </Column>
-                ) : clips.length === 0 ? (
-                  /* A REAL EMPTY STATE, the parts `EmptyState` names — a mark, a
+              </Column>
+            ) : clips.length === 0 ? (
+              /* A REAL EMPTY STATE, the parts `EmptyState` names — a mark, a
                title, a supporting line — rather than the lone muted sentence
                that used to stand here while iOS drew the full thing.
 
@@ -348,214 +316,202 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                and the steps are IMPORTED (`EMPTY_STATE_STEPS`) rather than
                matched by hand, which is what they were. Only the container
                differs. */
-                  // TWO COLUMNS, because the arrangement type is one-or-the-other:
-                  // `spacedBy` carries no alignment, so the WEIGHTED outer column
-                  // centres the block in the sheet's leftover height (what
-                  // `StateWrap` does for iOS's EmptyState — it sat pinned under
-                  // the header here; Juan, 2026-09-10) and the inner one keeps the
-                  // steps' gap.
-                  <Column
-                    horizontalAlignment="center"
-                    verticalArrangement="center"
-                    modifiers={[
-                      weight(1),
-                      fillMaxWidth(),
-                      padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                    ]}
-                  >
-                    <Column
-                      horizontalAlignment="center"
-                      verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
-                      modifiers={[fillMaxWidth()]}
-                    >
-                      {/* The Material twin of iOS's `scissors` mark, at the shared
+              // TWO COLUMNS, because the arrangement type is one-or-the-other:
+              // `spacedBy` carries no alignment, so the WEIGHTED outer column
+              // centres the block in the sheet's leftover height (what
+              // `StateWrap` does for iOS's EmptyState — it sat pinned under
+              // the header here; Juan, 2026-09-10) and the inner one keeps the
+              // steps' gap.
+              <Column
+                horizontalAlignment="center"
+                verticalArrangement="center"
+                modifiers={[
+                  weight(1),
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
+              >
+                <Column
+                  horizontalAlignment="center"
+                  verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
+                  modifiers={[fillMaxWidth()]}
+                >
+                  {/* The Material twin of iOS's `scissors` mark, at the shared
                     steps — the 2026-09-04 sweep retired emoji unavailable
                     states portfolio-wide and this sheet was still carrying
                     one (Juan, 2026-09-08). */}
-                      <AppIcon
-                        name="content-cut"
-                        size={EMPTY_STATE_STEPS.iconSize}
-                        tint={colors.onSurfaceMuted}
-                        modifiers={[
-                          padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap),
-                        ]}
-                      />
-                      <Text
-                        color={colors.onSurface}
-                        style={{
-                          typography: EMPTY_STATE_STEPS.title,
-                          textAlign: 'center',
-                        }}
-                      >
-                        {t('player.clips.none')}
-                      </Text>
-                      <Text
-                        color={colors.onSurfaceMuted}
-                        style={{
-                          typography: EMPTY_STATE_STEPS.subtitle,
-                          textAlign: 'center',
-                        }}
-                      >
-                        {t('player.clips.empty')}
-                      </Text>
-                    </Column>
-                  </Column>
-                ) : (
-                  /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
+                  <AppIcon
+                    name="content-cut"
+                    size={EMPTY_STATE_STEPS.iconSize}
+                    tint={colors.onSurfaceMuted}
+                    modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+                  />
+                  <Text
+                    color={colors.onSurface}
+                    style={{
+                      typography: EMPTY_STATE_STEPS.title,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t('player.clips.none')}
+                  </Text>
+                  <Text
+                    color={colors.onSurfaceMuted}
+                    style={{
+                      typography: EMPTY_STATE_STEPS.subtitle,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t('player.clips.empty')}
+                  </Text>
+                </Column>
+              </Column>
+            ) : (
+              /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
                  (clip → sheetField → clickable, 2dp seams, first/last
                  corners): iOS lists the clips in a native grouped List, and
                  this is that statement in Material (Juan, 2026-09-08). The
                  stack is inset to the gutter, so the ripple is the card's —
                  bounded — rather than the old edge-to-edge transparent row. */
-                  <Column
-                    verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                    ]}
-                  >
-                    {clips.map((rowClip, rowIndex) => {
-                      const isActive = activeClip?.clipId === rowClip.id;
-                      const range = `${formatTime(rowClip.startMs / 1000)} – ${formatTime(rowClip.endMs / 1000)}`;
+              <Column
+                verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+                modifiers={[
+                  fillMaxWidth(),
+                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                ]}
+              >
+                {clips.map((rowClip, rowIndex) => {
+                  const isActive = activeClip?.clipId === rowClip.id;
+                  const range = `${formatTime(rowClip.startMs / 1000)} – ${formatTime(rowClip.endMs / 1000)}`;
 
-                      return (
-                        <Row
-                          key={rowClip.id}
-                          verticalAlignment="center"
-                          horizontalArrangement={{ spacedBy: 12 }}
-                          // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
-                          // does. Playing one is a request to HEAR it, and the thing
-                          // that shows what is sounding — the artwork, the scrubber,
-                          // the frame's own range — is the player underneath.
-                          // Staying put left the person looking at a list while the
-                          // sound they asked for played somewhere they could not see.
-                          // The sound starts BEFORE the hide, not after it: the
-                          // press is a request to HEAR this, and the answer should
-                          // not wait on an animation. The sheet then slides away
-                          // over a player that is already playing.
-                          // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's
-                          // twin does — the sound starts BEFORE the hide so the
-                          // answer never waits on the animation (full reasoning
-                          // in git history).
-                          modifiers={[
-                            fillMaxWidth(),
-                            clip(groupRowShape(rowIndex, clips.length)),
-                            background(colors.sheetField),
-                            clickable(() => {
-                              playClip(
-                                rowClip.id,
-                                rowClip.startMs,
-                                rowClip.endMs,
-                              );
-                              void leave(onClose);
-                            }),
-                            padding(16, 4, 8, 4),
-                          ]}
+                  return (
+                    <Row
+                      key={rowClip.id}
+                      verticalAlignment="center"
+                      horizontalArrangement={{ spacedBy: 12 }}
+                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
+                      // does. Playing one is a request to HEAR it, and the thing
+                      // that shows what is sounding — the artwork, the scrubber,
+                      // the frame's own range — is the player underneath.
+                      // Staying put left the person looking at a list while the
+                      // sound they asked for played somewhere they could not see.
+                      // The sound starts BEFORE the hide, not after it: the
+                      // press is a request to HEAR this, and the answer should
+                      // not wait on an animation. The sheet then slides away
+                      // over a player that is already playing.
+                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's
+                      // twin does — the sound starts BEFORE the hide so the
+                      // answer never waits on the animation (full reasoning
+                      // in git history).
+                      modifiers={[
+                        fillMaxWidth(),
+                        clip(groupRowShape(rowIndex, clips.length)),
+                        background(colors.sheetField),
+                        clickable(() => {
+                          playClip(rowClip.id, rowClip.startMs, rowClip.endMs);
+                          void leave(onClose);
+                        }),
+                        padding(16, 4, 8, 4),
+                      ]}
+                    >
+                      <Column
+                        verticalArrangement={{ spacedBy: 1 }}
+                        modifiers={[weight(1)]}
+                      >
+                        <Text
+                          color={isActive ? colors.primary : colors.onSurface}
+                          style={{ typography: 'bodyLarge' }}
+                          maxLines={1}
                         >
-                          <Column
-                            verticalArrangement={{ spacedBy: 1 }}
-                            modifiers={[weight(1)]}
-                          >
-                            <Text
-                              color={
-                                isActive ? colors.primary : colors.onSurface
-                              }
-                              style={{ typography: 'bodyLarge' }}
-                              maxLines={1}
-                            >
-                              {range}
-                            </Text>
-                          </Column>
-                          {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
+                          {range}
+                        </Text>
+                      </Column>
+                      {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
                           Material marks an active list item with the accent and
                           that stays, but COLOUR ALONE IS NOT AN INDICATOR for
                           anyone who cannot see this particular colour — the
                           accent was the only marker here, where iOS has always
                           paired it with a mark. Music does the same. */}
-                          {isActive ? (
+                      {isActive ? (
+                        <AppIcon
+                          name="graphic-eq"
+                          size={MENU_ICON_SIZE}
+                          tint={colors.primary}
+                          contentDescription={t('player.clips.playing')}
+                        />
+                      ) : null}
+                      <DropdownMenu
+                        // The portfolio's one menu surface — every overflow
+                        // menu takes `menuContainer`; unset, Compose draws the
+                        // raw One UI token this term exists to repair.
+                        color={menuContainer(colors, scheme)}
+                        expanded={menuClipId === rowClip.id}
+                        onDismissRequest={() => setMenuClipId(null)}
+                      >
+                        <DropdownMenu.Trigger>
+                          <IconButton onClick={() => setMenuClipId(rowClip.id)}>
                             <AppIcon
-                              name="graphic-eq"
-                              size={MENU_ICON_SIZE}
-                              tint={colors.primary}
-                              contentDescription={t('player.clips.playing')}
+                              name="more-vert"
+                              tint={colors.onSurfaceMuted}
+                              contentDescription={t('player.menu.label')}
                             />
-                          ) : null}
-                          <DropdownMenu
-                            // The portfolio's one menu surface — every overflow
-                            // menu takes `menuContainer`; unset, Compose draws the
-                            // raw One UI token this term exists to repair.
-                            color={menuContainer(colors, scheme)}
-                            expanded={menuClipId === rowClip.id}
-                            onDismissRequest={() => setMenuClipId(null)}
+                          </IconButton>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Items>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setMenuClipId(null);
+                              // NO `leave` — the sheet stays and swaps to the
+                              // editor mode. That closing hide is exactly what
+                              // made the two surfaces read as a trade rather
+                              // than a step deeper.
+                              setTrim({
+                                editing: {
+                                  clipId: rowClip.id,
+                                  startMs: rowClip.startMs,
+                                  endMs: rowClip.endMs,
+                                },
+                              });
+                            }}
                           >
-                            <DropdownMenu.Trigger>
-                              <IconButton
-                                onClick={() => setMenuClipId(rowClip.id)}
-                              >
-                                <AppIcon
-                                  name="more-vert"
-                                  tint={colors.onSurfaceMuted}
-                                  contentDescription={t('player.menu.label')}
-                                />
-                              </IconButton>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Items>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setMenuClipId(null);
-                                  // NO `leave` — the sheet stays and swaps to the
-                                  // editor mode. That closing hide is exactly what
-                                  // made the two surfaces read as a trade rather
-                                  // than a step deeper.
-                                  setTrim({
-                                    editing: {
-                                      clipId: rowClip.id,
-                                      startMs: rowClip.startMs,
-                                      endMs: rowClip.endMs,
-                                    },
-                                  });
-                                }}
-                              >
-                                <DropdownMenuItem.Text>
-                                  <Text color={colors.onSurface}>
-                                    {t('player.clips.editAction')}
-                                  </Text>
-                                </DropdownMenuItem.Text>
-                                <DropdownMenuItem.LeadingIcon>
-                                  <AppIcon
-                                    name="edit"
-                                    size={MENU_ICON_SIZE}
-                                    tint={colors.onSurface}
-                                  />
-                                </DropdownMenuItem.LeadingIcon>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setMenuClipId(null);
-                                  setConfirmClipId(rowClip.id);
-                                }}
-                              >
-                                <DropdownMenuItem.Text>
-                                  <Text color={colors.danger}>
-                                    {t('player.clips.delete')}
-                                  </Text>
-                                </DropdownMenuItem.Text>
-                                <DropdownMenuItem.LeadingIcon>
-                                  <AppIcon
-                                    name="delete"
-                                    size={MENU_ICON_SIZE}
-                                    tint={colors.danger}
-                                  />
-                                </DropdownMenuItem.LeadingIcon>
-                              </DropdownMenuItem>
-                            </DropdownMenu.Items>
-                          </DropdownMenu>
-                        </Row>
-                      );
-                    })}
-                  </Column>
-                )}
-              </>
+                            <DropdownMenuItem.Text>
+                              <Text color={colors.onSurface}>
+                                {t('player.clips.editAction')}
+                              </Text>
+                            </DropdownMenuItem.Text>
+                            <DropdownMenuItem.LeadingIcon>
+                              <AppIcon
+                                name="edit"
+                                size={MENU_ICON_SIZE}
+                                tint={colors.onSurface}
+                              />
+                            </DropdownMenuItem.LeadingIcon>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setMenuClipId(null);
+                              setConfirmClipId(rowClip.id);
+                            }}
+                          >
+                            <DropdownMenuItem.Text>
+                              <Text color={colors.danger}>
+                                {t('player.clips.delete')}
+                              </Text>
+                            </DropdownMenuItem.Text>
+                            <DropdownMenuItem.LeadingIcon>
+                              <AppIcon
+                                name="delete"
+                                size={MENU_ICON_SIZE}
+                                tint={colors.danger}
+                              />
+                            </DropdownMenuItem.LeadingIcon>
+                          </DropdownMenuItem>
+                        </DropdownMenu.Items>
+                      </DropdownMenu>
+                    </Row>
+                  );
+                })}
+              </Column>
             )}
           </Column>
         </ModalBottomSheet>
@@ -564,6 +520,16 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
       {/* Its OWN Host — a dialog mounted beside other Compose content in one
           Host flickers the siblings, which is the note `EditSoundSheet` records
           for the identical arrangement. */}
+      {/* STACKED OVER THIS SHEET, exactly as Shape stacks over both — so the
+          list stays standing underneath and dismissing the editor uncovers it,
+          which is what iOS gets by pushing `clip-trim` over `clips`. It was a
+          MODE of this sheet for one commit, on the belief that Compose sheets
+          could not stack; the Shape sheet had been disproving that all along
+          (Juan, 2026-09-10). */}
+      {trim && (
+        <ClipTrimSheet editing={trim.editing} onClose={() => setTrim(null)} />
+      )}
+
       {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
 
       {confirmClipId ? (
