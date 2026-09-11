@@ -77,6 +77,17 @@ export type MediaPickerAvatarProps = {
    * from nowhere else; it gained a real picker on 2026-08-21, so its caption is
    * an ACTION now ("Add Artwork" / "Change Artwork") and lives inside the press
    * target like Topper's.
+   *
+   * AND IT MUST NOT BECOME ONE WHILE THE SHEET IS BUSY, which is the same rule
+   * arriving through a LAYOUT defect rather than through taste. THIS TEXT'S
+   * INTRINSIC WIDTH SIZES THE PRESSABLE — the box is fixed, the caption is
+   * usually the wider child — so swapping the wording mid-flight resizes the
+   * control and the words under the artwork jump outward. Sound Shaper's
+   * editor swapped to "Uploading sound…" on save, on BOTH platforms, and Juan
+   * caught the shift on iOS (2026-09-11). A busy sheet already has one
+   * indicator, in the commit control's own slot; this one was both a second
+   * and a moving one. Keep the caption constant across a save and let
+   * `captionColor` carry the disabled state.
    */
   caption?: string;
   /** Caption ink — the accent (it labels an action), muted while disabled. */

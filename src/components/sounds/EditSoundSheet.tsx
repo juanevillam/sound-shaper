@@ -388,12 +388,14 @@ export function EditSoundSheet({
                       })}
                       contentColor={colors.onSurface}
                       radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
+                      // The action, never the status — see the iOS twin. The
+                      // wider "Uploading sound…" resized the press target
+                      // mid-save, and the sheet bar's own `saving` already
+                      // says the work is running.
                       caption={t(
-                        isSaving
-                          ? 'soundEdit.uploading'
-                          : artPreviewUri
-                            ? 'soundEdit.art.change'
-                            : 'soundEdit.art.add',
+                        artPreviewUri
+                          ? 'soundEdit.art.change'
+                          : 'soundEdit.art.add',
                       )}
                       // The accent says it's the action (a text action keeps
                       // its tint); muted while the sheet commits.
