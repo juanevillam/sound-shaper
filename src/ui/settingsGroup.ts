@@ -134,6 +134,44 @@ export const menuContainer = (
 ): string => (scheme === 'dark' ? colors.surfaceDialog : colors.card);
 
 /**
+ * THE GROUND UNDER EVERY BOTTOM SHEET — Compose's and the one RN twin's.
+ *
+ * A Compose `ModalBottomSheet` left without `containerColor` draws M3's own
+ * default, which is the OEM-token case this family of functions exists to
+ * take out of the framework's hands. It went unnoticed because the default
+ * LOOKS right: Sound Shaper's three Compose sheets (clips, shaper, the sound
+ * editor) all wear it and all were signed off wearing it.
+ *
+ * What made it visible is the fourth sheet. The Android clip editor is drawn
+ * in RN — its content is gestures end to end, which a Compose sheet's dialog
+ * window eats (`ClipTrimSheet` carries that argument) — so it had to name a
+ * colour, reached for `colors.sheet`, and landed somewhere else entirely.
+ * Two sheets in ONE flow, two grounds, band-scanned on a Galaxy A54:
+ *
+ *                      light                dark
+ *   clips (Compose)    #F1F1F3              #252528
+ *   editor (RN)        #FCFCFF              #121318
+ *
+ * and #121318 is exactly the fill of the clip ROWS the list above it draws,
+ * so in dark the editor wore the row colour as a page (Juan, 2026-09-10).
+ *
+ * THE VALUE IS THE ONE THE APPROVED SHEETS ALREADY RENDER, stated rather
+ * than defaulted — `surfaceDialog` in dark, the page ground in light, which
+ * is what those measurements name. Nothing that was signed off moves; the RN
+ * twin gets a colour it can share; and a palette that shifts under us now
+ * breaks a stated intent instead of silently redecorating four surfaces.
+ *
+ * NOT `colors.sheet`, and not `menuContainer` either. Both resolve to `card`
+ * in light, which is the ROW fill — a sheet wearing it has no rows, just a
+ * sheet with text on it. The ground has to sit off the card in both schemes,
+ * and the two tokens above are what do (11 levels in light, 19 in dark).
+ */
+export const sheetContainer = (
+  colors: { background: string; surfaceDialog: string },
+  scheme: 'light' | 'dark' | null | undefined,
+): string => (scheme === 'dark' ? colors.surfaceDialog : colors.background);
+
+/**
  * WHERE A PUSHED SHEET-FAMILY SCREEN'S FIRST CONTENT STARTS on Android — the
  * counterpart of iOS's `SHEET_CONTENT_TOP` (84 below the sheet's own edge):
  * the first content BOX (a section header's padding box, or a card's fill)

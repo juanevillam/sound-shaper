@@ -48,11 +48,31 @@ import { useAppTheme, withAlpha } from '@portfolio/core';
  *       ...
  *     </ModalBottomSheet>
  */
-const HANDLE_WIDTH = 32;
-const HANDLE_HEIGHT = 4;
+/**
+ * THE HANDLE'S GEOMETRY AND INK, EXPORTED — because one sheet in the family
+ * cannot mount this component and must draw the same pill by hand.
+ *
+ * Sound Shaper's Android clip editor is RN (a Compose sheet's window eats the
+ * gestures its content is made of), so it builds its own handle out of views.
+ * It had a COPY of these numbers, and the copy had drifted exactly the way
+ * this repo's notes say a private number always does: a 24dp box against M3's
+ * 48, and the pill at full `onSurfaceMuted` instead of `onSurface` at 0.4.
+ *
+ * `box` is the reserved height, not the pill's — see the note above on why M3
+ * reserves 48 for a 4dp pill.
+ */
+export const SHEET_DRAG_HANDLE = {
+  width: 32,
+  height: 4,
+  box: 48,
+  alpha: 0.4,
+} as const;
+
+const HANDLE_WIDTH = SHEET_DRAG_HANDLE.width;
+const HANDLE_HEIGHT = SHEET_DRAG_HANDLE.height;
 /** M3's drag-handle box, reserved so swapping the default handle moves nothing. */
-const HANDLE_BOX_HEIGHT = 48;
-const HANDLE_ALPHA = 0.4;
+const HANDLE_BOX_HEIGHT = SHEET_DRAG_HANDLE.box;
+const HANDLE_ALPHA = SHEET_DRAG_HANDLE.alpha;
 
 export function SheetDragHandle() {
   const { colors } = useAppTheme();

@@ -1376,7 +1376,28 @@ export function PlayerSheet() {
       {clipTrim && (
         <ClipTrimSheet
           editing={clipTrim.editing}
-          onClose={() => setClipTrim(null)}
+          /**
+           * IT GOES BACK TO THE LIST IT CAME FROM. iOS stacks `clip-trim`
+           * OVER the clips sheet, so dismissing it uncovers the list; Android
+           * had the editor replace the list and dismiss to the bare player,
+           * which is a different flow rather than the same one in Material
+           * (Juan, 2026-09-10).
+           *
+           * IT CANNOT LITERALLY NEST, and that is the whole reason the two
+           * differ: a Compose `ModalBottomSheet` is its own window ABOVE the
+           * RN root, so a Clips sheet left standing would draw OVER this
+           * RN-drawn editor rather than under it. The list therefore closes on
+           * the way in and comes back on the way out — same start, same end,
+           * one surface in flight at a time.
+           *
+           * This runs after the editor's exit spring (`ClipTrimSheet` calls
+           * `onClose` from the animation's completion), so the list's window
+           * opens onto a screen the editor has already left.
+           */
+          onClose={() => {
+            setClipTrim(null);
+            setClipsVisible(true);
+          }}
         />
       )}
       {editVisible && (

@@ -32,6 +32,7 @@ import {
   GROUP_ROW_GAP,
   groupRowShape,
   menuContainer,
+  sheetContainer,
   SheetDragHandle,
 } from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -192,6 +193,10 @@ export function ClipsSheet({
             go through `leave` — see it. */}
         <ModalBottomSheet
           ref={sheetRef}
+          // The family's one ground, stated — unset, Compose picks the OEM
+          // token and the RN clip editor this sheet opens cannot share the
+          // answer. See `sheetContainer`.
+          containerColor={sheetContainer(colors, scheme)}
           onDismissRequest={onClose}
           skipPartiallyExpanded
           showDragHandle={false}
