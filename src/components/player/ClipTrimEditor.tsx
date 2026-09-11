@@ -1027,11 +1027,23 @@ export function ClipTrimEditor({
             playing ? 'player.pause' : 'player.clips.preview',
           )}
         >
-          {playing ? (
-            <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
-          ) : (
-            <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
-          )}
+          {/* STATED BOX, exactly as the skips beside it take one. A drawn
+              pause is WIDER than a drawn play — two bars against a triangle —
+              so an unboxed middle item re-measures on every toggle and the
+              centred row slides sideways under the finger (Juan, 2026-09-10).
+              The console fixed this on its own transport and this row was
+              left behind, which is why iOS looks right (its SF Symbols sit in
+              fixed hosts) and only Android's banner did.
+              `TRANSPORT_ROW_HEIGHT` IS the play glyph's box — the row's
+              height is defined as exactly that — so the square is the term
+              rather than a second derivation of it. */}
+          <View style={styles.playHost}>
+            {playing ? (
+              <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
+            ) : (
+              <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
+            )}
+          </View>
         </GlyphButton>
         <GlyphButton
           onPress={() => onSkip(SKIP_S)}
@@ -1511,5 +1523,16 @@ const styles = StyleSheet.create({
    */
   airEven: { flexGrow: 1, minHeight: GROUP_GAP },
   airSmall: { flexGrow: 3.2, minHeight: GROUP_GAP / 2 },
-  skipHost: { height: SKIP_HOST_BOX, width: SKIP_HOST_BOX },
+  skipHost: {
+    alignItems: 'center',
+    height: SKIP_HOST_BOX,
+    justifyContent: 'center',
+    width: SKIP_HOST_BOX,
+  },
+  playHost: {
+    alignItems: 'center',
+    height: TRANSPORT_ROW_HEIGHT,
+    justifyContent: 'center',
+    width: TRANSPORT_ROW_HEIGHT,
+  },
 });
