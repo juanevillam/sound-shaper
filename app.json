@@ -3,7 +3,7 @@
     "name": "Sound Shaper",
     "slug": "sound-shaper",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "soundshaper",
     "userInterfaceStyle": "automatic",
