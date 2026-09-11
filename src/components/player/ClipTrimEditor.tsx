@@ -186,8 +186,20 @@ const SKIP_HOST_BOX = Math.round(
  * edge, a hard cut mid-card ("de repente empieza", Juan 2026-08-26). Now the
  * shape leads the content: rounded band edge, then this much empty panel,
  * then the first bar.
+ *
+ * 40 since 2026-09-10, doubled from the 20 that first stopped the hard cut:
+ * that value only had to keep the corner off the first bar, and once the
+ * surface was looked at with the ruler drawing properly it read as the
+ * content still crowding its own container (Juan, twice — "add even more").
+ * It is the INNER horizontal spacing of the band, so it is what the first
+ * bar and the last one breathe against.
+ *
+ * It must stay at least half a ruler label wide (`RULER_LABEL_BLEED`) or
+ * the panel would end before a boundary label does; at 40 that is no longer
+ * the binding constraint, which is why the two are stated separately rather
+ * than derived from each other.
  */
-const TRACK_EDGE_PAD = 20;
+const TRACK_EDGE_PAD = 40;
 
 /**
  * ONE GAP BETWEEN THE EDITOR'S GROUPS — wave card, overview, timecode,
