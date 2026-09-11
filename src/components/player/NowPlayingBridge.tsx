@@ -226,9 +226,29 @@ export function NowPlayingBridge() {
       // The second line under a cover is whatever the person wrote there —
       // omit it entirely when empty rather than publishing a blank string.
       ...(current.artist ? { artist: current.artist } : {}),
-      ...(current.artUrl
-        ? { artwork: thumbUrl(current.artUrl, NOW_PLAYING_ART_WIDTH) }
-        : {}),
+      /**
+       * A COVER-LESS SOUND PUBLISHES AN EMPTY ARTWORK, AND OMITTING THE KEY IS
+       * THE BUG THIS REPLACES.
+       *
+       * Both platforms MERGE a now-playing publish over the last one — iOS
+       * copies `MPNowPlayingInfoCenter`'s dictionary and writes only the keys
+       * the payload carries, Android holds the decoded bitmap in a FIELD and
+       * re-stamps it onto every metadata build. So a sound with no cover
+       * inherited whichever cover was last loaded, and the island showed sound
+       * 1's artwork beside sound 2's title. Nothing in the shipped library
+       * cleared it short of `hide()`, which on Android releases the
+       * MediaSession and zeroes the control bitmask — see the overlay in
+       * `patches/react-native-audio-api`, which makes an empty value mean
+       * REMOVE on both sides.
+       *
+       * What the slot falls back to is then the system's own art-less
+       * placeholder, which is what Music and Podcasts show and what this app
+       * already showed for a sound that never had a cover at all. Both
+       * cover-less cases now agree.
+       */
+      artwork: current.artUrl
+        ? thumbUrl(current.artUrl, NOW_PLAYING_ART_WIDTH)
+        : '',
       ...(duration > 0 ? { duration } : {}),
       elapsedTime: usePlayerStore.getState().position,
       /**
