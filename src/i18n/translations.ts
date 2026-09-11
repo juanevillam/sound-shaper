@@ -283,6 +283,7 @@ export const translations = {
       'sound-updated': 'Sound updated',
       'sound-save-failed': "Couldn't save the sound. Try again.",
       'sound-deleted': 'Sound deleted',
+      'reorder-failed': "Couldn't reorder your sounds. Try again.",
       'sound-delete-failed': "Couldn't delete the sound. Try again.",
       'clip-created': 'Clip saved',
       'clip-updated': 'Clip updated',
@@ -547,6 +548,8 @@ export const translations = {
       'sound-updated': 'Sonido actualizado',
       'sound-save-failed': 'No se pudo guardar el sonido. Vuelve a intentarlo.',
       'sound-deleted': 'Sonido eliminado',
+      'reorder-failed':
+        'No se pudieron reordenar tus sonidos. Vuelve a intentarlo.',
       'sound-delete-failed':
         'No se pudo eliminar el sonido. Vuelve a intentarlo.',
       'clip-created': 'Clip guardado',
@@ -805,6 +808,7 @@ export const translations = {
       'sound-updated': '音频已更新',
       'sound-save-failed': '无法存储音频。请再试一次。',
       'sound-deleted': '音频已删除',
+      'reorder-failed': '无法重新排序音频。请再试一次。',
       'sound-delete-failed': '无法删除音频。请再试一次。',
       'clip-created': '片段已存储',
       'clip-updated': '片段已更新',

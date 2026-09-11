@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
   type QueryDocumentSnapshot,
   type Timestamp,
 } from '@react-native-firebase/firestore';
@@ -47,6 +48,14 @@ export type Sound = {
   durationMs: number | null;
   id: string;
   name: string;
+  /**
+   * WHERE THIS SOUND SITS IN THE GRID — a fractional index, so dragging one
+   * tile writes one document. `null` on anything written before the feature
+   * existed; `byGridOrder` sorts those last rather than dropping them, and
+   * `backfillSoundPositions` gives them a real value on first sight. The whole
+   * argument, including why this is a float, is in `lib/gridOrder.ts`.
+   */
+  position: number | null;
   releaseYear: number | null;
   updatedAt: number | null;
 };
@@ -77,6 +86,12 @@ type CreateSoundParams = {
   /** Local uri of the picked .mp3 (document-picker cache copy). */
   localAudioUri: string;
   name: string;
+  /**
+   * Where the new sound lands in the grid — the END of the current order, so
+   * an upload never displaces an arrangement somebody made by hand. Computed
+   * by the caller, which is the side that already holds the whole library.
+   */
+  position: number;
   releaseYear?: number | null;
 };
 
@@ -105,7 +120,20 @@ type UpdateSoundParams = {
 
 type SubscribeToSoundsParams = {
   onError: (error: Error) => void;
-  onNext: (sounds: Sound[]) => void;
+  /**
+   * `fromCache` says the snapshot was answered from the LOCAL DISK CACHE
+   * rather than the server, and anything that REWRITES data has to respect it.
+   *
+   * The order repair learned this the expensive way: launched on the second
+   * device, it saw the cached library — stale, still carrying the damage the
+   * other phone had already fixed — decided it needed repairing, and wrote its
+   * whole order back over the newer one. Measured live: a drag made on the A54
+   * was undone the moment the iOS client cold-started.
+   *
+   * Reading from cache is right and fast. WRITING a whole-collection
+   * correction from one is a guess about a past state.
+   */
+  onNext: (sounds: Sound[], meta: { fromCache: boolean }) => void;
 };
 
 // The library is per-user: users/{uid}/sounds. Every call site runs behind the
@@ -153,6 +181,10 @@ const soundToModel = (snapshot: QueryDocumentSnapshot): Sound => {
         : null,
     id: snapshot.id,
     name: (data.name as string) ?? '',
+    position:
+      typeof data.position === 'number' && Number.isFinite(data.position)
+        ? data.position
+        : null,
     releaseYear: typeof releaseYear === 'number' ? releaseYear : null,
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
   };
@@ -201,7 +233,10 @@ export const subscribeToSounds = ({
 
   return onSnapshot(soundsQuery, {
     error: reportedOnError('sounds.subscribeToSounds', onError),
-    next: snapshot => onNext(snapshot.docs.map(soundToModel)),
+    next: snapshot =>
+      onNext(snapshot.docs.map(soundToModel), {
+        fromCache: snapshot.metadata.fromCache,
+      }),
   });
 };
 
@@ -219,6 +254,7 @@ export const createSound = reported(
     cover: pickedCover,
     localAudioUri,
     name,
+    position,
     releaseYear,
   }: CreateSoundParams): Promise<string> => {
     const audio = await uploadSoundAudio(localAudioUri);
@@ -236,6 +272,7 @@ export const createSound = reported(
       audioUrl: audio.url,
       createdAt: serverTimestamp(),
       name,
+      position,
       ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
     });
@@ -267,6 +304,79 @@ export const updateSound = reported(
           ? { artPublicId: cover.publicId, artUrl: cover.url }
           : { artPublicId: '', artUrl: '' }),
     });
+  },
+);
+
+/**
+ * Move ONE sound to a new grid position — ONE document write, which is the
+ * whole point of the fractional index (`lib/gridOrder.ts`).
+ *
+ * NO `updatedAt` BUMP. That field means "the person edited this sound", and
+ * `syncLibrary` compares it to decide whether the player is holding a stale
+ * copy; dragging a tile changes neither the sound nor anything the player
+ * shows, so stamping it would re-render the console on every drop.
+ */
+export const moveSound = reported(
+  'sounds.moveSound',
+  async ({
+    position,
+    soundId,
+  }: {
+    position: number;
+    soundId: string;
+  }): Promise<void> => {
+    await updateDoc(soundDoc(soundId), { position });
+  },
+);
+
+/**
+ * Give the whole library positions, in the order it is being displayed.
+ *
+ * REWRITES EVERY DOCUMENT, INCLUDING ONES THAT ALREADY HAVE A POSITION, and
+ * that is the fix rather than an inefficiency. The first version skipped the
+ * positioned ones and still took each new value from the index in the whole
+ * array, so a second run over a partly-filled library handed out numbers that
+ * were already taken — measured on the real library as two sounds sharing 6.
+ * Assigning the complete order is the only form of this that is idempotent and
+ * collision-free, and it is what makes a damaged order heal on the next launch
+ * (`needsPositionRepair`).
+ *
+ * It is one of two paths here that writes many documents, so it carries the
+ * whole-order-last-wins behaviour `lib/gridOrder.ts` describes. Both are rare
+ * by construction: this one runs once per library, ever.
+ */
+export const backfillSoundPositions = reported(
+  'sounds.backfillSoundPositions',
+  async (ordered: Array<{ id: string }>): Promise<void> => {
+    if (ordered.length === 0) return;
+
+    const db = getFirestore();
+    const batch = writeBatch(db);
+
+    ordered.forEach((sound, index) => {
+      batch.update(soundDoc(sound.id), { position: index });
+    });
+
+    await batch.commit();
+  },
+);
+
+/**
+ * Re-space the whole order after float64 runs out of room between two
+ * neighbours — see `renormalized`, which is where the concurrency trade is
+ * written down. Rare by construction: it takes ~50 drops into one gap.
+ */
+export const renormalizeSoundPositions = reported(
+  'sounds.renormalizeSoundPositions',
+  async (ordered: Array<{ id: string; position: number }>): Promise<void> => {
+    const db = getFirestore();
+    const batch = writeBatch(db);
+
+    ordered.forEach(({ id, position }) => {
+      batch.update(soundDoc(id), { position });
+    });
+
+    await batch.commit();
   },
 );
 
