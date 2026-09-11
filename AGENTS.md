@@ -317,6 +317,21 @@ in the file's header; the ones worth knowing before touching it:
   arbitration write-ups above survive inside `ClipTrimFrameIos` itself,
   which is where that behaviour now lives.
 
+**THE EXPANDED PLAYER HAS NO REACTIVE OR ANIMATED BACKGROUND, and one was
+built three ways before that was settled** (2026-09-11). Juan asked for a
+background that answers to the music — the light strip behind a television as
+the reference — and rejected the result outright: it overcomplicates a screen
+whose whole case is being calm.
+
+The full post-mortem is in
+[`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md), and
+the two findings worth knowing before anyone reaches for this again are that
+**the wash cannot be the thing that moves** (it is the ground the title,
+transport and cards are read against, so a moving ground reads as instability
+at any amplitude) and that **an instant attack on a level envelope is a
+strobe**. The `AnalyserNode` approach itself was sound and rate-correct by
+construction; it is the surface that was wrong.
+
 **BAND-SCANNED ON iPhone 17 / iOS 26.5**, re-measured 2026-08-28. The figures
 that stood here described a screen that no longer exists — they were taken
 while the bar row was still up (artwork cleared `PLAYER_BAR_TARGET + 14`) and
