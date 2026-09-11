@@ -374,7 +374,6 @@ export const translations = {
       },
       menu: {
         label: 'Opciones del sonido',
-        info: 'Obtener información',
         edit: 'Editar sonido',
         editShort: 'Editar',
       },
@@ -639,7 +638,6 @@ export const translations = {
       },
       menu: {
         label: '音频选项',
-        info: '显示简介',
         edit: '编辑音频',
         editShort: '编辑',
       },

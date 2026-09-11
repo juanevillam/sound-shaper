@@ -50,17 +50,6 @@ type AnyGesture = ComposedGesture | GestureType;
 export const IOS_SLIDER_HOST_HEIGHT = 18;
 
 /**
- * WHERE THE TRACK'S INK ACTUALLY IS, measured — the media scrubber does not
- * centre its bar in the host. Band-scanned in framing mode (iPhone 17 /
- * iOS 26.5): the track spans host 0.2 → 7.9, centre 4.0, against the 18pt
- * box's geometric centre of 9. A trim frame centred on the HOST therefore
- * sat 5pt low against the track it brackets, which Juan read on sight
- * (2026-08-25). Anything that must align with the BAR — the trim frame is
- * today's one caller — centres on this, not on the host's half-height.
- */
-export const IOS_SLIDER_TRACK_CENTER = 4;
-
-/**
  * THE iOS TRANSPORT'S GEOMETRY — one term, TWO surfaces since the clip
  * editor gained its own transport row (2026-08-26): the expanded console and
  * the editor must feel like one app's controls, not two apps'. Play carries
@@ -175,11 +164,15 @@ export type PlayerCard = {
  * outlined cards, iOS's is not — so the console is the only part with a twin.
  *
  * A full `PlayerSheet.ios.tsx` was the obvious alternative and is the wrong
- * shape: only SEVEN of that file's 1751 lines are platform branches, so a twin
- * would copy ~700 lines of correct, frame-verified animation and gesture code
- * that has nothing to do with either platform's look. The copy would rot and
- * every fix would need landing twice — the re-implementation trap AGENTS.md
- * names.
+ * shape: a handful of that file's ~1600 lines are platform branches (grep it
+ * for `Platform.`), so a twin would copy hundreds of lines of correct,
+ * frame-verified animation and gesture code that have nothing to do with
+ * either platform's look. The copy would rot and every fix would need landing
+ * twice — the re-implementation trap AGENTS.md names.
+ *
+ * The counts here were exact once and had already rotted by two hundred lines;
+ * they name the grep now instead, the same rule `uiStateLab`'s skeleton note
+ * writes down — prose about a number goes stale the moment the number moves.
  */
 export type PlayerConsoleProps = {
   /** The console's top edge, in container space — below the artwork. */
