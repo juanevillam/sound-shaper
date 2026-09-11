@@ -41,6 +41,7 @@ export const useDevSettingsStore = create<DevSettingsState>()(
           useUiStateLab.setState({
             account: 'live',
             home: 'live',
+            player: 'live',
             trophies: 'live',
           });
       },

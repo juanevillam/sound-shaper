@@ -714,7 +714,13 @@ export default function HomeScreen() {
           transport controls: a dev tool covering the surface it exists to let
           you look at. It pins Home's states, and Home is not what is on screen
           then. */}
-      {UI_STATE_LAB && !sheetExpanded ? <UiStateLabBar screen="home" /> : null}
+      {/* DEV LAB: the picker follows whichever surface is on top. Home's
+          groups while the grid is up; the expanded player's reactive-light
+          candidates while it is open — it renders after `<PlayerSheet />`, so
+          it already sits above it. */}
+      {UI_STATE_LAB ? (
+        <UiStateLabBar screen={sheetExpanded ? 'player' : 'home'} />
+      ) : null}
     </Screen>
   );
 }
