@@ -57,7 +57,8 @@ import {
   updateSound,
 } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
-import { useSoundsStore } from '@/store/sounds';
+import { useProfileStore } from '@/store/profile';
+import { nextAppendPosition, useSoundsStore } from '@/store/sounds';
 import { SECTION_GAP } from '@/styles/metrics';
 import { SHAPE_MD } from '@/styles/shape';
 
@@ -266,6 +267,11 @@ export function EditSoundSheet({
       await createSound({
         artist: trimmedArtist,
         cover: picked,
+        // The END of the grid — an upload never displaces an order somebody
+        // arranged by hand. See `nextAppendPosition`.
+        position: nextAppendPosition(
+          useProfileStore.getState().profile?.addTilePosition ?? null,
+        ),
         art:
           tags?.picture && !artCleared
             ? { base64: tags.picture.base64, mime: tags.picture.mime }

@@ -1,15 +1,27 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { StateWrap, EmptyState, useHeaderScroll } from '@portfolio/mobile-ui';
-import { FlashList } from '@shopify/flash-list';
+import {
+  DRAG_ACTIVE_SCALE,
+  StateWrap,
+  EmptyState,
+  useHeaderScroll,
+} from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router } from 'expo-router';
+import Animated, {
+  useAnimatedRef,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import Sortable, {
+  type SortableGridDragEndParams,
+  type SortableGridRenderItem,
+} from 'react-native-sortables';
 
 import {
   bannerBottomOffset,
@@ -31,23 +43,49 @@ import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
+import {
+  needsPositionRepair,
+  positionForMove,
+  renormalized,
+} from '@/lib/gridOrder';
+import { haptics } from '@/lib/haptics';
 import { readId3Tags } from '@/lib/id3';
-import { type Sound } from '@/services/firebase/sounds';
+import {
+  backfillSoundPositions,
+  moveSound,
+  renormalizeSoundPositions,
+  type Sound,
+} from '@/services/firebase/sounds';
+import { setAddTilePosition } from '@/services/firebase/users';
+import { useAuthStore } from '@/store/auth';
 import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
+import { useProfileStore } from '@/store/profile';
 import { useSoundsStore } from '@/store/sounds';
 import { TILE_GAP, SCREEN_PADDING } from '@/styles/metrics';
 
-// The grid rows FlashList renders: the add tile plus the sounds, pre-paired
-// into 2-column rows (FlashList's numColumns + varying tile heights fight each
-// other; hand-pairing keeps rows aligned). The add tile leads so it stays
-// reachable no matter how long the library grows.
-type GridRow = {
-  id: string;
-  left: Sound | 'add';
-  right: Sound | 'add' | null;
-};
+/**
+ * ONE GRID CELL — a sound, or the add tile.
+ *
+ * THE ADD TILE IS AN ENTRY IN THE ORDER, NOT A HEADER. It used to lead
+ * unconditionally, "so it stays reachable no matter how long the library
+ * grows", and Juan reversed that on 2026-09-11: the grid reorders in both
+ * directions and the add tile goes wherever you park it. Its slot is a real
+ * position in the same fractional keyspace the sounds use — see
+ * `lib/gridOrder.ts` — and it lives on the USER document, because it is the
+ * one tile with no sound behind it.
+ *
+ * A library that has never been reordered still opens with the add tile first:
+ * `addTilePosition` is `null` until somebody moves it, which sorts ahead of
+ * the backfill's `0`.
+ */
+export const ADD_TILE_KEY = '__add__';
+
+export type GridCell =
+  | (Sound & { kind: 'sound' })
+  | { id: typeof ADD_TILE_KEY; kind: 'add'; position: number | null };
 
 const IS_IOS = Platform.OS === 'ios';
 // M3's small top app bar. Android only — iOS draws the collapsing header.
@@ -98,20 +136,52 @@ const GRID_TOP_GAP = IS_IOS ? 24 : 21.6;
  */
 export const SKELETON_ROWS = 3;
 
-const toGridRows = (sounds: Sound[]): GridRow[] => {
-  const cells: (Sound | 'add')[] = ['add', ...sounds];
-  const rows: GridRow[] = [];
+/**
+ * THE GRID'S TWO GAPS, SHARED BY THE SORTABLE AND THE SKELETON.
+ *
+ * They were one StyleSheet rule (`gridRow`) while the grid was hand-paired
+ * rows, and the Sortable states them as props instead — so the moment the two
+ * stopped being the same object they could drift, which is this repo's most
+ * recurrent layout bug and the reason `SoundTileSkeleton` shares
+ * `soundTileMetrics` in the first place. Stated once, read by both.
+ *
+ * The row gap is four points wider than the column gap and always has been: a
+ * caption sits under every tile, so the vertical boundary carries text-to-art
+ * where the horizontal one carries art-to-art. Band-scanned before and after
+ * the Sortable landed — artwork row two starts at the same place.
+ */
+export const GRID_COLUMN_GAP = TILE_GAP;
+export const GRID_ROW_GAP = TILE_GAP + 4;
 
-  for (let index = 0; index < cells.length; index += 2) {
-    const left = cells[index];
-    rows.push({
-      id: typeof left === 'string' ? 'add' : left.id,
-      left,
-      right: cells[index + 1] ?? null,
-    });
-  }
+/**
+ * The grid's cells in display order: the library (already grid-ordered by the
+ * store) with the add tile slotted in at its own position.
+ *
+ * The sounds are NOT re-sorted here — `useSoundsStore` holds them in order, so
+ * doing it again would be the second copy of one rule. Only the add tile has
+ * to be placed, and a `null` position means it has never been moved, which
+ * puts it first.
+ */
+const toGridCells = (
+  sounds: Sound[],
+  addTilePosition: number | null,
+): GridCell[] => {
+  const cells: GridCell[] = sounds.map(sound => ({ ...sound, kind: 'sound' }));
+  const addTile: GridCell = {
+    id: ADD_TILE_KEY,
+    kind: 'add',
+    position: addTilePosition,
+  };
 
-  return rows;
+  if (addTilePosition === null) return [addTile, ...cells];
+
+  const slot = cells.findIndex(
+    cell => cell.position !== null && cell.position > addTilePosition,
+  );
+
+  if (slot === -1) return [...cells, addTile];
+
+  return [...cells.slice(0, slot), addTile, ...cells.slice(slot)];
 };
 
 // The whole library on one screen: the app's header (one Settings gear — the
@@ -190,7 +260,10 @@ export default function HomeScreen() {
 
   const firstLoad = lab ? labState === 'skeleton' : !hasSettled;
   const error = lab ? labState === 'error' : rawError;
-  const rows = toGridRows(sounds);
+  const addTilePosition = useProfileStore(
+    s => s.profile?.addTilePosition ?? null,
+  );
+  const cells = toGridCells(sounds, addTilePosition);
 
   // Android's hand-drawn bar takes the same on-scroll step as every navigator
   // bar in the portfolio: the page's own ground at rest, `surface` once the
@@ -199,49 +272,208 @@ export default function HomeScreen() {
   // the hook's docblock names). No-op on iOS, where the system bar owns it.
   const { scrolled, scrollProps } = useHeaderScroll();
 
-  const renderCell = useCallback(
-    (cell: Sound | 'add' | null) => {
-      if (cell === null) return <View style={styles.cell} />;
+  /**
+   * OPEN THE EDITOR — the door a long-press used to be, and still is, with one
+   * step in front of it (see `handleDragEnd`).
+   */
+  const openEditor = useCallback((soundId: string) => {
+    if (Platform.OS === 'ios') {
+      router.push({ pathname: '/edit-sound', params: { soundId } });
 
-      if (cell === 'add')
-        return (
-          <View style={styles.cell}>
-            <AddSoundTile onPress={openAddSound} />
-          </View>
-        );
+      return;
+    }
 
-      return (
-        <View style={styles.cell}>
+    setEditingSoundId(soundId);
+  }, []);
+
+  const renderCell = useCallback<SortableGridRenderItem<GridCell>>(
+    ({ item }) => (
+      <View style={styles.cell}>
+        {item.kind === 'add' ? (
+          <AddSoundTile onPress={openAddSound} />
+        ) : (
           <SoundTile
-            sound={cell}
-            isCurrent={cell.id === currentSoundId}
-            isPlaying={cell.id === currentSoundId && isPlaying}
+            sound={item}
+            isCurrent={item.id === currentSoundId}
+            isPlaying={item.id === currentSoundId && isPlaying}
             rate={rate}
-            onPress={() => onPressSound(cell)}
-            onLongPress={() =>
-              Platform.OS === 'ios'
-                ? router.push({
-                    pathname: '/edit-sound',
-                    params: { soundId: cell.id },
-                  })
-                : setEditingSoundId(cell.id)
-            }
+            onPress={() => onPressSound(item)}
+            /* The long-press belongs to the DRAG now. A hold that never moves
+               still opens the editor — see `handleDragEnd` — so this stays
+               wired for the platforms' own accessibility actions rather than
+               being the gesture's only door. */
+            onLongPress={() => openEditor(item.id)}
           />
-        </View>
-      );
-    },
-    [openAddSound, onPressSound, currentSoundId, isPlaying, rate],
-  );
-
-  const renderRow = useCallback(
-    ({ item }: { item: GridRow }) => (
-      <View style={styles.gridRow}>
-        {renderCell(item.left)}
-        {renderCell(item.right)}
+        )}
       </View>
     ),
-    [renderCell],
+    [openAddSound, onPressSound, openEditor, currentSoundId, isPlaying, rate],
   );
+
+  /**
+   * THE DRAG — long-press a tile, move it anywhere in two dimensions, drop.
+   *
+   * ONE DOCUMENT IS WRITTEN, whatever the tile travelled past: the fractional
+   * index means a move only has to state where the tile now sits, not restate
+   * the whole order. That is what makes two phones dragging at once merge
+   * instead of scrambling, and the argument lives in `lib/gridOrder.ts`.
+   */
+  const uid = useAuthStore(s => s.user?.uid);
+  const setDragging = useSoundsStore(s => s.setDragging);
+  const applyPosition = useSoundsStore(s => s.applyPosition);
+  const setProfile = useProfileStore(s => s.setProfile);
+  const { showSnackbar } = useSnackbar();
+  const scrollableRef = useAnimatedRef<Animated.ScrollView>();
+  const reduceMotion = useReducedMotion();
+
+  const handleDragStart = useCallback(() => {
+    haptics.dragPickup();
+    setDragging(true);
+  }, [setDragging]);
+
+  const handleOrderChange = useCallback(() => haptics.dragMove(), []);
+
+  const handleDragEnd = useCallback(
+    async ({
+      data,
+      fromIndex,
+      key,
+      toIndex,
+    }: SortableGridDragEndParams<GridCell>) => {
+      setDragging(false);
+
+      /**
+       * A HOLD THAT NEVER MOVED IS STILL THE EDITOR'S DOOR.
+       *
+       * Long-press used to open the editor outright, and the drag now owns
+       * that gesture — there is only one long-press to give. This is the split
+       * iOS itself makes on the Home Screen: hold and release opens the menu,
+       * hold and move rearranges. A tile dragged away and back to the same
+       * slot lands here too, which is a harmless misfire (a dismissible sheet)
+       * rather than a lost affordance.
+       */
+      if (fromIndex === toIndex) {
+        const held = data[toIndex];
+        if (held && held.kind === 'sound') openEditor(held.id);
+
+        return;
+      }
+
+      haptics.dragDrop();
+
+      const position = positionForMove(data, toIndex);
+      const previousAddTile = addTilePosition;
+
+      /**
+       * FLOAT64 RAN OUT OF ROOM between the two neighbours — re-space the whole
+       * order and stop. Rare by construction (~50 drops into one gap), and the
+       * only path here that writes every document.
+       */
+      if (position === null) {
+        try {
+          const repaired = renormalized(data);
+          await renormalizeSoundPositions(
+            repaired.filter(entry => entry.id !== ADD_TILE_KEY),
+          );
+
+          const addTile = repaired.find(entry => entry.id === ADD_TILE_KEY);
+          if (addTile && uid) {
+            await setAddTilePosition({ position: addTile.position, uid });
+          }
+        } catch {
+          showSnackbar(t('snackbar.reorder-failed'));
+        }
+
+        return;
+      }
+
+      // Optimistic, because the grid must not wait on Firestore to show where
+      // the tile landed — the drop already moved it under the finger.
+      if (key === ADD_TILE_KEY) {
+        const profile = useProfileStore.getState().profile;
+        if (profile) setProfile({ ...profile, addTilePosition: position });
+      } else {
+        applyPosition(key, position);
+      }
+
+      try {
+        if (key === ADD_TILE_KEY) {
+          if (!uid) return;
+          await setAddTilePosition({ position, uid });
+        } else {
+          await moveSound({ position, soundId: key });
+        }
+      } catch {
+        showSnackbar(t('snackbar.reorder-failed'));
+
+        // Put it back. The library's own snapshot is the truth for a sound;
+        // the add tile's truth is the value we just replaced.
+        if (key === ADD_TILE_KEY) {
+          const profile = useProfileStore.getState().profile;
+          if (profile) {
+            setProfile({ ...profile, addTilePosition: previousAddTile });
+          }
+        } else {
+          const live = useSoundsStore
+            .getState()
+            .sounds.find(sound => sound.id === key);
+          if (live?.position != null) applyPosition(key, live.position);
+        }
+      }
+    },
+    [
+      addTilePosition,
+      applyPosition,
+      openEditor,
+      setDragging,
+      setProfile,
+      showSnackbar,
+      t,
+      uid,
+    ],
+  );
+
+  /**
+   * MAKE THE ORDER A TOTAL ORDER — on first sight of a library that is not
+   * one, and on any launch that finds it damaged.
+   *
+   * Two things bring it here. Sounds written before the grid could be
+   * reordered carry no `position` at all (they are not hidden — `byGridOrder`
+   * sorts them last, newest first, exactly the order they used to have — but
+   * they cannot be dragged into a stable slot until they have one). And a
+   * DUPLICATE position, which stops `positionBetween` ever finding a slot
+   * between the twins, so the grid quietly refuses moves in that region.
+   *
+   * Both are repaired the same way: re-space the whole library across the
+   * order being displayed. It is idempotent, so a run over a partial library
+   * is fixed by the next full one rather than compounded — which is exactly
+   * what the first version of this got wrong.
+   *
+   * The ref guards RE-ENTRY, not repetition: it is cleared when the write
+   * settles, so a later launch can repair again if it needs to. A permanent
+   * latch would have made the damage above unfixable without a reinstall.
+   */
+  const repairing = useRef(false);
+
+  const fromCache = useSoundsStore(s => s.fromCache);
+
+  useEffect(() => {
+    if (repairing.current || !hasSettled || sounds.length === 0) return;
+    /**
+     * NEVER REPAIR FROM THE CACHE. A cold start is answered from local disk
+     * first, and that snapshot can be older than what another device has
+     * already fixed — repairing from it writes a stale whole order back over
+     * a newer one. Measured: a drag made on the A54 was undone the instant the
+     * iOS client cold-started, because its cached library still looked damaged.
+     */
+    if (fromCache) return;
+    if (!needsPositionRepair(sounds)) return;
+
+    repairing.current = true;
+    backfillSoundPositions(sounds).finally(() => {
+      repairing.current = false;
+    });
+  }, [fromCache, hasSettled, sounds]);
 
   /**
    * CLEARANCE FOR THE PLAYER BANNER — and NOT for the home indicator, which
@@ -410,13 +642,17 @@ export default function HomeScreen() {
             />
           </StateWrap>
         ) : (
-          <FlashList
+          /* THE GRID IS A SORTABLE, AND THAT COST THE FLASHLIST.
+             `Sortable.Grid` reorders inside a real scroller it can drive for
+             edge auto-scroll (`scrollableRef`), so the virtualized list had to
+             go — the same trade Topper's profile made. A personal library is
+             tens of tiles, which is what makes it affordable here and would
+             not make it affordable in a feed. */
+          <Animated.ScrollView
+            ref={scrollableRef}
             style={styles.list}
-            data={rows}
-            keyExtractor={row => row.id}
-            renderItem={renderRow}
             // No in-content heading: the stack's native large title owns it.
-            // `automatic` is what hands the list that title's height as a
+            // `automatic` is what hands the scroller that title's height as a
             // content inset and drives the collapse — without it the first row
             // starts under the expanded title. Android ignores the prop.
             contentInsetAdjustmentBehavior="automatic"
@@ -429,7 +665,21 @@ export default function HomeScreen() {
               paddingTop: GRID_TOP_GAP,
               paddingBottom: listBottomPadding,
             }}
-          />
+          >
+            <Sortable.Grid
+              columns={2}
+              data={cells}
+              keyExtractor={cell => cell.id}
+              renderItem={renderCell}
+              rowGap={GRID_ROW_GAP}
+              columnGap={GRID_COLUMN_GAP}
+              scrollableRef={scrollableRef}
+              activeItemScale={reduceMotion ? 1 : DRAG_ACTIVE_SCALE}
+              onDragStart={handleDragStart}
+              onOrderChange={handleOrderChange}
+              onDragEnd={handleDragEnd}
+            />
+          </Animated.ScrollView>
         )}
 
         {pickedFile && (
@@ -499,10 +749,12 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   list: { flex: 1 },
+  // The SKELETON's row — the live grid states the same two gaps to
+  // `Sortable.Grid` as props. Both read `GRID_ROW_GAP` / `GRID_COLUMN_GAP`.
   gridRow: {
     flexDirection: 'row',
-    gap: TILE_GAP,
-    marginBottom: TILE_GAP + 4,
+    gap: GRID_COLUMN_GAP,
+    marginBottom: GRID_ROW_GAP,
   },
   cell: { flex: 1 },
   // Matches the list's own content inset, so the skeleton lands exactly where

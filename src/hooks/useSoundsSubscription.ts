@@ -17,8 +17,8 @@ export const useSoundsSubscription = () => {
   useEffect(
     () =>
       subscribeToSounds({
-        onNext: sounds => {
-          setSounds(sounds);
+        onNext: (sounds, meta) => {
+          setSounds(sounds, meta);
           // The player keeps its OWN copy of the documents it loaded, so a
           // snapshot has to be handed to it as well or an edit never reaches
           // the banner. See `syncLibrary`.

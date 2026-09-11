@@ -14,6 +14,17 @@ import { reported } from '@/services/firebase/crashlytics';
 // Personal-only: the profile doc is just the signed-in identity snapshot
 // (usernames were dropped 2026-07-20 along with the whole account section).
 export type UserProfile = {
+  /**
+   * WHERE THE ADD-SOUND TILE SITS IN THE GRID, in the same fractional keyspace
+   * the sounds use (`lib/gridOrder.ts`).
+   *
+   * It lives on the USER rather than on a sound because it is not one — it is
+   * the one piece of grid chrome the person can park wherever they like (Juan,
+   * 2026-09-11), and it has nowhere else to be. `null` means "never moved",
+   * which the grid reads as leading the library, the position it held for the
+   * app's whole life before this.
+   */
+  addTilePosition: number | null;
   createdAt: number | null;
   displayName: string | null;
   photoUrl: string | null;
@@ -33,6 +44,11 @@ const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile => {
   const updatedAt = data.updatedAt as Timestamp | undefined;
 
   return {
+    addTilePosition:
+      typeof data.addTilePosition === 'number' &&
+      Number.isFinite(data.addTilePosition)
+        ? data.addTilePosition
+        : null,
     createdAt: createdAt ? createdAt.toMillis() : null,
     displayName: (data.displayName as string) ?? null,
     photoUrl: (data.photoURL as string) ?? null,
@@ -88,5 +104,33 @@ export const fetchUserProfile = reported(
     if (!snapshot.exists()) return null;
 
     return profileToModel(snapshot as unknown as QueryDocumentSnapshot);
+  },
+);
+
+/**
+ * Park the add-sound tile at a new grid position — ONE field on one document.
+ *
+ * `setDoc` with `merge`, not `updateDoc`: an account whose profile doc has not
+ * been written yet (the window between first auth and `upsertOwnProfile`
+ * landing) would reject an update, and losing a drag to a race is worse than
+ * creating the doc a moment early.
+ *
+ * NO `updatedAt` BUMP — that field tracks the identity snapshot, and where a
+ * tile sits is not part of it.
+ */
+export const setAddTilePosition = reported(
+  'users.setAddTilePosition',
+  async ({
+    position,
+    uid,
+  }: {
+    position: number;
+    uid: string;
+  }): Promise<void> => {
+    await setDoc(
+      doc(getFirestore(), USERS_COLLECTION, uid),
+      { addTilePosition: position },
+      { merge: true },
+    );
   },
 );
