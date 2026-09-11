@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import {
   artworkRadius,
@@ -205,10 +205,22 @@ export const soundTileMetrics = (cell: number): SoundTileMetrics => {
     cell,
     artRadius,
     artToCaption: EMPTY_MEDIA_CAPTION_GAP,
-    captionInset: Platform.select({
-      ios: opticalTextInset(artRadius),
-      default: 0,
-    }) as number,
+    /**
+     * BOTH PLATFORMS, because the corner it compensates for is on both. This
+     * was `Platform.select({ ios: …, default: 0 })` with no argument for the
+     * zero, and the zero was the drift: Topper applies the same term to all
+     * three of its tiles unbranched, and its own note works out Android's
+     * number from Android's radius. Measured on the A54 and the iPhone 17 in
+     * both appearances before the fix — artwork left edge 16.00 on each, the
+     * caption's ink at 23.33 on iOS against 17.42 here, i.e. iOS nudged and
+     * Android flush.
+     *
+     * It is DERIVED FROM THIS TILE'S RADIUS, so the two platforms land on
+     * different values on purpose (Android's cell is 168 to iOS's 177, so 5
+     * against 6) — which is the whole point of the term being a function of
+     * the corner rather than a constant.
+     */
+    captionInset: opticalTextInset(artRadius),
     titleGap: 1,
   };
 };
