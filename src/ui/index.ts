@@ -150,3 +150,4 @@ export { setSplashHidden } from './useSplashHidden';
 export * from './tokens';
 export { useSheetLanded } from './useSheetLanded';
 export { useHeaderScroll } from './useHeaderScroll';
+export { DRAG_ACTIVE_SCALE } from './dragMetrics';
