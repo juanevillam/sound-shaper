@@ -1,0 +1,479 @@
+#import <audioapi/ios/AudioAPIModule.h>
+#import <audioapi/ios/system/notification/PlaybackNotification.h>
+
+#define NOW_PLAYING_INFO_KEYS \
+  @{ \
+    @"title" : MPMediaItemPropertyTitle, \
+    @"artist" : MPMediaItemPropertyArtist, \
+    @"album" : MPMediaItemPropertyAlbumTitle, \
+    @"duration" : MPMediaItemPropertyPlaybackDuration, \
+    @"elapsedTime" : MPNowPlayingInfoPropertyElapsedPlaybackTime, \
+    @"speed" : MPNowPlayingInfoPropertyPlaybackRate, \
+    @"artwork" : MPMediaItemPropertyArtwork \
+  }
+
+@implementation PlaybackNotification {
+  BOOL _isInitialized;
+  NSMutableDictionary *_currentInfo;
+  // PATCH: stamps every artwork load so a late one cannot land on a session it
+  // no longer belongs to. See `updateArtworkIfNeeded:`.
+  NSUInteger _artworkGeneration;
+}
+
+- (instancetype)initWithAudioAPIModule:(AudioAPIModule *)audioAPIModule
+{
+  if (self = [super init]) {
+    self.audioAPIModule = audioAPIModule;
+    self.playingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
+    _isInitialized = false;
+    _isActive = false;
+    _currentInfo = [[NSMutableDictionary alloc] init];
+    _artworkGeneration = 0;
+  }
+
+  return self;
+}
+
+#pragma mark - BaseNotification Protocol
+
+- (BOOL)initializeWithOptions:(NSDictionary *)options
+{
+  if (_isInitialized) {
+    return true;
+  }
+
+  // Enable remote control events
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
+  });
+
+  // Enable default remote commands
+  [self enableRemoteCommand:@"play" enabled:true];
+  [self enableRemoteCommand:@"pause" enabled:true];
+  [self enableRemoteCommand:@"nextTrack" enabled:true];
+  [self enableRemoteCommand:@"previousTrack" enabled:true];
+  [self enableRemoteCommand:@"skipForward" enabled:true];
+  [self enableRemoteCommand:@"skipBackward" enabled:true];
+  [self enableRemoteCommand:@"seekTo" enabled:true];
+
+  _isInitialized = true;
+  return true;
+}
+
+- (BOOL)showWithOptions:(NSDictionary *)options
+{
+  if (!_isInitialized) {
+    if (![self initializeWithOptions:options]) {
+      return false;
+    }
+  }
+
+  // Handle control enable/disable
+  if (options[@"control"] && options[@"enabled"]) {
+    NSString *control = options[@"control"];
+    BOOL enabled = [options[@"enabled"] boolValue];
+    [self enableControl:control enabled:enabled];
+    // If it's a control update, we can return early or continue
+    // Continuing lets us update metadata if provided mixed with controls
+  }
+
+  // Update the now playing info
+  [self updateNowPlayingInfo:options];
+
+  _isActive = true;
+
+  return true;
+}
+
+- (BOOL)hide
+{
+  if (!_isActive) {
+    return true;
+  }
+
+  // Clear now playing info
+  self.playingInfoCenter.nowPlayingInfo = nil;
+  self.artworkUrl = nil;
+  // PATCH: an artwork load started for the session being torn down must not
+  // land on the next one.
+  _artworkGeneration += 1;
+  [_currentInfo removeAllObjects];
+
+  _isActive = false;
+
+  return true;
+}
+
+- (void)cleanup
+{
+  // Hide if active
+  if (_isActive) {
+    [self hide];
+  }
+
+  // Disable all remote commands
+  MPRemoteCommandCenter *remoteCenter = [MPRemoteCommandCenter sharedCommandCenter];
+  [remoteCenter.playCommand removeTarget:self];
+  [remoteCenter.pauseCommand removeTarget:self];
+  [remoteCenter.stopCommand removeTarget:self];
+  [remoteCenter.nextTrackCommand removeTarget:self];
+  [remoteCenter.previousTrackCommand removeTarget:self];
+  [remoteCenter.skipForwardCommand removeTarget:self];
+  [remoteCenter.skipBackwardCommand removeTarget:self];
+  [remoteCenter.seekForwardCommand removeTarget:self];
+  [remoteCenter.seekBackwardCommand removeTarget:self];
+  [remoteCenter.changePlaybackPositionCommand removeTarget:self];
+
+  // Disable remote control events
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+  });
+
+  _isInitialized = false;
+}
+
+- (BOOL)isActive
+{
+  return _isActive;
+}
+
+- (NSString *)getNotificationType
+{
+  return @"playback";
+}
+
+#pragma mark - Private Methods
+
+- (void)updateNowPlayingInfo:(NSDictionary *)info
+{
+  if (!info) {
+    return;
+  }
+
+  // Get existing now playing info or create new one
+  NSMutableDictionary *nowPlayingInfo = [self.playingInfoCenter.nowPlayingInfo mutableCopy];
+  if (!nowPlayingInfo) {
+    nowPlayingInfo = [[NSMutableDictionary alloc] init];
+  }
+
+  // Map keys from our API to MPNowPlayingInfoCenter keys
+  NSDictionary *keyMap = NOW_PLAYING_INFO_KEYS;
+
+  // PATCH: an EMPTY artwork value is an explicit removal, not a no-op.
+  //
+  // This method merges — it copies the center's existing info and writes only
+  // the keys this update carries — so a track with no cover could never
+  // replace the previous track's, in any of the three places the artwork is
+  // held: the center's dictionary, `_currentInfo`, and `self.artworkUrl`.
+  // Omitting the key left all three, and passing `@""` fell through to a load
+  // that failed and changed nothing. There was no value a caller could send
+  // that cleared it, short of `hide`.
+  BOOL clearsArtwork = NO;
+
+  // Only update the keys that are provided in this update
+  for (NSString *key in info) {
+    NSString *mpKey = keyMap[key];
+    if (mpKey) {
+      // Handle artwork specially - don't set it directly to nowPlayingInfo
+      if ([key isEqualToString:@"artwork"]) {
+        if ([self isEmptyArtwork:info[key]]) {
+          clearsArtwork = YES;
+          [_currentInfo removeObjectForKey:key];
+        } else {
+          _currentInfo[key] = info[key];
+        }
+      } else {
+        nowPlayingInfo[mpKey] = info[key];
+        _currentInfo[key] = info[key];
+      }
+    }
+  }
+
+  if (clearsArtwork) {
+    [nowPlayingInfo removeObjectForKey:MPMediaItemPropertyArtwork];
+    self.artworkUrl = nil;
+    // A load already in flight for the OUTGOING track would otherwise stamp
+    // its image over the cover-less one that replaced it.
+    _artworkGeneration += 1;
+  }
+
+  self.playingInfoCenter.nowPlayingInfo = nowPlayingInfo;
+
+  // Handle playback state
+  NSString *state = _currentInfo[@"state"];
+  MPNowPlayingPlaybackState playbackState = MPNowPlayingPlaybackStatePaused;
+
+  if (state) {
+    if ([state isEqualToString:@"playing"]) {
+      playbackState = MPNowPlayingPlaybackStatePlaying;
+    } else if ([state isEqualToString:@"paused"]) {
+      playbackState = MPNowPlayingPlaybackStatePaused;
+    } else {
+      playbackState = MPNowPlayingPlaybackStatePaused;
+    }
+  }
+
+  self.playingInfoCenter.playbackState = playbackState;
+
+  // Handle artwork
+  NSString *artworkUrl = [self getArtworkUrl:_currentInfo[@"artwork"]];
+  [self updateArtworkIfNeeded:artworkUrl];
+}
+
+/**
+ * PATCH: whether an `artwork` value asks for the slot to be EMPTIED.
+ *
+ * Covers every shape a caller can express absence in — a missing value, JS
+ * `null` bridged as `NSNull`, an empty string, and a `{uri: ...}` dictionary
+ * whose uri is either of those.
+ */
+- (BOOL)isEmptyArtwork:(id)artwork
+{
+  if (!artwork || artwork == [NSNull null]) {
+    return YES;
+  }
+
+  NSString *url = [self getArtworkUrl:artwork];
+  return url == nil || url.length == 0;
+}
+
+- (NSString *)getArtworkUrl:(id)artwork
+{
+  if (!artwork) {
+    return nil;
+  }
+
+  // Handle both string and dictionary formats
+  if ([artwork isKindOfClass:[NSString class]]) {
+    return artwork;
+  } else if ([artwork isKindOfClass:[NSDictionary class]]) {
+    return artwork[@"uri"];
+  }
+
+  return nil;
+}
+
+- (void)updateArtworkIfNeeded:(NSString *)artworkUrl
+{
+  if (!artworkUrl) {
+    return;
+  }
+
+  MPNowPlayingInfoCenter *center = [MPNowPlayingInfoCenter defaultCenter];
+  if ([artworkUrl isEqualToString:self.artworkUrl] &&
+      center.nowPlayingInfo[MPMediaItemPropertyArtwork] != nil) {
+    return;
+  }
+
+  self.artworkUrl = artworkUrl;
+
+  // PATCH: this load's stamp. The fetch below is a blocking network read on a
+  // background queue with nothing cancelling it, so skipping tracks quickly
+  // leaves several in flight at once and they complete in whatever order the
+  // network hands them back — the LAST to finish wins the slot, which need not
+  // be the one playing. Anything that supersedes this load (another artwork, a
+  // clear, a `hide`) moves the generation on and the stale completion drops.
+  NSUInteger generation = ++_artworkGeneration;
+  __weak __typeof__(self) weakSelf = self;
+
+  // Load artwork asynchronously
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+    NSURL *url = nil;
+    NSData *imageData = nil;
+    UIImage *image = nil;
+
+    @try {
+      if ([artworkUrl hasPrefix:@"http://"] || [artworkUrl hasPrefix:@"https://"]) {
+        // Remote URL
+        url = [NSURL URLWithString:artworkUrl];
+        imageData = [NSData dataWithContentsOfURL:url];
+      } else {
+        // Local file - try as resource or file path
+        NSString *imagePath = [[NSBundle mainBundle] pathForResource:artworkUrl ofType:nil];
+        if (imagePath) {
+          imageData = [NSData dataWithContentsOfFile:imagePath];
+        } else {
+          // Try as absolute path
+          imageData = [NSData dataWithContentsOfFile:artworkUrl];
+        }
+      }
+
+      if (imageData) {
+        image = [UIImage imageWithData:imageData];
+      }
+    } @catch (NSException *exception) {
+      // Failed to load artwork
+    }
+
+    if (image) {
+      MPMediaItemArtwork *artwork = [[MPMediaItemArtwork alloc]
+          initWithBoundsSize:image.size
+              requestHandler:^UIImage *_Nonnull(CGSize size) { return image; }];
+
+      dispatch_async(dispatch_get_main_queue(), ^{
+        // PATCH: drop a load the session has moved past (see `generation`).
+        __typeof__(self) strongSelf = weakSelf;
+        if (!strongSelf || generation != strongSelf->_artworkGeneration) {
+          return;
+        }
+
+        NSMutableDictionary *nowPlayingInfo = [center.nowPlayingInfo mutableCopy];
+        if (!nowPlayingInfo) {
+          nowPlayingInfo = [[NSMutableDictionary alloc] init];
+        }
+        nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork;
+        center.nowPlayingInfo = nowPlayingInfo;
+      });
+    }
+  });
+}
+
+- (void)enableControl:(NSString *)control enabled:(BOOL)enabled
+{
+  NSSet *validControls = [NSSet setWithObjects:@"play",
+                                               @"pause",
+                                               @"stop",
+                                               @"nextTrack",
+                                               @"previousTrack",
+                                               @"skipForward",
+                                               @"skipBackward",
+                                               @"seekTo",
+                                               nil];
+  if ([validControls containsObject:control]) {
+    [self enableRemoteCommand:control enabled:enabled];
+  }
+}
+
+- (void)enableRemoteCommand:(NSString *)name enabled:(BOOL)enabled
+{
+  MPRemoteCommandCenter *remoteCenter = [MPRemoteCommandCenter sharedCommandCenter];
+
+  if ([name isEqualToString:@"play"]) {
+    [self enableCommand:remoteCenter.playCommand withSelector:@selector(onPlay:) enabled:enabled];
+  } else if ([name isEqualToString:@"pause"]) {
+    [self enableCommand:remoteCenter.pauseCommand withSelector:@selector(onPause:) enabled:enabled];
+  } else if ([name isEqualToString:@"stop"]) {
+    [self enableCommand:remoteCenter.stopCommand withSelector:@selector(onStop:) enabled:enabled];
+  } else if ([name isEqualToString:@"nextTrack"]) {
+    [self enableCommand:remoteCenter.nextTrackCommand
+           withSelector:@selector(onNextTrack:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"previousTrack"]) {
+    [self enableCommand:remoteCenter.previousTrackCommand
+           withSelector:@selector(onPreviousTrack:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"skipForward"]) {
+    remoteCenter.skipForwardCommand.preferredIntervals = @[ @(15) ];
+    [self enableCommand:remoteCenter.skipForwardCommand
+           withSelector:@selector(onSkipForward:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"skipBackward"]) {
+    remoteCenter.skipBackwardCommand.preferredIntervals = @[ @(15) ];
+    [self enableCommand:remoteCenter.skipBackwardCommand
+           withSelector:@selector(onSkipBackward:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"seekForward"]) {
+    [self enableCommand:remoteCenter.seekForwardCommand
+           withSelector:@selector(onSeekForward:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"seekBackward"]) {
+    [self enableCommand:remoteCenter.seekBackwardCommand
+           withSelector:@selector(onSeekBackward:)
+                enabled:enabled];
+  } else if ([name isEqualToString:@"seekTo"]) {
+    [self enableCommand:remoteCenter.changePlaybackPositionCommand
+           withSelector:@selector(onChangePlaybackPosition:)
+                enabled:enabled];
+  }
+}
+
+- (void)enableCommand:(MPRemoteCommand *)command withSelector:(SEL)selector enabled:(BOOL)enabled
+{
+  [command removeTarget:self];
+  command.enabled = enabled;
+  if (enabled) {
+    [command addTarget:self action:selector];
+  }
+}
+
+#pragma mark - Remote Command Handlers
+
+- (MPRemoteCommandHandlerStatus)onPlay:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_PLAY
+                                          payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onPause:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_PAUSE
+                                          payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onStop:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_STOP
+                                          payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onNextTrack:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_NEXT_TRACK
+                         payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onPreviousTrack:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_PREVIOUS_TRACK
+                         payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onSeekForward:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_SEEK_FORWARD
+                         payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onSeekBackward:(MPRemoteCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_SEEK_BACKWARD
+                         payload:audioapi::EmptyPayload{}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onSkipForward:(MPSkipIntervalCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_SKIP_FORWARD
+                         payload:audioapi::DoubleValuePayload{.value = event.interval}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onSkipBackward:(MPSkipIntervalCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_SKIP_BACKWARD
+                         payload:audioapi::DoubleValuePayload{.value = event.interval}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)onChangePlaybackPosition:
+    (MPChangePlaybackPositionCommandEvent *)event
+{
+  [self.audioAPIModule
+      invokeHandlerWithEventName:audioapi::AudioEvent::PLAYBACK_NOTIFICATION_SEEK_TO
+                         payload:audioapi::DoubleValuePayload{.value = event.positionTime}];
+  return MPRemoteCommandHandlerStatusSuccess;
+}
+
+@end
