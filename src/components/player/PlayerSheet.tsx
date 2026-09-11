@@ -56,8 +56,6 @@ import {
   PlayerBackdrop,
   prefetchPlayerBackdrop,
 } from '@/components/player/PlayerBackdrop';
-import { PlayerBloom } from '@/components/player/PlayerBloom';
-// DEV LAB — these imports and the picker below go with `src/dev`.
 import { PlayerConsole } from '@/components/player/PlayerConsole';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import {
@@ -69,9 +67,7 @@ import {
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useAudioLevel } from '@/hooks/useAudioLevel';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useI18n } from '@/i18n';
@@ -605,18 +601,6 @@ export function PlayerSheet() {
   }, [expanded, offRest, cool, warmUp]);
 
   const playerMounted = expanded || offRest || warm;
-
-  /**
-   * THE REACTIVE LIGHT — dev-only while Juan compares the two candidates.
-   *
-   * The level is polled only while the player is OPEN AND PLAYING, and only
-   * while a variant is actually selected: paused there is nothing to answer
-   * to, collapsed the layer is not mounted, and on `live` the app renders
-   * exactly as it ships. Any of the three stops the interval outright.
-   */
-  const bloomVariant = useUiStateLab(state => state.player);
-  const bloomOn = UI_STATE_LAB && bloomVariant !== 'live';
-  const audioLevel = useAudioLevel(bloomOn && expanded && playing);
 
   /**
    * A surface asked for the full player (tapping a sound tile).
@@ -1218,22 +1202,6 @@ export function PlayerSheet() {
             pointerEvents="none"
           >
             <PlayerBackdrop artUrl={current.artUrl || undefined} />
-            {/* DEV LAB: the reactive-light candidates. Delete with `src/dev`.
-                Mounted INSIDE the backdrop's layer — above the wash, below
-                everything the console draws — so neither variant can move the
-                ground the title and cards are read against. */}
-            {bloomOn && expanded ? (
-              <PlayerBloom
-                artUrl={current.artUrl || undefined}
-                level={audioLevel}
-                variant={bloomVariant === 'edges' ? 'edges' : 'artwork'}
-                art={{
-                  size: artFull,
-                  x: artExpandedX,
-                  y: artExpandedY,
-                }}
-              />
-            ) : null}
           </Animated.View>
         ) : null}
 

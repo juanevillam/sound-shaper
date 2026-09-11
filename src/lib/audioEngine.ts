@@ -4,7 +4,6 @@ import {
   type AudioNode,
   type AudioParam,
   type AudioTagHandle,
-  type AnalyserNode,
   type BiquadFilterNode,
   type GainNode,
 } from 'react-native-audio-api';
@@ -17,7 +16,7 @@ import { headroomTrimDb } from './eqResponse';
 // `buildGraph` on load; this module holds the graph nodes and applies the
 // shaper settings (which live in the shaper store) to them live.
 //
-//   mediaSource → trim(gain) → band₀ … bandₙ (biquad) → analyser → destination
+//   mediaSource → trim(gain) → band₀ … bandₙ (biquad) → destination
 //
 // Band gains are in dB (Web Audio biquad `gain` is dB for peaking/shelf). The
 // trim is a linear gain converted from dB, and it is DERIVED, never chosen —
@@ -79,29 +78,7 @@ type Graph = {
   mediaSource: AudioNode;
   trim: GainNode;
   bands: BiquadFilterNode[];
-  analyser: AnalyserNode;
 };
-
-/**
- * THE OUTPUT TAP — what the expanded player's backdrop breathes on.
- *
- * It sits at the END of the chain, after the bands, so it measures what the
- * person is actually HEARING rather than what the file contains: a curve that
- * scoops the mids is visible in the wash, and so is the headroom trim. It also
- * has to be BETWEEN the last band and `destination` rather than hung off the
- * side, because a node nothing pulls from is never rendered.
- *
- * IT IS RATE-CORRECT BY CONSTRUCTION, which is the whole reason it is here
- * rather than a timer. `NowPlayingBars` keeps time with the music by dividing
- * its durations by `rate` — a metronome that ignores the content. This is the
- * content, at whatever speed it is being played, with no multiplier to keep in
- * sync and nothing to get wrong when the rate changes mid-sound.
- *
- * `fftSize` is the smallest the spec allows. The consumer wants ONE number —
- * an envelope — and a bigger window buys resolution nobody reads while costing
- * a bigger array to copy on every poll.
- */
-const ANALYSER_FFT_SIZE = 32;
 
 let context: AudioContext | null = null;
 let handle: AudioTagHandle | null = null;
@@ -171,9 +148,6 @@ export const audioEngine = {
       return filter;
     });
 
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = ANALYSER_FFT_SIZE;
-
     let node: AudioNode = mediaSource;
     node.connect(trim);
     node = trim;
@@ -181,10 +155,9 @@ export const audioEngine = {
       node.connect(band);
       node = band;
     }
-    node.connect(analyser);
-    analyser.connect(ctx.destination);
+    node.connect(ctx.destination);
 
-    graph = { mediaSource, trim, bands, analyser };
+    graph = { mediaSource, trim, bands };
     pushSettings(true);
   },
 
@@ -195,40 +168,10 @@ export const audioEngine = {
       graph.mediaSource.disconnect();
       graph.trim.disconnect();
       graph.bands.forEach(band => band.disconnect());
-      graph.analyser.disconnect();
     } catch {
       // The old media source rides a disposed <Audio>; ignore if already gone.
     }
     graph = null;
-  },
-
-  /**
-   * The CURRENT OUTPUT LEVEL, 0..1 — RMS of the time-domain window.
-   *
-   * RMS, NOT PEAK, AND THAT IS A REVERSAL. This returned the window's peak
-   * first, on the reasoning that a light should answer to the loud moment
-   * rather than to an average. On device that read as FLASHING — Juan's word,
-   * and the right one: a peak over 32 samples jumps on every transient, so the
-   * light strobed at the attack of each hit instead of glowing with the music.
-   *
-   * RMS is the energy of the window rather than its worst sample, which is
-   * what "how loud is this right now" actually means to an ear. It is also the
-   * measure that makes the envelope in `useAudioLevel` meaningful — smoothing
-   * a spike train mostly just delays the spikes.
-   *
-   * Returns 0 when there is no graph, which is the honest answer between
-   * sounds and the one that lets the light settle rather than freeze.
-   */
-  level(): number {
-    if (!graph) return 0;
-
-    const samples = new Float32Array(graph.analyser.fftSize);
-    graph.analyser.getFloatTimeDomainData(samples);
-
-    let sumSquares = 0;
-    for (const sample of samples) sumSquares += sample * sample;
-
-    return Math.min(Math.sqrt(sumSquares / samples.length), 1);
   },
 
   /** Push a full curve onto the live graph (preset / saved shape / reset). */
