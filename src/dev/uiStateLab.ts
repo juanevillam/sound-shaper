@@ -22,7 +22,7 @@ import { STATE_LAB } from '@/dev/flags';
  * what renders is the real branch and not a mock of it. `live` disables the lab
  * for that surface.
  *
- * THREE SURFACES, and the omissions are deliberate. The player's Clips sheet
+ * THREE SURFACES ON BOTH PLATFORMS, and the omissions are deliberate. The player's Clips sheet
  * has a state worth looking at (no clips) but it is reachable by hand in a
  * second, and a pinnable state that duplicates a surface's own resting state is
  * noise in the picker. The Shape sheet has no states at all — every control on
@@ -64,9 +64,15 @@ export type HomeState = 'live' | 'skeleton' | 'error';
  *
  * `deleting` is here because it is the ONE state on this sheet that cannot be
  * reached by hand — seeing it for real means deleting the account. Pinning it
- * is the only way to check the blocking overlay, and, more to the point, that
- * the sheet genuinely cannot be dismissed while it stands, which is the half a
+ * is the only way to check the blocking, and, more to the point, that the
+ * surface genuinely cannot be dismissed while it stands, which is the half a
  * screenshot does not prove.
+ *
+ * WHAT IT PINS DIFFERS BY PLATFORM, because the blocking does: iOS's
+ * `UIAlertController` cannot go busy, so the scrim and spinner live on the
+ * SHEET, while Android's confirm dialog is Compose and holds its own busy
+ * state. Same job, each in its own language (AGENTS.md) — so the note below
+ * names the shared promise rather than either one's furniture.
  */
 export type AccountState = 'live' | 'skeleton' | 'deleting';
 
@@ -80,9 +86,11 @@ export type TrophiesState = 'live' | 'skeleton';
 
 /**
  * WHICH SURFACE A PICKER IS SHOWING. Defined here rather than in the bar
- * because three files need it and only one can own the bar: `UiStateLabBar.ios`
- * renders it, its Android stub types against it (the checker never applies the
- * `.ios` suffix), and `SheetScreenIos` takes it as a prop.
+ * because several files need it and only one can own the bar: `UiStateLabBar`
+ * renders it (one cross-platform file — the `.ios` twin and its Android stub
+ * this used to name are both gone), `SheetScreenIos` takes it as a prop on
+ * iOS, and the two Android routes that are pushed screens rather than sheets
+ * mount it themselves.
  */
 export type LabScreen = 'home' | 'account' | 'trophies';
 
@@ -126,7 +134,7 @@ export const ACCOUNT_STATES: Labelled<AccountState>[] = [
   {
     value: 'deleting',
     label: 'Deleting Account',
-    note: 'Sheet sealed: scrim + spinner, no ✕ and no swipe. Try dismissing it — nothing must work.',
+    note: 'Sealed while it runs — iOS a scrim over the sheet, Android a busy dialog. Try dismissing it; nothing must work.',
   },
 ];
 

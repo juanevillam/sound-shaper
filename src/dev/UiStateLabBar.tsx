@@ -36,11 +36,20 @@ import { useDevSettingsStore } from '@/store/devSettings';
  *
  * Every surface here carries ONE group, so the picker's chip row never renders.
  *
- * ANDROID REACHES ONLY `home` TODAY, and that is a CALL-SITE fact rather than
- * anything this file decides: the other two surfaces mount their picker from
- * `SheetScreenIos`, because on iOS they are form sheets. On Android they are
- * ordinary pushed screens (see this app's AGENTS.md) and neither renders a
- * picker yet.
+ * ALL THREE SURFACES REACH BOTH PLATFORMS. Android used to reach only `home`,
+ * because the other two mount their picker from `SheetScreenIos` — they are
+ * form sheets on iOS and ordinary pushed screens here — and neither pushed
+ * screen rendered one. That was never this file's decision; it was two call
+ * sites.
+ *
+ * WHAT THE MISSING PICKER WAS HIDING is the reason it is worth writing down:
+ * neither Android route passed `loading` AT ALL, so trophies opened cold on a
+ * confident "0 of 7" and Member Since printed an em dash while the profile was
+ * still in flight — two real placeholder states the shared screens have
+ * supported on both platforms since 2026-09-04. Nobody saw them because the
+ * one tool for stepping a surface's states could not be opened on the device
+ * this workstream runs on. A picker that reaches one platform is how a
+ * one-platform defect stays invisible.
  */
 
 /**
