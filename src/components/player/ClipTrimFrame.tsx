@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
 
@@ -190,32 +190,31 @@ export function ClipTrimFrame({
   endSv,
   onChange,
 }: ClipTrimFrameProps) {
-  const { colors, scheme } = useAppTheme();
+  const { colors } = useAppTheme();
   /**
-   * THE SELECTION KEEPS THE ACCENT (the one deliberate exception to the
-   * player's no-accent rule — brackets mark a SELECTION).
+   * THE SELECTION KEEPS THE ACCENT, AND IT IS EACH PLATFORM'S OWN — the one
+   * deliberate exception to the player's no-accent rule, because the brackets
+   * mark a SELECTION. `primary` is Apple's systemBlue on iOS and Material
+   * You's accent on Android, so both sides get the colour their OS already
+   * spends on selection, and this file needs no branch at all.
    *
-   * THE DARK STEP IS ANDROID'S, AND IT LEAKED ONTO iOS. M3's dark `primary`
-   * is a pastel built for small ink, and as a filled frame it was the
-   * brightest object on a near-black editor (Juan, 2026-09-08 — "too much
-   * contrast"), so dark takes `primaryContainer`: the same hue at container
-   * depth, with `onPrimaryContainer` as its own ink. That argument is about
-   * MATERIAL'S palette, and this file has no `.ios` twin — so iOS took the
-   * step too and drew the frame in a navy nobody uses anywhere else in the
-   * portfolio (Juan, 2026-09-10).
+   * IT SPENT TWO DAYS STEPPING TO `primaryContainer` IN DARK, and both ends
+   * of that were wrong. It was added for Android (M3's dark `primary` is a
+   * pastel built for small ink and the filled frame read as the brightest
+   * object on a near-black editor — Juan, 2026-09-08, "too much contrast"),
+   * then leaked to iOS because this file has no `.ios` twin, and finally
+   * failed on Android too: band-scanned on the A54 in dark the container
+   * lands #181B26 against a #121318 card — 6 channels, a murky navy that
+   * reads as neither selection nor surface, and belongs to no other control
+   * in either app (Juan, 2026-09-10, "a rare blue color").
    *
-   * Apple's palette needs nothing: `primary` IS systemBlue, and its dark
-   * value is already the LIGHTER of the pair (#0A84FF against light's
-   * #007AFF) — the platform ships the step this code was hand-rolling.
+   * `accentFill` is where that argument now lives — the accent at SOURCE
+   * tone rather than the tone-80 ink repair, measured #387AFF here against
+   * the pastel #B5C4FA a fill was taking. See its docblock in
+   * `@portfolio/core`.
    */
-  const frameAccent =
-    Platform.OS === 'android' && scheme === 'dark'
-      ? colors.primaryContainer
-      : colors.primary;
-  const onFrameAccent =
-    Platform.OS === 'android' && scheme === 'dark'
-      ? colors.onPrimaryContainer
-      : colors.onPrimary;
+  const frameAccent = colors.accentFill;
+  const onFrameAccent = colors.onPrimary;
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);

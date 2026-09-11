@@ -60,6 +60,32 @@ export type AppColors = {
   listSeparator: string;
   primary: string;
   onPrimary: string;
+  /**
+   * THE ACCENT AS A FILL, where `primary` is the accent as INK.
+   *
+   * On a dark Material scheme those are not the same colour and cannot be.
+   * M3's dark `primary` is tone 80 — a pastel, built to be READ on a dark
+   * ground (a label, a glyph) — and `schemePrimary` exists to guarantee it,
+   * because One UI hands back the light tone for both schemes. Filling a
+   * shape with tone 80 is a different job: it makes the shape the brightest
+   * object on the screen, which is exactly what Juan rejected on Sound
+   * Shaper's clip selection (2026-09-08, "too much contrast").
+   *
+   * Stepping the fill DOWN to `primaryContainer` was the answer for two
+   * days and is worse on this palette: One UI's is #181B26 against a
+   * #121318 card, a murky navy that belongs to no other control in the
+   * portfolio (Juan, 2026-09-10, "a rare blue color").
+   *
+   * So a fill takes the palette's SOURCE accent — `m.primary` raw, the same
+   * ink the Switch already wears (#387AFF on the A54) — which is a true mid
+   * blue and lands where Apple's systemBlue lands, making the two platforms
+   * read as siblings on a surface that is the same surface. iOS has no split
+   * to make: systemBlue is already both.
+   *
+   * Use `primary` for ink and `accentFill` for a filled shape; they are the
+   * same value on iOS and on any palette whose accent needs no repair.
+   */
+  accentFill: string;
   primaryMuted: string;
   // Full M3 accent roles beyond primary — distinct, harmonious hues the dynamic
   // palette derives from the same source color. Surfaced so showcase demos can
@@ -576,6 +602,8 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     border: m.outlineVariant,
     listSeparator: m.outlineVariant,
     primary: schemePrimary(m),
+    // The SOURCE accent, not the ink repair — see `accentFill`.
+    accentFill: m.primary,
     onPrimary: m.onPrimary,
     primaryMuted: m.primaryContainer,
     secondary: m.secondary,
@@ -646,6 +674,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     border: '#C6C6C8',
     listSeparator: '#E8E8E8',
     primary: '#007AFF',
+    accentFill: '#007AFF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#CCE4FF',
     secondary: '#5856D6',
@@ -681,6 +710,7 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     border: '#38383A',
     listSeparator: '#38383B',
     primary: '#0A84FF',
+    accentFill: '#0A84FF',
     onPrimary: '#FFFFFF',
     primaryMuted: '#0D3A66',
     secondary: '#5E5CE6',
@@ -719,6 +749,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     border: '#CAC4D0',
     listSeparator: '#CAC4D0',
     primary: '#6750A4',
+    accentFill: '#6750A4',
     onPrimary: '#FFFFFF',
     primaryMuted: '#EADDFF',
     secondary: '#625B71',
@@ -755,6 +786,7 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     border: '#49454F',
     listSeparator: '#49454F',
     primary: '#D0BCFF',
+    accentFill: '#D0BCFF',
     onPrimary: '#381E72',
     primaryMuted: '#4F378B',
     secondary: '#CCC2DC',

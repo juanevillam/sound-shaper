@@ -274,14 +274,10 @@ function barsPath(
 
 export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const { t } = useI18n();
-  const { colors, scheme } = useAppTheme();
-  // The selection's accent steps to the container pair in dark ON ANDROID
-  // only — see the frame's own note (`ClipTrimFrame`); wash and edge lines
-  // are the same selection and take the same ink.
-  const frameAccent =
-    Platform.OS === 'android' && scheme === 'dark'
-      ? colors.primaryContainer
-      : colors.primary;
+  const { colors } = useAppTheme();
+  // Each platform's own accent, no branch — see the frame's note
+  // (`ClipTrimFrame`); wash and edge lines are the same selection.
+  const frameAccent = colors.accentFill;
   const { width: winW, height: winH } = useWindowDimensions();
 
   const current = usePlayerStore(s => s.current);
@@ -1235,15 +1231,23 @@ function TimecodeLabel({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   /**
-   * The sheet's bar is transparent glass floating over content, so the
-   * editor states its own clearance: `SHEET_CONTENT_TOP` is where every
-   * sheet's first content stands below its own top edge (the 84 rule), and
-   * the zoomed view is this sheet's first content.
+   * THE CLEARANCE IS iOS'S ALONE, and paying it on Android put the band 84dp
+   * too low (Juan, 2026-09-10: "why does the sound bars container is too
+   * low").
+   *
+   * On iOS the sheet's bar is transparent glass floating over content, so
+   * the editor states its own clearance — `SHEET_CONTENT_TOP`, where every
+   * sheet's first content stands below its own top edge, and the zoomed view
+   * IS this sheet's first content. On Android the sheet is Compose and has
+   * already stood a drag handle, a `SheetBar` and the family's
+   * header-to-content gap above this component, so the editor adding the 84
+   * on top of them counted the same idea twice. There the band is simply the
+   * first thing under the bar, like every other Compose sheet's content.
    */
   zoomWrap: {
     alignSelf: 'center',
     height: WAVE_HEIGHT + RULER_HEIGHT,
-    marginTop: SHEET_CONTENT_TOP,
+    marginTop: Platform.select({ ios: SHEET_CONTENT_TOP, default: 0 }),
   },
   zoomCard: {
     borderRadius: CARD_RADIUS,
