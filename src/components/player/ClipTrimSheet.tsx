@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useWindowDimensions } from 'react-native';
 
@@ -85,6 +85,19 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
   const { height: winH, width: winW } = useWindowDimensions();
   // Shape stacks over THIS sheet, exactly as it stacks over the list.
   const [shaperVisible, setShaperVisible] = useState(false);
+  /**
+   * THE SHEET STOPS COMPETING FOR THE DRAG WHILE A FINGER IS ON THE BAND.
+   *
+   * A Compose `ModalBottomSheet`'s drag-to-dismiss is a NATIVE gesture in
+   * the window above RN's, and scrubbing is never purely horizontal — so the
+   * sheet kept claiming the drag and sliding away mid-trim, on the one
+   * interaction this surface exists for (Juan, 2026-09-10). The editor
+   * reports touch-down and this turns `sheetGesturesEnabled` off for its
+   * duration; swipe-to-dismiss is untouched everywhere else on the sheet,
+   * and BACK and the scrim never depended on it.
+   */
+  const [bandTouched, setBandTouched] = useState(false);
+  const onBandTouch = useCallback((down: boolean) => setBandTouched(down), []);
 
   const { current, editingClipId, onSave, range, saving, setRange } =
     useClipTrimScreen({ editing, onDone: onClose });
@@ -97,6 +110,9 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
         <ModalBottomSheet
           containerColor={sheetContainer(colors, scheme)}
           onDismissRequest={onClose}
+          // See `bandTouched` — the editor's drag and the sheet's were
+          // racing for the same finger.
+          sheetGesturesEnabled={!bandTouched}
           skipPartiallyExpanded
           showDragHandle={false}
         >
@@ -153,6 +169,7 @@ export function ClipTrimSheet({ editing, onClose }: ClipTrimSheetProps) {
                 <ClipTrimEditor
                   range={range}
                   onRangeChange={(startS, endS) => setRange({ startS, endS })}
+                  onBandTouch={onBandTouch}
                 />
               </GestureHandlerRootView>
             </RNHostView>
