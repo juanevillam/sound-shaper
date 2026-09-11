@@ -56,8 +56,23 @@ export const DestructiveConfirmDialog = ({
       <Text>{dialog.message}</Text>
     </AlertDialog.Text>
     <AlertDialog.ConfirmButton>
-      <TextButton enabled={!busy} onClick={onConfirm}>
-        <Text color={colors.danger}>{dialog.confirm}</Text>
+      {/* THE DANGER COLOUR IS THE BUTTON'S `contentColor`, NOT THE LABEL'S.
+          Stated on the `Text` it survived `enabled={false}`: an explicitly
+          coloured child wins over the container's disabled content colour, so
+          a dialog that had gone busy still drew Delete at full strength while
+          Cancel beside it dimmed correctly. Measured on the A54 in dark —
+          Cancel (181,196,250) → (119,119,122), Delete (233,186,183) →
+          (233,186,183), i.e. no change at all.
+
+          The fix is the answer Cancel already used three lines down, which is
+          also the rule: let the framework do the disabling and never hand-paint
+          a dimmed colour. */}
+      <TextButton
+        colors={{ contentColor: colors.danger }}
+        enabled={!busy}
+        onClick={onConfirm}
+      >
+        <Text>{dialog.confirm}</Text>
       </TextButton>
     </AlertDialog.ConfirmButton>
     <AlertDialog.DismissButton>
