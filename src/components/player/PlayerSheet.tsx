@@ -286,20 +286,46 @@ const BACKDROP_FADE_START = 0.6;
  * Same durations the timings used, so the pacing is unchanged and only the
  * character moves.
  *
- * CRITICALLY DAMPED, and that is a correctness requirement here rather than
- * taste. `progress` feeds interpolations that are NOT clamped — the surface's
- * `borderRadius: BANNER_RADIUS * (1 - p)` goes negative past 1, its `height`
- * exceeds the window, and `left`/`right` push the container off both edges. A
- * bouncy spring overshoots 1 by construction, so a visible bounce here would
- * not be a flourish, it would be a frame of broken geometry. `dampingRatio: 1`
- * approaches the target monotonically and can never exceed it.
+ * CRITICALLY DAMPED AND CLAMPED, and both are correctness requirements here
+ * rather than taste. `progress` feeds interpolations that are NOT clamped —
+ * the surface's `borderRadius: BANNER_RADIUS * (1 - p)` goes negative past 1,
+ * its `height` exceeds the window, and `left`/`right` push the container off
+ * both edges — so a frame outside [0, 1] is not a flourish, it is broken
+ * geometry. `dampingRatio: 1` used to be the whole guarantee, and it only
+ * holds FROM REST: the day the release velocity started carrying into the
+ * spring (below), a flicked close arrives with enough energy to cross the
+ * target once even at critical damping. `clamp` is what makes the guarantee
+ * unconditional now; the damping keeps the CHARACTER settled.
  *
- * The house already had this instinct for the sound pager (`SETTLE_SPRING`,
- * "settles without overshoot"); this states it as the reason rather than the
- * preference.
+ * THE RELEASE VELOCITY CARRIES INTO THE SPRING (Juan, 2026-09-11 — closing
+ * felt slow, "the whole experience would be better if this animation is
+ * smoother"). A drag moves the surface at the finger's own speed, and a
+ * spring started from rest on release threw that speed away: the sheet
+ * visibly hesitated at the moment of letting go, then re-accelerated — read
+ * as sluggishness, felt mostly on the close because closing is usually a
+ * flick. The drag's mapping is `progress = ±translationY / travel`, so the
+ * handoff is `-velocityY / travel` in progress units and the motion is one
+ * continuous gesture-into-settle.
+ *
+ * The durations also came down (320/260 → 280/200): with the flick fixed,
+ * the button-triggered transitions were the remaining slow ones, and the
+ * close is the briskest — leaving a screen should cost less than arriving.
+ *
+ * The house already had the no-overshoot instinct for the sound pager
+ * (`SETTLE_SPRING`, "settles without overshoot"); this states it as the
+ * reason rather than the preference.
  */
-const EXPAND_SPRING = { duration: 320, dampingRatio: 1 } as const;
-const COLLAPSE_SPRING = { duration: 260, dampingRatio: 1 } as const;
+const PROGRESS_CLAMP = { min: 0, max: 1 } as const;
+const EXPAND_SPRING = {
+  duration: 280,
+  dampingRatio: 1,
+  clamp: PROGRESS_CLAMP,
+} as const;
+const COLLAPSE_SPRING = {
+  duration: 200,
+  dampingRatio: 1,
+  clamp: PROGRESS_CLAMP,
+} as const;
 // Drag-release: past this progress (or flung faster than this) it commits.
 const SNAP_PROGRESS = 0.28;
 const SNAP_VELOCITY = 600;
@@ -426,7 +452,11 @@ export function PlayerSheet() {
   expandedRef.current = expanded;
 
   const springTo = useCallback(
-    (target: 0 | 1) => {
+    // `velocity` is the release speed in PROGRESS units per second — the
+    // drags hand it over so the settle continues the finger's own motion
+    // instead of restarting from rest (see the spring note above). A tap
+    // passes nothing and starts from rest exactly as before.
+    (target: 0 | 1, velocity = 0) => {
       setExpanded(target === 1);
       // Mirrored so screens' back handlers can yield to the sheet's.
       usePlayerStore.getState().setSheetExpanded(target === 1);
@@ -434,7 +464,10 @@ export function PlayerSheet() {
         ? // Reduce Motion takes the destination, not a faster spring: the
           // setting asks for no movement, not for brisk movement.
           withTiming(target, { duration: 0 })
-        : withSpring(target, target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING);
+        : withSpring(target, {
+            ...(target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING),
+            velocity,
+          });
     },
     [progress, reduceMotion],
   );
@@ -637,7 +670,8 @@ export function PlayerSheet() {
     .onEnd(event => {
       const commit =
         progress.value > SNAP_PROGRESS || event.velocityY < -SNAP_VELOCITY;
-      runOnJS(springTo)(commit ? 1 : 0);
+      // The finger's speed, in progress units — the settle continues it.
+      runOnJS(springTo)(commit ? 1 : 0, -event.velocityY / travel);
     });
 
   // Drag down anywhere above the scrubber (chevron row, artwork, title) to
@@ -654,7 +688,8 @@ export function PlayerSheet() {
       .onEnd(event => {
         const commit =
           progress.value < 1 - SNAP_PROGRESS || event.velocityY > SNAP_VELOCITY;
-        runOnJS(springTo)(commit ? 0 : 1);
+        // The finger's speed, in progress units — the settle continues it.
+        runOnJS(springTo)(commit ? 0 : 1, -event.velocityY / travel);
       });
   const dragDown = makeDragDown();
   const dragDownTop = makeDragDown();
