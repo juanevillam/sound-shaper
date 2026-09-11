@@ -7,6 +7,9 @@ import {
 import { router } from 'expo-router';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
+// DEV LAB — these imports and the picker below go with `src/dev`.
+import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
+import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -39,9 +42,30 @@ export default function ManageAccount() {
   // is its only reader. The store keeps it, so a second visit is instant.
   useOwnProfile();
   const profile = useProfileStore(s => s.profile);
+  const hasSettled = useProfileStore(s => s.hasSettled);
 
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  /**
+   * DEV LAB — applied to the values the route already derives, so the branch
+   * that renders is the real one. The iOS twin has read this since the lab
+   * landed; this side passed no `loading` at all, so Member Since printed a
+   * confident em dash while the profile was still in flight, where iOS stands
+   * the shared bone.
+   *
+   * `deleting` PINS THE DIALOG rather than a scrim, because that is where this
+   * platform does its blocking: iOS's `UIAlertController` cannot go busy, so
+   * the overlay lives on its screen, while Android's confirm dialog is Compose
+   * and holds its own busy state (AGENTS.md — same job, each in its own
+   * language).
+   */
+  const accountLab = useUiStateLab(state => state.account);
+  const lab = UI_STATE_LAB && accountLab !== 'live';
+
+  const loading = lab ? accountLab === 'skeleton' : !hasSettled;
+  // Pinnable because it cannot be reached by hand — see `AccountState`.
+  const showDeleting = lab ? accountLab === 'deleting' : deleting;
 
   const infoRows = [
     {
@@ -81,7 +105,14 @@ export default function ManageAccount() {
   return (
     <ManageAccountScreen
       colors={colors}
-      info={{ title: t('settings.manageAccount.infoTitle'), rows: infoRows }}
+      info={{
+        title: t('settings.manageAccount.infoTitle'),
+        rows: infoRows,
+        // The row SET is passed in full while this is true, so the count and
+        // every label are settled from the first frame and only the unknown
+        // values stand bones. Nothing moves on hand-off.
+        loading,
+      }}
       // Trophies lives here on BOTH platforms now (2026-09-08): Settings'
       // account banner is the one entry, and everything account-shaped sits
       // behind it — the arrangement iOS has had since the banner landed.
@@ -101,12 +132,12 @@ export default function ManageAccount() {
         rowLabel: t('settings.manageAccount.deleteAccount'),
         rowDescription: t('settings.manageAccount.deleteAccountHint'),
         onPress: () => setDeleteVisible(true),
-        disabled: deleting,
+        disabled: showDeleting,
       }}
     >
       {/* Own Host — a dialog mounted beside the rows corrupts their clip
           shapes (same rule as SettingsScreen). */}
-      {deleteVisible && (
+      {(deleteVisible || showDeleting) && (
         <ThemedHost matchContents>
           <DestructiveConfirmDialog
             dialog={{
@@ -120,14 +151,16 @@ export default function ManageAccount() {
               primary: colors.primary,
               surfaceDialog: colors.surfaceDialog,
             }}
-            busy={deleting}
+            busy={showDeleting}
             onConfirm={confirmDelete}
             onDismiss={() => {
-              if (!deleting) setDeleteVisible(false);
+              if (!showDeleting) setDeleteVisible(false);
             }}
           />
         </ThemedHost>
       )}
+      {/* DEV LAB: state picker. Delete with `src/dev`. */}
+      {UI_STATE_LAB ? <UiStateLabBar screen="account" /> : null}
     </ManageAccountScreen>
   );
 }
