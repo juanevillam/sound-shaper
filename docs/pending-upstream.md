@@ -399,7 +399,30 @@ vendored [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-
 MIT — behind the class's unchanged public surface. **Device-verified on a real
 iPhone the same day**, across several tracks, several presets and the whole
 0.5–1.5× range — the listening test is what actually closes this, the numbers
-below only found it. The two workarounds retired with it: `keepPitch` defaults
+below only found it.
+
+**ANDROID NEEDED A SECOND, UNRELATED FIX, AND THE SHAPE OF THE MISTAKE IS THE
+LESSON** (2026-09-11). The stretcher above is `common/cpp/` — shared — so it had
+been compiled into Android the whole time, and the entry above saying only
+"device-verified on an iPhone" made it look iOS-only. It was not; three checks
+proved it in minutes (signalsmith symbols in the installed APK's `.so`,
+`-O3 -DHAVE_ARM_NEON_INTRINSICS=1` in `compile_commands.json`, and a live 37.9 %
+→ 41.4 % CPU step when Preserve Pitch is toggled). Android still crackled, and
+the cause was the **stream**, not the DSP: `AudioPlayer.cpp` opened an exclusive
+MMAP stream in `PerformanceMode::LowLatency` — a **2.0 ms** callback deadline on
+a Galaxy A54's 96-frame burst, scheduled on a Cortex-A55 little core. A phase
+vocoder cannot land its FFT there. **iOS is clean with the identical C++ only
+because it never asks**: nothing in `ios/` calls `setPreferredIOBufferDuration`,
+so AVAudioSession keeps its ~23 ms playback default. The library overrode the
+buffer on one platform and overrode it toward hard real time. Now `Shared` +
+`None` → 26.7 ms; 38.2 % → 19.4 % CPU at 1.5×, and Juan signed it off by ear.
+
+Two things worth not re-deriving. **The preemption rate did not change** (46.2/s
+before and after) — the deadline was the defect, so pinning to a big core or
+raising priority would have chased the symptom. And **a debug build lies about
+DSP cost**: it put the vocoder at ~3.5 points of a core because the thread was
+already saturated by unoptimized everything-else; a release build put it at ~29.
+Cost DSP work on release builds only. The two workarounds retired with it: `keepPitch` defaults
 to **on** again, and the shape summary's pitch chip inverted back to
 "pitch off". Checked before patching: 0.13.3 and the 2026-08-22 nightly both
 still carry the identical stretcher.
