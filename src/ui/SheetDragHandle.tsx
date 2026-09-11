@@ -10,8 +10,6 @@ import {
 
 import { useAppTheme, withAlpha } from '@portfolio/core';
 
-import { COMPOSE_SHEET_HANDLE_BOX } from './sheetMetrics';
-
 /**
  * A Compose bottom sheet's drag handle, drawn as CONTENT rather than taken from
  * `BottomSheetDefaults` — so it does not ripple.
@@ -66,7 +64,7 @@ import { COMPOSE_SHEET_HANDLE_BOX } from './sheetMetrics';
 export const SHEET_DRAG_HANDLE = {
   width: 32,
   height: 4,
-  box: COMPOSE_SHEET_HANDLE_BOX,
+  box: 48,
   alpha: 0.4,
 } as const;
 
