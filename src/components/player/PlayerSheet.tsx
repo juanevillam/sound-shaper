@@ -209,6 +209,29 @@ const MINI_COPY_GAP = FLOATING_COPY_GAP;
  * not by quietly editing one of the two widths above.
  */
 const MINI_GLYPH_TRAILING_BEARING = 1.33;
+
+/**
+ * AIR BETWEEN THE COPY AND THE TRANSPORT — the copy's own trailing inset, and
+ * the reason it is not zero.
+ *
+ * The copy column is `flex: 1` up to the first button, so a title or subtitle
+ * long enough to truncate puts its ELLIPSIS on the button box's edge. The only
+ * thing between the two is that box's slack around its glyph —
+ * `(MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2`, 6.33 — plus the backward
+ * glyph's own leading bearing. Band-scanned on the A54: a subtitle that
+ * truncated mid-word left 16.00dp of air, and the column's edge sits 8.24dp
+ * from the glyph's ink, which is what a title that fills the column gets.
+ * Juan read that as the ellipsis crowding the buttons, on both platforms.
+ *
+ * It takes `BANNER_INSET` — the SAME air the artwork gives the copy on the
+ * leading side — so the copy sits in a band with equal room either side
+ * instead of being squeezed against the controls. The rendered gap to the
+ * glyph's ink is that plus the box slack, which lands near
+ * `MINI_TRAILING_GLYPH_INSET`; the two are the same argument seen from
+ * opposite ends of the glyph cluster, and neither is derived from the other
+ * because the bearings differ per symbol.
+ */
+const MINI_COPY_TRAILING_GAP = BANNER_INSET;
 // The row's own padding is then whatever gets the glyph there, so changing the
 // button box can't quietly move it.
 const MINI_ROW_PADDING_RIGHT =
@@ -1557,7 +1580,14 @@ const styles = StyleSheet.create({
     marginLeft: BANNER_INSET,
     width: MINI_ART_SIZE,
   },
-  idleInfo: { flex: 1, gap: MINI_COPY_GAP, paddingLeft: BANNER_INSET },
+  idleInfo: {
+    flex: 1,
+    gap: MINI_COPY_GAP,
+    paddingLeft: BANNER_INSET,
+    // The idle banner IS the loaded one, parked — it truncates the same names
+    // against the same controls and cannot crowd them differently.
+    paddingRight: MINI_COPY_TRAILING_GAP,
+  },
   container: {
     bottom: 0,
     left: 0,
@@ -1609,7 +1639,9 @@ const styles = StyleSheet.create({
     // between artwork and title — the same inset again.
     paddingLeft: BANNER_INSET + MINI_ART_SIZE + BANNER_INSET,
   },
-  miniInfo: { gap: MINI_COPY_GAP },
+  // `paddingRight`, not a row `gap`: the buttons must stay flush to the row's
+  // own trailing padding, which is solved against the LAST glyph's edge.
+  miniInfo: { gap: MINI_COPY_GAP, paddingRight: MINI_COPY_TRAILING_GAP },
   // The banner exists to say WHAT IS PLAYING, so the title is its anchor —
   // weighted like the expanded player's, one step down the scale.
   miniTitle: { fontWeight: '600' },
