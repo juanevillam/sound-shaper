@@ -25,9 +25,10 @@ import { type TransportGlyphProps } from './TransportGlyphs';
  * Apple's corner rounding and optical balance, and it cannot follow the system
  * as those symbols change.
  *
- * WHY A BARE `Image` AND NOT `AppIcon`. Same reason `BarIconButton.ios` gives:
- * `AppIcon` takes no size in the shape this needs, and these want an explicit
- * point size per surface. The symbol names are duplicated here rather than
+ * WHY A BARE `Image` AND NOT `AppIcon`: `AppIcon` takes no size in the shape
+ * this needs, and these want an explicit point size per surface. (This used to
+ * cite `BarIconButton.ios` for the same reason — that component is gone, so
+ * the reason is stated here rather than pointed at.) The symbol names are duplicated here rather than
  * imported because `AppIcon`'s map is keyed by Material names — going through
  * it would mean naming a Material icon to get an Apple one.
  *

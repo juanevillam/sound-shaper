@@ -9,7 +9,15 @@ import { Vibration } from 'react-native';
 // both platforms', which is exactly how that shipped.
 
 // Light UI ticks — brief pulses for discrete one-off choices.
-const SELECTION_MS = 8; // a saved clip, a picked preset
+//
+// NOT AN EQ PRESET, which is the one discrete choice in this app that
+// deliberately stays silent — walked on device 2026-08-28 and left that way on
+// purpose: the Shape sheet's whole job is to make you listen, and a tap in the
+// hand at the moment the curve changes competes with the thing you are there
+// to judge. This line named a picked preset as a case for months while the iOS
+// twin documented the opposite; a decision that lives on one twin only is a
+// decision the next session re-derives.
+const SELECTION_MS = 8; // a saved clip, a trimmed clip's handles
 const MEDIUM_MS = 12; // a committed action — deleting a sound
 
 // Reorder (drag) feedback is a touch firmer than the UI ticks above so a drag
@@ -20,7 +28,8 @@ const DRAG_MOVE_MS = 11;
 const DRAG_DROP_PATTERN = [0, 14, 30, 20]; // [wait, buzz, gap, buzz]
 
 export const haptics = {
-  /** Light tick for a discrete choice: tab switch, segmented toggle, pick. */
+  /** Light tick for a discrete choice: a saved clip, a trimmed clip's handles.
+   *  Not an EQ preset — see above. */
   selection: () => Vibration.vibrate(SELECTION_MS),
   /** A committed action: deleting a sound. */
   medium: () => Vibration.vibrate(MEDIUM_MS),
