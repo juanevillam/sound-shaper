@@ -32,7 +32,13 @@ struct LibrarySnapshot: Decodable {
   let version: Int
   let strings: [String: String]
   let items: [SnapshotItem]
-  let updatedAt: Double
+
+  // NOTHING ELSE. Every field declared here is one the widget DRAWS, and that
+  // is a rule rather than tidiness: a field the reader requires and the writer
+  // stopped sending fails the WHOLE decode, and the widget's only symptom is
+  // its empty state. This struct carried an `updatedAt` that nothing read, and
+  // when the writer moved from Swift to TypeScript and quietly dropped it, both
+  // widgets went blank with no error anywhere (2026-09-11).
 }
 
 enum SnapshotReader {
