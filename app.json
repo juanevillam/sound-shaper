@@ -16,6 +16,11 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.juanevillam.soundshaper",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.juanevillam.soundshaper"
+        ]
+      },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -33,6 +38,7 @@
     },
     "plugins": [
       "../../plugins/with-strip-apple-signin",
+      "@bacons/apple-targets",
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
