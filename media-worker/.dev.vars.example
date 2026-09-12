@@ -1,0 +1,4 @@
+# Local secrets for `wrangler dev`. Copy to `.dev.vars` (gitignored) and fill.
+# In production these are set with `wrangler secret put <NAME>`, never committed.
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=

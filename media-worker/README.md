@@ -1,0 +1,126 @@
+# media-worker
+
+A single-purpose Cloudflare Worker: **delete the authenticated caller's own
+Cloudinary assets**. Nothing else.
+
+It exists because Cloudinary's destroy calls need the API **secret**, which
+cannot ship in the app. Firebase Cloud Functions were the old plan but require
+the Blaze plan; this Worker runs on Cloudflare's free tier instead — well
+inside it, since Cloudflare bills neither subrequests (the Cloudinary and
+Google JWK calls) nor duration, and the only CPU spent is one RS256 verify.
+
+## One source, two deployments
+
+Topper and Sound Shaper sit on **different Firebase projects**, and the ID
+token's `aud`/`iss` are checked against `FIREBASE_PROJECT_ID` — so one instance
+could not verify both. `wrangler.jsonc` therefore defines two **environments**
+off this one codebase rather than forking it: two copies of a token verifier is
+precisely the duplication `scripts/shared-code-audit.mjs` exists to catch.
+
+| env            | Worker                      | Firebase project | media root     |
+| -------------- | --------------------------- | ---------------- | -------------- |
+| `topper`       | `topper-media-worker`       | `topper-da7db`   | `topper/items` |
+| `sound-shaper` | `sound-shaper-media-worker` | `sound-shaper`   | `sound-shaper` |
+
+`MEDIA_FOLDER_ROOT` **must** equal the owning app's `cloudinary/folders.ts`
+root.
+
+**Always pass `--env`.** `vars` are not inherited by named environments, and
+nothing is defined at the top level, so a bare `wrangler deploy` produces a
+Worker with no `FIREBASE_PROJECT_ID`: every token fails `bad-aud` and it
+deletes nothing. That mistake fails CLOSED, on purpose.
+
+## What it does
+
+Two POST routes, matching each app's `callBackend` wire (`{ data }` in, `200
+{ result }` out, `Authorization: Bearer <Firebase ID token>`):
+
+| Route             | Body                         | Action                                                 |
+| ----------------- | ---------------------------- | ------------------------------------------------------ |
+| `/cleanupMyMedia` | `{}`                         | Delete every asset under `{root}/{uid}/`.              |
+| `/destroyMyAsset` | `{ publicId, resourceType }` | Delete that one asset, if it's under the uid's prefix. |
+
+### Both resource types, always
+
+Cloudinary keys its Admin API by resource type, and **an mp3 is a `video`**
+there (audio is a video with no picture — see Sound Shaper's
+`cloudinary/upload.ts`). A sweep of `image` alone deletes a library's artwork
+and leaves **every audio file** standing, which is the larger half of the
+storage by far.
+
+`cleanupMyMedia` therefore sweeps `image` and `video` unconditionally. Topper
+holds no audio and pays one extra Admin call that returns nothing; the price of
+that is not having to remember to widen this the day an app gains a new media
+kind.
+
+`destroyMyAsset` takes the type from the caller, because only the caller knows
+what it is about to unlink. That is not an ownership hole: the type merely
+picks the endpoint, and **ownership is the prefix check and nothing else**, so
+a caller naming the wrong type deletes nothing rather than something it
+shouldn't.
+
+## Security model (least privilege)
+
+- **Only** holds Cloudinary credentials. **No** database access — so a
+  compromise can only touch assets under a user's own folder.
+- **Auth:** verifies the Firebase ID token (RS256 against Google's public keys,
+  checks `aud`/`iss` against the environment's project and `exp`). Bad/expired
+  token → 401.
+- **Ownership by path:** every app uploads under a per-user prefix
+  `{root}/{uid}/…`. The Worker only ever deletes inside `{root}/{uid}/` for the
+  uid on the verified token — so it never needs Firestore to prove who owns
+  what. A user physically cannot delete another user's asset, even by naming its
+  `publicId`.
+
+## Deploy
+
+Both Workers live in one Cloudflare account, on the free plan.
+
+```sh
+cd services/media-worker
+npm install
+npx wrangler login
+```
+
+Then, **per environment** (the secrets are per-environment too — setting them
+on one does not set them on the other):
+
+```sh
+npx wrangler secret put CLOUDINARY_API_KEY --env topper
+npx wrangler secret put CLOUDINARY_API_SECRET --env topper
+npm run deploy:topper
+```
+
+```sh
+npx wrangler secret put CLOUDINARY_API_KEY --env sound-shaper
+npx wrangler secret put CLOUDINARY_API_SECRET --env sound-shaper
+npm run deploy:sound-shaper
+```
+
+Each deploy prints its URL, e.g.
+`https://topper-media-worker.<your-subdomain>.workers.dev`.
+
+## Wire the apps to it
+
+Set each printed URL as `FUNCTIONS_BASE` in that app's
+`src/services/firebase/functions.ts` (a `<subdomain>` placeholder is there now,
+behind a `TODO(deploy)`). A custom route on your own domain works too.
+
+**Until that is done every call 404s at DNS and dies in the best-effort catch —
+assets simply orphan, and nothing else breaks.** That is the state both apps
+shipped Phase B in.
+
+## Local dev
+
+```sh
+cp .dev.vars.example .dev.vars   # fill in the two Cloudinary values
+npm run dev                      # wrangler dev --env topper
+```
+
+## E2E check, per app
+
+- Replace an item's image / a sound's artwork → the old asset is gone from the
+  Cloudinary Media Library.
+- Delete a sound → both its audio and its artwork are gone.
+- Delete a test account → its `{root}/{uid}/` folder is emptied, **audio
+  included**.
