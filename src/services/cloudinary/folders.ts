@@ -16,7 +16,7 @@
  * destroying arbitrary assets on an authenticated request.
  *
  * Assets uploaded before the move are migrated once by
- * `scripts/migrate-sound-shaper-media.mjs`.
+ * `scripts/migrate-sound-shaper-media.py`.
  *
  * ONE FOLDER FOR BOTH KINDS, audio and artwork together. Cloudinary keys its
  * Admin API by RESOURCE TYPE, not by folder — an mp3 is a `video` there and a
