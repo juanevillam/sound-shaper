@@ -1,4 +1,3 @@
-import { getAuth } from '@react-native-firebase/auth';
 import {
   addDoc,
   collection,
@@ -17,6 +16,7 @@ import {
 
 import { forgetWaveform } from '@/lib/waveform';
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
+import { requireUid } from '@/services/firebase/auth';
 import { deleteClipsOfSound } from '@/services/firebase/clips';
 import {
   SOUNDS_SUBCOLLECTION,
@@ -134,14 +134,6 @@ type SubscribeToSoundsParams = {
    * correction from one is a guess about a past state.
    */
   onNext: (sounds: Sound[], meta: { fromCache: boolean }) => void;
-};
-
-// The library is per-user: users/{uid}/sounds. Every call site runs behind the
-// auth gate, so a missing user is a programmer error worth throwing on.
-const requireUid = (): string => {
-  const uid = getAuth().currentUser?.uid;
-  if (!uid) throw new Error('sounds: no signed-in user');
-  return uid;
 };
 
 const soundsCollection = () =>
