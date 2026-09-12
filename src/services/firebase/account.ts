@@ -14,13 +14,15 @@ import {
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
-import { reported } from '@/services/firebase/crashlytics';
+import { recordError, reported } from '@/services/firebase/crashlytics';
+import { cleanupMyMedia } from '@/services/firebase/functions';
 
 // Account deletion, personal-app scale: a client-side sweep of everything under
 // users/{uid} (each sound's clips, the sounds, the saved shapes, the trophies,
-// the profile doc), then the Auth user itself. Cloudinary media is orphaned —
-// deleting it needs a signed backend call this app deliberately doesn't have
-// (the same accepted gap as deleting a single sound).
+// the profile doc), then the Auth user itself — plus the Cloudinary media,
+// which `services/media-worker` destroys by the caller's own folder prefix.
+// That media used to orphan for want of a signed backend call, while the row's
+// copy promised the library was deleted permanently.
 //
 // Firebase requires a RECENT sign-in for user.delete(); when the session is too
 // old it throws `auth/requires-recent-login`. iOS re-authenticates first (see
@@ -102,11 +104,30 @@ export const deleteAuthAccount = reported(
 );
 
 /**
- * Sweep then delete, with nothing in between — what Android's manage-account
- * screen calls. iOS drives the two halves itself so it can re-authenticate
- * first and revoke Apple tokens in the middle.
+ * Destroy every Cloudinary asset under the caller's own folder — audio and
+ * artwork both. Best-effort: a failure here orphans media exactly as the app
+ * did before the worker existed, and must never stop an account deletion the
+ * person has already confirmed.
+ *
+ * Separate from the Firestore sweep because the worker deletes by PREFIX, not
+ * by enumerating ids out of the documents — so unlike Topper's, it does not
+ * need them to still exist, and the order between the two is a free choice.
+ */
+export const cleanupAccountMedia = async (): Promise<void> => {
+  try {
+    await cleanupMyMedia();
+  } catch (error) {
+    recordError(error, 'account.cleanupMyMedia');
+  }
+};
+
+/**
+ * Media, sweep, then delete, with nothing in between — what Android's
+ * manage-account screen calls. iOS drives the halves itself so it can
+ * re-authenticate first and revoke Apple tokens in the middle.
  */
 export const deleteAccount = async (): Promise<void> => {
+  await cleanupAccountMedia();
   await deleteAccountData();
   await deleteAuthAccount();
 };
