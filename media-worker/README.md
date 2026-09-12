@@ -117,6 +117,54 @@ cp .dev.vars.example .dev.vars   # fill in the two Cloudinary values
 npm run dev                      # wrangler dev --env topper
 ```
 
+## One-time migration, per app — RUN THIS BEFORE TRUSTING ANY SWEEP
+
+Assets uploaded before per-user namespacing carry no `{uid}` segment, so this
+Worker cannot reach them at all. **Both apps have them**, and neither set is
+disposable test data:
+
+| app            | where they actually are | count                    |
+| -------------- | ----------------------- | ------------------------ |
+| `topper`       | `topper/<id>`           | 23 (the demo-video tops) |
+| `sound-shaper` | `sound-shaper/<id>`     | 40 (a real library)      |
+
+Topper's are the surprise. `useImageUpload` has targeted `topper/items/{uid}`
+since 2026-07-18, but **nothing has been uploaded since** — the newest image
+dates to 2026-07-16 — so they sit at `topper/`, one level ABOVE the root this
+Worker sweeps. Deployed against them it deletes nothing.
+
+`scripts/migrate-media.py` moves both, dry-run by default:
+
+```sh
+python3 scripts/migrate-media.py topper           # DRY RUN
+python3 scripts/migrate-media.py topper --apply
+python3 scripts/migrate-media.py sound-shaper --apply
+```
+
+Read its orphan list — assets no document references are reported and
+deliberately not touched.
+
+## The unsigned presets have never had their folder override exercised
+
+The apps upload with an **unsigned** preset (`topper_unsigned`,
+`sound_shaper_unsigned`), which applies that preset's stored settings — a
+pinned **Folder** among them — alongside the `folder` param the app sends.
+Because both apps' existing assets sit at exactly the folder their preset would
+plausibly pin, AND exactly what the old client param asked for, the observed
+layout cannot distinguish "the param wins" from "the param is ignored".
+
+Settle it before deploying:
+
+```sh
+curl -s -u "$CLOUDINARY_API_KEY:$CLOUDINARY_API_SECRET" \
+  https://api.cloudinary.com/v1_1/juanevillam/upload_presets/sound_shaper_unsigned
+```
+
+Empty `folder` → the param has been doing the work and nothing changes.
+Non-empty → the preset places assets, the `{uid}` never arrives, and uploads
+keep landing flat **with no error**; clear the preset's Folder field in the
+Cloudinary console, or move `upload.ts` from `folder` to `public_id`.
+
 ## E2E check, per app
 
 - Replace an item's image / a sound's artwork → the old asset is gone from the
