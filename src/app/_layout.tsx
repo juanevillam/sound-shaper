@@ -20,6 +20,7 @@ import {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthListener } from '@/hooks/useAuthListener';
+import { useWidgetSync } from '@/hooks/useWidgetSync';
 import { useI18n } from '@/i18n';
 import { SnackbarProvider } from '@/providers/SnackbarProvider';
 import { recordError } from '@/services/firebase/crashlytics';
@@ -70,6 +71,11 @@ export default function RootLayout() {
   const navigationTheme = useNavigationTheme();
 
   useAuthListener();
+  // The Home Screen widget's publisher. It lives at the ROOT rather than under
+  // the authenticated subscriptions because signing out is exactly when it has
+  // work to do — that tree unmounts, and the shared container would keep the
+  // last person's library on the Home Screen.
+  useWidgetSync();
 
   // iOS: mirror the in-app theme override onto UIKit (window
   // overrideUserInterfaceStyle), so NATIVE chrome — nav bars, form sheets,
