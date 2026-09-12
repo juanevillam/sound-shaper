@@ -72,13 +72,25 @@ export const useWidgetPublisher = ({
 
     const timer = setTimeout(() => {
       void (async () => {
-        const { media, snapshot } = await latestBuild.current();
+        try {
+          const { media, snapshot } = await latestBuild.current();
 
-        if (cancelled) return;
+          if (cancelled) return;
 
-        published.current = signature;
+          await publishWidgetSnapshot({ appGroup, media, snapshot });
 
-        await publishWidgetSnapshot({ appGroup, media, snapshot });
+          // Marked published only once it actually is. Marking before the await
+          // would make a failed publish look done, and the signature would have
+          // to change before anything tried again.
+          published.current = signature;
+        } catch (error) {
+          /**
+           * A WIDGET FAILS SILENTLY BY NATURE — it just keeps drawing its last
+           * snapshot, or its empty state — so a throw swallowed here is a bug
+           * with no symptom to follow. Say it out loud.
+           */
+          console.warn('[widget-bridge] publish failed', error);
+        }
       })();
     }, settleMs);
 
