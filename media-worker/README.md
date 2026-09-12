@@ -144,26 +144,28 @@ python3 scripts/migrate-media.py sound-shaper --apply
 Read its orphan list — assets no document references are reported and
 deliberately not touched.
 
-## The unsigned presets have never had their folder override exercised
+## The unsigned presets — settled 2026-09-12
 
-The apps upload with an **unsigned** preset (`topper_unsigned`,
-`sound_shaper_unsigned`), which applies that preset's stored settings — a
-pinned **Folder** among them — alongside the `folder` param the app sends.
-Because both apps' existing assets sit at exactly the folder their preset would
-plausibly pin, AND exactly what the old client param asked for, the observed
-layout cannot distinguish "the param wins" from "the param is ignored".
+The apps upload with an **unsigned** preset, which applies that preset's stored
+settings alongside the `folder` param the app sends. Both are now configured so
+the app's param is the only thing placing assets:
 
-Settle it before deploying:
+| preset                  | Folder | Transformation                 |
+| ----------------------- | ------ | ------------------------------ |
+| `sound_shaper_unsigned` | none   | none                           |
+| `topper_unsigned`       | none   | `c_limit,w_2048,h_2048,q_auto` |
 
-```sh
-curl -s -u "$CLOUDINARY_API_KEY:$CLOUDINARY_API_SECRET" \
-  https://api.cloudinary.com/v1_1/juanevillam/upload_presets/sound_shaper_unsigned
-```
+`topper_unsigned` pinned `topper` until 2026-09-12, which is why all of that
+app's assets sit at `topper/<id>` — the client param never had a chance. It was
+cleared. Sound Shaper's was already empty, and its assets landing at
+`sound-shaper/` is the proof the param works.
 
-Empty `folder` → the param has been doing the work and nothing changes.
-Non-empty → the preset places assets, the `{uid}` never arrives, and uploads
-keep landing flat **with no error**; clear the preset's Folder field in the
-Cloudinary console, or move `upload.ts` from `folder` to `public_id`.
+**Don't put an incoming transformation on `sound_shaper_unsigned`.** It is ONE
+preset for both covers (`image`) and mp3s (`video` — audio is a video with no
+picture), an incoming transformation is applied before storing, and `q_auto` on
+a video resource re-encodes. Capping cover art that way would silently transcode
+every sound. Topper's preset is images-only, so it keeps the cap; if Sound
+Shaper ever wants one, it takes a second preset picked by resource type.
 
 ## E2E check, per app
 
