@@ -214,6 +214,47 @@ platform extensions. Restart Metro with `--clear`.
 installed an empty pod directory. See
 [`dev-workflow.md`](dev-workflow.md).
 
+## Widgets, and what the free team turned out to allow
+
+Both Topper and Sound Shaper ship a Home Screen widget as an app extension with
+its own bundle id (`com.juanevillam.<app>.widget`), built by
+`@bacons/apple-targets` from `apps/<app>/targets/widget`.
+
+**APP GROUPS WORK ON THE FREE PERSONAL TEAM.** This was the open question before
+the first device build and the answer is yes: `xcodebuild … -allowProvisioningUpdates`
+minted profiles for BOTH the app and the extension, each carrying
+`com.apple.security.application-groups`, with no paid membership. Verified on the
+built `.app` (2026-09-11):
+
+```bash
+codesign -d --entitlements - <App>.app/PlugIns/<Name>.appex | grep -A3 application-groups
+```
+
+**Nor did the extension's app id trip the 3-app device limit.** Four ids are now
+provisioned for this device (two apps, two widgets) and installs succeed. The
+7-day profile clock is unchanged and applies to the widget's profile too, so
+BOTH expire together and a rebuild re-mints both.
+
+**The SIMULATOR runs widgets** — gallery, Home Screen, Control Center — and its
+ad-hoc signing resolves App Groups with no portal capability at all. That makes
+the whole widget loop a simulator loop. Two things only a device (or a switched
+Home Screen) shows: the **Tinted / Clear** appearances, and the widget's real
+geometry on hardware.
+
+Inspecting a simulator's shared container is the fastest way to tell "the app
+never published" from "the widget cannot read":
+
+```bash
+BASE=~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Shared/AppGroup
+for d in $BASE/*/; do
+  id=$(plutil -extract MCMMetadataIdentifier raw "$d.com.apple.mobile_container_manager.metadata.plist" 2>/dev/null)
+  [ "$id" = "group.com.juanevillam.soundshaper" ] && echo "$d" && ls -la "$d"
+done
+```
+
+A container holding `snapshot.json` + `media/` means the app's half works and
+anything still wrong is the reader's.
+
 ## Disk
 
 A full set of iOS builds is expensive: DerivedData reached **28 GB** for three
