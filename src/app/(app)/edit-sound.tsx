@@ -36,8 +36,7 @@ import {
 } from '@/services/firebase/sounds';
 import { takePendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
-import { useProfileStore } from '@/store/profile';
-import { nextAppendPosition, useSoundsStore } from '@/store/sounds';
+import { nextLeadPosition, useSoundsStore } from '@/store/sounds';
 
 // Strip the extension for the name prefill when the file had no ID3 title.
 const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
@@ -229,11 +228,9 @@ function EditSoundSheetScreen() {
       await createSound({
         artist: trimmedArtist,
         cover: picked,
-        // The END of the grid — an upload never displaces an order somebody
-        // arranged by hand. See `nextAppendPosition`.
-        position: nextAppendPosition(
-          useProfileStore.getState().profile?.addTilePosition ?? null,
-        ),
+        // The FRONT of the grid — the sound you just added is the one you
+        // want to see. See `nextLeadPosition`.
+        position: nextLeadPosition(),
         // The file's own picture is a DEFAULT, not a fact: removing it in the
         // sheet has to stop it being uploaded at all, not upload it and hide
         // it.
