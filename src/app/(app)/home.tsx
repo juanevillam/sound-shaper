@@ -9,7 +9,7 @@ import {
   useHeaderScroll,
 } from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Animated, {
   useAnimatedRef,
   useReducedMotion,
@@ -257,6 +257,29 @@ export default function HomeScreen() {
     },
     [playSound, requestExpand, sounds],
   );
+
+  /**
+   * A COVER TAPPED ON THE HOME SCREEN WIDGET.
+   *
+   * The widget links to `soundshaper://home?play=<id>`, and the library it
+   * drew is a snapshot that may be older than this session — so the id is
+   * matched against the live store and simply ignored when it names a sound
+   * that has since been deleted. On a cold start the grid has not arrived
+   * yet; the effect re-runs when it does.
+   */
+  const { play } = useLocalSearchParams<{ play?: string }>();
+  const handledPlay = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!play || handledPlay.current === play) return;
+
+    const sound = sounds.find(candidate => candidate.id === play);
+
+    if (!sound) return;
+
+    handledPlay.current = play;
+    onPressSound(sound);
+  }, [onPressSound, play, sounds]);
 
   const firstLoad = lab ? labState === 'skeleton' : !hasSettled;
   const error = lab ? labState === 'error' : rawError;
