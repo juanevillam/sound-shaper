@@ -9,7 +9,7 @@ import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 export default [
   // Global ignores. Flat-config minimatch patterns are relative to this file,
   // so they must be globstar to also cover apps/* subtrees (CNG prebuild
-  // output, .expo caches, build artifacts like functions/lib). A standalone
+  // output, .expo caches, build artifacts). A standalone
   // `ignores` object applies to every subsequent config block.
   {
     ignores: [
@@ -17,7 +17,6 @@ export default [
       '**/android/**',
       '**/ios/**',
       '**/build/**',
-      '**/functions/lib/**',
       '**/.expo/**',
       // Astro's generated content/route types — written by `astro check` (which
       // `npm run typecheck` runs), gitignored, and not ours to lint.
