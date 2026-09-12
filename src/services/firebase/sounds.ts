@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -22,7 +23,15 @@ import {
   SOUNDS_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
-import { reported, reportedOnError } from '@/services/firebase/crashlytics';
+import {
+  recordError,
+  reported,
+  reportedOnError,
+} from '@/services/firebase/crashlytics';
+import {
+  destroySoundArt,
+  destroySoundAudio,
+} from '@/services/firebase/functions';
 
 export type Sound = {
   album: string;
@@ -153,6 +162,37 @@ const soundDoc = (soundId: string) =>
     soundId,
   );
 
+/**
+ * Destroy a sound's Cloudinary assets — best-effort, and BEFORE the document
+ * that names them goes away, since the document is the only thing that knows
+ * their public ids.
+ *
+ * Each failure is swallowed on its own so one dead call cannot strand the
+ * other asset, and neither can fail the delete the person actually asked for:
+ * an orphan is the pre-worker status quo, an aborted delete is a new defect.
+ */
+const destroySoundMedia = async ({
+  artPublicId,
+  audioPublicId,
+}: {
+  artPublicId: string;
+  audioPublicId: string;
+}): Promise<void> => {
+  if (audioPublicId)
+    try {
+      await destroySoundAudio(audioPublicId);
+    } catch (error) {
+      recordError(error, 'sounds.destroySoundAudio');
+    }
+
+  if (artPublicId)
+    try {
+      await destroySoundArt(artPublicId);
+    } catch (error) {
+      recordError(error, 'sounds.destroySoundArt');
+    }
+};
+
 const soundToModel = (snapshot: QueryDocumentSnapshot): Sound => {
   const data = snapshot.data();
   const createdAt = data.createdAt as Timestamp | undefined;
@@ -273,7 +313,14 @@ export const createSound = reported(
   },
 );
 
-/** Update a sound's metadata (the audio file itself never changes). */
+/**
+ * Update a sound's metadata (the audio file itself never changes).
+ *
+ * REPLACING OR CLEARING THE COVER DESTROYS THE OLD ONE FIRST — it used to
+ * strand it, the same accepted gap deleting a sound had, and the same worker
+ * closes both. Only `cover !== undefined` means the artwork is being touched,
+ * so a plain rename still costs no extra read.
+ */
 export const updateSound = reported(
   'sounds.updateSound',
   async ({
@@ -284,7 +331,21 @@ export const updateSound = reported(
     releaseYear,
     soundId,
   }: UpdateSoundParams): Promise<void> => {
-    await updateDoc(soundDoc(soundId), {
+    const ref = soundDoc(soundId);
+
+    if (cover !== undefined) {
+      const previous =
+        ((await getDoc(ref)).data()?.artPublicId as string) ?? '';
+
+      if (previous && previous !== cover?.publicId)
+        try {
+          await destroySoundArt(previous);
+        } catch (error) {
+          recordError(error, 'updateSound.destroySoundArt');
+        }
+    }
+
+    await updateDoc(ref, {
       ...(album === undefined ? {} : { album }),
       artist,
       name,
@@ -381,9 +442,12 @@ export const renormalizeSoundPositions = reported(
  * (which finds clips by walking the sounds that still exist). `clips.ts` owns
  * that path and carries the full write-up in `deleteClipsOfSound`.
  *
- * The Cloudinary audio/art assets are still left behind — destroying them
- * needs a signed API call (a backend this app deliberately doesn't have), so
- * orphaned assets are a known gap, same as Topper's pre-Functions state.
+ * THE CLOUDINARY ASSETS GO TOO, which they did not until 2026-09-12: this
+ * deleted the document and left the audio and the artwork standing forever,
+ * with nothing left that could ever name them again. `services/media-worker`
+ * is the signed call this app's docblocks used to say it deliberately didn't
+ * have. Best-effort — an orphan is the old status quo, a delete that refuses
+ * to finish is a new defect.
  *
  * The LOCAL waveform cache is not a gap, though, and used to be: the decoded
  * buckets outlived the document they describe, with nothing left that could
@@ -394,8 +458,17 @@ export const renormalizeSoundPositions = reported(
 export const deleteSound = reported(
   'sounds.deleteSound',
   async (soundId: string): Promise<void> => {
+    const ref = soundDoc(soundId);
+    const snapshot = await getDoc(ref);
+    const data = snapshot.data();
+
+    await destroySoundMedia({
+      artPublicId: (data?.artPublicId as string) ?? '',
+      audioPublicId: (data?.audioPublicId as string) ?? '',
+    });
+
     await deleteClipsOfSound(soundId);
-    await deleteDoc(soundDoc(soundId));
+    await deleteDoc(ref);
     forgetWaveform(soundId);
   },
 );

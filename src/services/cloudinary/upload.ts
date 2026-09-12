@@ -1,5 +1,8 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { userMediaFolder } from '@/services/cloudinary/folders';
+import { requireUid } from '@/services/firebase/auth';
+
 // Media (audio + cover art) lives on Cloudinary, NOT Firebase Storage: Storage
 // requires the Blaze (paid) plan, and this app stays on Spark (free). Same
 // cloud account Topper uses; a dedicated unsigned preset + folder keeps the two
@@ -9,7 +12,6 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 const CLOUD_NAME = 'juanevillam';
 const UPLOAD_PRESET = 'sound_shaper_unsigned';
-const FOLDER = 'sound-shaper';
 // Audio files are far bigger than an image, so the socket needs longer than
 // Topper's 30s image cap before we give up and surface the failure.
 const UPLOAD_TIMEOUT_MS = 120_000;
@@ -28,12 +30,20 @@ type ResourceType = 'image' | 'video';
 // Expo's WinterCG implementation, whose FormData converter rejects RN's
 // `{ uri, name, type }` file part. `uploadAsync` streams the file natively and
 // sidesteps that (see [[expo-winter-fetch-formdata-upload]]).
+//
+// THE FOLDER IS READ HERE, NOT PASSED IN. Every asset goes to
+// `sound-shaper/{uid}/`, and that uid must equal the one the media worker
+// derives from the caller's ID token — path IS ownership there. Taking it from
+// the same `requireUid` every data path uses makes the two agree by
+// construction; threading it through `createSound` and the cover picker would
+// be two chances for them to disagree.
 const uploadFile = async (
   uri: string,
   resourceType: ResourceType,
   mimeType: string,
 ): Promise<CloudinaryAsset> => {
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+  const folder = userMediaFolder(requireUid());
 
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -48,7 +58,7 @@ const uploadFile = async (
       fieldName: 'file',
       httpMethod: 'POST',
       mimeType,
-      parameters: { upload_preset: UPLOAD_PRESET, folder: FOLDER },
+      parameters: { upload_preset: UPLOAD_PRESET, folder },
       uploadType: FileSystem.FileSystemUploadType.MULTIPART,
     }),
     timeout,

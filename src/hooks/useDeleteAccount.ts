@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { getAuth } from '@react-native-firebase/auth';
 
 import {
+  cleanupAccountMedia,
   deleteAccountData,
   deleteAuthAccount,
 } from '@/services/firebase/account';
@@ -22,15 +23,18 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *     This is also iOS's answer to the friction Android spends on a countdown:
  *     Apple escalates a consequential action by asking who you are, not by
  *     making you wait.
- *  2. Sweep every Firestore trace (`deleteAccountData`).
- *  3. Revoke Apple tokens with the reauth's authorizationCode (App Store
+ *  2. Destroy every Cloudinary asset under the caller's own folder — audio
+ *     and artwork both, via `services/media-worker`. Best-effort.
+ *  3. Sweep every Firestore trace (`deleteAccountData`).
+ *  4. Revoke Apple tokens with the reauth's authorizationCode (App Store
  *     5.1.1(v)) — best-effort, and only when Apple was the provider, which
  *     cannot happen while `APPLE_SIGN_IN_ENABLED` is false.
- *  4. Delete the Auth user.
+ *  5. Delete the Auth user.
  *
- * CLOUDINARY MEDIA IS NOT TOUCHED and that is the known, accepted gap: deleting
- * it needs a signed backend call this app deliberately doesn't have (the same
- * gap as deleting a single sound). The audio and artwork orphan.
+ * THE MEDIA USED TO ORPHAN, and this docblock used to say so: destroying it
+ * needs a signed call the app didn't have, so the audio and artwork outlived
+ * the account while the row's own copy promised otherwise. The worker closes
+ * it, and the same one closes the single-sound and cover-replace doors.
  *
  * Throws on any non-best-effort failure so the sheet can surface it; a partial
  * run is safe to retry, since every step no-ops on what is already gone.
@@ -38,6 +42,8 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
 export const useDeleteAccount = () =>
   useCallback(async () => {
     const { appleAuthorizationCode } = await reauthenticateForDeletion();
+
+    await cleanupAccountMedia();
 
     await deleteAccountData();
 
