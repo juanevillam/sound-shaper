@@ -84,9 +84,10 @@ ID3 tag and nowhere else, so a sound without one showed a permanent placeholder
 — wrong for a library that takes any MP3. `expo-image-picker` (native: needs a
 prebuild) plus `hooks/useCoverPicker` give the editor a real picker, in Topper's
 two-step deferred shape: picking is cheap and reversible, the upload waits for
-save, so cancelling never orphans a Cloudinary asset this app has no signed call
-to delete. Replacing a cover DOES orphan the old one — the same accepted gap
-deleting a sound has.
+save, so cancelling never leaves a Cloudinary asset behind at all. Replacing a
+cover used to strand the old one; `updateSound` destroys it now, through the
+same worker that closed the delete-a-sound and delete-an-account doors
+(2026-09-12, Gate 2b).
 
 The disc presses now, so its caption became an ACTION inside the press target in
 the accent ("Add Artwork" / "Change Artwork"), which is exactly Topper's
@@ -937,9 +938,10 @@ snapshot is the only thing that ever says a sound went.
 Measured on a Galaxy A54 against a throwaway document deleted through the real
 `deleteSound` flow on an iOS client: the grid dropped the tile and the player
 carried on from a **`404`** — transport live, Shape / Clips / Edit live, audio
-still streaming, because **the Cloudinary asset outlives the document** (the
-orphan gap below, which is what makes a ghost audible rather than a dead
-stream). The queue kept it too, via `?? queued`, so seven `next` presses
+still streaming, because **the Cloudinary asset outlived the document** (the
+orphan gap that was open when this was measured — closed 2026-09-12, so the
+ghost is now a dead stream rather than an audible one, which changes nothing
+about the teardown this paragraph is about). The queue kept it too, via `?? queued`, so seven `next` presses
 wrapped the library and landed back on the deleted sound.
 
 Both roads share `clearedForMissing` now, so they cannot drift; the queue drops
@@ -967,9 +969,9 @@ kept PRODUCING OUTPUT from one.
 **Confirmed still intentional, so nobody re-opens them:** `subscribeToSounds`
 is unbounded (capping hides someone's own library; the honest fix is paging),
 `upsertOwnProfile`'s one extra `getDoc` per sign-in (Firestore has no
-set-if-absent for a field), and the Cloudinary orphans on delete, on cover
-replace and on account deletion — all three doors documented at their own
-sites, and nothing has widened them.
+set-if-absent for a field). The three Cloudinary orphan doors it listed
+alongside them — delete a sound, replace a cover, delete an account — are
+CLOSED as of 2026-09-12; each site carries its own note.
 
 **`lib/waveform.ts` downloading the whole mp3 is FINE, and was checked.** It is
 reached only from `ClipTrimEditorIos`, so only while the `clip-trim` sheet is
@@ -1084,9 +1086,22 @@ player.
 **No Firebase Storage, no Cloud Functions** — both need the Blaze (paid) plan,
 and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
 `juanevillam` as Topper, unsigned preset `sound_shaper_unsigned`,
-`src/services/cloudinary/`). Consequence: Cloudinary deletion needs a signed
-backend call we don't have, so deleting a song/playlist orphans its Cloudinary
-assets (a known gap, exactly Topper's pre-Functions state).
+`src/services/cloudinary/`), under a PER-USER folder `sound-shaper/{uid}/`.
+
+**Deleting from Cloudinary needs the API secret, which cannot ship in an app —
+`services/media-worker` holds it instead** (a Cloudflare Worker on the free
+plan, shared with Topper as a second environment). It proves ownership from the
+upload path alone: it only ever deletes inside `{root}/{uid}/` for the uid on a
+verified Firebase ID token, so it needs no database access. That is why the
+folder gained its `{uid}` segment on 2026-09-12 — flat, there was nothing to
+delete by. `scripts/migrate-sound-shaper-media.py` moved the existing library.
+
+**It is written but NOT DEPLOYED**, in this app or in Topper: both
+`FUNCTIONS_BASE` values still carry a `<subdomain>` placeholder behind a
+`TODO(deploy)`, so every call 404s at DNS and dies in its best-effort catch and
+media still orphans in practice. Gate 2b of
+[`../../docs/phase-c-release.md`](../../docs/phase-c-release.md) carries the
+remaining steps.
 
 Playback runs on **react-native-audio-api** (expo-audio is gone from the
 player): a streaming `<Audio>` element routed through a Web-Audio shaping
@@ -1187,9 +1202,9 @@ falls back to is each platform's own art-less placeholder — what Music and
 Podcasts show, and what this app already showed for a sound that never had a
 cover, so both cover-less cases finally agree.
 
-Deliberate gaps, in build order: Cloudinary media on account deletion (the
-audio and artwork orphan — deleting them needs a signed backend call this app
-doesn't have, the same accepted gap as deleting a single song).
+Account deletion now sweeps the Cloudinary media too — `cleanupAccountMedia`
+before the Firestore sweep, best-effort. It was the last of the three orphan
+doors; see the worker note above for what is still un-deployed.
 
 **Account deletion is `hooks/useDeleteAccount` on iOS** — re-auth FIRST, then the
 Firestore sweep, then the Apple token revoke, then the Auth user. Android calls
