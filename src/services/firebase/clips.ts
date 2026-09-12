@@ -1,4 +1,3 @@
-import { getAuth } from '@react-native-firebase/auth';
 import {
   addDoc,
   collection,
@@ -15,6 +14,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { requireUid } from '@/services/firebase/auth';
 import {
   CLIPS_SUBCOLLECTION,
   SOUNDS_SUBCOLLECTION,
@@ -56,12 +56,6 @@ type SubscribeToClipsParams = {
   onError: (error: Error) => void;
   onNext: (clips: Clip[]) => void;
   soundId: string;
-};
-
-const requireUid = (): string => {
-  const uid = getAuth().currentUser?.uid;
-  if (!uid) throw new Error('clips: no signed-in user');
-  return uid;
 };
 
 const clipsCollection = (soundId: string) =>

@@ -14,6 +14,31 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 const WEB_CLIENT_ID =
   '714853847469-8cngsj4f4q97dtsqp4it81g963480900.apps.googleusercontent.com';
 
+/**
+ * THE SIGNED-IN USER, OR A THROW — the one copy.
+ *
+ * Every data path in this app is per-user (`users/{uid}/…`, and now
+ * `sound-shaper/{uid}/` on Cloudinary), so nearly every service needs this and
+ * three of them had written their own with their own message. A fourth was
+ * about to be written for the upload path, which is the point at which the
+ * duplicate stops being harmless: the uid under which media is STORED and the
+ * uid the media worker derives from the ID token have to be the same value,
+ * and one shared accessor is what makes that true by construction.
+ *
+ * Call sites all run behind the auth gate, so a missing user is a programmer
+ * error worth throwing on rather than a state to handle.
+ */
+export const requireUser = (): FirebaseAuthTypes.User => {
+  const user = getAuth().currentUser;
+
+  if (!user) throw new Error('auth: no signed-in user');
+
+  return user;
+};
+
+/** The signed-in user's uid — the common case of `requireUser`. */
+export const requireUid = (): string => requireUser().uid;
+
 export const configureGoogleSignIn = () => {
   GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
 };

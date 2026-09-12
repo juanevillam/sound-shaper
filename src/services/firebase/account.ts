@@ -1,4 +1,3 @@
-import { getAuth } from '@react-native-firebase/auth';
 import {
   collection,
   deleteDoc,
@@ -7,6 +6,7 @@ import {
   getFirestore,
 } from '@react-native-firebase/firestore';
 
+import { requireUser } from '@/services/firebase/auth';
 import {
   CLIPS_SUBCOLLECTION,
   SHAPES_SUBCOLLECTION,
@@ -25,13 +25,6 @@ import { reported } from '@/services/firebase/crashlytics';
 // Firebase requires a RECENT sign-in for user.delete(); when the session is too
 // old it throws `auth/requires-recent-login`. iOS re-authenticates first (see
 // `hooks/useDeleteAccount`); Android surfaces the error and asks for a retry.
-
-const requireUser = () => {
-  const user = getAuth().currentUser;
-  if (!user) throw new Error('account: no signed-in user');
-
-  return user;
-};
 
 /**
  * EVERY FIRESTORE TRACE OF THE ACCOUNT.
