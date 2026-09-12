@@ -1064,10 +1064,12 @@ drag tick on purpose), the scrubber and trim-frame `onLayout` widths (genuinely
 variable, and they feed gesture math rather than a fetch), and the transport
 anchor re-measuring per expand (equality-guarded, and insets move).
 
-**The build plan is the source of truth:**
-[`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) — scope,
-data model, phases, and the copyright rule (owner hears the full song, the
-public feed plays only the clip preview).
+**This file is the source of truth.** The build plan it was written against was
+retired 2026-09-12, its phases all shipped
+(`git log --follow -- docs/sound-shaper-plan.md` for the history). Its copyright
+rule survives in the only form that outlived the 2026-07-18 zero-social pivot:
+**every upload is strictly personal, and nothing a person uploads is reachable
+by anyone else.** There is no public feed to shield, and no preview clip.
 
 ## Status
 

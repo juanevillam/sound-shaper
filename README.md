@@ -4,9 +4,9 @@ Personal music player with a shapeable sound. Add your own `.mp3`s, read their
 tags, play them, shape them with a 5-band EQ and a playback speed, and clip the
 parts worth replaying. Your library is yours alone — there is no social module.
 
-See [`../../docs/sound-shaper-plan.md`](../../docs/sound-shaper-plan.md) for the
-full build plan, data model, and phased milestones, and
-[`AGENTS.md`](AGENTS.md) for the product and UX standards this app is held to.
+See [`AGENTS.md`](AGENTS.md) for the product and UX standards this app is held
+to, its data layer and what it caches; the build plan it shipped against was
+retired 2026-09-12 (`git log --follow -- docs/sound-shaper-plan.md`).
 
 ## Develop
 
