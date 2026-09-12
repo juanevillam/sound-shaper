@@ -5,6 +5,51 @@ task proposes one of these, the answer is "already run, here's the verdict" —
 link this file instead of rebuilding. (Some verdicts also live as in-code
 comments; this is the one-stop list.)
 
+## Now Playing and Clips WIDGETS for Sound Shaper — REJECTED 2026-09-11, product call
+
+Proposed alongside the Library widget that shipped. Juan took Library only.
+
+**Now Playing** also had an argument against it beyond taste: the app already
+publishes `MPNowPlayingInfoCenter` (that is what the `PlaybackNotification.mm`
+overlay is for), so iOS draws a now-playing surface on the Lock Screen and the
+Dynamic Island already. A widget doing it again puts two of them on one screen.
+The same reasoning killed a Live Activity for playback before it was written.
+
+**Clips** was the most Sound-Shaper-specific idea of the three — tap a saved
+range and it plays from there — and is the one worth revisiting first if widgets
+are ever extended.
+
+## A LARGE TITLE that re-expands on a programmatic scroll — IMPOSSIBLE from JS, measured 2026-09-12
+
+Three probes on iPhone 17 / iOS 26.5, with a live readout wired into the app:
+
+- at rest the scroller sits at **-168**, the expanded title's own inset;
+- asking for -168 while the title is COLLAPSED lands at **0** — the adjusted
+  inset shrinks with the title, so -168 is out of bounds at that moment;
+- an overshoot to -10000 lands at 0 for the same reason, and a two-phase
+  0-then--168 does too. The inset never returns while collapsed.
+
+So the offset cannot go negative from JS and the title only re-arms on a real
+gesture. React Navigation's own `useScrollToTop` issues the identical
+`scrollTo({ y: 0 })`, and Sound Shaper's home already recorded the other half —
+toggling `headerLargeTitle` off and on leaves the bar showing its INLINE title at
+scroll-top until the next scroll. Closing this means not taking the title's inset
+from the scroller at all, which is a change to how that header works.
+
+## A SCROLL-TO-TOP button for Sound Shaper — BUILT AND REMOVED 2026-09-12
+
+Written for both platforms and working — iOS a circular Liquid Glass control in
+the floating family, Android the SMALL Material FAB (the standard 56dp one is a
+screen's primary action, and that screen already has one in the add tile) — then
+removed the same day at Juan's call: not wanted yet.
+
+Worth knowing if it comes back. **On iOS the platform already has this and it is
+not a button**: tapping the STATUS BAR scrolls the top-most scroller to its top,
+which is why Apple's own apps ship no such control; it works here for free, since
+one scroll view on the screen means UIKit picks it without being asked. The
+button was additive to that. What sank it was the large title above — see the
+entry above.
+
 ## The credit roll (Star-Wars-style crawl) — REMOVED 2026-08-19, not wanted
 
 Built, iterated on twice, sim-verified, and removed. **Not a failure and not a
