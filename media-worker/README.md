@@ -102,13 +102,20 @@ Each deploy prints its URL, e.g.
 
 ## Wire the apps to it
 
-Set each printed URL as `FUNCTIONS_BASE` in that app's
-`src/services/firebase/functions.ts` (a `<subdomain>` placeholder is there now,
-behind a `TODO(deploy)`). A custom route on your own domain works too.
+Both are wired as of 2026-09-12:
 
-**Until that is done every call 404s at DNS and dies in the best-effort catch —
-assets simply orphan, and nothing else breaks.** That is the state both apps
-shipped Phase B in.
+| app            | `FUNCTIONS_BASE`                                           |
+| -------------- | ---------------------------------------------------------- |
+| `topper`       | `topper-media-worker.juanesvillamendoza.workers.dev`       |
+| `sound-shaper` | `sound-shaper-media-worker.juanesvillamendoza.workers.dev` |
+
+Re-deploying does not change these; only renaming a Worker or the account's
+workers.dev subdomain would — worth knowing before either ships to a store.
+
+**Before that, both held a `<subdomain>` placeholder, so every call 404'd at
+DNS and died in the best-effort catch** — the apps degraded exactly as designed
+and media orphaned for months while the code read as complete. A backend
+feature is not done when its call site is written.
 
 ## Local dev
 
