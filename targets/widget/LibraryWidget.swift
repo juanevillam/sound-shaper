@@ -155,6 +155,7 @@ struct LibraryWidgetView: View {
     {
       Image(uiImage: image)
         .resizable()
+        .keptInColor()
         .aspectRatio(contentMode: .fill)
     } else {
       // AN ART-LESS BOX TAKES ITS MATERIAL FROM ITS CONTAINER, AND A WIDGET IS
@@ -186,6 +187,34 @@ struct LibraryWidgetView: View {
     }
 
     return String(first).uppercased()
+  }
+}
+
+extension Image {
+  /// A PHOTOGRAPH IS NOT A GLYPH, AND THE TINTED HOME SCREEN TREATS IT AS ONE.
+  ///
+  /// In the accented rendering modes — Home Screen set to Tinted or Clear, and
+  /// the automatic setting that reaches them — WidgetKit re-colours a widget by
+  /// building a mask from its content's ALPHA. That is right for chrome and
+  /// glyphs, and catastrophic for artwork: an opaque cover is alpha-1
+  /// everywhere, so all three covers rendered as SOLID WHITE BLOCKS (found on
+  /// device, 2026-09-11).
+  ///
+  /// `.fullColor` opts the artwork out of the mask, which is what keeps real
+  /// album art in Music's widgets and real photographs in Photos' while their
+  /// surrounding chrome takes the tint. The art-less tile is deliberately NOT
+  /// opted out — it is a fill and a letter, i.e. exactly the chrome that
+  /// treatment was designed for, and it already reads correctly.
+  ///
+  /// iOS 18 API, and the widget's floor is 17, so 17 keeps the flaw rather than
+  /// losing the widget.
+  @ViewBuilder
+  func keptInColor() -> some View {
+    if #available(iOS 18.0, *) {
+      widgetAccentedRenderingMode(.fullColor)
+    } else {
+      self
+    }
   }
 }
 
