@@ -273,6 +273,18 @@ export const translations = {
         appVersion: 'Sound Shaper Version',
       },
     },
+    widget: {
+      // THE HOME SCREEN WIDGET DRAWS NO COPY OF ITS OWN. It is a separate
+      // process and cannot reach this file, so the app resolves these in the
+      // person's language and writes them into the shared snapshot the widget
+      // reads (`useWidgetSync`). The widget's own English constants are a
+      // fallback for the gallery before the app has ever run, nothing more.
+      library: {
+        name: 'Library',
+        description: 'Your sounds, a tap away.',
+        empty: 'No Sounds Yet',
+      },
+    },
     snackbar: {
       'google-sign-in-failed': "Couldn't sign in with Google. Try again.",
       'apple-sign-in-failed': "Couldn't sign in with Apple. Try again.",
@@ -535,6 +547,13 @@ export const translations = {
         appVersion: 'Versión de Sound Shaper',
       },
     },
+    widget: {
+      library: {
+        name: 'Biblioteca',
+        description: 'Tus sonidos, a un toque.',
+        empty: 'Aún no hay sonidos',
+      },
+    },
     snackbar: {
       'google-sign-in-failed':
         'No se pudo iniciar sesión con Google. Vuelve a intentarlo.',
@@ -794,6 +813,13 @@ export const translations = {
       about: {
         title: '关于',
         appVersion: 'Sound Shaper 版本',
+      },
+    },
+    widget: {
+      library: {
+        name: '资料库',
+        description: '你的声音，轻点即可播放。',
+        empty: '还没有声音',
       },
     },
     snackbar: {
