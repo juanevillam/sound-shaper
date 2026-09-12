@@ -2,16 +2,18 @@ import Foundation
 
 /// THE READER HALF OF A WIRE FORMAT WRITTEN TWICE ON PURPOSE.
 ///
-/// The writer is `modules/widget-bridge/ios/WidgetSnapshot.swift`, in the app's
-/// process. Two binaries, two sandboxes, no shared module — so these three
-/// shapes are declared in both places and **a change to one is a change to
-/// both**. Nothing in the toolchain will say so: a mismatch decodes to `nil`
-/// and the widget quietly draws its empty state, which is the correct failure
-/// on a Home Screen but a silent one.
+/// The writer is `src/hooks/useWidgetSync.ts`, in the app's process — the SHAPE
+/// is this app's, and `@portfolio/widget-bridge` only carries it across.
+/// Two binaries, two sandboxes, no shared module, so these shapes are declared
+/// in both places and **a change to one is a change to both**. Nothing in the
+/// toolchain will say so: a mismatch decodes to `nil` and the widget quietly
+/// draws its empty state, which is the correct failure on a Home Screen but a
+/// silent one.
 enum SharedContainer {
   static let appGroup = "group.com.juanevillam.soundshaper"
-  static let snapshotFile = "library.json"
-  static let artworkDirectory = "artwork"
+  // Both names are the package's — see `WidgetSnapshotWriter`.
+  static let snapshotFile = "snapshot.json"
+  static let mediaDirectory = "media"
 }
 
 struct SnapshotItem: Decodable {
@@ -50,7 +52,7 @@ enum SnapshotReader {
   static func artworkPath(_ fileName: String) -> String? {
     FileManager.default
       .containerURL(forSecurityApplicationGroupIdentifier: SharedContainer.appGroup)?
-      .appendingPathComponent(SharedContainer.artworkDirectory, isDirectory: true)
+      .appendingPathComponent(SharedContainer.mediaDirectory, isDirectory: true)
       .appendingPathComponent(fileName)
       .path
   }
