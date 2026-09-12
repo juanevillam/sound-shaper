@@ -1096,12 +1096,14 @@ verified Firebase ID token, so it needs no database access. That is why the
 folder gained its `{uid}` segment on 2026-09-12 — flat, there was nothing to
 delete by. `scripts/migrate-media.py` moved the existing library.
 
-**It is written but NOT DEPLOYED**, in this app or in Topper: both
-`FUNCTIONS_BASE` values still carry a `<subdomain>` placeholder behind a
-`TODO(deploy)`, so every call 404s at DNS and dies in its best-effort catch and
-media still orphans in practice. Gate 2b of
-[`../../docs/phase-c-release.md`](../../docs/phase-c-release.md) carries the
-remaining steps.
+**DEPLOYED 2026-09-12** at
+`sound-shaper-media-worker.juanesvillamendoza.workers.dev`, with its Cloudinary
+secrets set and verified failing closed (405 on GET, 401 without a valid
+Firebase token, 404 on an unknown route). Topper has its own deployment of the
+same source. Until that day both `FUNCTIONS_BASE` values carried a
+`<subdomain>` placeholder, so every call 404'd at DNS and died in its
+best-effort catch — the code was right and the media orphaned anyway, which is
+worth remembering before trusting any backend-touching verdict.
 
 Playback runs on **react-native-audio-api** (expo-audio is gone from the
 player): a streaming `<Audio>` element routed through a Web-Audio shaping
