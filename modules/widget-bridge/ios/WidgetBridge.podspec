@@ -1,8 +1,8 @@
 Pod::Spec.new do |s|
   s.name           = 'WidgetBridge'
-  s.version        = '1.0.0'
-  s.summary        = 'Publishes the library snapshot the Home Screen widget reads.'
-  s.description    = 'Writes the widget snapshot and its cached artwork into the shared App Group container, then asks WidgetKit to reload.'
+  s.version        = '0.0.0'
+  s.summary        = 'Publishes an app snapshot into its shared App Group container.'
+  s.description    = 'Writes an app-defined snapshot and its cached media into the shared App Group container an iOS widget reads, then asks WidgetKit to reload.'
   s.author         = 'juanevillam'
   s.homepage       = 'https://juanevillam.com'
   s.license        = { :type => 'MIT' }

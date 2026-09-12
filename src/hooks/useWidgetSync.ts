@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react';
-
-import { Platform } from 'react-native';
+import {
+  useWidgetPublisher,
+  widgetMediaFile,
+  type WidgetMedia,
+} from '@portfolio/widget-bridge';
 
 import { useI18n } from '@/i18n';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { useAuthStore } from '@/store/auth';
 import { useSoundsStore } from '@/store/sounds';
-
-import WidgetBridge from '../../modules/widget-bridge';
 
 /**
  * HOW MANY SOUNDS THE HOME SCREEN CAN HOLD — the largest family's capacity,
@@ -22,23 +22,16 @@ const WIDGET_CAPACITY = 16;
  */
 const TILE_WIDTH = 96;
 
-/**
- * The grid is DRAGGED, and every intermediate order is a snapshot. Coalesce —
- * the widget only ever needs where the finger stopped.
- */
-const SETTLE_MS = 500;
+const APP_GROUP = 'group.com.juanevillam.soundshaper';
 
 /**
  * PUBLISH THE LIBRARY TO THE HOME SCREEN WIDGET.
  *
- * The widget is a second process with its own sandbox: it holds no Firebase,
- * no session, and no copy. Everything it draws — the order, the artwork, the
- * words — is written here into the shared App Group container, and WidgetKit
- * is asked to reload at the same moment.
- *
- * Signing out CLEARS it. A widget keeps drawing its last snapshot until
- * something replaces it, so somebody else's library sitting on the Home Screen
- * after a sign-out would be a privacy bug rather than a stale cache.
+ * The widget is a second process with its own sandbox: it holds no Firebase, no
+ * session, and no copy. What it draws — the order, the artwork, the words — is
+ * shaped HERE, because the wire format belongs to this app and its widget; the
+ * rules around publishing are `useWidgetPublisher`'s, because those are the
+ * same in every app.
  */
 export const useWidgetSync = () => {
   const { locale, t } = useI18n();
@@ -46,46 +39,43 @@ export const useWidgetSync = () => {
   const hasSettled = useSoundsStore(s => s.hasSettled);
   const isDragging = useSoundsStore(s => s.isDragging);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-  // What was last published, so a re-render that changes nothing the widget
-  // can see does not re-enter the native side.
-  const published = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (Platform.OS !== 'ios' || !WidgetBridge) return;
+  const wanted = sounds.slice(0, WIDGET_CAPACITY);
 
-    if (!isAuthenticated) {
-      published.current = null;
-      void WidgetBridge.clear();
+  useWidgetPublisher({
+    appGroup: APP_GROUP,
+    build: async () => {
+      const media: WidgetMedia[] = [];
+      const items = [];
 
-      return;
-    }
+      for (const sound of wanted) {
+        const url = sound.artUrl ? thumbUrl(sound.artUrl, TILE_WIDTH) : '';
+        const file = url ? await widgetMediaFile(url) : null;
 
-    // Nothing is published before the first snapshot lands: an empty library
-    // and a library nobody has asked for yet look identical from here, and
-    // the second one would flash the widget's empty state on every launch.
-    if (!hasSettled || isDragging) return;
+        if (file && url) media.push({ file, url });
 
-    const items = sounds.slice(0, WIDGET_CAPACITY).map(sound => ({
-      artUrl: sound.artUrl ? thumbUrl(sound.artUrl, TILE_WIDTH) : '',
-      id: sound.id,
-      name: sound.name,
-    }));
+        items.push({ artwork: file, id: sound.id, name: sound.name });
+      }
 
-    const strings = {
-      description: t('widget.library.description'),
-      displayName: t('widget.library.name'),
-      empty: t('widget.library.empty'),
-    };
-
-    const signature = JSON.stringify({ items, locale, strings });
-
-    if (published.current === signature) return;
-
-    const timer = setTimeout(() => {
-      published.current = signature;
-      void WidgetBridge?.syncLibrary(items, strings);
-    }, SETTLE_MS);
-
-    return () => clearTimeout(timer);
-  }, [hasSettled, isAuthenticated, isDragging, locale, sounds, t]);
+      return {
+        media,
+        snapshot: {
+          items,
+          strings: {
+            description: t('widget.library.description'),
+            displayName: t('widget.library.name'),
+            empty: t('widget.library.empty'),
+          },
+          version: 1,
+        },
+      };
+    },
+    // A drag is not a settled order: hold until the finger lifts.
+    ready: hasSettled && !isDragging,
+    signature: JSON.stringify({
+      locale,
+      sounds: wanted.map(sound => `${sound.id}:${sound.artUrl}:${sound.name}`),
+    }),
+    signedIn: isAuthenticated,
+  });
 };

@@ -1,0 +1,15 @@
+{
+  "name": "@portfolio/widget-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "expo-crypto": "*",
+    "react": "*",
+    "expo-modules-core": "*"
+  }
+}
