@@ -174,10 +174,24 @@ a video resource re-encodes. Capping cover art that way would silently transcode
 every sound. Topper's preset is images-only, so it keeps the cap; if Sound
 Shaper ever wants one, it takes a second preset picked by resource type.
 
-## E2E check, per app
+## E2E — Sound Shaper PASSED 2026-09-12 (iPhone 17)
 
-- Replace an item's image / a sound's artwork → the old asset is gone from the
-  Cloudinary Media Library.
-- Delete a sound → both its audio and its artwork are gone.
-- Delete a test account → its `{root}/{uid}/` folder is emptied, **audio
-  included**.
+| check                                      | result                                 |
+| ------------------------------------------ | -------------------------------------- |
+| a new upload lands at `{root}/{uid}/`      | ✅ the app's `folder` param wins       |
+| replacing artwork destroys the old asset   | ✅ 404                                 |
+| deleting a sound destroys BOTH its assets  | ✅ audio AND artwork 404               |
+| deleting a test account empties the prefix | ⬜ NOT YET — needs a throwaway account |
+
+The third row is the one worth keeping: audio is a `video` resource on
+Cloudinary, so an image-only sweep deletes the artwork, leaves every mp3, and
+reports success. Verify the AUDIO, not just the cover.
+
+The fourth is `cleanupMyMedia` and is still unexercised. Same auth and same
+Worker as the proven routes — it differs only in deleting by prefix rather than
+by id — but it is what an app's deletion copy promises, so it has to be run
+against a throwaway account before submission.
+
+**Topper's routes are unexercised too.** Its client is the same `callBackend`
+against the same Worker source, and its migration ran, but nothing has replaced
+or deleted an item image since.
