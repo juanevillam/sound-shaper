@@ -18,13 +18,11 @@ import { requireUser } from '@/services/firebase/auth';
  * flow. Apple token revocation is NOT here — Firebase's managed
  * `getAuth().revokeToken` handles it with no backend of ours.
  */
-// TODO(deploy): replace <subdomain> with the workers.dev subdomain printed by
-// the first `npm run deploy:sound-shaper` in services/media-worker (or point
-// this at a custom route). Until then every call here fails and is swallowed
-// by the best-effort catch — assets just orphan, nothing breaks. Deploy steps:
-// services/media-worker/README.md.
+// Deployed 2026-09-12 from services/media-worker
+// (`npm run deploy:sound-shaper`). Re-deploying does not change this URL; only
+// renaming the Worker or the account's workers.dev subdomain would.
 const FUNCTIONS_BASE =
-  'https://sound-shaper-media-worker.<subdomain>.workers.dev';
+  'https://sound-shaper-media-worker.juanesvillamendoza.workers.dev';
 
 const callBackend = async <T>(name: string, data: unknown = {}): Promise<T> => {
   const token = await requireUser().getIdToken();
