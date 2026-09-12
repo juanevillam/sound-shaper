@@ -1094,7 +1094,7 @@ plan, shared with Topper as a second environment). It proves ownership from the
 upload path alone: it only ever deletes inside `{root}/{uid}/` for the uid on a
 verified Firebase ID token, so it needs no database access. That is why the
 folder gained its `{uid}` segment on 2026-09-12 — flat, there was nothing to
-delete by. `scripts/migrate-sound-shaper-media.py` moved the existing library.
+delete by. `scripts/migrate-media.py` moved the existing library.
 
 **It is written but NOT DEPLOYED**, in this app or in Topper: both
 `FUNCTIONS_BASE` values still carry a `<subdomain>` placeholder behind a
