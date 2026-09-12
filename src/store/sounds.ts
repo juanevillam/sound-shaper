@@ -123,24 +123,34 @@ export const useSoundsStore = create<SoundsState>()((set, get) => ({
 }));
 
 /**
- * Where a NEWLY UPLOADED sound goes: past everything already in the grid,
- * including the add tile, so an upload never displaces an arrangement somebody
- * made by hand.
+ * Where a NEWLY UPLOADED sound goes: the FRONT of the library (Juan,
+ * 2026-09-12).
+ *
+ * It used to append past everything, on the argument that an upload should
+ * never displace an arrangement made by hand. That protected the arrangement
+ * and lost the sound: in a library of any size the thing you just added
+ * appeared off the bottom of the screen, and the first thing you had to do with
+ * it was go looking for it. The tile you just created is the one you want.
+ *
+ * IT IS THE FIRST *SOUND*, NOT THE FIRST CELL, and the add tile is why. That
+ * tile is a control rather than content and it holds a slot in this same order,
+ * so measuring the front against the sounds alone leaves it exactly where it
+ * was parked — including the default, where its position is `null` and the grid
+ * renders it first unconditionally. Prepending past it instead would push it
+ * down by one on every single upload until it was buried.
  *
  * Reads the store directly rather than taking a hook, because both call sites
  * are inside a save handler rather than a render.
  */
-export const nextAppendPosition = (addTilePosition: number | null): number => {
+export const nextLeadPosition = (): number => {
   const positions = useSoundsStore
     .getState()
     .sounds.map(sound => sound.position)
     .filter((position): position is number => position !== null);
 
-  if (addTilePosition !== null) positions.push(addTilePosition);
-
   if (positions.length === 0) return 0;
 
-  // `positionBetween(max, null)` is the append case and cannot fail, but the
+  // `positionBetween(null, min)` is the prepend case and cannot fail, but the
   // signature allows `null` and a `?? ` here beats a non-null assertion.
-  return positionBetween(Math.max(...positions), null) ?? 0;
+  return positionBetween(null, Math.min(...positions)) ?? 0;
 };

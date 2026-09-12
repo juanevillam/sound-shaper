@@ -15,8 +15,16 @@ dropped 2026-07-19).
 **THE GRID IS HAND-ORDERED, IN BOTH DIRECTIONS** (2026-09-11). It used to be
 newest-first and nothing else. Long-press a tile and drag it anywhere — across
 columns as well as down rows — and the ADD TILE is an entry in that order too,
-parked wherever you like rather than pinned first. New uploads append past
-everything.
+parked wherever you like rather than pinned first.
+
+**A NEW UPLOAD LANDS AT THE FRONT** (2026-09-12). It appended for a day, on the
+argument that an upload should never displace an arrangement made by hand. That
+protected the arrangement and lost the sound: in a library of any size the thing
+you just added appeared off the bottom of the screen, and the first thing you
+had to do with it was go looking for it. It is the first _sound_ rather than the
+first cell — the add tile is a control holding a slot in the same order, so the
+front is measured against the sounds alone and that tile stays where it was
+parked instead of being pushed down by one on every upload.
 
 The order is a FRACTIONAL INDEX (`src/lib/gridOrder.ts`, 23 unit tests), and
 the reason is the two-phone case: a move writes ONE document, so two devices
