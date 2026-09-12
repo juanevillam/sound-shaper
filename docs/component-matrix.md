@@ -182,6 +182,27 @@ on `GlassSurfaceIos` over `GLASS_FLOOR`).
 | Topper account-sheet fact rows                       | `LabeledContent`, which STACKS a long value under its label                                                     | an `HStack` (`FormValueRowIos`), one line, middle-truncated — the stack was a text line of layout shift against the redacted state                                                                                                                                                       |
 | Account sheet / trophies / trash loading states      | nothing (account), a false all-locked state (trophies), a hand-built RN bone (trash)                            | the shared `SkeletonBone` bridged INTO the real `Form` / `List` row, one `RNHostView` per row. `redacted('placeholder')` was reached for first and rejected — it is static where every other bone in the app sweeps, and it blanks the label with the value (see `FormDisclosureRowIos`) |
 
+### The widgets (2026-09-11/12) — a target, not a screen
+
+A Home Screen widget is a separate binary, so nothing in it is RN at all: both
+apps' `targets/widget/` are plain SwiftUI. What is worth recording is where each
+one takes an EXISTING portfolio term across the process boundary rather than
+re-deriving it, since it cannot import any of them.
+
+| term                        | how the widget gets it                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `artworkRadius` (0.15)      | restated as a RATIO, never a size — the rule the constant exists to carry                                                                          |
+| `EMPTY_MEDIA_INITIAL_RATIO` | restated (0.42)                                                                                                                                    |
+| `emptyMediaColor`           | **deliberately NOT restated.** systemGray5 measured a channel delta of 6 against a widget's own background; `.fill.tertiary` is container-relative |
+| the copy                    | resolved by the APP and shipped inside the snapshot — the target owns no strings but a gallery fallback                                            |
+| Topper's tile               | `TopRailTile`'s parts (hero cover + name + item count + private badge), redrawn on its side                                                        |
+
+The one control choice with an Android half is Sound Shaper's removed
+scroll-to-top button — iOS a circular `GlassSurfaceIos` in the floating family,
+Android the SMALL Material FAB. Built, then dropped the same day; the reasoning
+is kept in [`rejected-experiments.md`](rejected-experiments.md) in case it
+returns.
+
 ### Staying RN, with the reason
 
 **`@expo/ui`'s SwiftUI `Image` renders SF Symbols and asset-catalog names

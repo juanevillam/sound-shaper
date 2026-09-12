@@ -26,6 +26,21 @@ first cell — the add tile is a control holding a slot in the same order, so th
 front is measured against the sounds alone and that tile stays where it was
 parked instead of being pushed down by one on every upload.
 
+**THE LIBRARY IS ON THE HOME SCREEN TOO** (2026-09-11). `targets/widget/` is a
+covers-only grid that honours this same hand order — which is the whole reason it
+is worth having: it is the person's own arrangement, not "recently played". Small
+holds 4, medium 8, large 16, at a tile size that stays within a few points across
+all three, so growing the widget shows MORE rather than BIGGER. Tapping a cover
+opens `soundshaper://home?play=<id>`, which plays it with the player expanded;
+home matches the id against the live store rather than trusting it, because the
+widget drew a snapshot that may be older than the session. A small widget is one
+tap target — WidgetKit ignores `Link` there — so that size opens the library.
+
+Now Playing and Clips widgets were both proposed and REJECTED (Juan,
+2026-09-11): see [`docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
+The shared plumbing and its traps are `@portfolio/widget-bridge` and the root
+`AGENTS.md`.
+
 The order is a FRACTIONAL INDEX (`src/lib/gridOrder.ts`, 23 unit tests), and
 the reason is the two-phone case: a move writes ONE document, so two devices
 dragging at once merge instead of interleaving into an order neither person
