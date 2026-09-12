@@ -68,6 +68,7 @@ enum WidgetSnapshotWriter {
     }
 
     prune(mediaRoot, keeping: referenced)
+    sweepContainerRoot(root)
 
     try Data(snapshot.utf8).write(
       to: root.appendingPathComponent(snapshotFile), options: .atomic)
@@ -86,6 +87,41 @@ enum WidgetSnapshotWriter {
       at: root.appendingPathComponent(mediaDirectory, isDirectory: true))
 
     WidgetCenter.shared.reloadAllTimelines()
+  }
+
+  /// THE BRIDGE OWNS THIS CONTAINER, AND A FORMAT CHANGE MUST CLEAN UP AFTER
+  /// ITSELF.
+  ///
+  /// An App Group container is created for exactly one purpose and nothing else
+  /// ever cleans it, so a renamed snapshot or media directory would sit there
+  /// forever — which is precisely what happened when the writer moved from
+  /// Swift to TypeScript and `library.json` / `artwork/` were left behind
+  /// (2026-09-11). Enforcing the invariant on every publish means the next
+  /// rename sweeps itself instead of needing a migration nobody will write.
+  ///
+  /// IT IS A WHITELIST, NOT A WIPE, and that matters: iOS puts its OWN
+  /// `Library/` in here — the app group's `UserDefaults` live in
+  /// `Library/Preferences` — and the container's metadata is a dotfile.
+  /// Deleting either would destroy data that is not ours. Only unhidden
+  /// top-level entries that are neither of the two names this file writes are
+  /// removed.
+  private static func sweepContainerRoot(_ root: URL) {
+    guard
+      let entries = try? FileManager.default.contentsOfDirectory(
+        at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+    else { return }
+
+    let ours: Set<String> = [snapshotFile, mediaDirectory]
+    // iOS's, not ours.
+    let system: Set<String> = ["Library"]
+
+    for entry in entries {
+      let name = entry.lastPathComponent
+
+      if ours.contains(name) || system.contains(name) { continue }
+
+      try? FileManager.default.removeItem(at: entry)
+    }
   }
 
   private static func prune(_ directory: URL, keeping referenced: Set<String>) {
