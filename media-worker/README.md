@@ -176,12 +176,12 @@ Shaper ever wants one, it takes a second preset picked by resource type.
 
 ## E2E — Sound Shaper PASSED 2026-09-12 (iPhone 17)
 
-| check                                      | result                                 |
-| ------------------------------------------ | -------------------------------------- |
-| a new upload lands at `{root}/{uid}/`      | ✅ the app's `folder` param wins       |
-| replacing artwork destroys the old asset   | ✅ 404                                 |
-| deleting a sound destroys BOTH its assets  | ✅ audio AND artwork 404               |
-| deleting a test account empties the prefix | ⬜ NOT YET — needs a throwaway account |
+| check                                     | result                                 |
+| ----------------------------------------- | -------------------------------------- |
+| a new upload lands at `{root}/{uid}/`     | ✅ the app's `folder` param wins       |
+| replacing artwork destroys the old asset  | ✅ 404                                 |
+| deleting a sound destroys BOTH its assets | ✅ audio AND artwork 404               |
+| `cleanupMyMedia` sweeps the whole prefix  | ✅ image AND mp3 404, re-run returns 0 |
 
 Topper passed the same first three on 2026-09-12, but only after its
 environment's Cloudinary secrets were re-set: the first run returned
@@ -199,11 +199,20 @@ The third row is the one worth keeping: audio is a `video` resource on
 Cloudinary, so an image-only sweep deletes the artwork, leaves every mp3, and
 reports success. Verify the AUDIO, not just the cover.
 
-The fourth is `cleanupMyMedia` and is still unexercised. Same auth and same
-Worker as the proven routes — it differs only in deleting by prefix rather than
-by id — but it is what an app's deletion copy promises, so it has to be run
-against a throwaway account before submission.
+The fourth was proven WITHOUT deleting an account, and the method generalises:
+enable anonymous auth for two minutes, mint a throwaway user through Identity
+Toolkit REST, upload an image and a real mp3 to `{root}/{throwaway-uid}/` with
+the app's own unsigned preset, then call `/cleanupMyMedia` with that token.
+`destroyed:2`, both 404 after, and a re-run returning 0 — which is also how the
+`partial` pagination loop was shown to drain and stop rather than spin. Delete
+the user and turn Anonymous back off.
 
-**Topper's routes are unexercised too.** Its client is the same `callBackend`
-against the same Worker source, and its migration ran, but nothing has replaced
-or deleted an item image since.
+**A destructive route can often be proven against a prefix nobody owns.** The
+obvious plan was a device build with a throwaway Google account; a token and
+two uploads gave the same evidence with the real library never in scope.
+
+**Topper's `destroyMyAsset` is verified on device too** (replace and delete),
+and it shares this source, so its `cleanupMyMedia` runs the same code Sound
+Shaper's was measured on. What no test covers yet is the REST of account
+deletion — the Firestore sweep ordering and the Apple `revokeToken` — which
+waits on Gate 0.

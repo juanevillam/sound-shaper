@@ -38,8 +38,9 @@ export type Sound = {
   artist: string;
   // Cover art from the file's ID3 tag, uploaded to Cloudinary. Empty when the
   // file carried none (SoundArt then shows the music glyph). `artPublicId` is
-  // kept for a future signed delete (Cloudinary deletion needs a backend, which
-  // this app doesn't have — orphans-on-delete is a known gap).
+  // what `destroySoundArt` names when the cover is replaced or the sound is
+  // deleted — the signed delete this comment used to call a known gap, live
+  // since 2026-09-12 (services/media-worker).
   artPublicId: string;
   artUrl: string;
   audioPublicId: string;
