@@ -183,6 +183,18 @@ Shaper ever wants one, it takes a second preset picked by resource type.
 | deleting a sound destroys BOTH its assets  | ✅ audio AND artwork 404               |
 | deleting a test account empties the prefix | ⬜ NOT YET — needs a throwaway account |
 
+Topper passed the same first three on 2026-09-12, but only after its
+environment's Cloudinary secrets were re-set: the first run returned
+`cloudinary-delete-failed:401` while the app reported a clean delete.
+
+**Verify each environment with a real destroy.** `sound-shaper` worked from its
+first call against the same Cloudinary account, which is precisely what made
+Topper's bad secret invisible — a working sibling makes credentials look proven.
+
+**Diagnosing one of these:** `npx wrangler tail --env <env> --format json`. The
+`wallTime` alone separates the cases — a call rejected before Cloudinary
+returned **71 ms**, a real destroy **891 ms**.
+
 The third row is the one worth keeping: audio is a `video` resource on
 Cloudinary, so an image-only sweep deletes the artwork, leaves every mp3, and
 reports success. Verify the AUDIO, not just the cover.
