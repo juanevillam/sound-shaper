@@ -8,6 +8,7 @@ import {
 
 import { audioEngine } from '@/lib/audioEngine';
 import { bankSoundDuration } from '@/services/firebase/sounds';
+import { useOfflineStore } from '@/store/offline';
 import { usePlayerStore } from '@/store/player';
 
 // ---------------------------------------------------------------------------
@@ -57,12 +58,42 @@ function AudioStateBridge() {
   return null;
 }
 
+/**
+ * WHERE THIS LOAD'S AUDIO COMES FROM — the phone if the mirror has it, the
+ * network otherwise. `useOfflineMirror` keeps the map; this only reads it.
+ *
+ * PINNED PER LOAD, and that is the whole subtlety. The mirror finishes a
+ * download whenever it finishes, and swapping `source` under a playing element
+ * re-mounts it — so a sound that started streaming would restart from 0:00 the
+ * moment its own file landed. The uri is therefore resolved once per
+ * `id#loadNonce`, i.e. exactly when the element is being rebuilt anyway, and
+ * the local copy is picked up by the NEXT load.
+ */
+const usePinnedSource = (
+  soundId: string | undefined,
+  remoteUrl: string | undefined,
+  loadNonce: number,
+): string => {
+  const local = useOfflineStore(s => (soundId ? s.local[soundId] : undefined));
+  const pinned = useRef<{ key: string; uri: string } | null>(null);
+
+  if (!soundId || !remoteUrl) return '';
+
+  const key = `${soundId}#${loadNonce}`;
+  if (pinned.current?.key !== key) {
+    pinned.current = { key, uri: local ?? remoteUrl };
+  }
+
+  return pinned.current.uri;
+};
+
 export function AudioEngine() {
   const current = usePlayerStore(s => s.current);
   const loadNonce = usePlayerStore(s => s.loadNonce);
   const rate = usePlayerStore(s => s.rate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
   const ref = useRef<AudioTagHandle>(null);
+  const sourceUri = usePinnedSource(current?.id, current?.audioUrl, loadNonce);
 
   const onLoad = useCallback(() => {
     const tag = ref.current;
@@ -87,7 +118,7 @@ export function AudioEngine() {
     <Audio
       key={`${current.id}#${loadNonce}`}
       ref={ref}
-      source={{ uri: current.audioUrl }}
+      source={{ uri: sourceUri }}
       context={audioEngine.getContext()}
       preload="auto"
       playbackRate={rate}

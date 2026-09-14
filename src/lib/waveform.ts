@@ -1,6 +1,8 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { decodeAudioData } from 'react-native-audio-api';
 
+import { offlineAudioPath } from './offlineAudio';
+
 // The clip editor's waveform — RMS buckets decoded ONCE per sound, ever.
 //
 // RESTORED FROM f5b4117 (2026-08-26). The pipeline was deleted with the
@@ -145,9 +147,22 @@ async function compute(
     }
   }
 
-  const mp3Path = `${cacheDir()}${soundId}.mp3`;
+  /**
+   * THE OFFLINE MIRROR ALREADY HAS THE FILE, USUALLY — every sound in the
+   * library is on the phone (`lib/offlineAudio.ts`), so the decode reads that
+   * copy instead of pulling the mp3 down a second time. It also makes the clip
+   * editor work with no signal, which the download below never could.
+   *
+   * The borrowed file is NOT OURS TO DELETE, which is what the two paths below
+   * separate: only a file this function fetched is removed afterwards.
+   */
+  const mirrored = offlineAudioPath(soundId);
+  const mirroredInfo = await FileSystem.getInfoAsync(mirrored);
+  const borrowed = mirroredInfo.exists && (mirroredInfo.size ?? 0) > 0;
+  const mp3Path = borrowed ? mirrored : `${cacheDir()}${soundId}.mp3`;
+
   try {
-    await FileSystem.downloadAsync(audioUrl, mp3Path);
+    if (!borrowed) await FileSystem.downloadAsync(audioUrl, mp3Path);
     const buffer = await decodeAudioData(mp3Path, DECODE_SAMPLE_RATE);
     const waveform = bucketize(
       buffer.getChannelData(0),
@@ -158,7 +173,8 @@ async function compute(
     await FileSystem.writeAsStringAsync(jsonPath, JSON.stringify(waveform));
     return waveform;
   } finally {
-    FileSystem.deleteAsync(mp3Path, { idempotent: true }).catch(() => {});
+    if (!borrowed)
+      FileSystem.deleteAsync(mp3Path, { idempotent: true }).catch(() => {});
   }
 }
 
