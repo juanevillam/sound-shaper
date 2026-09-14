@@ -3,7 +3,11 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { withAlpha } from '@portfolio/core';
-import { SHEET_CONTENT_TOP, useSheetLanded } from '@portfolio/mobile-ui';
+import {
+  SHEET_CONTENT_TOP,
+  SkeletonBone,
+  useSheetLanded,
+} from '@portfolio/mobile-ui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -253,8 +257,43 @@ const TICK_TWEEN_OVERRUN = 1.35;
  */
 const TIMECODE_OPTICAL_DROP = 6;
 
-/** Placeholder amplitude while the decode is in flight — geometry never waits. */
-const PLACEHOLDER_LEVEL = 0.18;
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  WHILE THE DECODE IS IN FLIGHT — A BONE, NOT A FLAT WAVEFORM.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Both bands used to draw their bars at a flat 0.18 level until the buckets
+ * landed, on the grounds that the geometry must never wait on the network.
+ * The geometry still doesn't — the band, the ruler, the playhead and the trim
+ * frame all come from the duration the sound document already carries — but
+ * the flat field was the wrong placeholder for one specific reason: A FLAT
+ * WAVEFORM IS A PLAUSIBLE WAVEFORM. A near-silent recording renders exactly
+ * like it, so the surface read as settled content and the one thing it never
+ * showed was that anything was happening (Juan, 2026-09-13, iOS and Android
+ * both). A placeholder that can be mistaken for the content is worse than
+ * none.
+ *
+ * So it takes the house placeholder language instead — `SkeletonBone`, one
+ * atom and one app-wide sweep — and the bone is a SOLID BLOCK, which is the
+ * one shape no waveform can be. This is a bone's case and not the spinner's
+ * under "Waiting has two shapes": the person NAVIGATED here, and the layout
+ * that is going to land is known to the point — the band's extent is
+ * `durationS * PPS` exactly. What is unknown is the bars' heights, which is
+ * content, and no bone has ever promised content. (The spinner was built and
+ * rejected on the geometry: centred in the band it sits under the fixed red
+ * playhead, so the one control that says "loading" would have been drawn with
+ * a saturated line through it.)
+ *
+ * THE BONE KEEPS THE INK'S FOOTPRINT — the same 0.18 of the band the flat
+ * bars occupied, so the block stands where the wave will be rather than
+ * filling a band the content never fills. Stated as the ratio it always was,
+ * through `WAVE_INK_RATIO` like every bar.
+ */
+const BONE_LEVEL = 0.18;
+const BAND_BONE_HEIGHT = Math.round(BONE_LEVEL * WAVE_HEIGHT * WAVE_INK_RATIO);
+/** The overview's own bone — its bars take the strip's full height, not the
+ *  zoomed band's ink ratio, so its footprint is the plain ratio. */
+const OVERVIEW_BONE_HEIGHT = Math.round(BONE_LEVEL * OVERVIEW_HEIGHT);
 
 type Range = { startS: number; endS: number };
 
@@ -286,7 +325,7 @@ type ClipTrimEditorProps = {
  * a drawing choice and the cached decode stays at its own resolution.
  */
 function barsPath(
-  buckets: number[] | null,
+  buckets: number[],
   bucketMs: number,
   fromS: number,
   toS: number,
@@ -302,18 +341,15 @@ function barsPath(
   for (let k = 0; k < slots; k += 1) {
     const t = fromS + k * pitchS;
     if (t >= toS) break;
-    let level = PLACEHOLDER_LEVEL;
-    if (buckets) {
-      const from = Math.max(0, Math.floor(t / bucketS));
-      const to = Math.min(buckets.length, Math.ceil((t + pitchS) / bucketS));
-      let sum = 0;
-      let n = 0;
-      for (let i = from; i < to; i += 1) {
-        sum += buckets[i];
-        n += 1;
-      }
-      level = n > 0 ? sum / n : 0;
+    const from = Math.max(0, Math.floor(t / bucketS));
+    const to = Math.min(buckets.length, Math.ceil((t + pitchS) / bucketS));
+    let sum = 0;
+    let n = 0;
+    for (let i = from; i < to; i += 1) {
+      sum += buckets[i];
+      n += 1;
     }
+    const level = n > 0 ? sum / n : 0;
     const x = k * pitchS * pps;
     const h = Math.max(2, level * bandHeight * WAVE_INK_RATIO);
     const y = (bandHeight - h) / 2;
@@ -341,7 +377,10 @@ export function ClipTrimEditor({
   const storeDuration = usePlayerStore(s => s.duration);
   const durationS = Math.max(1, Math.floor(storeDuration));
 
-  const waveform = useWaveform(current?.id, current?.audioUrl);
+  const { status: waveStatus, waveform } = useWaveform(
+    current?.id,
+    current?.audioUrl,
+  );
 
   /**
    * THE WAVE CARD IS INSET AND ROUNDED (Juan, 2026-08-26) — Voice Memos runs
@@ -745,26 +784,26 @@ export function ClipTrimEditor({
 
   // --- Overview -----------------------------------------------------------
   const overviewPath = useMemo(() => {
+    // No buckets, no bars — the strip's own bone stands in their place (see
+    // `BONE_LEVEL`), rather than a flat field that reads as a quiet track.
+    if (!waveform) return '';
     const pitchS = OVERVIEW_BAR_PITCH / overviewPps;
     const bars = Math.floor(overviewWidth / OVERVIEW_BAR_PITCH);
     const parts: string[] = [];
     for (let i = 0; i < bars; i += 1) {
       const t = i * pitchS;
-      let level = PLACEHOLDER_LEVEL;
-      if (waveform) {
-        const from = Math.floor((t * 1000) / waveform.bucketMs);
-        const to = Math.max(
-          from + 1,
-          Math.floor(((t + pitchS) * 1000) / waveform.bucketMs),
-        );
-        let sum = 0;
-        let n = 0;
-        for (let b = from; b < to && b < waveform.buckets.length; b += 1) {
-          sum += waveform.buckets[b];
-          n += 1;
-        }
-        level = n > 0 ? sum / n : 0;
+      const from = Math.floor((t * 1000) / waveform.bucketMs);
+      const to = Math.max(
+        from + 1,
+        Math.floor(((t + pitchS) * 1000) / waveform.bucketMs),
+      );
+      let sum = 0;
+      let n = 0;
+      for (let b = from; b < to && b < waveform.buckets.length; b += 1) {
+        sum += waveform.buckets[b];
+        n += 1;
       }
+      const level = n > 0 ? sum / n : 0;
       const h = Math.max(1.5, level * OVERVIEW_HEIGHT);
       const y = (OVERVIEW_HEIGHT - h) / 2;
       parts.push(
@@ -844,11 +883,7 @@ export function ClipTrimEditor({
               />
               {tiles.map(index => (
                 <WaveTile
-                  // The suffix REMOUNTS a tile when the decode lands, which
-                  // is what lets the placeholder CROSSFADE into the real
-                  // bars (see WaveTile's root) instead of swapping in one
-                  // frame — the last hard cut this surface had.
-                  key={`${index}:${waveform ? 'wave' : 'bone'}`}
+                  key={index}
                   index={index}
                   buckets={waveform?.buckets ?? null}
                   bucketMs={waveform?.bucketMs ?? 50}
@@ -857,6 +892,21 @@ export function ClipTrimEditor({
                   mutedColor={colors.onSurfaceMuted}
                 />
               ))}
+              {/* THE WAIT'S OWN INK — one bone across the track's whole
+                  extent, inside the strip so it spans exactly what the band
+                  spans and pans with it. It fades out as the bars fade in
+                  (see `WaveTile`), and a failed decode drops it rather than
+                  sweeping forever: what the band can't draw, the caption
+                  below says in words. */}
+              {waveStatus === 'loading' ? (
+                <Animated.View
+                  pointerEvents="none"
+                  exiting={FadeOut.duration(180)}
+                  style={styles.bandBone}
+                >
+                  <SkeletonBone height={BAND_BONE_HEIGHT} />
+                </Animated.View>
+              ) : null}
               {/* Selection wash + edges ride the strip. */}
               <Animated.View
                 pointerEvents="none"
@@ -936,6 +986,35 @@ export function ClipTrimEditor({
               ]}
             />
           </View>
+
+          {/* A FAILED DECODE SAYS SO, ONCE, IN THE MIDDLE OF THE CARD.
+              Everything else still works — the ruler, the playhead, the
+              transport and both sets of handles are duration-derived, so a
+              clip can be trimmed and saved with no waveform at all, which is
+              why this is one quiet line and not an error state. Re-entering
+              the editor retries the decode (see `useWaveform`).
+
+              PINNED TO THE VIEWPORT, AND ABOVE THE PLAYHEAD. It is chrome
+              about the band rather than content in it, so panning must not
+              carry it away; and stood inside the card it rendered UNDER the
+              red line, which struck the sentence out mid-word ("Couldn't load
+              |he waveform.", measured on device). It stands on a pill of the
+              band's own ground for the same reason the playhead's halo is
+              that colour — the line passes behind the words instead of
+              through them. */}
+          {waveStatus === 'failed' ? (
+            <View pointerEvents="none" style={styles.waveNotice}>
+              <AppText
+                text="player.clips.waveformUnavailable"
+                style={[
+                  styles.waveNoticePill,
+                  styles.waveNoticeText,
+                  { backgroundColor: colors.surfaceContainer },
+                  { color: colors.onSurfaceMuted },
+                ]}
+              />
+            </View>
+          ) : null}
         </View>
       </GestureDetector>
 
@@ -947,11 +1026,30 @@ export function ClipTrimEditor({
           a full-track scrubber on its bare regions. */}
       <GestureDetector gesture={overviewScrub}>
         <View style={[styles.overview, { width: overviewWidth }]}>
-          <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
-            {/* The rest of the track, in the house's muted ink — the frame's
-              wash is what marks the selection over it. */}
-            <Path d={overviewPath} fill={colors.onSurfaceMuted} />
-          </Svg>
+          {/* THE MAP WAITS ON THE SAME DECODE, so it takes a bone of its own
+              — the strip standing empty beside a boned band would read as
+              half-broken, and the doc's count-of-bones is not a smell. Its
+              footprint is the overview's own ratio, not the zoomed band's. */}
+          {waveStatus === 'loading' ? (
+            <Animated.View
+              pointerEvents="none"
+              exiting={FadeOut.duration(180)}
+              style={styles.overviewBone}
+            >
+              <SkeletonBone height={OVERVIEW_BONE_HEIGHT} />
+            </Animated.View>
+          ) : null}
+          <Animated.View
+            // Same crossfade the zoomed bars take, for the same reason.
+            entering={overviewPath ? FadeIn.duration(220) : undefined}
+            key={overviewPath ? 'wave' : 'bone'}
+          >
+            <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
+              {/* The rest of the track, in the house's muted ink — the frame's
+                wash is what marks the selection over it. */}
+              <Path d={overviewPath} fill={colors.onSurfaceMuted} />
+            </Svg>
+          </Animated.View>
           <Animated.View
             pointerEvents="none"
             style={[
@@ -1103,12 +1201,9 @@ export function ClipTrimEditor({
  * over a chunk it dropped, the landed expansion above) must not rebuild a
  * ~270-rect string. Keyed by the BUCKETS ARRAY'S IDENTITY (a WeakMap, so a
  * new decode simply starts a new map and the old one collects) — the
- * cache-audit's home table: render-scoped value, module-memo home. The
- * placeholder path depends only on the tile's WIDTH, so its cache is a tiny
- * width-keyed map.
+ * cache-audit's home table: render-scoped value, module-memo home.
  */
 const wavePathCache = new WeakMap<number[], Map<number, string>>();
-const placeholderPathCache = new Map<number, string>();
 
 const WaveTile = memo(function WaveTile({
   index,
@@ -1130,35 +1225,30 @@ const WaveTile = memo(function WaveTile({
   const width = (toS - fromS) * PPS;
 
   const wavePath = useMemo(() => {
-    const build = () =>
-      barsPath(
-        buckets,
-        bucketMs,
-        fromS,
-        toS,
-        PPS,
-        WAVE_HEIGHT,
-        BAR_PITCH,
-        BAR_WIDTH,
-      );
-    if (buckets) {
-      let byChunk = wavePathCache.get(buckets);
-      if (!byChunk) {
-        byChunk = new Map();
-        wavePathCache.set(buckets, byChunk);
-      }
-      const hit = byChunk.get(index);
-      if (hit !== undefined) return hit;
-      const built = build();
-      byChunk.set(index, built);
-      return built;
+    // BEFORE THE DECODE THE TILE IS ITS RULER ALONE — the ticks and their
+    // labels are known from the duration, so they stand immediately; the
+    // wave's place is held by the band's bone (see `BONE_LEVEL`).
+    if (!buckets) return '';
+    let byChunk = wavePathCache.get(buckets);
+    if (!byChunk) {
+      byChunk = new Map();
+      wavePathCache.set(buckets, byChunk);
     }
-    const hit = placeholderPathCache.get(width);
+    const hit = byChunk.get(index);
     if (hit !== undefined) return hit;
-    const built = build();
-    placeholderPathCache.set(width, built);
+    const built = barsPath(
+      buckets,
+      bucketMs,
+      fromS,
+      toS,
+      PPS,
+      WAVE_HEIGHT,
+      BAR_PITCH,
+      BAR_WIDTH,
+    );
+    byChunk.set(index, built);
     return built;
-  }, [buckets, bucketMs, fromS, toS, index, width]);
+  }, [buckets, bucketMs, fromS, toS, index]);
 
   const ticks = useMemo(() => {
     const list: { x: number; label: string; major: boolean }[] = [];
@@ -1179,14 +1269,8 @@ const WaveTile = memo(function WaveTile({
   }, [fromS, toS]);
 
   return (
-    // The decode's arrival is a CROSSFADE, not a swap: the call site keys the
-    // tile on whether real buckets exist, so the placeholder tile fades out
-    // while the real one fades in over it. Opacity-only, which is exactly
-    // what Reduce Motion asks transitions to become — so it is not gated.
-    <Animated.View
+    <View
       pointerEvents="none"
-      entering={FadeIn.duration(220)}
-      exiting={FadeOut.duration(180)}
       style={[
         styles.tile,
         {
@@ -1195,6 +1279,12 @@ const WaveTile = memo(function WaveTile({
         },
       ]}
     >
+      {/* THE RULER IS NOT PART OF THE WAIT, so it is not part of the fade
+          either — its ticks and labels come from the duration and stand on the
+          first frame. It used to share one canvas with the bars, and the tile
+          as a whole was REMOUNTED when the decode landed to cross-fade them;
+          that meant fading a ruler out under an identical ruler fading in, for
+          no reason once the placeholder stopped being bar-shaped. */}
       <Svg
         width={width + RULER_LABEL_BLEED * 2}
         height={WAVE_HEIGHT + RULER_HEIGHT}
@@ -1202,7 +1292,6 @@ const WaveTile = memo(function WaveTile({
         {/* Everything is drawn in the tile's own coordinates and shifted into
             the bleed, so the canvas grew without anything moving. */}
         <G x={RULER_LABEL_BLEED}>
-          <Path d={wavePath} fill={barColor} />
           {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
             BELOW them (Voice Memos, Juan's screenshots). */}
           <Path
@@ -1231,7 +1320,20 @@ const WaveTile = memo(function WaveTile({
           )}
         </G>
       </Svg>
-    </Animated.View>
+      {/* THE BARS ARRIVE AS A CROSSFADE, not a swap: this layer fades in over
+          the 220ms the band's bone takes to fade out. Opacity-only, which is
+          exactly what Reduce Motion asks transitions to become — so it is not
+          gated. */}
+      {wavePath ? (
+        <Animated.View entering={FadeIn.duration(220)} style={styles.tileWave}>
+          <Svg width={width + RULER_LABEL_BLEED * 2} height={WAVE_HEIGHT}>
+            <G x={RULER_LABEL_BLEED}>
+              <Path d={wavePath} fill={barColor} />
+            </G>
+          </Svg>
+        </Animated.View>
+      ) : null}
+    </View>
   );
 });
 
@@ -1397,6 +1499,47 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
   },
+  /** The bars' own layer, over the ruler's canvas and in the same box. */
+  tileWave: { left: 0, position: 'absolute', top: 0 },
+  /**
+   * THE BAND'S BONE — the track's full extent inside the strip, centred in
+   * the wave's own area (the ruler and the bottom pad are below it, which is
+   * where every other wave-height number here is stated from).
+   */
+  bandBone: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: (WAVE_HEIGHT - BAND_BONE_HEIGHT) / 2,
+  },
+  overviewBone: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: (OVERVIEW_HEIGHT - OVERVIEW_BONE_HEIGHT) / 2,
+  },
+  /**
+   * The failed-decode line, centred in the card's visible wave area — stated
+   * against the WRAPPER, which starts a dot's overhang above the card.
+   */
+  waveNotice: {
+    alignItems: 'center',
+    height: WAVE_HEIGHT,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: PLAYHEAD_DOT_OVERHANG,
+  },
+  /** Enough ground either side that the playhead clears the words. */
+  waveNoticePill: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  /** `footnote` — a quiet aside about the band, not a title on it. */
+  waveNoticeText: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
   wash: {
     bottom: RULER_HEIGHT + BAND_BOTTOM_PAD,
     left: 0,
