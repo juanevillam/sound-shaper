@@ -15,6 +15,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { removeMirroredSound } from '@/lib/offlineAudio';
 import { forgetWaveform } from '@/lib/waveform';
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
 import { requireUid } from '@/services/firebase/auth';
@@ -471,5 +472,8 @@ export const deleteSound = reported(
     await deleteClipsOfSound(soundId);
     await deleteDoc(ref);
     forgetWaveform(soundId);
+    // The mirrored mp3 is the same case as the buckets: a local copy of a
+    // document that no longer exists, under an id that can never recur.
+    removeMirroredSound(soundId);
   },
 );

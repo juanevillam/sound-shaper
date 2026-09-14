@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { clearMirror } from '@/lib/offlineAudio';
 import {
   configureGoogleSignIn,
   consumeManualSignOutFlag,
@@ -10,6 +11,7 @@ import { useAuthStore } from '@/store/auth';
 import { useClipsStore } from '@/store/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { useListeningStore } from '@/store/listening';
+import { useOfflineStore } from '@/store/offline';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import { useShaperStore } from '@/store/shaper';
@@ -63,6 +65,15 @@ export const useAuthListener = () => {
          * copy of the curve back to flat — see the store.
          */
         useShaperStore.getState().reset();
+        /**
+         * AND THE MIRRORED AUDIO, which is the same rule one level down: the
+         * mp3s on disk are the signed-out account's sounds, and the ids they
+         * are filed under belong to that account's documents. Fire-and-forget
+         * — a sign-out must not wait on a directory delete — and the next
+         * session mirrors what it finds.
+         */
+        useOfflineStore.getState().clear();
+        void clearMirror();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
         return;

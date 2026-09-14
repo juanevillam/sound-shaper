@@ -12,6 +12,7 @@ import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
+import { useOfflineMirror } from '@/hooks/useOfflineMirror';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSoundsSubscription } from '@/hooks/useSoundsSubscription';
 import { useTrophiesSync } from '@/hooks/useTrophiesSync';
@@ -54,6 +55,11 @@ function AuthenticatedSubscriptions() {
   useTrophiesSync();
   useTrophyTriggers();
   useListeningTime();
+  /**
+   * THE LIBRARY, MIRRORED TO THE PHONE — so a sound plays with no signal at
+   * all. It rides the same snapshot the grid does; see `useOfflineMirror`.
+   */
+  useOfflineMirror();
   return null;
 }
 

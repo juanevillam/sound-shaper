@@ -1083,6 +1083,61 @@ by anyone else.** There is no public feed to shield, and no preview clip.
 device-verified. Long-press a tile edits/deletes; tapping plays and opens the
 player.
 
+**THE WHOLE LIBRARY LIVES ON THE PHONE, AND PLAYBACK PREFERS IT** (Juan,
+2026-09-14, for a trip with no signal at all). The app streamed from Cloudinary
+and nothing else, so with no network it had no sounds: the library still listed
+them — Firestore's persistence answers from disk — and pressing play reached
+for a URL that could not be fetched. `lib/offlineAudio.ts` mirrors every
+sound's mp3 into `documentDirectory/offline-audio/<soundId>.mp3`,
+`hooks/useOfflineMirror` keeps that in step with the library snapshot, and the
+engine takes the local file whenever it exists.
+
+**AUTOMATIC AND WHOLE-LIBRARY, NOT PER-SOUND.** Apple Music's download arrow is
+the obvious alternative and it is the wrong shape here: everything in this
+library is the person's own upload, so a control that asks "which of your own
+sounds do you want?" only creates a way to arrive somewhere with the wrong
+answer. The cost is storage — measured, 23 sounds came to 123 MB — which a
+personal library can afford where a streaming catalogue could not. There is
+deliberately NO UI: a sound that has not been mirrored yet still streams,
+exactly as the whole app did before, so there is no state worth a row.
+
+Four things not to re-derive:
+
+- **It is in `documentDirectory`, not the cache.** `cacheDirectory` is
+  OS-purgeable, which is the one thing a flight cannot rely on; the waveform
+  buckets live there because they self-heal in seconds and these do not. Apple
+  asks that re-downloadable content be excluded from backup instead and
+  `expo-file-system` exposes no flag for it in either API, so the mirror is
+  backed up. Revisit if a large library ever makes an iCloud backup
+  conspicuous.
+- **A download lands atomically** — written to `<id>.part`, then moved. A
+  connection that dies mid-file must never leave a truncated mp3 where a whole
+  one is expected, which would play as a sound that stops early: worse than not
+  having the file.
+- **THE SOURCE IS PINNED PER LOAD.** The mirror finishes a download whenever it
+  finishes, and swapping `<Audio source>` under a playing element re-mounts it —
+  so a sound that started streaming would restart from 0:00 the moment its own
+  file landed. `usePinnedSource` resolves the uri once per `id#loadNonce`, and
+  the local copy is picked up by the next load.
+- **The clip editor's decode borrows that file** rather than downloading the
+  mp3 a second time (`lib/waveform.ts`), which is also what makes the waveform
+  reachable offline. A borrowed file is not ours to delete — only a file that
+  function fetched is removed afterwards.
+
+Deletion and sign-out both take the mirror with them: `deleteSound` drops the
+one file beside `forgetWaveform`, and `useAuthListener` wipes the directory,
+for the same reason it resets the persisted trophy counters — a device-local
+cache is not a device-local FACT.
+
+**VERIFIED WITH THE NETWORK OFF, AND THEN ISOLATED.** iPhone 17 / iOS 26.5,
+mirror warm: with the host's Wi-Fi off, a COLD start drew the library from
+Firestore's cache, the covers from `expo-image`'s disk cache, and played. Then
+the source itself was isolated without touching the network — the remote
+fallback was pointed at an unreachable host, and playback ran 30.1s of audio in
+a 30s window, with Playback Speed at 1.3× giving 25.1s of audio in 20s of wall
+clock (the phase vocoder, on the local file). Android shares every line of
+this and is UNVERIFIED — no device attached.
+
 **No Firebase Storage, no Cloud Functions** — both need the Blaze (paid) plan,
 and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
 `juanevillam` as Topper, unsigned preset `sound_shaper_unsigned`,
