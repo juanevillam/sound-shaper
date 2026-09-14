@@ -146,6 +146,13 @@ export const translations = {
         endHandle: 'Clip end',
         skipBack: 'Skip back {s} seconds',
         skipForward: 'Skip forward {s} seconds',
+        // THE BAND WITH NO WAVE IN IT — shown only when the decode failed,
+        // never while it runs (that is the bone's job). A status line, so
+        // sentence case; it names the failure and stops there, because there
+        // is nothing for anyone to do: the ruler, the handles and the
+        // transport are all duration-derived, so the clip can still be
+        // trimmed and saved, and reopening the editor retries the decode.
+        waveformUnavailable: 'Couldn’t load the waveform.',
       },
     },
     soundEdit: {
@@ -425,6 +432,7 @@ export const translations = {
         endHandle: 'Fin del clip',
         skipBack: 'Retroceder {s} segundos',
         skipForward: 'Avanzar {s} segundos',
+        waveformUnavailable: 'No se pudo cargar la forma de onda.',
       },
     },
     soundEdit: {
@@ -697,6 +705,7 @@ export const translations = {
         endHandle: '片段终点',
         skipBack: '后退{s}秒',
         skipForward: '前进{s}秒',
+        waveformUnavailable: '无法加载波形。',
       },
     },
     soundEdit: {
