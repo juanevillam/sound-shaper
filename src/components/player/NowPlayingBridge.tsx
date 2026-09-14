@@ -101,6 +101,47 @@ const REMOTE_CONTROLS = [
 ] as const;
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  EVERY PUBLISH GOES THROUGH ONE QUEUE — the library is NOT thread-safe.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `show`, `hide` and `enableControl` are all the SAME native call —
+ * `showNotification('playback', 'playback', …)` — and on iOS that call hands
+ * its work to `dispatch_get_global_queue`, a CONCURRENT queue, then returns.
+ * So two JS calls made in one tick genuinely run in parallel on two threads,
+ * and what they both touch is a plain `NSMutableDictionary`: the registry's
+ * `_notifications[key] = notification` on the first publish, and
+ * `_currentInfo[key] = …` on every one after it. An `NSMutableDictionary`
+ * mutated from two threads corrupts, and the crash it produces is a SIGSEGV
+ * inside `-[__NSDictionaryM setObject:forKeyedSubscript:]` rather than an
+ * exception — `EXC_BAD_ACCESS` at `0x0`, five of them in one evening's
+ * testing (2026-09-13/14, iPhone 17 / iOS 26.5, taking the app down while
+ * the player expanded).
+ *
+ * THIS FILE WAS THE THING FIRING THE STORM. Loading a sound turns `hasCurrent`
+ * true and lands `current` in the same commit, so the controls effect fired
+ * SEVEN un-awaited `enableControl` calls and the metadata effect an eighth
+ * publish — eight blocks onto that concurrent queue, all racing to create the
+ * one notification object. Hence the intermittency: it needs two of them to
+ * collide, which they only sometimes do.
+ *
+ * Chaining them fixes the ordering the file already argued for, too. The
+ * button set has to be stated BEFORE the first metadata publish (see the
+ * controls effect), and "fire seven and hope" was never actually promising
+ * that — the calls resolve when the native block finishes, so a chain is the
+ * only thing that makes the order real.
+ *
+ * Failures are swallowed rather than breaking the chain: a publish is
+ * best-effort by design, and one that fails must neither take playback down
+ * nor strand every publish behind it.
+ */
+let publishQueue: Promise<void> = Promise.resolve();
+
+const enqueuePublish = (task: () => Promise<void>): void => {
+  publishQueue = publishQueue.then(task).catch(() => {});
+};
+
+/**
  * WHAT THE SYSTEM'S ±15s BUTTONS DO — and they are wired even though the two
  * commands above are disabled, on purpose.
  *
@@ -207,8 +248,8 @@ export function NowPlayingBridge() {
     ensureNotificationPermission();
 
     REMOTE_CONTROLS.forEach(([control, enabled]) => {
-      PlaybackNotificationManager.enableControl(control, enabled).catch(
-        () => {},
+      enqueuePublish(() =>
+        PlaybackNotificationManager.enableControl(control, enabled),
       );
     });
   }, [hasCurrent]);
@@ -217,7 +258,7 @@ export function NowPlayingBridge() {
     if (!current) {
       // Sign-out, deletion, queue cleared: the session is over, so the
       // island's pill and the Lock Screen player go with it.
-      PlaybackNotificationManager.hide().catch(() => {});
+      enqueuePublish(() => PlaybackNotificationManager.hide());
       return;
     }
 
@@ -272,9 +313,10 @@ export function NowPlayingBridge() {
       state: playing ? ('playing' as const) : ('paused' as const),
     };
 
-    // Best-effort: a failed publish must never take playback down with it,
-    // and the next discontinuity retries anyway.
-    PlaybackNotificationManager.show(info).catch(() => {});
+    // Best-effort, and QUEUED behind the button set and any publish still in
+    // flight — see `enqueuePublish`. A failed publish must never take playback
+    // down with it, and the next discontinuity retries anyway.
+    enqueuePublish(() => PlaybackNotificationManager.show(info));
   }, [current, playing, rate, duration, seekNonce]);
 
   return null;

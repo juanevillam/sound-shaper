@@ -1204,6 +1204,33 @@ falls back to is each platform's own art-less placeholder — what Music and
 Podcasts show, and what this app already showed for a sound that never had a
 cover, so both cover-less cases finally agree.
 
+**EVERY PUBLISH GOES THROUGH ONE QUEUE, BECAUSE THE LIBRARY IS NOT
+THREAD-SAFE** (2026-09-14). `show`, `hide` and `enableControl` are all one
+native call, and on iOS that call hands its work to
+`dispatch_get_global_queue` — a CONCURRENT queue — then returns. So two JS
+calls made in the same tick really do run on two threads, over a plain
+`NSMutableDictionary`: the registry's `_notifications[key] = notification` on
+the first publish, and `_currentInfo[key]` on every one after. That corrupts,
+and it corrupts as a **SIGSEGV rather than an exception** —
+`EXC_BAD_ACCESS` at `0x0` inside
+`-[__NSDictionaryM setObject:forKeyedSubscript:]`, or an over-release in
+`objc_release` while the pool drains.
+
+This bridge was the thing firing the storm: loading a sound turns `hasCurrent`
+true and lands `current` in the same commit, so seven un-awaited
+`enableControl` calls and one metadata publish went out together — eight
+blocks racing to create the one notification object. It took the app down five
+times in one evening's testing, always while the player expanded, and never
+twice in a row, because it needs two of the eight to actually collide.
+
+`enqueuePublish` chains them, which also makes REAL the ordering the file
+already argued for — the button set before the first metadata publish. Proved
+by experiment on iPhone 17 / iOS 26.5: thirty parallel `show()` calls crash on
+the first tap, the same thirty through the queue do not, and the log then shows
+exactly one "Created notification" on one thread. **Never call
+`PlaybackNotificationManager` directly** — a single un-queued call anywhere
+brings the race back, and nothing in the toolchain will tell you.
+
 Account deletion now sweeps the Cloudinary media too — `cleanupAccountMedia`
 before the Firestore sweep, best-effort. It was the last of the three orphan
 doors; see the worker note above for what is still un-deployed.
