@@ -115,11 +115,14 @@ export type SettingsUsernameEditor = {
  * container (a grouped form in a sheet). The card is the tap target; nothing
  * else on the sheet says "Account".
  *
- * IT EXISTS FOR THE APPS WITH NOWHERE ELSE TO PUT THE ENTRY. The portfolio has
- * three cases and this is the third of them:
+ * IT EXISTS FOR THE APPS WITH NOWHERE ELSE TO PUT THE ENTRY. The portfolio had
+ * three cases and this is the third of them (the first went with its app —
+ * expo-ui-starter was deleted 2026-09-16 — but the CASE is still the reason
+ * every field here is optional, so do not read two remaining apps as two
+ * remaining shapes):
  *
- *  - a SHOWCASE app (expo-ui-starter) has no account surface at all — no
- *    profile, no link, just the sign-out card;
+ *  - a SHOWCASE app has no account surface at all — no profile, no link, just
+ *    the sign-out card;
  *  - a SOCIAL app (Topper) already shows the person their own identity on a
  *    Profile tab, so the account entry sits there and Settings shows no
  *    identity card;

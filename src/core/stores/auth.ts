@@ -12,8 +12,10 @@ type AuthState = {
 
 /**
  * Generic authentication flag, persisted across launches. Apps wire `signIn` /
- * `signOut` to their real auth provider; the starter flips a boolean. `hasHydrated`
- * lets the root layout hold the splash until the persisted value is restored.
+ * `signOut` to their real auth provider (expo-ui-starter flipped a boolean and
+ * was deleted 2026-09-16, so every caller is Firebase-backed today).
+ * `hasHydrated` lets the root layout hold the splash until the persisted value
+ * is restored.
  */
 export const useAuthStore = create<AuthState>()(
   persist(

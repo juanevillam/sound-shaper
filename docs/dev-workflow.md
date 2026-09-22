@@ -136,9 +136,9 @@ dismisses the whole thing.
   [`expo-ui-customizations.md`](expo-ui-customizations.md) under `Host`.
 - Consequence: a sheet is only safe as a LEAF. If the surface pushes children,
   either give it a nested `Stack` under its own route group, or present the
-  children as stacked sheets of their own. expo-ui-starter's Settings sheet
-  never hit this because it pushes nothing; Topper's Settings does, and took
-  the stacked-sheets route — see `IOS_SHEET_SCREENS` in `lib/sheetRoutes.ts`.
+  children as stacked sheets of their own. (expo-ui-starter's Settings sheet
+  never hit this because it pushed nothing; that app is gone.) Topper's Settings
+  does, and took the stacked-sheets route — see `IOS_SHEET_SCREENS` in `lib/sheetRoutes.ts`.
 
 ## `headerLargeTitle` needs a TRANSLUCENT bar to collapse
 
@@ -159,8 +159,8 @@ Trophies sheet with its progress summary).
 
 ## Fast verification recipes
 
-- **Deep-link straight to a screen** instead of tapping through:
-  expo-ui-starter → `expouistarter://showcase/ios/<route>`; dev-client cold
+- **Deep-link straight to a screen** instead of tapping through — e.g.
+  `soundshaper://home?play=<id>`; dev-client cold
   load pinned to Metro → `exp+<slug>://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081`.
 - **Appearance switch on the sim:** `xcrun simctl ui booted appearance
 dark|light` — verify BOTH modes; light-mode-only bugs have shipped-almost
@@ -197,7 +197,7 @@ which is what a sheet has to clear.
   **`extra.expoClient.slug`**, which is NOT at the top level (a top-level probe
   returns nothing and looks like "Metro is down"). The 8081 collision has bitten
   every session in this series, most recently by rendering Topper fully from
-  cache inside what everyone believed was the starter.
+  cache inside what everyone believed was a different app.
 - **Screenshot before EVERY tap.** A stale frame has opened Samsung Settings,
   an unintended item sheet, and the wrong app's dev client. And **never press
   BACK at an app's home root** — it drops to the previous app.
@@ -257,7 +257,9 @@ to _checking_ them. When authored RN imitates a native surface:
    known-different ones, the capture grabbed the same screen twice.
 
 Worked example: `HomeShowcaseList.tsx` (expo-ui-starter) — its constants
-header documents the measured values and what drifted on the first guess.
+header documented the measured values and what drifted on the first guess. The
+file went with that app on 2026-09-16; `git log --follow` retrieves it, and the
+method above is the part that was ever portable.
 
 5. **Check a DERIVED number against the real thing too.** A constant derived
    from a correct rule can still be wrong, because the rule may not apply.

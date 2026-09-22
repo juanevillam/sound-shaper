@@ -159,9 +159,10 @@ export const SettingsAccountSection = ({
     </HStack>
   ) : null;
 
-  // An app with no real session (the starter) passes only the sign-out config,
-  // so there is no identity to show — render no card at all rather than an
-  // empty one under an "Account" header.
+  // An app with no real session passes only the sign-out config, so there is no
+  // identity to show — render no card at all rather than an empty one under an
+  // "Account" header. (expo-ui-starter was the only such app and was deleted
+  // 2026-09-16; Topper still reaches this via `navRows`-less config.)
   if (!profileContent && !navRows?.length) return null;
 
   return (

@@ -11,13 +11,17 @@ and `OutlinedTextField` ship out of `TextField`, and the two segmented rows out
 of `SegmentedButton`, so a listing of files under-reports and over-reports at
 once. `node_modules/@expo/ui/build/jetpack-compose/index.d.ts` and
 `.../swift-ui/index.d.ts` — _not_ the published docs (per
-[`apps/expo-ui-starter/AGENTS.md`](../apps/expo-ui-starter/AGENTS.md), docs can
+[`apps/topper/AGENTS.md`](../apps/topper/AGENTS.md), docs can
 lead the package).
 
-The Android column lists what the expo-ui-starter showcase actually demos today.
-The iOS column was authored as a **target** mapping from types and docs, and its
-showcase has since been **simulator-verified** (2026-07-31, iPhone 17 / iOS 26.5,
-all 47 components; the library-level Toggle tap bug is the one exception).
+**BOTH COLUMNS ARE NOW A RECORD OF WHAT WAS DEMONSTRATED, NOT OF WHAT STANDS
+RENDERED SOMEWHERE.** The Android column listed what the expo-ui-starter
+showcase demoed, and the iOS column was authored as a **target** mapping from
+types and docs before that showcase was **simulator-verified** (2026-07-31,
+iPhone 17 / iOS 26.5, all 47 components; the library-level Toggle tap bug is the
+one exception). That app was deleted on 2026-09-16, so neither column can be
+re-checked by opening it — the evidence is this table plus the types under
+`node_modules/@expo/ui`, which outrank it and always did.
 Physical-device verification is still pending.
 
 ## Legend

@@ -36,7 +36,7 @@ The App Store needs no marketing-icon file — Xcode generates the 1024 from the
 """
 import json, os, shutil
 from PIL import Image, ImageDraw
-from shapely.geometry import LineString, LinearRing, Point, box
+from shapely.geometry import LineString, LinearRing
 from shapely.ops import unary_union
 
 GRID = 48
@@ -63,15 +63,9 @@ GROUND_LIGHT = "#F5F5F5"  # light-appearance ground; mark is GROUND_DARK on it
 GROUND_DARK = "#222222"  # dark-appearance ground; mark is GROUND_LIGHT on it
 
 
-def rounded_rect(x, y, w, h, r):
-    return box(x + r, y + r, x + w - r, y + h - r).buffer(r, resolution=RES)
-
-
-def stroke_ring(geom):
-    """Outline of a closed shape's boundary — a ring with a hole."""
-    return geom.boundary.buffer(HALF, resolution=RES, join_style=1)
-
-
+# `rounded_rect` and `stroke_ring` stood here for the starter's bento mark —
+# the portfolio's only CLOSED shapes — and went with it (2026-09-16). Both marks
+# left are open polylines. Restore them from git if a third mark ever needs one.
 def stroke_line(coords):
     """Outline of an open path — round caps and joins."""
     return LineString(coords).buffer(HALF, resolution=RES, cap_style=1, join_style=1)
@@ -84,11 +78,6 @@ MARKS = {
                     (29.5, 22.5), (38, 15.5), (38, 28)])
         .buffer(HALF, resolution=RES, join_style=1),
         stroke_line([(10, 34.5), (38, 34.5)]),
-    ],
-    "expo-ui-starter": lambda: [
-        stroke_ring(rounded_rect(10.5, 11, 11, 11, 3)),
-        stroke_ring(Point(32, 16.5).buffer(5.5, resolution=RES)),
-        stroke_ring(rounded_rect(10, 27, 28, 10, 5)),
     ],
     "sound-shaper": lambda: [
         stroke_line([(x, 24 - h / 2), (x, 24 + h / 2)])

@@ -627,8 +627,12 @@ grep -rn "maskClip" node_modules/@expo/ui/build/jetpack-compose/modifiers/index.
 grep -n "shape" node_modules/@expo/ui/build/jetpack-compose/Carousel/index.d.ts
 ```
 
-Non-empty = swap `clip(carouselItemShape)` for the mask version in the three
-files under `apps/expo-ui-starter/src/components/showcase/android/carousel/`.
+Non-empty = the modifier exists. **THERE IS NOTHING LEFT TO APPLY IT TO**: the
+three files it would have changed were
+`apps/expo-ui-starter/src/components/showcase/android/carousel/`, and that app
+was deleted from the portfolio on 2026-09-16. No app uses `Carousel`. The entry
+stays as the measurement — if a carousel is ever built here, the peek-strip mask
+is the trap and this is what it costs.
 
 ---
 
@@ -662,22 +666,30 @@ grep -nE "ref|autoFocus|focus" node_modules/@expo/ui/build/jetpack-compose/Searc
 grep -n "focusRequester" node_modules/@expo/ui/build/jetpack-compose/modifiers/index.d.ts
 ```
 
-Non-empty = drop the KNOWN UPSTREAM GAP banners in
-`showcase/android/search-bar/` and `showcase/android/docked-search-bar/`.
+Non-empty = the gap is closed upstream. **THE BANNERS IT WOULD HAVE DROPPED ARE
+GONE WITH THEIR APP** — they lived in expo-ui-starter's
+`showcase/android/search-bar/` and `…/docked-search-bar/`, deleted 2026-09-16.
+
+**THE FINDING OUTLIVES THE SHOWCASES, AND IT IS THE HALF THAT MATTERED.**
+`SearchField` in `@portfolio/mobile-ui` is a Material `TextField` pill precisely
+because `SearchBar`'s IME is dead, and the root `AGENTS.md` cites this entry by
+name as the worked example of an authored control EARNING its place. So the grep
+above is still worth running on a bump — not to un-blank a demo, but to know
+whether `SearchField` may finally become the real component.
 
 **Nothing is being filed upstream, on purpose** (Juan, 2026-09-02) — this entry
-is the record. The app itself is unaffected: `SearchField` in
-`@portfolio/mobile-ui` is a Material `TextField` pill precisely because of this,
-and its keyboard works. Only the showcases are stuck, because demonstrating the
-real component is their job.
+is the record.
 
 ---
 
 ## A `SearchBar` / `DockedSearchBar` CONTAINER COLOUR — blocked on `@expo/ui`
 
-**What we want.** Both search-bar showcases in expo-ui-starter — `SearchBar`
-and `DockedSearchBar` — to sit on the same fill as the text-field showcases
-beside them.
+**CLOSED BY DELETION, 2026-09-16 — kept for the One UI measurement.** This
+wanted both search-bar showcases in expo-ui-starter — `SearchBar` and
+`DockedSearchBar` — to sit on the same fill as the text-field showcases beside
+them. That app is gone and no app here renders either component, so there is
+nothing left to repair. What is still worth reading is the number: it is one
+more site where Samsung's palette hands back a slab nobody asked for.
 
 **Why it matters here.** They do not match today: measured on a Galaxy A54 in
 dark, both docked search bars render **#4D4D52** against the **#24262D** the

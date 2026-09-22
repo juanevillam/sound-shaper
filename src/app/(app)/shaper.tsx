@@ -23,7 +23,13 @@ import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
-import { rateLabel } from '@/lib/player';
+import {
+  RATE_MAX,
+  RATE_MIN,
+  RATE_STEP,
+  rateLabel,
+  snapRate,
+} from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 
@@ -65,9 +71,6 @@ import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 const FOOTER_TO_HEADER_MAKEUP = 10;
 
 const EQ_LABEL_WIDTH = 38;
-const RATE_MIN = 0.5;
-const RATE_MAX = 1.5;
-const RATE_STEP = 0.1;
 
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
@@ -84,6 +87,10 @@ function ShaperSheetScreen() {
   const setBandGain = useShaperStore(s => s.setBandGain);
   const activePreset = useShaperStore(s => s.activePreset);
   const applyPreset = useShaperStore(s => s.applyPreset);
+  const nextRoom = useShaperStore(s => s.nextRoom);
+  const setNextRoom = useShaperStore(s => s.setNextRoom);
+  const echo = useShaperStore(s => s.echo);
+  const setEcho = useShaperStore(s => s.setEcho);
 
   // The typed t() needs literal keys, so map preset ids explicitly.
   const presetLabel = (key: string) => {
@@ -222,11 +229,7 @@ function ShaperSheetScreen() {
             min={RATE_MIN}
             max={RATE_MAX}
             step={RATE_STEP}
-            onValueChange={value =>
-              // Float math on 0.1 steps drifts (0.7000000000000001), so snap to
-              // one decimal.
-              setRate(Math.round(value / RATE_STEP) / 10)
-            }
+            onValueChange={value => setRate(snapRate(value))}
           />
         </Section>
 
@@ -244,6 +247,42 @@ function ShaperSheetScreen() {
             // has to be stated because a SwiftUI `Toggle` takes the ambient
             // accent, and `SheetFormBodyIos` tints this whole Form `primary`
             // for the picker's sake one section up.
+            modifiers={[tint(colors.switchOn)]}
+          />
+        </Section>
+
+        {/* Echo was a PICKER of three spacings and is a switch — see the note
+          on `ECHO_DELAY_SECONDS`. With one setting left there is nothing for a
+          menu row to choose between, and a picker holding two rows is a toggle
+          wearing a chevron. It is deliberately INDEPENDENT of Next Room — see
+          the note on `echo` in `store/shaper.ts`. */}
+        <Section
+          footer={<SwiftUIText>{t('player.echoDescription')}</SwiftUIText>}
+        >
+          <Toggle
+            isOn={echo}
+            label={t('player.echo')}
+            onIsOnChange={setEcho}
+            // Same reason as the two toggles below — a SwiftUI Toggle takes the
+            // ambient accent, and green-means-on is a platform semantic.
+            modifiers={[tint(colors.switchOn)]}
+          />
+        </Section>
+
+        {/* Next Room gets its OWN section rather than joining Preserve Pitch's.
+          A grouped section is a statement that its rows belong together, and
+          these two answer different questions — one is about the speed control
+          above it, the other is a place. Sharing a card would also leave one
+          footer explaining two switches. */}
+        <Section
+          footer={<SwiftUIText>{t('player.nextRoomDescription')}</SwiftUIText>}
+        >
+          <Toggle
+            isOn={nextRoom}
+            label={t('player.nextRoom')}
+            onIsOnChange={setNextRoom}
+            // Same reason as Preserve Pitch above — a Toggle takes the ambient
+            // accent, and green-means-on is a platform semantic.
             modifiers={[tint(colors.switchOn)]}
           />
         </Section>

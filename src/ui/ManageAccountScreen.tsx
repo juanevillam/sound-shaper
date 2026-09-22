@@ -102,8 +102,11 @@ export type ManageAccountScreenProps = {
    */
   seedColor?: string;
   /**
-   * The read-only facts block. Optional: an app with no real session (the
-   * starter) has no facts to state and shows only the actions below.
+   * The read-only facts block. Optional: an app with no real session has no
+   * facts to state and shows only the actions below. expo-ui-starter was that
+   * app and was deleted 2026-09-16, so NOTHING EXERCISES THE UNDEFINED BRANCH
+   * TODAY — which is exactly the shape of thing this repo has deleted for
+   * "having no callers" and regretted. Leave it optional.
    */
   info?: {
     title: string;

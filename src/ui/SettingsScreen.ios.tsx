@@ -142,9 +142,11 @@ export const SettingsScreen = ({
             Apple's puts an identity card below a preferences group.
 
             It renders NOTHING for an app that passes only the sign-out fields
-            (Topper, whose account entry is on its Profile tab, and the
-            starter, which has no account surface), so for those this is the
-            same sheet it always was, starting at General. */}
+            — Topper, whose account entry is on its Profile tab — so for those
+            this is the same sheet it always was, starting at General.
+            (expo-ui-starter was the other such caller, and it had no account
+            surface AT ALL; it was deleted 2026-09-16. Topper still exercises
+            this branch, so it is not dead.) */}
         {account ? (
           <SettingsAccountSection {...account} colors={colors} />
         ) : null}
