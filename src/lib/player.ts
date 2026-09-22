@@ -14,7 +14,54 @@ export const formatTime = (seconds: number): string => {
   return `${minutes}:${String(rest).padStart(2, '0')}`;
 };
 
-/** Playback-rate label, e.g. `1.5×` in English, `1,5×` in Spanish.
+/**
+ * THE SPEED RANGE IS NARROW AND FINELY STEPPED, AND BOTH HALVES ARE THE SAME
+ * DECISION (Juan, 2026-09-16). It was 0.5×–1.5× in tenths, which spent most of
+ * a slider's travel on the two ends nobody reaches for: at 0.5× a song is a
+ * dirge and at 1.5× it is a chipmunk, so eight of the eleven stops were there
+ * to be scrolled past. 0.75×–1.25× in twentieths keeps the same eleven stops
+ * and spends all of them where the listening actually happens — 0.85×, 0.95×,
+ * 1.1×, 1.25× — so the useful speeds are picked rather than aimed at.
+ *
+ * THE RANGE IS SYMMETRIC AROUND 1× ON PURPOSE: the slider's midpoint is
+ * "untouched", which is the one value a person has to be able to get back to
+ * without reading the label.
+ *
+ * These live here rather than in either sheet because BOTH twins state them —
+ * iOS's `(app)/shaper.tsx` and Android's `ShaperSheet.tsx` each carried their
+ * own copy of all three, which is the drift `rateLabel` moved here to avoid.
+ */
+export const RATE_MIN = 0.75;
+export const RATE_MAX = 1.25;
+export const RATE_STEP = 0.05;
+
+/**
+ * Compose's `Slider` counts the stops BETWEEN the two ends, so the eleven
+ * values 0.75 … 1.25 are nine. SwiftUI takes `step` directly and has no use
+ * for this.
+ */
+export const RATE_SLIDER_STEPS =
+  Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
+
+/**
+ * A slider's raw value → the nearest stop, clamped to the range.
+ *
+ * FLOAT MATH ON THESE STEPS DRIFTS, and it drifts twice over: a slider hands
+ * back 0.7000000000000001 on its own, and `Math.round(v / 0.05) * 0.05` re-
+ * introduces it (19 × 0.05 is 0.9500000000000001). The fixed-decimal pass is
+ * what keeps a stop exactly the number its label prints, so `rate === 1`
+ * — which the trophy trigger and the shape summary both test — stays true.
+ *
+ * It used to be `Math.round(value / RATE_STEP) / 10` inline in both sheets, a
+ * form that silently encoded the step being a tenth.
+ */
+export const snapRate = (value: number): number => {
+  const stepped = Math.round(value / RATE_STEP) * RATE_STEP;
+  const clamped = Math.min(RATE_MAX, Math.max(RATE_MIN, stepped));
+  return Number(clamped.toFixed(2));
+};
+
+/** Playback-rate label, e.g. `1.25×` in English, `1,25×` in Spanish.
  *
  *  THE SEPARATOR FOLLOWS THE APP'S LANGUAGE, NOT THE DEVICE'S. It used to be a
  *  hardcoded comma, so English and Chinese — both decimal-POINT locales — read

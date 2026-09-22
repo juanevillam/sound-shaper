@@ -248,7 +248,7 @@ type FooterProps = {
  * Ink on iPhone 17 / iOS 26.5: "Shape" 46.33, "Flat · 1×" 50.67, "Clips" 35.67,
  * "None" 34.33. Three equal compartments are 123.33 each, and after 32 of
  * padding, the 31pt icon host and the 12pt gap that leaves 48.33 of copy — so
- * the DEFAULT shape summary truncates, never mind "Bright · 1.5×" at ~73.
+ * the DEFAULT shape summary truncates, never mind "Bright · 1.25×" at ~78.
  * Trimming the padding to 12 and the gap to 10 buys 61.33, which still loses
  * every preset that is not Flat at 1×.
  *

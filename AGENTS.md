@@ -58,8 +58,8 @@ follows) or playlists — simplicity is the point.
 **Where Settings and Account live (iOS, 2026-08-20).** Home's bar carries TWO
 trailing glyphs in one merged Liquid Glass pill — Account, then Settings — and
 both present as full-height native FORM SHEETS, with Trophies stacking over
-Account. That is the portfolio-wide placement, matching Topper and
-expo-ui-starter; the route table and the reasoning are in `lib/sheetRoutes.ts`
+Account. That is the portfolio-wide placement, matching Topper (and Expo UI
+Starter, while it existed); the route table and the reasoning are in `lib/sheetRoutes.ts`
 (`IOS_SHEET_SCREENS`). Account is the identity surface here, the way the
 Profile header is in Topper — a personal app has no profile tab for it to hang
 off. ANDROID IS UNCHANGED: there these are ordinary pushed Material screens and
@@ -593,8 +593,9 @@ the default silent, so the preset is dropped when it is Flat, the rate when it
 is 1×, the pitch note when pitch is preserved, and an untouched sound reads
 **"None"** — the same word the Clips card uses for the same idea.
 
-**The long form still truncates and that is accepted.** "Bright · 1.5×" needs
-more than 65.33. Truncation is what `numberOfLines={1}` is for, the label above
+**The long form still truncates and that is accepted.** "Bright · 1.25×" needs
+more than 65.33 — a character MORE than the old "Bright · 1.5×", since the
+speed range narrowed to hundredths (2026-09-16). Truncation is what `numberOfLines={1}` is for, the label above
 carries the meaning, and the state now occurs only when someone has set BOTH a
 non-flat preset and a non-default speed. (It was worse while shapes could be
 saved: a shape's name was a person's own string of any length.)
@@ -685,6 +686,154 @@ both twins and leaving one saying "Artist / Album / Release Year" would be the
 drift this repo hates, but nothing Android is installed or run. Re-check
 `EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
 was deliberately NOT touched: it displays stored data and its screen is frozen.
+
+**NEXT ROOM — THE SOUND THROUGH A WALL** (Juan's ask, 2026-09-16). A `Toggle`
+in the Shape sheet, OFF by default, that plays a sound as if it were coming
+from another room: the party down the hall, the music while you are in the
+bath. Both are the same physics, which is why the control names the SPACE and
+not the occasion — "Party Filter" was the asked-for wording and was reworded,
+because Apple names reverbs after rooms (GarageBand's "Small Room", "Large
+Hall") and never labels a user-facing effect "Filter", which is engineering
+vocabulary in a UI whose own noun is "shape".
+
+It is three HIGH SHELVES in the one serial chain, in `lib/audioEngine.ts`, plus
+its own trim. The wall is the whole effect, and the shape of the wall is the
+thing that took four goes to get right.
+
+**A WALL IS A TILT, NOT A CUTOFF — and reading it as a cutoff cost three
+releases.** Partitions obey the mass law, so transmission loss climbs with
+frequency at roughly **6 dB per octave** and then FLATTENS: a real partition
+leaks around door gaps, through the floor and along the studs, so the top end
+arrives quietly rather than not at all. A cascade of low-passes says the
+opposite — no floor, and twice the slope.
+
+It shipped as two cascaded Q 0.707 low-passes and the cutoff was walked up three
+times, getting worse at the end, which is the evidence that the MODEL was wrong
+rather than the number. Measured at 48 kHz:
+
+| cutoff | 1 kHz | 2 kHz | 3 kHz | 4 kHz | 12 kHz | verdict                     |
+| ------ | ----- | ----- | ----- | ----- | ------ | --------------------------- |
+| 800    | -10.7 | -32.2 | -46.4 | -56.7 | -102.4 | "TOO FAR FROM WHERE I AM"   |
+| 1400   | -2.0  | -14.3 | -27.2 | -37.3 | -82.9  | "a little too far still"    |
+| 2200   | -0.4  | -4.5  | -13.1 | -22.1 | -67.1  | "sounds worse" (2026-09-22) |
+
+Every step bought consonants by giving up the illusion, because a single cutoff
+has to carry BOTH and they pull opposite ways. 2200 is where that finally shows:
+it leaves everything under 1.5 kHz untouched and removes everything over 4 kHz,
+which is a **telephone** — full presence band, no air — and a telephone does not
+read as distance, it reads as damage. **The report that preceded it was "too far,
+too low volume", and raising the cutoff was the wrong lever for both halves.**
+
+**SO THE WALL IS THREE HIGH-SHELF CUTS** at 500 / 1500 / 4000 Hz, stacked an
+octave and a half apart, each at `NEXT_ROOM_DEPTH_DB` (-11). Each shelf is
+6 dB/oct through its transition and flat after it, so three give a long, even
+tilt that ends on a FLOOR:
+
+| 60   | 250  | 500  | 1k    | 2k    | 3k    | 4k    | 8k    | 16k   |
+| ---- | ---- | ---- | ----- | ----- | ----- | ----- | ----- | ----- |
+| -0.0 | -0.8 | -5.7 | -12.3 | -19.8 | -24.0 | -27.2 | -32.4 | -33.0 |
+
+Read against 1400 Hz, the version called a heavy wall: the tilt is **six dB
+darker at 1 kHz** and **fifty dB brighter at 12 kHz**. Both at once is the thing
+a cutoff cannot do — the midrange goes, which is what says "not in this room",
+while a quiet residue of the top survives, which is what says "and the door is
+open". It is also the first version where the bass genuinely passes at unity
+while the vocal is gone; under the low-passes the two moved together.
+
+**THE THREE GAINS ARE ONE NUMBER.** `NEXT_ROOM_DEPTH_DB` is the distance
+control; the frequencies are the wall's character. Move the listener with the
+depth, not the frequencies. Two shelves leave the floor too high to read as a
+wall; four is a 24 dB/oct tilt, which is a cutoff again wearing a new shape.
+
+**THE BASS IS NEITHER CUT NOR BOOSTED.** The tilt already passes the bottom at
+unity, which IS the thump you hear two rooms away. A first draft shipped +4 dB of
+make-up over a +3 dB low shelf, on the reasoning that a bus which has discarded
+the top can only be quieter than its input. That is false in exactly the band the
+effect keeps, and it modelled at **+7.0 dB peak**.
+
+**OFF IS AN EXACT BYPASS, AND WITH SHELVES THAT IS FREE — WHICH DELETED A WHOLE
+APPARATUS.** An RBJ shelf at 0 dB has numerator === denominator, so H(z) = 1 and
+the graph is bit-identical to one with no wall in it. A low-pass has no identity
+setting, so "off" used to be a DIFFERENT FILTER TYPE, reached by sweeping the
+cutoff to a parking spot near Nyquist and flipping the type there on a deferred,
+generation-guarded timer — which shipped a marginally stable filter (pole radius
+1.000000 at Nyquist: Juan heard it ring for half a second whenever another app
+made a sound), then 0.87 dB of phase overshoot in the DEFAULT state once parked
+lower, and the only timer in `audioEngine.ts`. All of it is gone: on and off are
+one filter at two gains, so the transition is a gain ramp. **A bypass that is a
+different filter is a bypass you will get wrong.**
+
+**THE TRIM IS -1.0 dB, half a dB LESS than the low-passes needed.** Re-measured
+through the offline DF1 model across every preset × echo on/off: at 0.0 the worst
+case overshoots +0.63 dB, at -0.5 it is +0.13, at -1.0 it is -0.37. A gentler
+slope rotates less phase, so the tilt is both brighter and slightly louder than
+the thing it replaced. Nothing is ever ADDED — make-up would put the bass, which
+passes at unity, straight over full scale.
+
+**THE TRANSITION IS A 200 ms LINEAR RAMP OF THE DEPTH**, which is already the
+logarithmic domain, so an even-sounding move needs no curve of its own. It reads
+as a door swinging rather than a switch being thrown. (The low-pass version had
+to ramp FREQUENCY exponentially for the same reason, and then flip a filter type
+at the end of it.)
+
+**THERE IS NO REVERB, AND THAT IS A CONSTRAINT AS MUCH AS A TASTE.** A convolved
+room was built first and is gone for two reasons that agree. The taste one: on
+device it read as "a heavy concert" — reverb is the cue that says LARGE, and a
+flat is not large. The hard one is that react-native-audio-api 0.13.2 cannot fan
+a node out to two consumers (see `buildGraph`), and a wet/dry mix is nothing but
+a fan-out. Baking the dry path into the impulse response would dodge that, and is
+the door left open. **It is a SMALLER door now:** reverb was the missing distance
+cue the cutoff kept being pushed to compensate for, and the tilt supplies
+distance directly.
+
+**MEASURED, NOT YET HEARD** (2026-09-22). Every number above is an offline model
+and a green `test/unit/shapeHeadroom.test.ts`, which now asserts the wall's
+SHAPE as well as its headroom and poles — bass within 0.2 dB of unity, 1 kHz
+past -8, the top two octaves flat within 2.5 dB of each other. This app's rule
+stands: measure to find the defect, LISTEN to close it.
+
+**It lives in the SHAPER store, not the player's**, beside the curve rather
+than beside `rate` and `keepPitch` — it is applied by the engine, it is what
+the Shape summary reports, and `reset()` takes it with it on sign-out for the
+same user-scoping reason the curve has one. The two in the player store are
+there because the TRANSPORT reads them: a rate is published to the system
+now-playing session, and a wall is not. It is also in `useTrophyTriggers`'
+`shaped` test — **anything the summary is willing to print is by definition
+"not default"**, so a term added to one and not the other makes the trophy
+quietly disagree with the screen.
+
+**The summary's terms run in the SHEET'S order** — preset, speed, pitch, room —
+so it reads as a walk down the controls that produced it and adding one never
+re-orders the terms already there. That is why Next Room is last despite being
+the most audible: the alternative is a summary whose word order depends on
+which options happen to be active. It shortens the long form further, which
+the existing note below already accepts.
+
+**Android took the same change and is UNVERIFIED**, as ever — the row mirrors
+Preserve Pitch's label/supporting/`Switch` anatomy so the two read as one list.
+The DSP is shared and platform-independent; nothing Android is installed.
+
+**PLAYBACK SPEED IS 0.75×–1.25× IN TWENTIETHS, AND THE RANGE AND THE STEP ARE
+ONE DECISION** (Juan, 2026-09-16). It was 0.5×–1.5× in tenths — eleven stops, of
+which eight existed to be scrolled past: at 0.5× a song is a dirge and at 1.5× a
+chipmunk, and neither is a speed anybody listens at. Narrowing the range and
+halving the step keeps the SAME eleven stops and spends all of them where the
+listening happens, so 0.85×, 0.95×, 1.1× and 1.25× are picked rather than aimed
+at.
+
+**The range is symmetric around 1× on purpose**: the slider's midpoint is
+"untouched", which is the one value a person must be able to return to without
+reading the label. That is also what rules out the literal 0.75–1.75 — it puts
+1× at a quarter of the travel.
+
+**THE THREE CONSTANTS NOW LIVE IN `lib/player.ts`, BESIDE `rateLabel`**, because
+both twins stated their own copy of all three (and Android a fourth, the Compose
+`steps` derivation) — the exact drift `rateLabel` had already moved there to
+avoid. `snapRate` came with them: the old inline `Math.round(v / RATE_STEP) / 10`
+silently encoded the step being a tenth, and at 0.05 the obvious replacement
+drifts on its own (19 × 0.05 is 0.9500000000000001), so it rounds to two decimals
+— which is what keeps `rate === 1` true for the trophy trigger and the shape
+summary. Nothing persists a rate, so no stored value needed clamping.
 
 **PRESERVING PITCH IS THE DEFAULT AGAIN, BECAUSE THE STRETCHER IS FIXED**
 (2026-08-22). `keepPitch` defaults to **on**, the way every Apple speed control
@@ -1162,10 +1311,12 @@ worth remembering before trusting any backend-touching verdict.
 
 Playback runs on **react-native-audio-api** (expo-audio is gone from the
 player): a streaming `<Audio>` element routed through a Web-Audio shaping
-graph — an automatic headroom trim + 5 biquad EQ bands (`src/lib/audioEngine.ts`,
+graph — an automatic headroom trim + 5 biquad EQ bands + the Next Room wall
+(`src/lib/audioEngine.ts`,
 `src/lib/eqResponse.ts`,
 `src/components/player/AudioEngine.tsx`, shaper settings in
-`src/store/shaper.ts`) — with speed presets 0.5–2×, keep-pitch (ON by default,
+`src/store/shaper.ts`) — with playback speed 0.75–1.25× in twentieths
+(`RATE_MIN` / `RATE_MAX` / `RATE_STEP` in `src/lib/player.ts`), keep-pitch (ON by default,
 over a patched stretcher — see the stretcher note above), clips (personal
 replay bookmarks), and background playback via the plugin's media foreground
 service.
@@ -1315,8 +1466,10 @@ hand-edit any of those outputs; the runbook is in the root `AGENTS.md`.
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before
 writing native code. `@expo/ui` (Jetpack Compose + SwiftUI) markdown snapshots
-live in `../expo-ui-starter/docs/`. The installed TypeScript types under
-`node_modules/@expo/ui` are the source of truth when the docs disagree.
+live in [`../../docs/expo-ui/`](../../docs/expo-ui) — they were
+`apps/expo-ui-starter/docs/` until that app was removed from the portfolio on
+2026-09-16. The installed TypeScript types under `node_modules/@expo/ui` are the
+source of truth when the docs disagree.
 
 ## Sign in with Apple is temporarily OFF (free-team dev)
 

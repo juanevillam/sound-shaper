@@ -176,8 +176,11 @@ export type WelcomeScreenProps = {
    * wallpaper-derived one. Omit to keep dynamic Material colors.
    */
   seedColor?: string;
-  /** Optional legal disclaimer rendered under the auth buttons (apps that
-   *  handle user data pass it; the starter omits it). */
+  /** Optional legal disclaimer rendered under the auth buttons. Apps that
+   *  handle user data pass it; expo-ui-starter was the one that omitted it and
+   *  was deleted 2026-09-16, so BOTH remaining apps pass it today. Keep it
+   *  optional — an app with no account is a case this screen must still
+   *  handle, and the branch is cheap. */
   legal?: WelcomeLegal;
   /** App brand mark rendered in the hero tile. Receives the tile's glyph size
    *  and the themed foreground color; falls back to the app's initial when

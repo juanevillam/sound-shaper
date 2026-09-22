@@ -524,8 +524,9 @@ export const SettingsScreen = ({
    *
    * An app that passes a profile, nav rows or danger rows has a real account
    * GROUP, and it renders where it always has — between General and About.
-   * An app that passes only the sign-out fields (the starter, and Topper, whose
-   * identity lives on its Profile tab) has no group at all: it has one
+   * An app that passes only the sign-out fields (Topper, whose identity lives
+   * on its Profile tab — and expo-ui-starter until it was deleted 2026-09-16)
+   * has no group at all: it has one
    * destructive ACTION, and a lone action does not belong wedged between two
    * content groups under a header naming a group that isn't there.
    *

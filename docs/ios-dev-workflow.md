@@ -1,6 +1,6 @@
 # Running the apps on iOS — simulator and a real iPhone, at the same time
 
-Everything needed to get Topper and Expo UI Starter live on **both** the
+Everything needed to get Topper and Sound Shaper live on **both** the
 simulator and the physical iPhone, with one Metro per app so several apps can
 run concurrently. Verified end to end 2026-08-11 (Xcode 26.6, iOS 26.5 sim /
 26.6 device, Expo SDK 57).
@@ -24,11 +24,14 @@ from `xcrun devicectl list devices`.
 
 ### Port map — one Metro per app, never share
 
-| app             | port   | slug              | bundle id                       |
-| --------------- | ------ | ----------------- | ------------------------------- |
-| topper          | `8081` | `topper`          | `com.juanevillam.topper`        |
-| sound-shaper    | `8082` | `sound-shaper`    | `com.juanevillam.soundshaper`   |
-| expo-ui-starter | `8083` | `expo-ui-starter` | `com.juanevillam.expouistarter` |
+| app          | port   | slug           | bundle id                     |
+| ------------ | ------ | -------------- | ----------------------------- |
+| topper       | `8081` | `topper`       | `com.juanevillam.topper`      |
+| sound-shaper | `8082` | `sound-shaper` | `com.juanevillam.soundshaper` |
+
+`8083` was expo-ui-starter's and is free since 2026-09-16 — leave it free rather
+than reassigning it, so an old dev client pointed at it fails loudly instead of
+silently answering as another app.
 
 Distinct ports are **mandatory**. Two apps on 8081 does not error — app B
 silently loads app A's bundle, which looks healthy and renders the wrong app.
@@ -42,7 +45,7 @@ cd apps/topper && npx expo start --dev-client --port 8081 --host lan
 ```
 
 ```bash
-cd apps/expo-ui-starter && npx expo start --dev-client --port 8083 --host lan
+cd apps/sound-shaper && npx expo start --dev-client --port 8082 --host lan
 ```
 
 Confirm they are actually up before touching the apps:
@@ -69,7 +72,7 @@ Run these **one at a time** — parallel builds only thrash the CPU.
 ### 1. Simulator (no code signing involved)
 
 ```bash
-cd apps/expo-ui-starter && npx expo run:ios --device 0D6B7E54-D5DD-45CA-9B3A-E504E964AFEB --no-bundler
+cd apps/sound-shaper && npx expo run:ios --device 0D6B7E54-D5DD-45CA-9B3A-E504E964AFEB --no-bundler
 ```
 
 `--no-bundler` matters: without it Expo starts its own Metro on 8081 and
@@ -118,7 +121,7 @@ on another port needs redirecting once. The scheme is `exp+<slug>://`, _not_
 the app's own `scheme`:
 
 ```bash
-xcrun simctl openurl 0D6B7E54-D5DD-45CA-9B3A-E504E964AFEB "exp+expo-ui-starter://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8083"
+xcrun simctl openurl 0D6B7E54-D5DD-45CA-9B3A-E504E964AFEB "exp+sound-shaper://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
 ```
 
 On the iPhone, open the app and pick the server in the dev launcher. **Topper
@@ -146,8 +149,9 @@ first is what actually resets the clock.
 When apps stop launching on the phone, nothing is broken — the profile expired.
 Rebuild. The permanent fix is the $99/yr Apple Developer Program.
 
-Free team also caps you at **3 apps** on the device, which is exactly the number
-of apps in this repo.
+Free team also caps you at **3 apps** on the device. That used to be exactly the
+number in this repo and was therefore a live constraint; with Expo UI Starter
+deleted (2026-09-16) there are two, so there is one slot of headroom.
 
 ## Sign in with Apple is off, on purpose
 
@@ -185,10 +189,10 @@ healthy. If 8081 is already held by a different app, `run:ios` cannot prompt in
 a non-interactive shell, prints `Port 8081 is running <other app>` and
 `Skipping dev server`, and then still launches the dev client at
 `http://<lan-ip>:8081` — i.e. at the other app's bundler. Caught 2026-08-28
-with the starter loading Topper's bundle. Re-point it by hand:
+with expo-ui-starter loading Topper's bundle. Re-point it by hand:
 
 ```bash
-xcrun simctl openurl booted "exp+expo-ui-starter://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8083"
+xcrun simctl openurl booted "exp+sound-shaper://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
 ```
 
 Always confirm which app answered before believing a screenshot —
@@ -257,9 +261,9 @@ anything still wrong is the reader's.
 
 ## Disk
 
-A full set of iOS builds is expensive: DerivedData reached **28 GB** for three
-apps (Topper 11G, Sound Shaper 7.9G, Expo UI Starter 4.8G, plus a 4.2G module
-cache). Wiping it is always safe — it is pure build output:
+A full set of iOS builds is expensive: DerivedData reached **28 GB** when there
+were three apps (Topper 11G, Sound Shaper 7.9G, Expo UI Starter 4.8G — that one
+deleted 2026-09-16 — plus a 4.2G module cache). Wiping it is always safe — it is pure build output:
 
 ```bash
 rm -rf ~/Library/Developer/Xcode/DerivedData/*

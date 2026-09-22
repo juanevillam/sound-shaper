@@ -35,7 +35,13 @@ import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
-import { rateLabel } from '@/lib/player';
+import {
+  RATE_MAX,
+  RATE_MIN,
+  RATE_SLIDER_STEPS,
+  rateLabel,
+  snapRate,
+} from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 
@@ -51,6 +57,7 @@ import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
 // built and REMOVED 2026-08-22 — see the note in `store/shaper.ts`.
 
 const EQ_LABEL_WIDTH = 36;
+
 /** One step per whole dB (−12…+12); the thumb quantizes natively, ticks
  *  hidden — see the stepped-sliders note below. */
 const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
@@ -58,20 +65,17 @@ const EQ_SLIDER_STEPS = EQ_MAX_DB - EQ_MIN_DB - 1;
 // its full size while the five bands read as a tighter group. The gap between
 // them comes from the column's spacing, not from padding each row out.
 const EQ_ROW_HEIGHT = 34;
-/**
- * EVERY SLIDER IS STEPPED, AND NONE DRAWS ITS TICKS — iOS's arrangement
- * exactly (its sliders are stepped and SwiftUI draws nothing). Compose
- * couples the two: `steps` quantizes the thumb AND renders a dot per step,
- * which on the bands' 24 whole dB was a dotted texture across five stacked
- * tracks. The split used to be "drop `steps`, round in `onValueChange`" —
- * that snapped the VALUE but let the thumb glide; Juan asked for the real
- * stepped feel (2026-09-08), so `steps` is back everywhere and the ticks are
- * hidden through transparent tick colors instead (`sliderInk`).
- */
-const RATE_MIN = 0.5;
-const RATE_MAX = 1.5;
-const RATE_STEP = 0.1;
-const RATE_SLIDER_STEPS = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
+// EVERY SLIDER IS STEPPED, AND NONE DRAWS ITS TICKS — iOS's arrangement
+// exactly (its sliders are stepped and SwiftUI draws nothing). Compose couples
+// the two: `steps` quantizes the thumb AND renders a dot per step, which on
+// the bands' 24 whole dB was a dotted texture across five stacked tracks. The
+// split used to be "drop `steps`, round in `onValueChange`" — that snapped the
+// VALUE but let the thumb glide; Juan asked for the real stepped feel
+// (2026-09-08), so `steps` is back everywhere and the ticks are hidden through
+// transparent tick colors instead (`sliderInk`).
+//
+// Speed's own `RATE_SLIDER_STEPS` lives in `lib/player.ts` with the range it
+// is derived from, so the two twins cannot disagree about it.
 
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
@@ -113,6 +117,10 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const setBandGain = useShaperStore(s => s.setBandGain);
   const activePreset = useShaperStore(s => s.activePreset);
   const applyPreset = useShaperStore(s => s.applyPreset);
+  const nextRoom = useShaperStore(s => s.nextRoom);
+  const setNextRoom = useShaperStore(s => s.setNextRoom);
+  const echo = useShaperStore(s => s.echo);
+  const setEcho = useShaperStore(s => s.setEcho);
 
   // The typed t() needs literal keys, so map preset ids explicitly.
   const presetLabel = (key: string) => {
@@ -373,11 +381,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             max={RATE_MAX}
             steps={RATE_SLIDER_STEPS}
             colors={sliderInk}
-            onValueChange={value =>
-              // Float math on 0.1 steps drifts (0.7000000000000001), so snap
-              // to one decimal.
-              setRate(Math.round(value / RATE_STEP) / 10)
-            }
+            onValueChange={value => setRate(snapRate(value))}
             modifiers={[
               fillMaxWidth(),
               padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
@@ -413,6 +417,73 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
               </Text>
             </Column>
             <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
+          </Row>
+
+          {/* ECHO — the same vocabulary as iOS, said in Material. It was a
+              FilterChip row of three spacings while iOS drew a menu Picker;
+              both collapsed to a switch when two of the three spacings were
+              rejected on device (see `ECHO_DELAY_SECONDS`). With one setting
+              left it takes the same label/supporting/Switch anatomy as the two
+              rows below, so the three read as one list. */}
+          <Row
+            verticalAlignment="center"
+            horizontalArrangement="spaceBetween"
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
+            <Column
+              verticalArrangement={{ spacedBy: 2 }}
+              modifiers={[weight(1), padding(0, 0, 16, 0)]}
+            >
+              <Text
+                color={colors.onSurface}
+                style={{ typography: 'bodyLarge' }}
+              >
+                {t('player.echo')}
+              </Text>
+              <Text
+                color={colors.onSurfaceMuted}
+                style={{ typography: 'bodySmall' }}
+              >
+                {t('player.echoDescription')}
+              </Text>
+            </Column>
+            <Switch value={echo} onCheckedChange={setEcho} />
+          </Row>
+
+          {/* Next Room is its own control, not a companion to the speed block
+              above — same label/supporting/Switch anatomy as Preserve Pitch so
+              the two read as one list rather than as two designs. iOS gives it
+              a separate grouped Section for the same reason; here the rhythm
+              does that job, because a Compose column has no cards to split. */}
+          <Row
+            verticalAlignment="center"
+            horizontalArrangement="spaceBetween"
+            modifiers={[
+              fillMaxWidth(),
+              padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
+            <Column
+              verticalArrangement={{ spacedBy: 2 }}
+              modifiers={[weight(1), padding(0, 0, 16, 0)]}
+            >
+              <Text
+                color={colors.onSurface}
+                style={{ typography: 'bodyLarge' }}
+              >
+                {t('player.nextRoom')}
+              </Text>
+              <Text
+                color={colors.onSurfaceMuted}
+                style={{ typography: 'bodySmall' }}
+              >
+                {t('player.nextRoomDescription')}
+              </Text>
+            </Column>
+            <Switch value={nextRoom} onCheckedChange={setNextRoom} />
           </Row>
         </Column>
       </ModalBottomSheet>
