@@ -55,8 +55,27 @@ export const EQ_PRESETS: { i18nKey: string; gains: number[] }[] = [
 type ShaperState = {
   gains: number[]; // per-band, dB
   activePreset: string | null; // i18nKey while gains match a preset, else null
+  /**
+   * Next Room — the sound heard through a wall. It lives HERE rather than in
+   * the player store, beside `rate` and `keepPitch`, because it is shaping: it
+   * is applied by `audioEngine`, it is what the Shape summary reports, and it
+   * is user-scoped in exactly the way the curve is (see `reset`). The two in
+   * the player store are there because the TRANSPORT reads them — a rate is
+   * published to the system now-playing session, and a wall is not.
+   */
+  nextRoom: boolean;
+  /**
+   * Echo — the repeats. It is INDEPENDENT of `nextRoom`
+   * rather than exclusive with it (Juan's call, 2026-09-17): the two act on
+   * different axes, a wall on frequency and repeats on time, and a party down a
+   * hallway genuinely has both. A switch that silently turns another one off is
+   * a rule you can only learn by watching it happen.
+   */
+  echo: boolean;
   setBandGain: (index: number, db: number) => void;
   applyPreset: (i18nKey: string) => void;
+  setNextRoom: (on: boolean) => void;
+  setEcho: (on: boolean) => void;
   /** Back to flat — sign-out and account wipe. See `reset` below. */
   reset: () => void;
 };
@@ -70,6 +89,8 @@ const matchPreset = (gains: number[]): string | null =>
 export const useShaperStore = create<ShaperState>()((set, get) => ({
   gains: flat(),
   activePreset: 'flat',
+  nextRoom: false,
+  echo: false,
 
   setBandGain: (index, db) => {
     const gains = get().gains.slice();
@@ -77,6 +98,16 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     // Hand-tweaking a band leaves whatever preset was applied.
     set({ gains, activePreset: matchPreset(gains) });
     audioEngine.setBandGain(index, db);
+  },
+
+  setNextRoom: on => {
+    set({ nextRoom: on });
+    audioEngine.setNextRoom(on);
+  },
+
+  setEcho: on => {
+    set({ echo: on });
+    audioEngine.setEcho(on);
   },
 
   applyPreset: i18nKey => {
@@ -114,7 +145,11 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
    */
   reset: () => {
     const gains = flat();
-    set({ gains, activePreset: 'flat' });
-    audioEngine.apply(gains);
+    set({ gains, activePreset: 'flat', nextRoom: false, echo: false });
+    // `nextRoom` is passed EXPLICITLY, because `apply` leaves it alone when
+    // omitted (a preset must not walk you out of the room). Reset is the one
+    // caller that means both — it is the same user-scoping argument the curve
+    // makes below, and the engine holds its own copy of this too.
+    audioEngine.apply(gains, false, false);
   },
 }));
