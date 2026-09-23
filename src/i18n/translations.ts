@@ -76,11 +76,16 @@ export const translations = {
       speed: 'Playback Speed',
       keepPitch: 'Preserve Pitch',
       keepPitchDescription: 'Keeps the original pitch at any speed.',
+      nextRoom: 'Next Room',
+      nextRoomDescription:
+        'Plays the sound as if it were coming from another room, muffled through a wall.',
+      echo: 'Echo',
+      echoDescription: 'Adds a short repeat, so the sound arrives twice.',
       shape: {
         title: 'Shape',
         custom: 'Custom',
         none: 'None',
-        pitchOff: 'pitch off',
+        pitchOff: 'Pitch Off',
         presets: 'Presets',
       },
       menu: {
@@ -384,11 +389,17 @@ export const translations = {
       speed: 'Velocidad de reproducción',
       keepPitch: 'Conservar el tono',
       keepPitchDescription: 'Conserva el tono original a cualquier velocidad.',
+      nextRoom: 'Habitación contigua',
+      nextRoomDescription:
+        'Reproduce el sonido como si viniera de otra habitación, amortiguado por una pared.',
+      echo: 'Eco',
+      echoDescription:
+        'Añade una repetición corta, para que el sonido llegue dos veces.',
       shape: {
         title: 'Moldear',
         custom: 'Personalizado',
         none: 'Ninguno',
-        pitchOff: 'tono libre',
+        pitchOff: 'Tono libre',
         presets: 'Ajustes preestablecidos',
       },
       menu: {
@@ -657,6 +668,10 @@ export const translations = {
       speed: '播放速度',
       keepPitch: '保持音高',
       keepPitchDescription: '在任何速度下都保持原始音高。',
+      nextRoom: '隔壁房间',
+      nextRoomDescription: '让声音听起来像从隔壁房间传来，隔着一堵墙。',
+      echo: '回声',
+      echoDescription: '添加一次短暂的重复，让声音响两次。',
       shape: {
         title: '塑形',
         custom: '自定',

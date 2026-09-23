@@ -33,12 +33,19 @@ export const useTrophyTriggers = () => {
   const listened = useListeningStore(state => state.seconds);
 
   // Shaping is "not default any more", whichever way you got there: a preset, a
-  // dragged band, or the speed moved off 1×. Rate counts because this app
-  // already treats it as shaping everywhere else — the Shape summary prints it
-  // beside the curve — so the trophy's own copy promises it. It lives in the
-  // player store, not the shaper's, which is the only reason it was missing
-  // here.
+  // dragged band, the speed moved off 1×, Next Room switched on, or Echo
+  // switched on. Rate counts
+  // because this app already treats it as shaping everywhere else — the Shape
+  // summary prints it beside the curve — so the trophy's own copy promises it.
+  // It lives in the player store, not the shaper's, which is the only reason it
+  // was missing here.
+  //
+  // THE TEST AND THE SUMMARY MUST NAME THE SAME THINGS. Anything the summary
+  // is willing to print is by definition "not default", so a term added there
+  // and not here makes the trophy quietly disagree with the screen.
   const gains = useShaperStore(state => state.gains);
+  const nextRoom = useShaperStore(state => state.nextRoom);
+  const echo = useShaperStore(state => state.echo);
   const rate = usePlayerStore(state => state.rate);
 
   useEffect(() => {
@@ -49,7 +56,18 @@ export const useTrophyTriggers = () => {
     if (clipsSaved >= SAVED_CLIP_COUNT) awardTrophy(TROPHY_IDS.savedClips);
     if (listened >= LISTENING_MINUTES * 60) awardTrophy(TROPHY_IDS.listening);
 
-    const shaped = rate !== 1 || gains.some(gain => gain !== 0);
+    const shaped =
+      rate !== 1 || nextRoom || echo || gains.some(gain => gain !== 0);
     if (shaped) awardTrophy(TROPHY_IDS.firstShape);
-  }, [clipsSaved, gains, hasSettled, hydrated, listened, rate, sounds.length]);
+  }, [
+    clipsSaved,
+    echo,
+    gains,
+    hasSettled,
+    hydrated,
+    listened,
+    nextRoom,
+    rate,
+    sounds.length,
+  ]);
 };
