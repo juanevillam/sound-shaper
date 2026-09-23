@@ -6,7 +6,11 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { emptyMediaColor, type MediaContainer } from '@portfolio/mobile-ui';
+import {
+  emptyMediaColor,
+  useBackdropThumbhash,
+  type MediaContainer,
+} from '@portfolio/mobile-ui';
 import { Image } from 'expo-image';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -57,6 +61,11 @@ const BACKDROP_SOURCE_WIDTH = 64;
 // Short cross-dissolve so artwork fades in instead of popping. Cached images
 // load synchronously and skip it, so lists of already-seen art never flash.
 const FADE_MS = 200;
+// A LOCAL PICK HAS NO TINY VARIANT TO FETCH, so the pinning above has nothing
+// to work with: `thumbUrl` rewrites a Cloudinary url and passes a `file://`
+// straight through. `useBackdropThumbhash` is the tiny source in that case —
+// see its docstring for the whole argument; it is shared because this file and
+// its twin in the other app hit it identically.
 
 export function ArtImage({
   container,
@@ -71,7 +80,17 @@ export function ArtImage({
   const source = { uri: sizedUri };
   const backdropUri =
     Platform.OS === 'ios' ? thumbUrl(uri, BACKDROP_SOURCE_WIDTH) : sizedUri;
-  const backdropSource = { uri: backdropUri };
+  // `thumbUrl` returning the url it was handed means there is no sized variant
+  // behind it — a local pick, or an already-transformed url. That is the only
+  // test needed here, and it keeps this file from carrying a second copy of
+  // what counts as a Cloudinary url.
+  const needsThumbhash = Platform.OS === 'ios' && backdropUri === uri;
+  const thumbhash = useBackdropThumbhash(uri, needsThumbhash);
+  const backdropSource = needsThumbhash
+    ? thumbhash
+      ? { thumbhash }
+      : null
+    : { uri: backdropUri };
 
   return (
     // A neutral tinted box behind both layers is the placeholder the art fades
@@ -94,18 +113,23 @@ export function ArtImage({
         style,
       ]}
     >
-      <Image
-        source={backdropSource}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        blurRadius={BACKDROP_BLUR}
-        transition={fadeMs}
-        // KEYED PER LAYER, by the url each one actually loads. A shared raw
-        // `uri` told expo-image's recycler that two views holding different
-        // assets were the same picture.
-        recyclingKey={backdropUri}
-        cachePolicy="memory-disk"
-      />
+      {/* No backdrop until there IS one — see `useBackdropThumbhash`: the
+          full-size source is the sharp layer this avoids, so the box's own
+          empty-media material carries the frame or two in between. */}
+      {backdropSource ? (
+        <Image
+          source={backdropSource}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          blurRadius={BACKDROP_BLUR}
+          transition={fadeMs}
+          // KEYED PER LAYER, by the url each one actually loads. A shared raw
+          // `uri` told expo-image's recycler that two views holding different
+          // assets were the same picture.
+          recyclingKey={backdropUri}
+          cachePolicy="memory-disk"
+        />
+      ) : null}
       {/* Only the FOREGROUND layer reports failure: the backdrop is the same
           asset at 64px, so if the art is gone both fail, and reporting twice
           would just re-set the same state. */}

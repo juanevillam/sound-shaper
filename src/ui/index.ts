@@ -111,6 +111,7 @@ export {
 } from './SquashPressable';
 export { StateLab, type StateLabGroup } from './StateLab';
 export { SwiftUIHost } from './SwiftUIHost';
+export { useBackdropThumbhash } from './useBackdropThumbhash';
 export { useNavigationTheme } from './useNavigationTheme';
 export { createText, TEXT_VARIANTS, type TextVariant } from './createText';
 export {
