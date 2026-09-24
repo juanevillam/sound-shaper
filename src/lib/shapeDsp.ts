@@ -224,8 +224,8 @@ export const NEXT_ROOM_SWEEP_SECONDS = 0.2;
 export const ECHO_DELAY_SECONDS = 0.028;
 
 /** Each repeat is this much quieter than the one before it. */
-export const ECHO_FEEDBACK = 0.3;
-/** Stop emitting repeats once they fall below this — ~2 audible ones. */
+export const ECHO_FEEDBACK = 0.4;
+/** Stop emitting repeats once they fall below this — ~3 audible ones. */
 export const ECHO_TAIL_FLOOR = 0.03;
 
 // THE SAME PHASE-AND-CREST TRAP THE WALL FELL INTO, and here it is much larger
@@ -236,11 +236,14 @@ export const ECHO_TAIL_FLOOR = 0.03;
 // its own trim (Juan, 2026-09-17: "rocky… more noticeable when device sound is
 // high enough").
 //
-// -3.0 dB is the TIGHTEST safe value, not a round one: modelled against the
-// shipped spacing, -2.5 dB still clips at +0.30 dB and -3.0 lands at -0.20,
-// alone AND stacked with Next Room. Deeper repeats were tried first and cost
-// far more level (a 0.55-feedback tail needed -6 dB), which is the reason the
-// feedback here is modest — the trim IS the cost of the echo.
+// -4.5 dB is the TIGHTEST safe value, not a round one: modelled against the
+// shipped spacing at 0.4 feedback, -4.0 dB still clips at +0.20 dB and -4.5
+// lands at -0.30, alone AND stacked with Next Room. The feedback was raised
+// from 0.3 on Juan's ask for more echo (2026-09-24) — it buys a third audible
+// repeat and a thicker tail — and the trim deepened from -3.0 with it, because
+// the trim IS the cost of the echo: the same model puts 0.45 feedback at -5 dB
+// and the old 0.55 tail needed -6, which is where "more" stops being worth
+// the level.
 // Echo's own fade, and the gap before the convolver is connected or
 // disconnected under it. The rewire is NOT instantaneous — `AudioNode::connect`
 // queues the change for the graph manager to apply on its own schedule — so the
@@ -249,4 +252,4 @@ export const ECHO_TAIL_FLOOR = 0.03;
 export const ECHO_FADE_SECONDS = 0.08;
 export const ECHO_REWIRE_GAP_MS = 120;
 
-export const ECHO_TRIM_DB = -3.0;
+export const ECHO_TRIM_DB = -4.5;
