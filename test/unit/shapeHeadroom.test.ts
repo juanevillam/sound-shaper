@@ -3,15 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { headroomTrimDb } from '@/lib/eqResponse';
 import {
   ECHO_DELAY_SECONDS,
-  ECHO_FEEDBACK,
+  ECHO_LEVELS,
   ECHO_TAIL_FLOOR,
-  ECHO_TRIM_DB,
+  EFFECT_LEVELS,
   EQ_BANDS,
   EQ_MAX_DB,
   EQ_MIN_DB,
-  NEXT_ROOM_DEPTH_DB,
+  NEXT_ROOM_LEVELS,
   NEXT_ROOM_SHELF_HZ,
-  NEXT_ROOM_TRIM_DB,
+  type EffectLevel,
 } from '@/lib/shapeDsp';
 
 /**
@@ -223,8 +223,8 @@ const wallFilters = (depthDb: number): Biquad[] =>
 const chain = (
   x: Float32Array,
   gains: number[],
-  nextRoom: boolean,
-  echo: boolean,
+  nextRoom: EffectLevel,
+  echo: EffectLevel,
 ): Float32Array => {
   let out = gain(x, linear(headroomTrimDb(EQ_BANDS, gains, SR)));
   for (const f of bandFilters(gains)) out = run(out, f);
@@ -232,13 +232,14 @@ const chain = (
   // OFF is every shelf at 0 dB — an exact identity, so the wall contributes
   // nothing at all rather than "almost nothing". Modelling it as a parked
   // low-pass is what hid 0.87 dB of overshoot in the default state.
-  for (const w of wallFilters(nextRoom ? NEXT_ROOM_DEPTH_DB : 0))
-    out = run(out, w);
-  out = gain(out, nextRoom ? linear(NEXT_ROOM_TRIM_DB) : 1);
+  const wall = nextRoom === 'off' ? null : NEXT_ROOM_LEVELS[nextRoom];
+  for (const w of wallFilters(wall ? wall.depthDb : 0)) out = run(out, w);
+  out = gain(out, wall ? linear(wall.trimDb) : 1);
 
-  if (echo) {
-    out = taps(out, ECHO_DELAY_SECONDS, ECHO_FEEDBACK, ECHO_TAIL_FLOOR);
-    out = gain(out, linear(ECHO_TRIM_DB));
+  if (echo !== 'off') {
+    const { feedback, trimDb } = ECHO_LEVELS[echo];
+    out = taps(out, ECHO_DELAY_SECONDS, feedback, ECHO_TAIL_FLOOR);
+    out = gain(out, linear(trimDb));
   }
   return out;
 };
@@ -277,10 +278,12 @@ describe('shape headroom — no combination clips', () => {
   const budget = (name: string) =>
     name === 'square' ? PATHOLOGICAL_BUDGET_DB : PROGRAM_BUDGET_DB;
 
+  // EVERY LEVEL OF EACH EFFECT, CROSSED — a trim is only proven for its own
+  // level, and the stacked cases are where the echo's overshoot is largest.
   for (const [curveName, gains] of Object.entries(CURVES)) {
-    for (const nextRoom of [false, true]) {
-      for (const echo of [false, true]) {
-        const label = `${curveName} · room:${nextRoom ? 'on' : 'off'} · echo:${echo ? 'on' : 'off'}`;
+    for (const nextRoom of EFFECT_LEVELS) {
+      for (const echo of EFFECT_LEVELS) {
+        const label = `${curveName} · room:${nextRoom} · echo:${echo}`;
         it(`stays under 0 dBFS — ${label}`, () => {
           for (const [signalName, x] of Object.entries(sigs)) {
             const out = peak(chain(x, gains, nextRoom, echo));
@@ -312,34 +315,48 @@ describe('shape stability — every filter settles', () => {
     }
   });
 
-  it('every wall shelf settles at the shipped depth', () => {
-    for (const c of wallFilters(NEXT_ROOM_DEPTH_DB)) {
-      expect(poleRadius(c)).toBeLessThan(MAX_POLE_RADIUS);
+  const DEPTHS = Object.values(NEXT_ROOM_LEVELS).map(level => level.depthDb);
+
+  it('every wall shelf settles at every shipped depth', () => {
+    for (const depth of DEPTHS) {
+      for (const c of wallFilters(depth)) {
+        expect(poleRadius(c)).toBeLessThan(MAX_POLE_RADIUS);
+      }
     }
   });
 
-  it('the wall passes the bottom at unity', () => {
+  it('the wall passes the bottom at unity, at every depth', () => {
     // The thump is the whole reason the effect reads as a room rather than as
     // a tone control, and it is the one thing three cutoffs never broke.
-    const wall = wallFilters(NEXT_ROOM_DEPTH_DB);
-    expect(Math.abs(magDb(wall, 60))).toBeLessThan(0.2);
-    expect(Math.abs(magDb(wall, 125))).toBeLessThan(0.5);
+    for (const depth of DEPTHS) {
+      const wall = wallFilters(depth);
+      expect(Math.abs(magDb(wall, 60))).toBeLessThan(0.2);
+      expect(Math.abs(magDb(wall, 125))).toBeLessThan(0.5);
+    }
   });
 
   it('the wall takes the MIDRANGE, which is what says "not in this room"', () => {
     // 2200 Hz left 1 kHz at -0.4 dB, which is why it read as a telephone
-    // rather than as distance. Anything shallower than -8 here is that bug.
-    expect(magDb(wallFilters(NEXT_ROOM_DEPTH_DB), 1000)).toBeLessThan(-8);
+    // rather than as distance. The SHALLOWEST depth is the one this gate is
+    // for — -8 puts 1 kHz at -9.0, still past the -8 anything room-like needs.
+    for (const depth of DEPTHS) {
+      expect(magDb(wallFilters(depth), 1000)).toBeLessThan(-8);
+    }
   });
 
   it('the top end lands on a FLOOR, not a cliff — the mass law, not a cutoff', () => {
     // This is the property a cascade of low-passes cannot have at any cutoff,
     // and the one that lets the words survive while the illusion holds: a real
     // partition leaks, so the air arrives quietly instead of not at all.
-    const wall = wallFilters(NEXT_ROOM_DEPTH_DB);
-    expect(magDb(wall, 12000)).toBeGreaterThan(-40);
-    // Flat across the top two octaves — a cliff keeps falling, a floor does not.
-    expect(Math.abs(magDb(wall, 16000) - magDb(wall, 6000))).toBeLessThan(2.5);
+    for (const depth of DEPTHS) {
+      const wall = wallFilters(depth);
+      expect(magDb(wall, 12000)).toBeGreaterThan(-45);
+      // Flat across the top two octaves — a cliff keeps falling, a floor does
+      // not. The bound scales with the depth: three shelves at -11 leave 1.9
+      // dB across the band, and the tilt's residual slope is proportional.
+      const flatness = Math.abs(magDb(wall, 16000) - magDb(wall, 6000));
+      expect(flatness).toBeLessThan(2.5 * (Math.abs(depth) / 11));
+    }
   });
 
   it('every EQ band settles at every extreme', () => {

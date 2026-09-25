@@ -13,21 +13,27 @@ import {
 import { headroomTrimDb } from './eqResponse';
 import {
   ECHO_DELAY_SECONDS,
-  ECHO_FEEDBACK,
+  ECHO_LEVELS,
   ECHO_TAIL_FLOOR,
   ECHO_FADE_SECONDS,
   ECHO_REWIRE_GAP_MS,
-  ECHO_TRIM_DB,
   EQ_BANDS,
-  NEXT_ROOM_DEPTH_DB,
+  NEXT_ROOM_LEVELS,
   NEXT_ROOM_SHELF_HZ,
   NEXT_ROOM_SWEEP_SECONDS,
-  NEXT_ROOM_TRIM_DB,
+  type EffectLevel,
 } from './shapeDsp';
 
 // Re-exported so every existing caller keeps its import path — the constants
 // themselves live in `shapeDsp.ts` now, which nothing native reaches into.
-export { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB, type EqBand } from './shapeDsp';
+export {
+  EFFECT_LEVELS,
+  EQ_BANDS,
+  EQ_MAX_DB,
+  EQ_MIN_DB,
+  type EffectLevel,
+  type EqBand,
+} from './shapeDsp';
 
 // ---------------------------------------------------------------------------
 // The sound-shaping engine: the ONE Web-Audio graph every sound plays through.
@@ -80,16 +86,19 @@ const RAMP_SECONDS = 0.012;
  * spike off unity and make the effect quieter the longer its tail — the
  * opposite of the "spacing, not depth" rule above.
  */
-const createEchoImpulse = (ctx: AudioContext): AudioBuffer => {
+const createEchoImpulse = (
+  ctx: AudioContext,
+  feedback: number,
+): AudioBuffer => {
   const rate = ctx.sampleRate;
   const delay = ECHO_DELAY_SECONDS;
 
   const taps: { offset: number; gain: number }[] = [{ offset: 0, gain: 1 }];
-  let gain = ECHO_FEEDBACK;
+  let gain = feedback;
   let n = 1;
   while (gain > ECHO_TAIL_FLOOR) {
     taps.push({ offset: Math.round(delay * n * rate), gain });
-    gain *= ECHO_FEEDBACK;
+    gain *= feedback;
     n += 1;
   }
 
@@ -119,8 +128,11 @@ type Graph = {
   wallTrim: GainNode;
   echo: ConvolverNode;
   echoTrim: GainNode;
-  /** Whether the convolver is CONNECTED — see `applyEcho`. */
-  echoOn: boolean;
+  /**
+   * The level the convolver is WIRED FOR — connected and holding that level's
+   * impulse when not 'off', absent from the chain when 'off'. See `applyEcho`.
+   */
+  echoLevel: EffectLevel;
 };
 
 let context: AudioContext | null = null;
@@ -133,7 +145,8 @@ let echoGeneration = 0;
 
 // The last-applied settings, so a freshly-built graph (new sound) inherits the
 // current shaping instead of resetting to flat.
-const settings = { gains: flatGains(), nextRoom: false, echo: false };
+const settings: { gains: number[]; nextRoom: EffectLevel; echo: EffectLevel } =
+  { gains: flatGains(), nextRoom: 'off', echo: 'off' };
 
 /**
  * A fresh graph starts at its target outright; a live change slides there.
@@ -162,7 +175,10 @@ const pushSettings = (immediate: boolean): void => {
   const trim = headroomTrimDb(EQ_BANDS, settings.gains, context.sampleRate);
   writeParam(graph.trim.gain, dbToLinear(trim), at, immediate);
 
-  const wallGain = settings.nextRoom ? dbToLinear(NEXT_ROOM_TRIM_DB) : 1;
+  const wallGain =
+    settings.nextRoom === 'off'
+      ? 1
+      : dbToLinear(NEXT_ROOM_LEVELS[settings.nextRoom].trimDb);
   if (immediate) {
     graph.wallTrim.gain.setValueAtTime(wallGain, at);
   } else {
@@ -199,12 +215,19 @@ const pushSettings = (immediate: boolean): void => {
  * click-free and the graph manager applies it on its own schedule rather than
  * when the call is made. The gain is taken to zero, the rewire is made well
  * after the ramp has landed, and the gain comes back — the same guarded-token
- * pattern `applyWall` uses, so a toggle reversed mid-transition is safe.
+ * pattern `applyWall` uses, so a change reversed mid-transition is safe.
+ *
+ * A LEVEL-TO-LEVEL MOVE IS A REWIRE TOO, not a gain ramp: the level is the
+ * impulse response's own tap gains, so changing it means a new buffer, and a
+ * buffer swap rebuilds the convolver's partitions — the same non-click-free
+ * operation as a connect. It takes the same mute, dropping and re-adding the
+ * convolver around the swap so the buffer is never replaced under a node the
+ * graph is pulling.
  */
 const applyEcho = (immediate: boolean, at: number): void => {
   if (!graph || !context) return;
-  const on = settings.echo;
-  const target = on ? dbToLinear(ECHO_TRIM_DB) : 1;
+  const level = settings.echo;
+  const target = level === 'off' ? 1 : dbToLinear(ECHO_LEVELS[level].trimDb);
 
   echoGeneration += 1;
   const generation = echoGeneration;
@@ -217,7 +240,7 @@ const applyEcho = (immediate: boolean, at: number): void => {
     graph.echoTrim.gain.setValueAtTime(target, at);
     return;
   }
-  if (graph.echoOn === on) {
+  if (graph.echoLevel === level) {
     // Nothing to rewire — this push was about some other setting.
     graph.echoTrim.gain.cancelScheduledValues(at);
     graph.echoTrim.gain.setValueAtTime(graph.echoTrim.gain.value, at);
@@ -235,22 +258,27 @@ const applyEcho = (immediate: boolean, at: number): void => {
       if (generation !== echoGeneration || !graph || !context) return;
 
       const { wallTrim, echo, echoTrim } = graph;
+      const wasOn = graph.echoLevel !== 'off';
+      const on = level !== 'off';
       try {
-        if (on) {
+        if (wasOn) {
+          wallTrim.disconnect(echo);
+          echo.disconnect(echoTrim);
+        } else {
           wallTrim.disconnect(echoTrim);
-          echo.buffer = createEchoImpulse(context);
+        }
+        if (on) {
+          echo.buffer = createEchoImpulse(context, ECHO_LEVELS[level].feedback);
           wallTrim.connect(echo);
           echo.connect(echoTrim);
         } else {
-          wallTrim.disconnect(echo);
-          echo.disconnect(echoTrim);
           wallTrim.connect(echoTrim);
         }
       } catch {
         // The graph was torn down under us; the next build wires it correctly.
         return;
       }
-      graph.echoOn = on;
+      graph.echoLevel = level;
 
       const now = context.currentTime;
       echoTrim.gain.cancelScheduledValues(now);
@@ -265,8 +293,9 @@ const applyEcho = (immediate: boolean, at: number): void => {
  * The wall's transition, which is now nothing but a gain ramp.
  *
  * Off is every shelf at 0 dB — an exact identity (see `shapeDsp.ts`) — and on is
- * every shelf at `NEXT_ROOM_DEPTH_DB`. Same filter, same type, same frequency at
- * both ends, so there is no coefficient jump to hide and nothing to defer.
+ * every shelf at the level's depth (`NEXT_ROOM_LEVELS`). Same filter, same
+ * type, same frequency at every level, so there is no coefficient jump to hide
+ * and nothing to defer.
  *
  * LINEAR IN dB, WHICH IS ALREADY THE LOGARITHMIC DOMAIN, so an even-sounding
  * move needs no curve of its own. Anchored at the live value, so a toggle
@@ -282,7 +311,10 @@ const applyEcho = (immediate: boolean, at: number): void => {
  */
 const applyWall = (immediate: boolean, at: number): void => {
   if (!graph) return;
-  const depth = settings.nextRoom ? NEXT_ROOM_DEPTH_DB : 0;
+  const depth =
+    settings.nextRoom === 'off'
+      ? 0
+      : NEXT_ROOM_LEVELS[settings.nextRoom].depthDb;
 
   for (const wall of graph.walls) {
     if (immediate) {
@@ -338,11 +370,14 @@ export const audioEngine = {
       const filter = ctx.createBiquadFilter();
       filter.type = 'highshelf';
       filter.frequency.value = hz;
-      filter.gain.value = settings.nextRoom ? NEXT_ROOM_DEPTH_DB : 0;
+      filter.gain.value =
+        settings.nextRoom === 'off'
+          ? 0
+          : NEXT_ROOM_LEVELS[settings.nextRoom].depthDb;
       return filter;
     });
 
-    // The wall's headroom, unity while it is off — see `NEXT_ROOM_TRIM_DB`.
+    // The wall's headroom, unity while it is off — see `NEXT_ROOM_LEVELS`.
     const wallTrim = ctx.createGain();
 
     // Echo. It sits AFTER the wall on purpose: the repeats are then repeats of
@@ -396,8 +431,8 @@ export const audioEngine = {
     }
     node.connect(wallTrim);
     // THE CONVOLVER IS ONLY IN THE CHAIN WHEN ECHO IS ON — see `applyEcho`.
-    if (settings.echo) {
-      echo.buffer = createEchoImpulse(ctx);
+    if (settings.echo !== 'off') {
+      echo.buffer = createEchoImpulse(ctx, ECHO_LEVELS[settings.echo].feedback);
       wallTrim.connect(echo);
       echo.connect(echoTrim);
     } else {
@@ -415,7 +450,7 @@ export const audioEngine = {
       echoTrim,
       // Seeded from the live setting, so a graph rebuilt mid-session (a new
       // sound) keeps the echo the person already chose.
-      echoOn: settings.echo,
+      echoLevel: settings.echo,
     };
     pushSettings(true);
   },
@@ -451,7 +486,7 @@ export const audioEngine = {
    * The reset path passes it explicitly, which is the case that matters — see
    * the user-scoping note in `store/shaper.ts`.
    */
-  apply(gains: number[], nextRoom?: boolean, echo?: boolean): void {
+  apply(gains: number[], nextRoom?: EffectLevel, echo?: EffectLevel): void {
     settings.gains = [...gains];
     if (nextRoom !== undefined) settings.nextRoom = nextRoom;
     if (echo !== undefined) settings.echo = echo;
@@ -463,15 +498,15 @@ export const audioEngine = {
     pushSettings(false);
   },
 
-  /** Next Room on/off — the wall. */
-  setNextRoom(on: boolean): void {
-    settings.nextRoom = on;
+  /** Next Room's level — the wall's depth, 'off' being the exact bypass. */
+  setNextRoom(level: EffectLevel): void {
+    settings.nextRoom = level;
     pushSettings(false);
   },
 
-  /** Echo on/off — the repeats. */
-  setEcho(on: boolean): void {
-    settings.echo = on;
+  /** Echo's level — how loud the repeats are, 'off' removing the convolver. */
+  setEcho(level: EffectLevel): void {
+    settings.echo = level;
     pushSettings(false);
   },
 

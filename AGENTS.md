@@ -687,7 +687,7 @@ drift this repo hates, but nothing Android is installed or run. Re-check
 `EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
 was deliberately NOT touched: it displays stored data and its screen is frozen.
 
-**NEXT ROOM — THE SOUND THROUGH A WALL** (Juan's ask, 2026-09-16). A `Toggle`
+**NEXT ROOM — THE SOUND THROUGH A WALL** (Juan's ask, 2026-09-16). A control
 in the Shape sheet, OFF by default, that plays a sound as if it were coming
 from another room: the party down the hall, the music while you are in the
 bath. Both are the same physics, which is why the control names the SPACE and
@@ -695,6 +695,26 @@ not the occasion — "Party Filter" was the asked-for wording and was reworded,
 because Apple names reverbs after rooms (GarageBand's "Small Room", "Large
 Hall") and never labels a user-facing effect "Filter", which is engineering
 vocabulary in a UI whose own noun is "shape".
+
+**IT GRADES BY LEVEL, AND SO DOES ECHO** (Juan's ask, 2026-09-25 — it was a
+`Toggle` until then). Both effects are Off / Low / Medium / High, and the
+levels are DISCRETE ON PURPOSE rather than a slider: each level is a measured
+PAIR — the effect's amount plus the headroom trim that amount needs — and the
+trim cannot be interpolated (it comes from sample-peak modelling, see
+`shapeDsp.ts`). Medium is the previously shipped "on" for both. On iOS each is
+a menu `Picker` row, the Presets row's own idiom, whose value takes the Form's
+tint on Apple's authority; on Android each is a `FilterChip` row under its
+label/supporting pair, the Presets row's idiom there (UNVERIFIED, as ever —
+nothing Android is installed). The level tables are `NEXT_ROOM_LEVELS`
+(depth -8 / -11 / -14, trims -0.75 / -1.0 / -1.25) and `ECHO_LEVELS`
+(feedback 0.3 / 0.4 / 0.45, trims -3.0 / -4.5 / -5.5) in `shapeDsp.ts`; the
+headroom test sweeps every level of each crossed with the other. Echo's
+levels grade the DEPTH over the one surviving 28 ms spacing, so no level can
+reintroduce the off-grid rhythm the spacing picker died of. NOTE: High echo's
+trim is -5.5, not the -5.0 an earlier note modelled — the current model
+measures +0.01 dB of clip at -5.0 on limited bass. The paragraphs below
+describe the wall at the middle depth, which is where every figure in them
+was measured.
 
 It is three HIGH SHELVES in the one serial chain, in `lib/audioEngine.ts`, plus
 its own trim. The wall is the whole effect, and the shape of the wall is the
@@ -725,7 +745,7 @@ read as distance, it reads as damage. **The report that preceded it was "too far
 too low volume", and raising the cutoff was the wrong lever for both halves.**
 
 **SO THE WALL IS THREE HIGH-SHELF CUTS** at 500 / 1500 / 4000 Hz, stacked an
-octave and a half apart, each at `NEXT_ROOM_DEPTH_DB` (-11). Each shelf is
+octave and a half apart, each at the level's depth (-11 here). Each shelf is
 6 dB/oct through its transition and flat after it, so three give a long, even
 tilt that ends on a FLOOR:
 
@@ -740,10 +760,11 @@ while a quiet residue of the top survives, which is what says "and the door is
 open". It is also the first version where the bass genuinely passes at unity
 while the vocal is gone; under the low-passes the two moved together.
 
-**THE THREE GAINS ARE ONE NUMBER.** `NEXT_ROOM_DEPTH_DB` is the distance
-control; the frequencies are the wall's character. Move the listener with the
-depth, not the frequencies. Two shelves leave the floor too high to read as a
-wall; four is a 24 dB/oct tilt, which is a cutoff again wearing a new shape.
+**THE THREE GAINS ARE ONE NUMBER.** The depth (`NEXT_ROOM_LEVELS`) is the
+distance control; the frequencies are the wall's character. Move the listener
+with the depth, not the frequencies — which is exactly what the levels do. Two
+shelves leave the floor too high to read as a wall; four is a 24 dB/oct tilt,
+which is a cutoff again wearing a new shape.
 
 **THE BASS IS NEITHER CUT NOR BOOSTED.** The tilt already passes the bottom at
 unity, which IS the thump you hear two rooms away. A first draft shipped +4 dB of
@@ -763,12 +784,14 @@ lower, and the only timer in `audioEngine.ts`. All of it is gone: on and off are
 one filter at two gains, so the transition is a gain ramp. **A bypass that is a
 different filter is a bypass you will get wrong.**
 
-**THE TRIM IS -1.0 dB, half a dB LESS than the low-passes needed.** Re-measured
-through the offline DF1 model across every preset × echo on/off: at 0.0 the worst
-case overshoots +0.63 dB, at -0.5 it is +0.13, at -1.0 it is -0.37. A gentler
-slope rotates less phase, so the tilt is both brighter and slightly louder than
-the thing it replaced. Nothing is ever ADDED — make-up would put the bass, which
-passes at unity, straight over full scale.
+**THE TRIM IS -1.0 dB AT THE MIDDLE DEPTH, half a dB LESS than the low-passes
+needed.** Re-measured through the offline DF1 model across every preset × echo
+level: at 0.0 the worst case overshoots +0.63 dB, at -0.5 it is +0.13, at -1.0
+it is -0.37. A gentler slope rotates less phase, so the tilt is both brighter
+and slightly louder than the thing it replaced. A deeper wall rotates MORE
+phase, so the trim grows with the level — the other two depths carry their own
+measured trims in `NEXT_ROOM_LEVELS`. Nothing is ever ADDED — make-up would
+put the bass, which passes at unity, straight over full scale.
 
 **THE TRANSITION IS A 200 ms LINEAR RAMP OF THE DEPTH**, which is already the
 logarithmic domain, so an even-sounding move needs no curve of its own. It reads
@@ -809,9 +832,10 @@ the most audible: the alternative is a summary whose word order depends on
 which options happen to be active. It shortens the long form further, which
 the existing note below already accepts.
 
-**Android took the same change and is UNVERIFIED**, as ever — the row mirrors
-Preserve Pitch's label/supporting/`Switch` anatomy so the two read as one list.
-The DSP is shared and platform-independent; nothing Android is installed.
+**Android took the same change and is UNVERIFIED**, as ever — the row keeps
+Preserve Pitch's label/supporting anatomy, with the level chips below it since
+2026-09-25 (see the levels note above). The DSP is shared and
+platform-independent; nothing Android is installed.
 
 **PLAYBACK SPEED IS 0.75×–1.25× IN TWENTIETHS, AND THE RANGE AND THE STEP ARE
 ONE DECISION** (Juan, 2026-09-16). It was 0.5×–1.5× in tenths — eleven stops, of

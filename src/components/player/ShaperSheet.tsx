@@ -34,7 +34,13 @@ import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
+import {
+  EFFECT_LEVELS,
+  EQ_BANDS,
+  EQ_MAX_DB,
+  EQ_MIN_DB,
+  type EffectLevel,
+} from '@/lib/audioEngine';
 import {
   RATE_MAX,
   RATE_MIN,
@@ -121,6 +127,21 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const setNextRoom = useShaperStore(s => s.setNextRoom);
   const echo = useShaperStore(s => s.echo);
   const setEcho = useShaperStore(s => s.setEcho);
+
+  // The typed t() needs literal keys, so map level ids explicitly — the same
+  // arrangement as `presetLabel` below.
+  const levelLabel = (level: EffectLevel) => {
+    switch (level) {
+      case 'low':
+        return t('player.shape.levels.low');
+      case 'medium':
+        return t('player.shape.levels.medium');
+      case 'high':
+        return t('player.shape.levels.high');
+      default:
+        return t('player.shape.levels.off');
+    }
+  };
 
   // The typed t() needs literal keys, so map preset ids explicitly.
   const presetLabel = (key: string) => {
@@ -419,71 +440,101 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
             <Switch value={keepPitch} onCheckedChange={setKeepPitch} />
           </Row>
 
-          {/* ECHO — the same vocabulary as iOS, said in Material. It was a
-              FilterChip row of three spacings while iOS drew a menu Picker;
-              both collapsed to a switch when two of the three spacings were
-              rejected on device (see `ECHO_DELAY_SECONDS`). With one setting
-              left it takes the same label/supporting/Switch anatomy as the two
-              rows below, so the three read as one list. */}
-          <Row
-            verticalAlignment="center"
-            horizontalArrangement="spaceBetween"
+          {/* ECHO — GRADED BY LEVEL (Juan, 2026-09-25), so it is a FilterChip
+              row again, the shape it had as a spacing picker and the shape the
+              Presets row above keeps: a selected chip is a SELECTION, which is
+              what keeps its accent on this monochrome sheet. iOS draws the
+              same vocabulary as a menu Picker. The levels grade the DEPTH over
+              the one surviving spacing — see `ECHO_LEVELS` in `shapeDsp.ts` —
+              and Echo stays INDEPENDENT of Next Room (see `store/shaper.ts`). */}
+          <Column
+            verticalArrangement={{ spacedBy: 2 }}
             modifiers={[
               fillMaxWidth(),
               padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
-            <Column
-              verticalArrangement={{ spacedBy: 2 }}
-              modifiers={[weight(1), padding(0, 0, 16, 0)]}
+            <Text color={colors.onSurface} style={{ typography: 'bodyLarge' }}>
+              {t('player.echo')}
+            </Text>
+            <Text
+              color={colors.onSurfaceMuted}
+              style={{ typography: 'bodySmall' }}
             >
-              <Text
-                color={colors.onSurface}
-                style={{ typography: 'bodyLarge' }}
+              {t('player.echoDescription')}
+            </Text>
+          </Column>
+          {/* Edge-to-edge scroll with content padding, exactly the Presets
+              row's arrangement — and the same drawn-box `offset` correction,
+              so the label→chips gap reads as the sheet's rhythm rather than
+              the 48dp touch box's slack. */}
+          <Row
+            verticalAlignment="center"
+            horizontalArrangement={{ spacedBy: 8 }}
+            modifiers={[
+              fillMaxWidth(),
+              offset(0, -7),
+              horizontalScroll(),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
+            {EFFECT_LEVELS.map(level => (
+              <FilterChip
+                key={level}
+                selected={echo === level}
+                onClick={() => setEcho(level)}
               >
-                {t('player.echo')}
-              </Text>
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'bodySmall' }}
-              >
-                {t('player.echoDescription')}
-              </Text>
-            </Column>
-            <Switch value={echo} onCheckedChange={setEcho} />
+                <FilterChip.Label>
+                  <Text maxLines={1}>{levelLabel(level)}</Text>
+                </FilterChip.Label>
+              </FilterChip>
+            ))}
           </Row>
 
           {/* Next Room is its own control, not a companion to the speed block
-              above — same label/supporting/Switch anatomy as Preserve Pitch so
-              the two read as one list rather than as two designs. iOS gives it
-              a separate grouped Section for the same reason; here the rhythm
-              does that job, because a Compose column has no cards to split. */}
-          <Row
-            verticalAlignment="center"
-            horizontalArrangement="spaceBetween"
+              above — the same label/supporting/chips anatomy as Echo so the
+              two graded effects read as one list rather than as two designs.
+              iOS gives it a separate grouped Section for the same reason; here
+              the rhythm does that job, because a Compose column has no cards
+              to split. */}
+          <Column
+            verticalArrangement={{ spacedBy: 2 }}
             modifiers={[
               fillMaxWidth(),
               padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
             ]}
           >
-            <Column
-              verticalArrangement={{ spacedBy: 2 }}
-              modifiers={[weight(1), padding(0, 0, 16, 0)]}
+            <Text color={colors.onSurface} style={{ typography: 'bodyLarge' }}>
+              {t('player.nextRoom')}
+            </Text>
+            <Text
+              color={colors.onSurfaceMuted}
+              style={{ typography: 'bodySmall' }}
             >
-              <Text
-                color={colors.onSurface}
-                style={{ typography: 'bodyLarge' }}
+              {t('player.nextRoomDescription')}
+            </Text>
+          </Column>
+          <Row
+            verticalAlignment="center"
+            horizontalArrangement={{ spacedBy: 8 }}
+            modifiers={[
+              fillMaxWidth(),
+              offset(0, -7),
+              horizontalScroll(),
+              padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+            ]}
+          >
+            {EFFECT_LEVELS.map(level => (
+              <FilterChip
+                key={level}
+                selected={nextRoom === level}
+                onClick={() => setNextRoom(level)}
               >
-                {t('player.nextRoom')}
-              </Text>
-              <Text
-                color={colors.onSurfaceMuted}
-                style={{ typography: 'bodySmall' }}
-              >
-                {t('player.nextRoomDescription')}
-              </Text>
-            </Column>
-            <Switch value={nextRoom} onCheckedChange={setNextRoom} />
+                <FilterChip.Label>
+                  <Text maxLines={1}>{levelLabel(level)}</Text>
+                </FilterChip.Label>
+              </FilterChip>
+            ))}
           </Row>
         </Column>
       </ModalBottomSheet>
