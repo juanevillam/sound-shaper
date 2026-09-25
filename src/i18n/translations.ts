@@ -87,6 +87,14 @@ export const translations = {
         none: 'None',
         pitchOff: 'Pitch Off',
         presets: 'Presets',
+        // ONE level vocabulary for both graded effects (Echo, Next Room) — a
+        // second copy per effect would be the same word with two homes.
+        levels: {
+          off: 'Off',
+          low: 'Low',
+          medium: 'Medium',
+          high: 'High',
+        },
       },
       menu: {
         label: 'Sound Options',
@@ -401,6 +409,12 @@ export const translations = {
         none: 'Ninguno',
         pitchOff: 'Tono libre',
         presets: 'Ajustes preestablecidos',
+        levels: {
+          off: 'Desactivado',
+          low: 'Bajo',
+          medium: 'Medio',
+          high: 'Alto',
+        },
       },
       menu: {
         label: 'Opciones del sonido',
@@ -678,6 +692,12 @@ export const translations = {
         none: '无',
         pitchOff: '不保持音高',
         presets: '预置',
+        levels: {
+          off: '关闭',
+          low: '低',
+          medium: '中',
+          high: '高',
+        },
       },
       menu: {
         label: '音频选项',

@@ -68,8 +68,10 @@ export function useShapeSummary(): string {
       activePreset === 'flat' ? null : presetSummary,
       rate === 1 ? null : rateLabel(rate, locale),
       rate === 1 || keepPitch ? null : t('player.shape.pitchOff'),
-      echo ? t('player.echo') : null,
-      nextRoom ? t('player.nextRoom') : null,
+      // The LABEL alone, not the level — the summary states WHICH controls
+      // are off default, and the box it lives in has no room for amounts.
+      echo === 'off' ? null : t('player.echo'),
+      nextRoom === 'off' ? null : t('player.nextRoom'),
     ]
       .filter(Boolean)
       .join(' · ') || t('player.shape.none')

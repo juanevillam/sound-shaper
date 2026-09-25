@@ -57,7 +57,10 @@ export const useTrophyTriggers = () => {
     if (listened >= LISTENING_MINUTES * 60) awardTrophy(TROPHY_IDS.listening);
 
     const shaped =
-      rate !== 1 || nextRoom || echo || gains.some(gain => gain !== 0);
+      rate !== 1 ||
+      nextRoom !== 'off' ||
+      echo !== 'off' ||
+      gains.some(gain => gain !== 0);
     if (shaped) awardTrophy(TROPHY_IDS.firstShape);
   }, [
     clipsSaved,

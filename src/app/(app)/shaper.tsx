@@ -22,7 +22,13 @@ import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
-import { EQ_BANDS, EQ_MAX_DB, EQ_MIN_DB } from '@/lib/audioEngine';
+import {
+  EFFECT_LEVELS,
+  EQ_BANDS,
+  EQ_MAX_DB,
+  EQ_MIN_DB,
+  type EffectLevel,
+} from '@/lib/audioEngine';
 import {
   RATE_MAX,
   RATE_MIN,
@@ -91,6 +97,27 @@ function ShaperSheetScreen() {
   const setNextRoom = useShaperStore(s => s.setNextRoom);
   const echo = useShaperStore(s => s.echo);
   const setEcho = useShaperStore(s => s.setEcho);
+
+  // The typed t() needs literal keys, so map level ids explicitly — the same
+  // arrangement as `presetLabel` below.
+  const levelLabel = (level: EffectLevel) => {
+    switch (level) {
+      case 'low':
+        return t('player.shape.levels.low');
+      case 'medium':
+        return t('player.shape.levels.medium');
+      case 'high':
+        return t('player.shape.levels.high');
+      default:
+        return t('player.shape.levels.off');
+    }
+  };
+
+  // A Picker hands back an unknown; only a known level may reach the engine.
+  const asLevel = (key: unknown): EffectLevel =>
+    (EFFECT_LEVELS as readonly string[]).includes(String(key))
+      ? (String(key) as EffectLevel)
+      : 'off';
 
   // The typed t() needs literal keys, so map preset ids explicitly.
   const presetLabel = (key: string) => {
@@ -251,40 +278,52 @@ function ShaperSheetScreen() {
           />
         </Section>
 
-        {/* Echo was a PICKER of three spacings and is a switch — see the note
-          on `ECHO_DELAY_SECONDS`. With one setting left there is nothing for a
-          menu row to choose between, and a picker holding two rows is a toggle
-          wearing a chevron. It is deliberately INDEPENDENT of Next Room — see
-          the note on `echo` in `store/shaper.ts`. */}
+        {/* Echo GRADES BY LEVEL (Juan, 2026-09-25), so it is a menu Picker row
+          again — the Presets row's own idiom, and the value takes the Form's
+          tint on Apple's authority (Settings tints its menu-picker values).
+          It was a picker of three SPACINGS once and a switch after those were
+          rejected on device; the levels grade the DEPTH instead, over the one
+          surviving spacing — see `ECHO_LEVELS` in `shapeDsp.ts`. It is
+          deliberately INDEPENDENT of Next Room — see the note on `echo` in
+          `store/shaper.ts`. */}
         <Section
           footer={<SwiftUIText>{t('player.echoDescription')}</SwiftUIText>}
         >
-          <Toggle
-            isOn={echo}
+          <Picker
             label={t('player.echo')}
-            onIsOnChange={setEcho}
-            // Same reason as the two toggles below — a SwiftUI Toggle takes the
-            // ambient accent, and green-means-on is a platform semantic.
-            modifiers={[tint(colors.switchOn)]}
-          />
+            selection={echo}
+            onSelectionChange={key => setEcho(asLevel(key))}
+            modifiers={[pickerStyle('menu')]}
+          >
+            {EFFECT_LEVELS.map(level => (
+              <SwiftUIText key={level} modifiers={[tag(level)]}>
+                {levelLabel(level)}
+              </SwiftUIText>
+            ))}
+          </Picker>
         </Section>
 
         {/* Next Room gets its OWN section rather than joining Preserve Pitch's.
           A grouped section is a statement that its rows belong together, and
           these two answer different questions — one is about the speed control
           above it, the other is a place. Sharing a card would also leave one
-          footer explaining two switches. */}
+          footer explaining two rows. Levels, like Echo above: the wall's
+          DEPTH — see `NEXT_ROOM_LEVELS`. */}
         <Section
           footer={<SwiftUIText>{t('player.nextRoomDescription')}</SwiftUIText>}
         >
-          <Toggle
-            isOn={nextRoom}
+          <Picker
             label={t('player.nextRoom')}
-            onIsOnChange={setNextRoom}
-            // Same reason as Preserve Pitch above — a Toggle takes the ambient
-            // accent, and green-means-on is a platform semantic.
-            modifiers={[tint(colors.switchOn)]}
-          />
+            selection={nextRoom}
+            onSelectionChange={key => setNextRoom(asLevel(key))}
+            modifiers={[pickerStyle('menu')]}
+          >
+            {EFFECT_LEVELS.map(level => (
+              <SwiftUIText key={level} modifiers={[tag(level)]}>
+                {levelLabel(level)}
+              </SwiftUIText>
+            ))}
+          </Picker>
         </Section>
       </SheetFormBodyIos>
     </SheetScreen>

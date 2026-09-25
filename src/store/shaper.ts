@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { EQ_BANDS, audioEngine } from '@/lib/audioEngine';
+import { EQ_BANDS, audioEngine, type EffectLevel } from '@/lib/audioEngine';
 
 // The user's sound-shaping settings — the UI's source of truth. Every setter
 // also pushes the change onto the live audio graph so it's heard immediately.
@@ -56,26 +56,29 @@ type ShaperState = {
   gains: number[]; // per-band, dB
   activePreset: string | null; // i18nKey while gains match a preset, else null
   /**
-   * Next Room — the sound heard through a wall. It lives HERE rather than in
+   * Next Room — the sound heard through a wall, graded by level ('off' plus
+   * three depths — see `NEXT_ROOM_LEVELS` in `shapeDsp.ts`; it was a boolean
+   * until 2026-09-25). It lives HERE rather than in
    * the player store, beside `rate` and `keepPitch`, because it is shaping: it
    * is applied by `audioEngine`, it is what the Shape summary reports, and it
    * is user-scoped in exactly the way the curve is (see `reset`). The two in
    * the player store are there because the TRANSPORT reads them — a rate is
    * published to the system now-playing session, and a wall is not.
    */
-  nextRoom: boolean;
+  nextRoom: EffectLevel;
   /**
-   * Echo — the repeats. It is INDEPENDENT of `nextRoom`
+   * Echo — the repeats, graded by level ('off' plus three depths — see
+   * `ECHO_LEVELS`). It is INDEPENDENT of `nextRoom`
    * rather than exclusive with it (Juan's call, 2026-09-17): the two act on
    * different axes, a wall on frequency and repeats on time, and a party down a
-   * hallway genuinely has both. A switch that silently turns another one off is
+   * hallway genuinely has both. A control that silently moves another one is
    * a rule you can only learn by watching it happen.
    */
-  echo: boolean;
+  echo: EffectLevel;
   setBandGain: (index: number, db: number) => void;
   applyPreset: (i18nKey: string) => void;
-  setNextRoom: (on: boolean) => void;
-  setEcho: (on: boolean) => void;
+  setNextRoom: (level: EffectLevel) => void;
+  setEcho: (level: EffectLevel) => void;
   /** Back to flat — sign-out and account wipe. See `reset` below. */
   reset: () => void;
 };
@@ -89,8 +92,8 @@ const matchPreset = (gains: number[]): string | null =>
 export const useShaperStore = create<ShaperState>()((set, get) => ({
   gains: flat(),
   activePreset: 'flat',
-  nextRoom: false,
-  echo: false,
+  nextRoom: 'off',
+  echo: 'off',
 
   setBandGain: (index, db) => {
     const gains = get().gains.slice();
@@ -100,14 +103,14 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
     audioEngine.setBandGain(index, db);
   },
 
-  setNextRoom: on => {
-    set({ nextRoom: on });
-    audioEngine.setNextRoom(on);
+  setNextRoom: level => {
+    set({ nextRoom: level });
+    audioEngine.setNextRoom(level);
   },
 
-  setEcho: on => {
-    set({ echo: on });
-    audioEngine.setEcho(on);
+  setEcho: level => {
+    set({ echo: level });
+    audioEngine.setEcho(level);
   },
 
   applyPreset: i18nKey => {
@@ -145,11 +148,11 @@ export const useShaperStore = create<ShaperState>()((set, get) => ({
    */
   reset: () => {
     const gains = flat();
-    set({ gains, activePreset: 'flat', nextRoom: false, echo: false });
+    set({ gains, activePreset: 'flat', nextRoom: 'off', echo: 'off' });
     // `nextRoom` is passed EXPLICITLY, because `apply` leaves it alone when
     // omitted (a preset must not walk you out of the room). Reset is the one
     // caller that means both — it is the same user-scoping argument the curve
     // makes below, and the engine holds its own copy of this too.
-    audioEngine.apply(gains, false, false);
+    audioEngine.apply(gains, 'off', 'off');
   },
 }));
