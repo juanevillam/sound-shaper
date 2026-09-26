@@ -1,1 +1,12 @@
+# Secrets first: a leaked key is the one mistake a later commit cannot undo.
+# Config and allowlist live in .gitleaks.toml.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml || {
+    echo "gitleaks found a secret in the staged changes. Remove it (and rotate it) before committing."
+    exit 1
+  }
+else
+  echo "warning: gitleaks is not installed, so staged changes were NOT scanned for secrets (brew install gitleaks)."
+fi
+
 npx lint-staged
