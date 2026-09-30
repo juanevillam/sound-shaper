@@ -26,6 +26,9 @@ export default [
       // Backend services (e.g. the Cloudflare Worker) have their own toolchain
       // and Workers globals — this RN/React lint config doesn't govern them.
       'services/**',
+      // Standalone game repos (own .git, own toolchain) — see docs/arcade-game.md.
+      'games/**',
+      'github-profile/**',
     ],
   },
   {
