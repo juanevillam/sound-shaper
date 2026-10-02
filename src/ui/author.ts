@@ -13,10 +13,10 @@ export const AUTHOR_CREDIT = 'by juanevillam';
  *  the name as a native SwiftUI `Link`, so the "by" stays plain). */
 export const AUTHOR_CREDIT_PREFIX = 'by';
 export const AUTHOR_NAME = 'juanevillam';
-// SENTINEL: google.com marks every external link that still needs its real
-// destination (juanevillam.com is not live yet). Grep for google.com to find
-// every link left to tackle before release.
-export const AUTHOR_URL = 'https://www.google.com';
+// The portfolio site. Every link the apps open outside themselves is built
+// on it: the welcome byline, and each app's legal pages at
+// juanevillam.com/{app}/{page} — pages that live in apps/web.
+export const AUTHOR_URL = 'https://juanevillam.com';
 
 /** URL-safe app slug ("Expo UI Starter" → "expo-ui-starter") for paths + UTM. */
 const appSlug = (appName: string): string =>
