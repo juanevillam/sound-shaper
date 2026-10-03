@@ -115,6 +115,25 @@ const createEchoImpulse = (
   return impulse;
 };
 
+/**
+ * A fresh convolver for one level — never a reused one, see `applyEcho`.
+ *
+ * THE BUFFER IS SET HERE, BEFORE IT IS WIRED. A convolver with no response
+ * has no partitions and no thread pool, and the native node does not check
+ * before using them: it segfaults in `ThreadPool::wait()` on the audio IO
+ * thread the moment anything plays (shipped 2026-09-17). `normalize` goes
+ * off before the buffer — see `createEchoImpulse`.
+ */
+const createEcho = (
+  ctx: AudioContext,
+  level: Exclude<EffectLevel, 'off'>,
+): ConvolverNode => {
+  const echo = ctx.createConvolver();
+  echo.normalize = false;
+  echo.buffer = createEchoImpulse(ctx, ECHO_LEVELS[level].feedback);
+  return echo;
+};
+
 const flatGains = (): number[] => EQ_BANDS.map(() => 0);
 const dbToLinear = (db: number): number => Math.pow(10, db / 20);
 
@@ -126,7 +145,8 @@ type Graph = {
   walls: BiquadFilterNode[];
   /** The wall's own headroom, unity while it is off. */
   wallTrim: GainNode;
-  echo: ConvolverNode;
+  /** Null while Echo is off — a convolver exists only while it is wired. */
+  echo: ConvolverNode | null;
   echoTrim: GainNode;
   /**
    * The level the convolver is WIRED FOR — connected and holding that level's
@@ -218,11 +238,19 @@ const pushSettings = (immediate: boolean): void => {
  * pattern `applyWall` uses, so a change reversed mid-transition is safe.
  *
  * A LEVEL-TO-LEVEL MOVE IS A REWIRE TOO, not a gain ramp: the level is the
- * impulse response's own tap gains, so changing it means a new buffer, and a
- * buffer swap rebuilds the convolver's partitions — the same non-click-free
- * operation as a connect. It takes the same mute, dropping and re-adding the
- * convolver around the swap so the buffer is never replaced under a node the
- * graph is pulling.
+ * impulse response's own tap gains, so changing it means a new buffer. It
+ * takes the same mute, and swaps in a NEW convolver.
+ *
+ * A CONVOLVER IS NEVER RECONNECTED ONCE IT HAS BEEN DISCONNECTED. Losing its
+ * last input sets `ConvolverNode::signalledToStop_` (0.13.2) so its tail can
+ * ring out, and only `processNode` clears it — which an orphaned node never
+ * runs. Reconnect that node and the stale flag counts down a few quanta and
+ * calls `disable()`, which disables `echoTrim` with it, and the whole output
+ * goes SILENT until a later rewire happens to re-enable `echoTrim`. That is
+ * the "echo kills the sound until I turn it off and on" bug (2026-10-02):
+ * every second Off → On, and every level change while on, landed in it.
+ * So each "on" and each level change builds a fresh convolver — `setBuffer`
+ * rebuilt the partitions and thread pool every time anyway.
  */
 const applyEcho = (immediate: boolean, at: number): void => {
   if (!graph || !context) return;
@@ -257,18 +285,17 @@ const applyEcho = (immediate: boolean, at: number): void => {
       echoRewireTimer = null;
       if (generation !== echoGeneration || !graph || !context) return;
 
-      const { wallTrim, echo, echoTrim } = graph;
-      const wasOn = graph.echoLevel !== 'off';
-      const on = level !== 'off';
+      const { wallTrim, echo: oldEcho, echoTrim } = graph;
+      let echo: ConvolverNode | null = null;
       try {
-        if (wasOn) {
-          wallTrim.disconnect(echo);
-          echo.disconnect(echoTrim);
+        if (oldEcho) {
+          wallTrim.disconnect(oldEcho);
+          oldEcho.disconnect(echoTrim);
         } else {
           wallTrim.disconnect(echoTrim);
         }
-        if (on) {
-          echo.buffer = createEchoImpulse(context, ECHO_LEVELS[level].feedback);
+        if (level !== 'off') {
+          echo = createEcho(context, level);
           wallTrim.connect(echo);
           echo.connect(echoTrim);
         } else {
@@ -278,6 +305,7 @@ const applyEcho = (immediate: boolean, at: number): void => {
         // The graph was torn down under us; the next build wires it correctly.
         return;
       }
+      graph.echo = echo;
       graph.echoLevel = level;
 
       const now = context.currentTime;
@@ -384,16 +412,8 @@ export const audioEngine = {
     // what you actually hear, so switching Next Room on does not leave bright
     // echoes of a muffled sound ringing over the top of it.
     //
-    // `normalize` off — see `createEchoImpulse`.
-    const echo = ctx.createConvolver();
-    echo.normalize = false;
-    // THE BUFFER IS SET HERE, NOT LEFT TO `pushSettings`. A convolver with no
-    // response has no partitions and no thread pool, and the native node does
-    // not check before using them: it segfaults in `ThreadPool::wait()` on the
-    // audio IO thread the moment anything plays. That shipped on 2026-09-17 —
-    // `pushSettings` assigns the buffer only when the AMOUNT CHANGES, and on a
-    // fresh graph it has not, so 'off' meant "never assigned" rather than
-    // "assigned the passthrough spike".
+    // Only built while Echo is on — see `createEcho` and `applyEcho`.
+    let echo: ConvolverNode | null = null;
     const echoTrim = ctx.createGain();
 
     // THIS CHAIN IS STRICTLY SERIAL, AND IT HAS TO BE:
@@ -432,7 +452,7 @@ export const audioEngine = {
     node.connect(wallTrim);
     // THE CONVOLVER IS ONLY IN THE CHAIN WHEN ECHO IS ON — see `applyEcho`.
     if (settings.echo !== 'off') {
-      echo.buffer = createEchoImpulse(ctx, ECHO_LEVELS[settings.echo].feedback);
+      echo = createEcho(ctx, settings.echo);
       wallTrim.connect(echo);
       echo.connect(echoTrim);
     } else {
@@ -470,7 +490,7 @@ export const audioEngine = {
       graph.bands.forEach(band => band.disconnect());
       graph.walls.forEach(wall => wall.disconnect());
       graph.wallTrim.disconnect();
-      graph.echo.disconnect();
+      graph.echo?.disconnect();
       graph.echoTrim.disconnect();
     } catch {
       // The old media source rides a disposed <Audio>; ignore if already gone.
