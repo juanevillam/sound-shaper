@@ -24,9 +24,8 @@ import { cleanupMyMedia } from '@/services/firebase/functions';
 // That media used to orphan for want of a signed backend call, while the row's
 // copy promised the library was deleted permanently.
 //
-// Firebase requires a RECENT sign-in for user.delete(); when the session is too
-// old it throws `auth/requires-recent-login`. iOS re-authenticates first (see
-// `hooks/useDeleteAccount`); Android surfaces the error and asks for a retry.
+// Firebase requires a RECENT sign-in for user.delete(), so both platforms run
+// these through `hooks/useDeleteAccount`, which re-authenticates first.
 
 /**
  * EVERY FIRESTORE TRACE OF THE ACCOUNT.
@@ -119,15 +118,4 @@ export const cleanupAccountMedia = async (): Promise<void> => {
   } catch (error) {
     recordError(error, 'account.cleanupMyMedia');
   }
-};
-
-/**
- * Media, sweep, then delete, with nothing in between — what Android's
- * manage-account screen calls. iOS drives the halves itself so it can
- * re-authenticate first and revoke Apple tokens in the middle.
- */
-export const deleteAccount = async (): Promise<void> => {
-  await cleanupAccountMedia();
-  await deleteAccountData();
-  await deleteAuthAccount();
 };
