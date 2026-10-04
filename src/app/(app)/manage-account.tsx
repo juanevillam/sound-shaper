@@ -7,15 +7,16 @@ import {
 import { router } from 'expo-router';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
 // DEV LAB — these imports and the picker below go with `src/dev`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
-import { deleteAccount } from '@/services/firebase/account';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
@@ -44,6 +45,7 @@ export default function ManageAccount() {
   const profile = useProfileStore(s => s.profile);
   const hasSettled = useProfileStore(s => s.hasSettled);
 
+  const deleteAccount = useDeleteAccount();
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -79,7 +81,21 @@ export default function ManageAccount() {
     },
   ];
 
+  /**
+   * The same pipeline as the iOS twin and as Topper on both platforms:
+   * `useDeleteAccount` re-authenticates with Google FIRST, so the final Auth
+   * delete never meets `auth/requires-recent-login` after the data is gone.
+   * This screen used to call the bare service, which skipped that step and
+   * told anyone with an older session to sign out and back in by hand.
+   */
   const confirmDelete = async () => {
+    // DEV GUARD — see `dev/deleteAccountGuard`; closes the dialog because it
+    // holds its own busy state and would otherwise strand at "Deleting…".
+    if (isGuardedAccountRun()) {
+      setDeleteVisible(false);
+      return;
+    }
+
     haptics.medium();
     setDeleting(true);
 
@@ -91,6 +107,12 @@ export default function ManageAccount() {
     } catch (error: unknown) {
       setDeleting(false);
       setDeleteVisible(false);
+
+      // A dismissed Google sheet is someone changing their mind, not a
+      // failure — nothing was touched, so nothing is said.
+      if ((error as { message?: string })?.message === 'reauth-cancelled')
+        return;
+
       const code = (error as { code?: string })?.code ?? '';
       showSnackbar(
         t(

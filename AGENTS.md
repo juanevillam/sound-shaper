@@ -1465,9 +1465,11 @@ Account deletion now sweeps the Cloudinary media too — `cleanupAccountMedia`
 before the Firestore sweep, best-effort. It was the last of the three orphan
 doors; see the worker note above for what is still un-deployed.
 
-**Account deletion is `hooks/useDeleteAccount` on iOS** — re-auth FIRST, then the
-Firestore sweep, then the Apple token revoke, then the Auth user. Android calls
-the combined `deleteAccount` and has no re-auth. Its sweep silently deleted no
+**Account deletion is `hooks/useDeleteAccount` on BOTH platforms** (Android
+joined 2026-10-03; it called a combined `deleteAccount` with no re-auth and
+told a stale session to sign out and back in by hand) — re-auth FIRST, then the
+media sweep, then the Firestore sweep, then the Apple token revoke, then the
+Auth user. Android's half is UNVERIFIED on device. Its sweep silently deleted no
 songs or clips until 2026-08-20 (wrong collection paths that were still legal
 paths); the refs now mirror `songs.ts` / `clips.ts` exactly, and any new
 subcollection has to be added there or a recreated account inherits it.
