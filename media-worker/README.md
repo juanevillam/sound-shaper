@@ -17,10 +17,11 @@ could not verify both. `wrangler.jsonc` therefore defines two **environments**
 off this one codebase rather than forking it: two copies of a token verifier is
 precisely the duplication `scripts/shared-code-audit.mjs` exists to catch.
 
-| env            | Worker                      | Firebase project | media root     |
-| -------------- | --------------------------- | ---------------- | -------------- |
-| `topper`       | `topper-media-worker`       | `topper-da7db`   | `topper/items` |
-| `sound-shaper` | `sound-shaper-media-worker` | `sound-shaper`   | `sound-shaper` |
+| env            | Worker                      | Firebase project | media root      |
+| -------------- | --------------------------- | ---------------- | --------------- |
+| `topper`       | `topper-media-worker`       | `topper-da7db`   | `topper/items`  |
+| `sound-shaper` | `sound-shaper-media-worker` | `sound-shaper`   | `sound-shaper`  |
+| `booker`       | `booker-media-worker`       | `booker-3764a`   | `booker/covers` |
 
 `MEDIA_FOLDER_ROOT` **must** equal the owning app's `cloudinary/folders.ts`
 root.
@@ -97,6 +98,16 @@ npx wrangler secret put CLOUDINARY_API_SECRET --env sound-shaper
 npm run deploy:sound-shaper
 ```
 
+```sh
+npx wrangler secret put CLOUDINARY_API_KEY --env booker
+npx wrangler secret put CLOUDINARY_API_SECRET --env booker
+npm run deploy:booker
+```
+
+**`booker` is written but NOT DEPLOYED (2026-10-09)** — its secrets and its
+deploy were deferred by Juan. Until they land, Booker's cover deletes fail and
+are swallowed by design, so a replaced or deleted cover orphans.
+
 Each deploy prints its URL, e.g.
 `https://topper-media-worker.<your-subdomain>.workers.dev`.
 
@@ -104,10 +115,11 @@ Each deploy prints its URL, e.g.
 
 Both are wired as of 2026-09-12:
 
-| app            | `FUNCTIONS_BASE`                                           |
-| -------------- | ---------------------------------------------------------- |
-| `topper`       | `topper-media-worker.juanesvillamendoza.workers.dev`       |
-| `sound-shaper` | `sound-shaper-media-worker.juanesvillamendoza.workers.dev` |
+| app            | `FUNCTIONS_BASE`                                                        |
+| -------------- | ----------------------------------------------------------------------- |
+| `topper`       | `topper-media-worker.juanesvillamendoza.workers.dev`                    |
+| `sound-shaper` | `sound-shaper-media-worker.juanesvillamendoza.workers.dev`              |
+| `booker`       | `booker-media-worker.juanesvillamendoza.workers.dev` (not yet deployed) |
 
 Re-deploying does not change these; only renaming a Worker or the account's
 workers.dev subdomain would — worth knowing before either ships to a store.
