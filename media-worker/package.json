@@ -8,6 +8,7 @@
     "dev": "wrangler dev --env topper",
     "deploy:topper": "wrangler deploy --env topper",
     "deploy:sound-shaper": "wrangler deploy --env sound-shaper",
+    "deploy:booker": "wrangler deploy --env booker",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
