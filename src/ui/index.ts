@@ -48,7 +48,11 @@ export {
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
 } from './HeaderGlyphButton';
-export { FormDisclosureIndicatorIos } from './FormDisclosureRowIos';
+export {
+  FormDisclosureIndicatorIos,
+  FormDisclosureRowIos,
+  FormValueRowIos,
+} from './FormDisclosureRowIos';
 export {
   GROUPED_ROW,
   GROUPED_ROW_PITCH,
@@ -116,6 +120,7 @@ export { useNavigationTheme } from './useNavigationTheme';
 export { createText, TEXT_VARIANTS, type TextVariant } from './createText';
 export {
   ActionButtonIos,
+  actionButtonModifiersIos,
   sheetCommitBarOptionsIos,
   SheetFormBodyIos,
   SheetFormDestructiveIos,
