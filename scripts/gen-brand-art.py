@@ -35,7 +35,7 @@ The App Store needs no marketing-icon file — Xcode generates the 1024 from the
       --platform iOS --rendition Dark --width 512 --height 512 --scale 1
 """
 import json, os, shutil
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 from shapely.geometry import LineString, LinearRing
 from shapely.ops import unary_union
 
@@ -55,6 +55,12 @@ GRIDS = {
     "adaptive": 651,  # inside Android's adaptive-icon safe zone
 }
 
+# A mark TALLER than the others needs a smaller splash grid to clear Android
+# 12's circle — Booker's book is 34 units tall against the crown's 24, and its
+# corners reach ~23 units from centre. Measured with the check below: 800
+# clipped 5.69% of the ink. Per app, so the other marks keep their size.
+SPLASH_GRID_OVERRIDES = {"booker": 700}
+
 # THE brand palette. Two neutrals, swapped per appearance. Changing either of
 # these changes only what this script generates — the same values are ALSO
 # hard-coded in app.json, BrandTile and the favicon, so follow the runbook in
@@ -71,6 +77,13 @@ def stroke_line(coords):
     return LineString(coords).buffer(HALF, resolution=RES, cap_style=1, join_style=1)
 
 
+def quad(p0, c, p1, n=RES):
+    """Points along a quadratic Bezier — the mark's one curve."""
+    return [((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0],
+             (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1])
+            for t in (i / n for i in range(n + 1))]
+
+
 MARKS = {
     "topper": lambda: [
         # crown body: closed polyline, stroked
@@ -82,6 +95,17 @@ MARKS = {
     "sound-shaper": lambda: [
         stroke_line([(x, 24 - h / 2), (x, 24 + h / 2)])
         for x, h in [(10, 15), (17, 25), (24, 16), (31, 32), (38, 20)]
+    ],
+    # Booker: a closed book seen from the front — the cover with two title
+    # lines, and the page block curling out from under it at the foot. Chosen
+    # 2026-10-09 over open-book variants that read as "two squares" small.
+    "booker": lambda: [
+        LinearRing([(12, 7), (36, 7), (36, 35), (12, 35)])
+        .buffer(HALF, resolution=RES, join_style=1),
+        stroke_line([(18, 15), (30, 15)]),
+        stroke_line([(20.5, 21.5), (27.5, 21.5)]),
+        stroke_line([(12, 35)] + quad((12, 35), (12, 41), (17, 41))
+                    + [(36, 41), (36, 35)]),
     ],
 }
 
@@ -122,16 +146,26 @@ def to_path_data(geom, grid):
 
 
 def rasterise(geom, grid):
-    """Alpha mask of the mark, antialiased by supersampling."""
+    """Alpha mask of the mark, antialiased by supersampling.
+
+    EACH POLYGON IS DRAWN ON ITS OWN MASK AND THE MASKS ARE MAXED. Drawn into
+    one mask, a polygon's holes are painted back to 0 — and a shape that sits
+    INSIDE another's hole (Booker's title lines inside its cover) was erased
+    whenever it happened to be drawn first. The vector path never had this:
+    `fill-rule="evenodd"` counts it in.
+    """
     scale, (dx, dy) = placement(geom, grid)
-    mask = Image.new("L", (CANVAS * SS, CANVAS * SS), 0)
-    draw = ImageDraw.Draw(mask)
+    size = (CANVAS * SS, CANVAS * SS)
+    mask = Image.new("L", size, 0)
     for ext, holes in rings(geom):
+        part = Image.new("L", size, 0)
+        draw = ImageDraw.Draw(part)
         draw.polygon([((x * scale + dx) * SS, (y * scale + dy) * SS)
                       for x, y in ext.coords], fill=255)
         for hole in holes:
             draw.polygon([((x * scale + dx) * SS, (y * scale + dy) * SS)
                           for x, y in hole.coords], fill=0)
+        mask = ImageChops.lighter(mask, part)
     return mask.resize((CANVAS, CANVAS), Image.LANCZOS)
 
 
@@ -159,9 +193,9 @@ def write_mark_png(path, geom, grid, ink, ground=None):
     print("   ", os.path.basename(path))
 
 
-def android_splash_clearance(geom):
+def android_splash_clearance(geom, grid):
     """Fraction of the splash mark falling outside Android 12's centre-66% circle."""
-    alpha = rasterise(geom, GRIDS["splash"])
+    alpha = rasterise(geom, grid)
     px = alpha.load()
     r = CANVAS * 0.66 / 2
     ink = outside = 0
@@ -241,7 +275,8 @@ def build(app, out_dir):
         f.write("\n")
     print("built", doc)
 
-    ic, sp, ad = GRIDS["icon"], GRIDS["splash"], GRIDS["adaptive"]
+    ic, ad = GRIDS["icon"], GRIDS["adaptive"]
+    sp = SPLASH_GRID_OVERRIDES.get(app, GRIDS["splash"])
     write_mark_png(os.path.join(images, "icon.png"), geom, ic, GROUND_LIGHT, GROUND_DARK)
     write_mark_png(os.path.join(images, "splash-icon.png"), geom, sp, GROUND_DARK)
     write_mark_png(os.path.join(images, "splash-icon-dark.png"), geom, sp, GROUND_LIGHT)
@@ -260,8 +295,8 @@ def build(app, out_dir):
         (PLAY_ICON_SIZE, PLAY_ICON_SIZE), Image.LANCZOS).save(play)
     print("   ", os.path.relpath(play, REPO_ROOT))
 
-    outside = android_splash_clearance(geom)
-    flag = "ok" if outside == 0 else "CLIPS — shrink GRIDS['splash']"
+    outside = android_splash_clearance(geom, sp)
+    flag = "ok" if outside == 0 else "CLIPS — shrink its splash grid"
     print(f"    splash outside Android 12 circle: {outside:.2%} ({flag})")
     return doc
 
