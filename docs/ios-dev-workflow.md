@@ -28,10 +28,11 @@ from `xcrun devicectl list devices`.
 | ------------ | ------ | -------------- | ----------------------------- |
 | topper       | `8081` | `topper`       | `com.juanevillam.topper`      |
 | sound-shaper | `8082` | `sound-shaper` | `com.juanevillam.soundshaper` |
+| booker       | `8083` | `booker`       | `com.juanevillam.booker`      |
 
-`8083` was expo-ui-starter's and is free since 2026-09-16 — leave it free rather
-than reassigning it, so an old dev client pointed at it fails loudly instead of
-silently answering as another app.
+`8083` was expo-ui-starter's until 2026-09-16. It went to Booker on 2026-10-09
+once that app's dev client was confirmed gone from every device (Juan), so
+nothing left pointed at it to answer as the wrong app.
 
 Distinct ports are **mandatory**. Two apps on 8081 does not error — app B
 silently loads app A's bundle, which looks healthy and renders the wrong app.
@@ -46,6 +47,10 @@ cd apps/topper && npx expo start --dev-client --port 8081 --host lan
 
 ```bash
 cd apps/sound-shaper && npx expo start --dev-client --port 8082 --host lan
+```
+
+```bash
+cd apps/booker && npx expo start --dev-client --port 8083 --host lan
 ```
 
 Confirm they are actually up before touching the apps:
@@ -150,8 +155,10 @@ When apps stop launching on the phone, nothing is broken — the profile expired
 Rebuild. The permanent fix is the $99/yr Apple Developer Program.
 
 Free team also caps you at **3 apps** on the device. That used to be exactly the
-number in this repo and was therefore a live constraint; with Expo UI Starter
-deleted (2026-09-16) there are two, so there is one slot of headroom.
+number in this repo, dropped to two when Expo UI Starter was deleted
+(2026-09-16), and is exactly three again with Booker (2026-10-09) — so a fourth
+app means removing one first, and any stray test install on the iPhone blocks
+a real one.
 
 ## Sign in with Apple is off, on purpose
 
