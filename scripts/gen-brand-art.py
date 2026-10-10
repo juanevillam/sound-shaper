@@ -55,11 +55,12 @@ GRIDS = {
     "adaptive": 651,  # inside Android's adaptive-icon safe zone
 }
 
-# A mark TALLER than the others needs a smaller splash grid to clear Android
-# 12's circle — Booker's book is 34 units tall against the crown's 24, and its
-# corners reach ~23 units from centre. Measured with the check below: 800
-# clipped 5.69% of the ink. Per app, so the other marks keep their size.
-SPLASH_GRID_OVERRIDES = {"booker": 700}
+# A mark whose corners reach further from centre than the others' needs a
+# smaller splash grid to clear Android 12's circle — Booker's open book is 30
+# units wide with square outer corners. Measured with the check below: 800
+# clipped 1.69% of the ink, 760 still 0.10%, 750 clears. Per app, so the other
+# marks keep their size.
+SPLASH_GRID_OVERRIDES = {"booker": 750}
 
 # THE brand palette. Two neutrals, swapped per appearance. Changing either of
 # these changes only what this script generates — the same values are ALSO
@@ -96,16 +97,17 @@ MARKS = {
         stroke_line([(x, 24 - h / 2), (x, 24 + h / 2)])
         for x, h in [(10, 15), (17, 25), (24, 16), (31, 32), (38, 20)]
     ],
-    # Booker: a closed book seen from the front — the cover with two title
-    # lines, and the page block curling out from under it at the foot. Chosen
-    # 2026-10-09 over open-book variants that read as "two squares" small.
+    # Booker: an open book, pages dipping into the spine, upright outer
+    # edges, nothing on the pages. Chosen 2026-10-09 over a closed book with
+    # title lines, a bookmark, a pile and a shelf — and over a straight-edged
+    # twin that matched the crown's language more closely: the curve is what
+    # makes it read as paper.
     "booker": lambda: [
-        LinearRing([(12, 7), (36, 7), (36, 35), (12, 35)])
-        .buffer(HALF, resolution=RES, join_style=1),
-        stroke_line([(18, 15), (30, 15)]),
-        stroke_line([(20.5, 21.5), (27.5, 21.5)]),
-        stroke_line([(12, 35)] + quad((12, 35), (12, 41), (17, 41))
-                    + [(36, 41), (36, 35)]),
+        LinearRing(page).buffer(HALF, resolution=RES, join_style=1)
+        for page in (
+            quad((24, 14), (16, 9.5), (9, 11)) + quad((9, 34), (16, 32), (24, 37.5)),
+            quad((24, 14), (32, 9.5), (39, 11)) + quad((39, 34), (32, 32), (24, 37.5)),
+        )
     ],
 }
 
