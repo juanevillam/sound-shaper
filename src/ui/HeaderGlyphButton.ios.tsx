@@ -73,6 +73,25 @@ export const HEADER_GLYPH_SIZE = 24;
 const HEADER_TAP_TARGET = 43;
 
 /**
+ * A LONE GLYPH'S TARGET — and "a lone glyph has no dead space" (above) was
+ * wrong about the half that mattered (Juan, 2026-10-10, all three apps: "se
+ * anima pero no hace la acción").
+ *
+ * UIKit's glass capsule answers a touch ANYWHERE inside its 44pt circle — it
+ * squashes and brightens on its own — while the SwiftUI `Button` inside it
+ * only fires on the glyph's ink, ~17–20pt across. So a tap a few points off the
+ * ink played the press animation and did nothing, and the person tapped again.
+ * The capsule promising an action the button did not take is worse than a
+ * small target: it reads as a broken button.
+ *
+ * The box can grow up to the point UIKit starts growing the capsule around it.
+ * UIKit pads its capsule 8pt past the content and floors it at 44 (24 → 44.0,
+ * 43 → 51.0, 102.67 → 110.67, measured above), so anything up to 36 keeps
+ * Apple's 44 × 44 circle exactly while claiming all but a 4pt rim of it.
+ */
+export const HEADER_LONE_TARGET = 36;
+
+/**
  * A sheet's dismiss glyph is the one bar item NOT sized against a title —
  * Apple draws it noticeably larger than an inline title's cap height so it
  * stays an easy target inside the fixed 43.3pt capsule.
@@ -240,19 +259,17 @@ export function HeaderGlyphGroupIos({
               size={size ?? HEADER_GLYPH_SIZE}
               color={tint ?? colors.onSurface}
               modifiers={[
-                // The glyph keeps its own size; the BOX around it is the target.
-                ...(expand
-                  ? [
-                      frame({
-                        width: HEADER_TAP_TARGET,
-                        height: HEADER_TAP_TARGET,
-                      }),
-                      // Without this the enlarged frame is not tappable — an
-                      // `Image` hit-tests its drawn content, so the padding
-                      // would fall through.
-                      contentShape(shapes.rectangle()),
-                    ]
-                  : []),
+                // The glyph keeps its own size; the BOX around it is the target
+                // — the group's 43, or a lone glyph's 36 (see
+                // `HEADER_LONE_TARGET`), never the bare ink.
+                frame({
+                  width: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
+                  height: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
+                }),
+                // Without this the enlarged frame is not tappable — an `Image`
+                // hit-tests its drawn content, so the padding would fall
+                // through.
+                contentShape(shapes.rectangle()),
                 accessibilityLabel(label),
               ]}
             />
