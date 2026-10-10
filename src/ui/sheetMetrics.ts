@@ -45,6 +45,22 @@ export const SHEET_EMPTY_HEADER_SLOT = 21;
 export const SHEET_CONTENT_TOP = 84;
 
 /**
+ * THE TOP MARGIN A HEADERLESS FIRST CARD TAKES IN A FULL-HEIGHT FORM SHEET —
+ * as `listSectionMargins({ edges: 'top' })` on that first `Section`, which
+ * REPLACES the reserved empty-header margin rather than adding to it (1:1
+ * slope: 14 → 80.00, 18 → 84.00, band-scanned on the Settings banner).
+ *
+ * This is the lever that leaves the `Form` where UIKit put it. The other one —
+ * pulling the hosting view up by `SHEET_EMPTY_HEADER_SLOT` — lands the card on
+ * the same 84, but slides the top of the `Form` under the sheet's bar, and
+ * UIKit reads that as content scrolled under it: the bar draws its hard
+ * scroll-edge band and a separator at rest, before anything has moved. Booker's
+ * editors shipped that band (Juan, 2026-10-10: New Highlight "no tiene el
+ * padding top correcto"), while Settings, on this margin, never had one.
+ */
+export const SHEET_FIRST_CARD_MARGIN = 18;
+
+/**
  * THE GAP BETWEEN A SHEET TITLE'S INK AND ITS FIRST CONTENT — the number to
  * check when a sheet does NOT take the inline UIKit bar.
  *

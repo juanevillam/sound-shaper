@@ -24,6 +24,7 @@ import {
 } from './FormDisclosureRowIos';
 import { InitialArt } from './InitialArt';
 import { type SettingsAccountSectionProps } from './SettingsAccountSection';
+import { SHEET_FIRST_CARD_MARGIN } from './sheetMetrics';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
 /**
@@ -310,7 +311,7 @@ export const SettingsSignOutSection = ({
  * It applies ONLY in the banner mode: the headed card has a real header and is
  * already where the rest of the family is.
  */
-const BANNER_TOP_MARGIN = 18;
+const BANNER_TOP_MARGIN = SHEET_FIRST_CARD_MARGIN;
 
 /**
  * THE BANNER IS APPLE'S SIZE, AND THE REFERENCE IS THE APP STORE'S APPLE
