@@ -30,11 +30,10 @@ import {
   type EffectLevel,
 } from '@/lib/audioEngine';
 import {
-  RATE_MAX,
-  RATE_MIN,
-  RATE_STEP,
+  RATE_LAST_STOP,
   rateLabel,
-  snapRate,
+  rateToStop,
+  stopToRate,
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
@@ -252,11 +251,13 @@ function ShaperSheetScreen() {
         >
           <Slider
             modifiers={sliderInk}
-            value={rate}
-            min={RATE_MIN}
-            max={RATE_MAX}
-            step={RATE_STEP}
-            onValueChange={value => setRate(snapRate(value))}
+            // Stops, not rates — the only way SwiftUI draws the ticks (see
+            // `RATE_LAST_STOP`).
+            value={rateToStop(rate)}
+            min={0}
+            max={RATE_LAST_STOP}
+            step={1}
+            onValueChange={value => setRate(stopToRate(value))}
           />
         </Section>
 
