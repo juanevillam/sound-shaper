@@ -14,7 +14,7 @@ import {
   glassEffect,
   shadow as shadowModifier,
 } from '@expo/ui/swift-ui/modifiers';
-import { useAppTheme, withAlpha } from '@portfolio/core';
+import { IOS_COLORS, useAppTheme, withAlpha } from '@portfolio/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 
@@ -157,6 +157,17 @@ export type GlassSurfaceIosProps = {
    */
   shadowRoom?: number;
   style?: StyleProp<ViewStyle>;
+  /**
+   * THE APPEARANCE OF WHAT THE GLASS SITS ON, when that is not the app's.
+   *
+   * The material and its floor both follow the app by default, which is right
+   * everywhere the app draws the ground. Booker's reader is the exception: its
+   * page carries a theme of its own, so a dark app reading on a Light, Sepia or
+   * Paper page put dark discs — dark floor, dark-adapted glass — under the
+   * page's dark ink, and the glyphs all but vanished (Juan, 2026-10-10). Pass
+   * the PAGE's appearance and the surface follows it instead.
+   */
+  colorScheme?: 'light' | 'dark';
 };
 
 /**
@@ -188,8 +199,10 @@ export const GlassSurfaceIos = memo(function GlassSurfaceIos({
   shadow,
   shadowRoom = 0,
   style,
+  colorScheme,
 }: GlassSurfaceIosProps) {
-  const { colors } = useAppTheme();
+  const { colors: appColors } = useAppTheme();
+  const colors = colorScheme ? IOS_COLORS[colorScheme] : appColors;
   const radius = shape === 'capsule' ? height / 2 : cornerRadius;
 
   return (
@@ -213,6 +226,7 @@ export const GlassSurfaceIos = memo(function GlassSurfaceIos({
           modifier cannot reach it (pixel-verified no-op). */}
       <SwiftUIHost
         ignoreSafeArea="all"
+        {...(colorScheme ? { colorScheme } : null)}
         style={{
           height: height + shadowRoom * 2,
           left: -shadowRoom,
