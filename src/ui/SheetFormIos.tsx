@@ -1,3 +1,10 @@
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+} from 'react';
+
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import {
@@ -17,14 +24,18 @@ import {
 import {
   accessibilityLabel,
   buttonStyle,
+  contentShape,
   controlSize,
   disabled as disabledModifier,
   font,
+  frame,
   foregroundStyle,
   keyboardType as keyboardTypeModifier,
   lineLimit,
   listRowBackground,
+  listSectionMargins,
   listRowSeparator,
+  shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -33,8 +44,11 @@ import { useAppTheme } from '@portfolio/core';
 // Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
 // the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
 // suffix of its own to resolve against).
-import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
-import { SHEET_EMPTY_HEADER_SLOT } from './sheetMetrics';
+import { HEADER_LONE_TARGET, HeaderGlyphButtonIos } from './HeaderGlyphButton';
+import {
+  SHEET_EMPTY_HEADER_SLOT,
+  SHEET_FIRST_CARD_MARGIN,
+} from './sheetMetrics';
 import { SwiftUIHost } from './SwiftUIHost';
 import { spacing } from './tokens';
 
@@ -64,14 +78,21 @@ import { spacing } from './tokens';
  * fractional presentation's, not the Form's. Topper owns no `[1]` form sheet,
  * which is the only reason this stood for as long as it did.
  *
- * The two are separate constants rather than one number plus a conditional
- * because each is a MEASURED value with its own reason — see `fullHeight` on
- * `SheetFormBodyIos`. Re-measure against a family sheet (`manage-account` or
- * `trophies`) if the sheet chrome changes; the target is `SHEET_CONTENT_TOP`,
- * these are the compensations.
+ * THE FULL-HEIGHT CASE NO LONGER PULLS THE HOST BACK AT ALL (2026-10-10).
+ * It took the flat 21 off the hosting view, which put the card on 84 and the
+ * top of the `Form` under the sheet's bar — and UIKit draws a bar's hard
+ * scroll-edge band, separator included, over content it believes has scrolled
+ * under it. Every `[1]` editor opened looking already scrolled (Booker's New
+ * Highlight is where Juan saw it). It now takes a top margin on its first
+ * section instead — the Settings banner's lever and its value — which lands
+ * it level with Settings with the `Form` left where UIKit put it (centre-line
+ * band-scan, eight frames, one runtime: Settings 88.00, New Highlight at 15
+ * 85.00, at 18 88.00 — the slope is 1:1). The fractional case keeps
+ * the pull-back: its band was not measured here, and no fractional editor was
+ * reported. Re-measure against a family sheet (`manage-account` or `trophies`)
+ * if the sheet chrome changes; the target is `SHEET_CONTENT_TOP`.
  */
 const BODY_PULL_BACK = SHEET_EMPTY_HEADER_SLOT - 3.33;
-const BODY_PULL_BACK_FULL_HEIGHT = SHEET_EMPTY_HEADER_SLOT;
 
 /**
  * Chrome for the iOS form-sheet routes, shared by every portfolio app: the
@@ -116,8 +137,8 @@ const styles = StyleSheet.create({
    * padding on this Form was a no-op.
    */
   bodyHost: { flex: 1, marginTop: -BODY_PULL_BACK },
-  /** The same box on a `[1]` sheet, which takes no residual — see above. */
-  bodyHostFullHeight: { flex: 1, marginTop: -BODY_PULL_BACK_FULL_HEIGHT },
+  /** A `[1]` sheet's Host is not moved — its first section takes the margin. */
+  bodyHostFullHeight: { flex: 1 },
 });
 
 /**
@@ -167,8 +188,8 @@ export function SheetFormBodyIos({
   children: React.ReactNode;
   /**
    * PASS THIS WHEN THE ROUTE'S DETENT IS `[1]`, and nothing else — a sheet
-   * presented at the large detent takes no residual off its pull-back (the
-   * measurements are on `BODY_PULL_BACK`). It is stated rather than sensed on
+   * presented at the large detent leaves its Host alone and takes the empty
+   * header slot off its first section (see `BODY_PULL_BACK`). It is stated rather than sensed on
    * purpose: the honest signal is the screen's own safe-area top inset, which
    * arrives from the provider and can land a frame late, and an async answer on
    * the layout path is the exact bug family `SHEET_BONE_TOP` and
@@ -191,9 +212,34 @@ export function SheetFormBodyIos({
           control two sheets apart wore different value colours AND row
           fills — caught by eye in both modes. One titled sheet family, one
           Form recipe. */}
-      <Form modifiers={[tint(colors.primary)]}>{children}</Form>
+      <Form modifiers={[tint(colors.primary)]}>
+        {fullHeight ? withFirstCardMargin(children) : children}
+      </Form>
     </Host>
   );
+}
+
+/**
+ * The first `Section` takes `SHEET_FIRST_CARD_MARGIN` as a top margin
+ * (see `BODY_PULL_BACK`). The call sites pass plain `Section`s, so the margin is
+ * appended to whatever modifiers the first one already carries.
+ */
+function withFirstCardMargin(children: React.ReactNode) {
+  let applied = false;
+  return Children.map(children, child => {
+    if (applied || !isValidElement(child)) return child;
+    applied = true;
+    const section = child as ReactElement<{ modifiers?: unknown[] }>;
+    return cloneElement(section, {
+      modifiers: [
+        ...(section.props.modifiers ?? []),
+        listSectionMargins({
+          edges: 'top',
+          length: SHEET_FIRST_CARD_MARGIN,
+        }),
+      ],
+    });
+  });
 }
 
 type SheetFormFieldProps = {
@@ -583,6 +629,11 @@ export function SheetCommitGlyphIos({
           color={enabled ? colors.primary : colors.onSurfaceMuted}
           onPress={onPress}
           modifiers={[
+            // The ✕'s target, for the ✓ beside it — the glass capsule animates
+            // on a touch anywhere inside it, so the button has to fire there
+            // too (see `HEADER_LONE_TARGET`).
+            frame({ width: HEADER_LONE_TARGET, height: HEADER_LONE_TARGET }),
+            contentShape(shapes.rectangle()),
             ...(enabled ? [] : [disabledModifier(true)]),
             accessibilityLabel(label),
           ]}

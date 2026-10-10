@@ -45,6 +45,7 @@ export {
 export { ErrorScreen } from './ErrorScreen';
 export {
   HEADER_CLOSE_GLYPH_SIZE,
+  HEADER_LONE_TARGET,
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
 } from './HeaderGlyphButton';
@@ -72,6 +73,7 @@ export {
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
+  SHEET_FIRST_CARD_MARGIN,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
 export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
