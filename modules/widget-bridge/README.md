@@ -19,8 +19,8 @@ A widget is a **second process with its own sandbox**. It holds no Firebase, no
 session and no translator, so everything it draws has to be written somewhere
 both binaries can reach. This package carries it across; it never interprets it.
 
-- **The snapshot is an opaque JSON string** the caller already serialised, and is
-  written through untouched. The wire format between an app and its widget is
+- **The snapshot is opaque**: whatever shape the caller hands over is
+  serialised to JSON as-is and written through untouched. The wire format between an app and its widget is
   that app's own business — a library of sounds and a shelf of tops share
   nothing — so this package never grows a case per app.
 - **Media is named by the CALLER.** The widget resolves a file name out of the

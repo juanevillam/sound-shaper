@@ -9,12 +9,12 @@ the Blaze plan; this Worker runs on Cloudflare's free tier instead — well
 inside it, since Cloudflare bills neither subrequests (the Cloudinary and
 Google JWK calls) nor duration, and the only CPU spent is one RS256 verify.
 
-## One source, two deployments
+## One source, three deployments
 
-Topper and Sound Shaper sit on **different Firebase projects**, and the ID
+Topper, Sound Shaper and Booker sit on **different Firebase projects**, and the ID
 token's `aud`/`iss` are checked against `FIREBASE_PROJECT_ID` — so one instance
-could not verify both. `wrangler.jsonc` therefore defines two **environments**
-off this one codebase rather than forking it: two copies of a token verifier is
+could not verify them all. `wrangler.jsonc` therefore defines one **environment**
+per app off this one codebase rather than forking it: two copies of a token verifier is
 precisely the duplication `scripts/shared-code-audit.mjs` exists to catch.
 
 | env            | Worker                      | Firebase project | media root      |
@@ -75,7 +75,7 @@ shouldn't.
 
 ## Deploy
 
-Both Workers live in one Cloudflare account, on the free plan.
+All the Workers live in one Cloudflare account, on the free plan.
 
 ```sh
 cd services/media-worker
@@ -84,7 +84,7 @@ npx wrangler login
 ```
 
 Then, **per environment** (the secrets are per-environment too — setting them
-on one does not set them on the other):
+on one does not set them on another):
 
 ```sh
 npx wrangler secret put CLOUDINARY_API_KEY --env topper
@@ -113,7 +113,8 @@ Each deploy prints its URL, e.g.
 
 ## Wire the apps to it
 
-Both are wired as of 2026-09-12:
+Topper and Sound Shaper are wired as of 2026-09-12; Booker's URL is in place
+but its Worker is not deployed (it still answered 404 on 2026-10-14):
 
 | app            | `FUNCTIONS_BASE`                                                        |
 | -------------- | ----------------------------------------------------------------------- |
