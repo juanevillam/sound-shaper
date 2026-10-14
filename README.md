@@ -15,9 +15,9 @@ npm install            # from the monorepo root
 npx expo run:ios       # or run:android — needs the Firebase config files first
 ```
 
-Requires a Firebase project and its native config files
-(`google-services.json`, `GoogleService-Info.plist`) — see the `REPLACE_WITH_*`
-placeholders in `app.json` and `.firebaserc`.
+Runs against the `sound-shaper` Firebase project (`.firebaserc`); its native
+client config files (`google-services.json`, `GoogleService-Info.plist`) are
+committed here and wired from `app.json`.
 
 ## The audio graph is partly patched
 

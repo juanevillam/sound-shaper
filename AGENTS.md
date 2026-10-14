@@ -1,11 +1,12 @@
 # Sound Shaper
 
-Third portfolio app: a **PERSONAL** music player + tweaker — zero social
+A **PERSONAL** music player + tweaker — zero social
 features, by design (2026-07-18): every upload is for the uploader alone, which
 keeps the copyright surface at zero. Upload your own `.mp3`s, read their tags,
 play them, shape the sound. Same engineering mentality as Topper — native UI
 per platform, shared portfolio Welcome / Settings / Manage-account screens,
-full Firebase (Spark), no self-hosted backend.
+full Firebase (Spark), and no backend of its own beyond the portfolio's shared
+media Worker (below).
 
 **No tabs, no playlists.** Home is the single root screen: a 2-column grid of
 SONG tiles (cover art + title/artist) plus an Add-song tile — you upload a
@@ -55,15 +56,16 @@ that expands in place (PlayerSheet). There is NO Explore and NO profile
 screen. Don't reintroduce social affordances (visibility toggles, feeds,
 follows) or playlists — simplicity is the point.
 
-**Where Settings and Account live (iOS, 2026-08-20).** Home's bar carries TWO
-trailing glyphs in one merged Liquid Glass pill — Account, then Settings — and
-both present as full-height native FORM SHEETS, with Trophies stacking over
-Account. That is the portfolio-wide placement, matching Topper (and Expo UI
-Starter, while it existed); the route table and the reasoning are in `lib/sheetRoutes.ts`
-(`IOS_SHEET_SCREENS`). Account is the identity surface here, the way the
-Profile header is in Topper — a personal app has no profile tab for it to hang
-off. ANDROID IS UNCHANGED: there these are ordinary pushed Material screens and
-Trophies stays a row in Settings.
+**Where Settings and Account live (2026-08-20; Android 2026-09-08).** Home's
+bar carries ONE glyph, the gear (`HeaderSettingsButton`) — the portfolio-wide
+rule in the root `AGENTS.md`. The account entry is Settings' own IDENTITY
+BANNER (`SettingsAccountLink`), leading the form, and Trophies sits behind
+Account. A personal app has no profile tab for the account to hang off the way
+Topper's does, and the two-glyph bar it had before (Account beside Settings,
+`HomeBarGlyphsIos`, deleted) made the first screen read as busy. On iOS all
+three are full-height native FORM SHEETS stacking over one another — the route
+table and the reasoning are in `lib/sheetRoutes.ts` (`IOS_SHEET_SCREENS`); on
+Android they are ordinary pushed Material screens.
 
 **EVERYTHING A PERSON READS SAYS "SOUND", AND SO DOES THE CODE** (2026-08-21).
 The copy was already all "sound"; the app underneath still said "song"
@@ -95,9 +97,8 @@ arrangement. It had been a muted `Button` in `SheetFormMediaIos`'s own slot, and
 that — not taste — is why it read at a different size and colour than Topper's
 "Change Photo".
 
-**The Android half of the picker is written and UNVERIFIED.** It typechecks and
-it mirrors iOS, but nothing Android is installed — see the root AGENTS.md.
-Re-check it on device when Android resumes.
+The Android half of the picker was walked on the A54 on 2026-09-08, when the
+editor sheet was matched to its iOS twin (Remove Artwork included).
 
 **THE ARTWORK WASH IS ONE STEP UP FROM SUBTLE, AND 0.62 WAS A CEILING RATHER
 THAN A TASTE** (2026-08-21). The blurred cover is mixed into the page colour, so
@@ -172,8 +173,10 @@ That is Topper's `trash` pattern.
 one `progress` shared value and its springs, the drag/skip gesture graph, the
 neighbour paging, the collapsed banner, and the ONE artwork element that travels
 between the two states. Only the console below the artwork is split:
-`PlayerConsole.tsx` is Android's (Material, moved there verbatim) and
-`PlayerConsole.ios.tsx` is iOS's. The contract and the geometry both halves
+`PlayerConsole.tsx` is Android's and `PlayerConsole.ios.tsx` is iOS's — since
+2026-09-08 the same arrangement rule for rule, Android's in Material's
+language (no bar row, monochrome transport, Edit as the footer's third
+compartment, the footer in the banner's tonal chrome rather than glass). The contract and the geometry both halves
 share live in `chrome.ts`.
 
 A full `PlayerSheet.ios.tsx` was the obvious alternative and is the wrong shape:
@@ -182,17 +185,12 @@ copy ~700 lines of frame-verified animation and gesture code that has nothing to
 do with either platform's look, and a copy of it rots the moment one side is
 touched.
 
-**ANDROID IS NOT BEING VERIFIED, AND THAT IS THE CONSTRAINT THAT MATTERS.**
-The root AGENTS.md's July 2026 RELEASE freeze names Topper and Expo UI Starter,
-and this app came after it — so a reading of the letter says Sound Shaper's
-Android is not release-frozen. That reading is useless in practice and was
-briefly acted on here. The working rule (Juan, 2026-08-21) is that the whole
-portfolio is iOS-only until iOS is completely done: no Android app is installed,
-no Android change is run, and nothing Android can be verified at all.
-
-So Android code may still be EDITED where a feature genuinely spans both twins
-— but anything written there ships UNVERIFIED and has to be re-checked when
-Android comes back. Do not treat an Android edit as done because it typechecks.
+**THE "UNVERIFIED" NOTES BELOW ARE DATED.** Until the Android freeze ended on
+2026-08-29 the whole portfolio was iOS-only and nothing Android could be run, so Android twins
+were edited blind and marked UNVERIFIED. Phase B then walked this app's Android
+side on the Galaxy A54 (2026-09-08 → 09-11); where a note below still says
+UNVERIFIED without saying it was walked since, re-check it on the device before
+leaning on it. An Android edit is never done because it typechecks.
 
 **The iOS console is a designed surface, not Android's with parts swapped.**
 What it replaced was a Material now-playing screen — a 64pt filled `primary`
@@ -235,12 +233,15 @@ in the file's header; the ones worth knowing before touching it:
   (2026-08-26, Juan's direction, from Voice Memos screenshots: "for audio
   trimming this is the proper ux"). The Clips sheet's + pushes `clip-trim` —
   a full-height sheet stacking over the list the way trophies stacks over
-  account — and the in-player framing mode is GONE from iOS: no trim frame on
-  the scrubber, no range readout in its label row, no Cancel/Save bar swap,
-  no framing transport rules. Android's in-place framing is untouched.
+  account — and the in-player framing mode is GONE: no trim frame on the
+  scrubber, no range readout in its label row, no Cancel/Save bar swap, no
+  framing transport rules. Android retired its in-place framing on 2026-09-08
+  and takes the same editor (`ClipTrimEditor` / `ClipTrimFrame`, one file each
+  for both platforms; only the glyphs split, as `TrimGlyphs`), presented as a
+  Compose sheet over the player.
 
   **THE EDITOR IS VOICE MEMOS' TRIM ANATOMY, PRODUCING A CLIP**
-  (`ClipTrimEditorIos`): a ZOOMED waveform that pans under a fixed centred
+  (`ClipTrimEditor`): a ZOOMED waveform that pans under a fixed centred
   playhead (100pt/s, measured off the screenshots), a ruler that pans with
   it, the selection as an accent wash with two draggable edge lines, a
   full-track OVERVIEW strip carrying the selection frame, a large timecode,
@@ -284,7 +285,7 @@ in the file's header; the ones worth knowing before touching it:
   waveform pans. Both readings are recorded as postscripts in
   docs/rejected-experiments.md.
 
-  **WHAT CARRIED OVER, because it was already right:** `ClipTrimFrameIos` —
+  **WHAT CARRIED OVER, because it was already right:** `ClipTrimFrame` —
   the Photos-measured caps and rails, the fine-scrub gain, the explicit
   gesture arbitration, the VoiceOver adjustables — IS the overview strip's
   frame, reused with its props unchanged. The selection is ONE pair of
@@ -338,7 +339,7 @@ in the file's header; the ones worth knowing before touching it:
   **The four in-player framing generations and their verdicts** (grip pills,
   frame-on-slider, zoomed strip, frame + live scrubber + fine scrub) remain
   in git history and docs/rejected-experiments.md; the fine-scrub and
-  arbitration write-ups above survive inside `ClipTrimFrameIos` itself,
+  arbitration write-ups above survive inside `ClipTrimFrame` itself,
   which is where that behaviour now lives.
 
 **THE EXPANDED PLAYER HAS NO REACTIVE OR ANIMATED BACKGROUND, and one was
@@ -484,11 +485,11 @@ What that bought, and what it cost, so neither has to be re-derived:
   that account goes. Restoring the feature is a git revert plus those three
   comments.
 
-**ANDROID'S TWIN WAS EDITED UNVERIFIED**, because leaving it half-removed would
+**ANDROID'S TWIN TOOK THE SAME REMOVAL**, because leaving it half-removed would
 be worse: `ShaperSheet.tsx` lost the chips row, the save dialog and the delete
 button, and its `SheetBar` (a title plus a Save pill) became a plain title
-`Text`. It typechecks and it mirrors iOS; nothing Android is installed, so
-re-check it on device when Android resumes.
+`Text`. Edited blind at the time; the Shape sheet was walked on the A54 in both
+appearances in the 2026-09-08 rounds.
 
 **THE EXPANDED PLAYER HAS NO BAR ROW, AND EDIT SITS WITH THE COPY IT EDITS**
 (2026-08-21). Above the artwork there is now the artwork and nothing else.
@@ -643,8 +644,8 @@ way Settings writes "Ringtone: None", and the long string did not fit either:
 **INFO had nowhere to go and nothing left to say** — it listed artist, album and
 release year, and the app no longer handles the last two, so what remained was
 the title and artist already set two lines under the cover. The route,
-`SoundInfoSheet`'s iOS presentation and `PlayerMenuButton.ios.tsx` are all gone.
-Android keeps its overflow, its info sheet and its Material bar untouched.
+`SoundInfoSheet` and `PlayerMenuButton` are all gone — on Android too since
+2026-09-08, when its console dropped the overflow and the bar row.
 
 **What it costs is the only dismiss control VoiceOver and Switch Control could
 reach** — this is not a real UIKit sheet, so nothing publishes a dismiss action
@@ -681,11 +682,9 @@ so an existing document keeps what it has instead of being cleared, which is
 what "not handled" should mean. `Sound` still READS both; nothing renders them
 on iOS. Delete the params when there is a reason to migrate.
 
-**Android's editor took the same change and is UNVERIFIED** — the feature spans
-both twins and leaving one saying "Artist / Album / Release Year" would be the
-drift this repo hates, but nothing Android is installed or run. Re-check
-`EditSoundSheet.tsx` on device when Android resumes. Android's `SoundInfoSheet`
-was deliberately NOT touched: it displays stored data and its screen is frozen.
+**Android's editor took the same change** — the feature spans both twins and
+leaving one saying "Artist / Album / Release Year" would be the drift this repo
+hates. `EditSoundSheet.tsx` was walked on the A54 on 2026-09-08.
 
 **NEXT ROOM — THE SOUND THROUGH A WALL** (Juan's ask, 2026-09-16). A control
 in the Shape sheet, OFF by default, that plays a sound as if it were coming
@@ -704,8 +703,8 @@ trim cannot be interpolated (it comes from sample-peak modelling, see
 `shapeDsp.ts`). Medium is the previously shipped "on" for both. On iOS each is
 a menu `Picker` row, the Presets row's own idiom, whose value takes the Form's
 tint on Apple's authority; on Android each is a `FilterChip` row under its
-label/supporting pair, the Presets row's idiom there (UNVERIFIED, as ever —
-nothing Android is installed). The level tables are `NEXT_ROOM_LEVELS`
+label/supporting pair, the Presets row's idiom there (UNVERIFIED — not yet
+walked on the A54). The level tables are `NEXT_ROOM_LEVELS`
 (depth -8 / -11 / -14, trims -0.75 / -1.0 / -1.25) and `ECHO_LEVELS`
 (feedback 0.3 / 0.4 / 0.45, trims -3.0 / -4.5 / -5.5) in `shapeDsp.ts`; the
 headroom test sweeps every level of each crossed with the other. Echo's
@@ -832,10 +831,10 @@ the most audible: the alternative is a summary whose word order depends on
 which options happen to be active. It shortens the long form further, which
 the existing note below already accepts.
 
-**Android took the same change and is UNVERIFIED**, as ever — the row keeps
-Preserve Pitch's label/supporting anatomy, with the level chips below it since
+**Android took the same change and is UNVERIFIED** — the row keeps Preserve
+Pitch's label/supporting anatomy, with the level chips below it since
 2026-09-25 (see the levels note above). The DSP is shared and
-platform-independent; nothing Android is installed.
+platform-independent; the row has not been walked on the A54.
 
 **PLAYBACK SPEED IS 0.75×–1.25× IN TWENTIETHS, AND THE RANGE AND THE STEP ARE
 ONE DECISION** (Juan, 2026-09-16). It was 0.5×–1.5× in tenths — eleven stops, of
@@ -1003,13 +1002,11 @@ that tail with trim alone would cost ~4 dB of level on every shaped sound to
 protect against curves nobody sets. **Build the waveshaper before raising the
 margin.**
 
-**THE ENGINE IS SHARED BY BOTH TWINS, AND ANDROID IS UNVERIFIED.**
+**THE ENGINE IS SHARED BY BOTH TWINS.**
 `src/lib/audioEngine.ts`, `src/lib/eqResponse.ts` and `src/store/shaper.ts` carry
 no platform split, so Android got the automatic trim, the scheduled parameters and
-the new preset curves the moment iOS did — and nothing Android is installed or run
-(see the root `AGENTS.md` freeze). The DSP is platform-independent, but Compose's
-`ShaperSheet.tsx` has never been seen against the new curves; re-check it on
-device when Android resumes.
+the new preset curves the moment iOS did, while it was still unrunnable; Compose's
+`ShaperSheet.tsx` was walked against them on the A54 on 2026-09-08.
 
 **How to re-measure**, because these numbers are the whole argument. There is no
 meter in the app and no dev flag for one — `flags.ts` has ONE switch and will not
@@ -1023,8 +1020,8 @@ from an offline port of the library's own `BiquadFilterNode.cpp` (Direct Form 1,
 k-rate gain per 128-sample quantum, a-rate gain node), which sees every sample and
 agrees with the shipped `peakResponseDb` to 0.05 dB.
 
-**Home's iOS header is the SYSTEM large title**, not the shared
-`CollapsingHeaderBar` (Android still uses that). The one thing it costs is
+**Home's iOS header is the SYSTEM large title**, which replaced a hand-built
+`CollapsingHeaderBar` (deleted from `@portfolio/mobile-ui` 2026-08-27). The one thing it costs is
 spelled out in `home.tsx`: the bar EMPTIES while the player is expanded rather
 than hiding, because hiding it re-lays-out the screen and drops the player 8.67pt.
 
@@ -1147,10 +1144,11 @@ alongside them — delete a sound, replace a cover, delete an account — are
 CLOSED as of 2026-09-12; each site carries its own note.
 
 **`lib/waveform.ts` downloading the whole mp3 is FINE, and was checked.** It is
-reached only from `ClipTrimEditorIos`, so only while the `clip-trim` sheet is
+reached only from `ClipTrimEditor`, so only while the clip editor is
 open — not per sound played, not per player open. The JSON cache is consulted
-first, the in-memory map dedupes within a session and evicts failures, and the
-mp3 is deleted in a `finally`. It is once per sound per cache generation;
+first, the in-memory map dedupes within a session and evicts failures, and a
+fetched mp3 is deleted in a `finally` (since 2026-09-14 it usually borrows the
+offline mirror's copy instead — see Status). It is once per sound per cache generation;
 `cacheDirectory` being OS-purgeable is the correct trade, since it self-heals
 and cannot grow without bound.
 
@@ -1248,13 +1246,16 @@ by anyone else.** There is no public feed to shield, and no preview clip.
 
 ## Status
 
-**Flat-library phase — Android-first.** Auth (Google/Apple), song upload
-(document-picker → ID3 parse `src/lib/id3.ts` → `EditSongSheet` →
-**Cloudinary** audio as a `video` resource + embedded art → Firestore at
-`users/{uid}/songs`), the song-tile home grid, and the expanding PlayerSheet
-(audio-api playback through the EQ graph, Shape/Clips pages) are all built and
-device-verified. Long-press a tile edits/deletes; tapping plays and opens the
-player.
+**Built on both platforms; Phase B closed 2026-09-11, and what is left before
+the stores is the release gates in
+[`docs/phase-c-release.md`](../../docs/phase-c-release.md).** Auth (Google;
+Apple is off for now — below), sound upload (document-picker → ID3 parse
+`src/lib/id3.ts` → `EditSoundSheet` → **Cloudinary** audio as a `video`
+resource + embedded art → Firestore at `users/{uid}/songs`), the hand-ordered
+home grid, and the expanding PlayerSheet (audio-api playback through the
+shaping graph, Shape/Clips/Edit) are all built and device-verified. Tapping a
+tile plays and opens the player; long-press drags it, and a hold that never
+moves opens the editor.
 
 **THE WHOLE LIBRARY LIVES ON THE PHONE, AND PLAYBACK PREFERS IT** (Juan,
 2026-09-14, for a trip with no signal at all). The app streamed from Cloudinary
@@ -1347,8 +1348,7 @@ service.
 
 **THE SYSTEM NOW PLAYING SESSION IS PUBLISHED — BOTH PLATFORMS** (iOS
 2026-08-26, Android 2026-08-28; the component is `NowPlayingBridge`, one file,
-no platform twin — the paragraphs below still say "iOS only" and
-`NowPlayingBridgeIos` in places, and that is the state they were written in).
+no platform twin — the paragraphs below were written for iOS first).
 The Dynamic Island's audio pill, the Lock Screen
 player and Control Center's card are ONE system surface, drawn by iOS for
 whichever app owns the now-playing session; the bridge publishes it through
@@ -1463,7 +1463,7 @@ brings the race back, and nothing in the toolchain will tell you.
 
 Account deletion now sweeps the Cloudinary media too — `cleanupAccountMedia`
 before the Firestore sweep, best-effort. It was the last of the three orphan
-doors; see the worker note above for what is still un-deployed.
+doors, closed with the worker's deployment above.
 
 **Account deletion is `hooks/useDeleteAccount` on BOTH platforms** (Android
 joined 2026-10-03; it called a combined `deleteAccount` with no re-auth and
@@ -1471,13 +1471,13 @@ told a stale session to sign out and back in by hand) — re-auth FIRST, then th
 media sweep, then the Firestore sweep, then the Apple token revoke, then the
 Auth user. Android's half is UNVERIFIED on device. Its sweep silently deleted no
 songs or clips until 2026-08-20 (wrong collection paths that were still legal
-paths); the refs now mirror `songs.ts` / `clips.ts` exactly, and any new
+paths); the refs now mirror `sounds.ts` / `clips.ts` exactly, and any new
 subcollection has to be added there or a recreated account inherits it.
 
 **The brand has landed** — the deferral is over. The mark is a **five-bar
 equalizer** (`src/components/ui/BrandMark.tsx`), the shape of sound being
 tuned: a 48-unit grid at stroke 3.25 with round caps and no fill, a sibling to
-Topper's crown and the starter's bento by construction. Its bars are uneven on
+Topper's crown and Booker's open book by construction. Its bars are uneven on
 purpose — rise, dip, peak, settle — rather than a symmetric curve, so the glyph
 reads as audio rather than as a chart.
 
@@ -1492,10 +1492,9 @@ hand-edit any of those outputs; the runbook is in the root `AGENTS.md`.
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before
 writing native code. `@expo/ui` (Jetpack Compose + SwiftUI) markdown snapshots
-live in [`../../docs/expo-ui/`](../../docs/expo-ui) — they were
-`apps/expo-ui-starter/docs/` until that app was removed from the portfolio on
-2026-09-16. The installed TypeScript types under `node_modules/@expo/ui` are the
-source of truth when the docs disagree.
+live in [`../../docs/expo-ui/`](../../docs/expo-ui). The installed TypeScript
+types under `node_modules/@expo/ui` are the source of truth when the docs
+disagree.
 
 ## Sign in with Apple is temporarily OFF (free-team dev)
 
@@ -1504,18 +1503,23 @@ button on iOS, so the welcome screen offers Google alone. The
 `com.apple.developer.applesignin` entitlement needs a PAID Apple Developer
 membership, which the free personal team can't sign — a button that can only
 fail is worse than no button. The entitlement itself is stripped by
-`ios.usesAppleSignIn: false` plus `plugins/with-strip-apple-signin.js`, which
+`ios.usesAppleSignIn: false` plus the root `plugins/with-strip-apple-signin.js`, which
 must stay the **FIRST** entry in `app.json`'s `plugins` array (the entitlements
 mod registered earliest runs last, so listing it later loses to
 `expo-apple-authentication`). Revert all three together once the paid account
-lands — App Store policy requires Apple sign-in wherever Google is offered.
+lands (enrollment still pending as of 2026-10-14 — see the root `CLAUDE.md`) —
+App Store policy requires Apple sign-in wherever Google is offered.
 Nothing was deleted: `useAppleSignIn.ios.ts`, `services/firebase/appleAuth.ts`
 and `AppleSignInButton` stay wired and correct.
 
 ## iOS build recipe — same as Topper's, deliberately
 
-`expo-build-properties` carries **only** `ios: { useFrameworks: "static" }`, and
-`package.json` carries `expo.autolinking.apple.buildFromSource: ["ExpoImage"]`.
+`expo-build-properties` carries only `ios: { useFrameworks: "static" }` on the
+iOS side (Android adds its release minify/shrink flags), and `package.json`
+carries `expo.autolinking.apple.buildFromSource: ["ExpoImage"]`. (Its Android
+twin, `expo.autolinking.android.buildFromSource: ["expo-ui"]`, is unrelated to
+this recipe — it is what compiles the `patches/@expo/ui` overlay into this app
+on Android, 2026-09-08.)
 That pair dodges the precompiled-`ExpoModulesCore` ABI drift (source-build just
 the one drifted pod) while keeping precompiled modules **on**, which is what
 keeps `RNFBFirestore` compiling under `use_frameworks!`.
