@@ -11,15 +11,17 @@ their own Metro / Babel.
 
 ## Exports
 
-| Export                                                                           | Purpose                                                                                                                                 |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `useAppTheme` / `ResolvedScheme`                                                 | Resolves the active scheme (from `useThemeStore`) into the live Material 3 palette via `getMaterialColors`; falls back off-Android.     |
-| `AppColors`, `materialToAppColors`, `FALLBACK_COLORS`, `IOS_COLORS`, `withAlpha` | Semantic color roles, the Material → roles mapper, the off-Android baselines, and an `#RRGGBBAA` alpha helper.                          |
-| `configureAppTheme` / `getAppThemeConfig` / `AppThemeConfig`                     | Optional per-app theme config hook-up (all portfolio apps currently ride the platform-default palette — no brand seed).                 |
-| `Theme`, `SUPPORTED_THEMES`, `DEFAULT_THEME`                                     | Theme-preference type and option list (`system` / `light` / `dark`).                                                                    |
-| `useThemeStore`                                                                  | Persisted theme preference (`theme`, `setTheme`, `hasHydrated`).                                                                        |
-| `useAuthStore`                                                                   | Persisted auth flag (`isAuthenticated`, `signIn`, `signOut`, `hasHydrated`). Wire `signIn`/`signOut` to a real provider per app.        |
-| `createI18n(translations, useLocaleState, defaultLocale?)` / `Translator`        | Builds the shared `useI18n` hook (i18n-js + fallback + memoization). The app injects its `translations`, locale type, and locale store. |
+| Export                                                                                                     | Purpose                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `useAppTheme` / `ResolvedScheme`                                                                           | Resolves the active scheme (from `useThemeStore`) into the live Material 3 palette via `getMaterialColors`; falls back off-Android.     |
+| `AppColors`, `materialToAppColors`, `FALLBACK_COLORS`, `IOS_COLORS`, `withAlpha`                           | Semantic color roles, the Material → roles mapper, the off-Android baselines, and an `#RRGGBBAA` alpha helper.                          |
+| `configureAppTheme` / `getAppThemeConfig` / `AppThemeConfig`                                               | Optional per-app theme config hook-up (all portfolio apps currently ride the platform-default palette — no brand seed).                 |
+| `Theme`, `SUPPORTED_THEMES`, `DEFAULT_THEME`                                                               | Theme-preference type and option list (`system` / `light` / `dark`).                                                                    |
+| `SCREEN_PADDING`, `SECTION_GAP`, `CARD_GAP`, `TILE_GAP`, `ROW_INSET`, `ROW_MIN_HEIGHT`, `opticalTextInset` | Shared layout metrics, and the nudge TEXT takes under a rounded shape (shapes do not).                                                  |
+| `useThemeStore`                                                                                            | Persisted theme preference (`theme`, `setTheme`, `hasHydrated`).                                                                        |
+| `useAuthStore`                                                                                             | Persisted auth flag (`isAuthenticated`, `signIn`, `signOut`, `hasHydrated`). Wire `signIn`/`signOut` to a real provider per app.        |
+| `createLayoutStore`                                                                                        | Builds the app's persisted locale store (device default, AsyncStorage, `hasHydrated` gate) from its own `SUPPORTED_LOCALES`.            |
+| `createI18n(translations, useLocaleState, defaultLocale?)` / `Translator` / `DotPaths`                     | Builds the shared `useI18n` hook (i18n-js + fallback + memoization). The app injects its `translations`, locale type, and locale store. |
 
 ## Usage
 
@@ -43,7 +45,7 @@ export const useI18n = createI18n<Locale>(translations, useLocaleState);
 ## Peer dependencies
 
 Provided by the host app: `@expo/ui`, `@react-native-async-storage/async-storage`,
-`i18n-js`, `react`, `react-native`, `zustand`.
+`expo-localization`, `i18n-js`, `react`, `react-native`, `zustand`.
 
 > Theme resolution reads the native Material 3 palette through `@expo/ui`
 > (Jetpack Compose) on Android and falls back to the Material 3 baseline elsewhere.
