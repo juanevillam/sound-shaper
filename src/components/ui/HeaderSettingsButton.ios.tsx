@@ -5,7 +5,7 @@ import { useI18n } from '@/i18n';
 
 // iOS header action that opens Settings. Thin adapter over the shared
 // `HeaderGlyphButtonIos` — the glyph's size and its label colouring belong to
-// the package so this app, Topper and expo-ui-starter can't drift; only the
+// the package so every app's bar stays identical; only the
 // route and the translation are this app's.
 //
 // ONE GLYPH, which is the portfolio's rule rather than this screen's choice:

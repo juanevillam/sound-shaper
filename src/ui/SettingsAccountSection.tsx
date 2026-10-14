@@ -118,15 +118,15 @@ export type SettingsUsernameEditor = {
  * IT EXISTS FOR THE APPS WITH NOWHERE ELSE TO PUT THE ENTRY. The portfolio had
  * three cases and this is the third of them (the first went with its app —
  * expo-ui-starter was deleted 2026-09-16 — but the CASE is still the reason
- * every field here is optional, so do not read two remaining apps as two
- * remaining shapes):
+ * every field here is optional, so do not read the remaining apps as the only
+ * shapes):
  *
  *  - a SHOWCASE app has no account surface at all — no profile, no link, just
  *    the sign-out card;
  *  - a SOCIAL app (Topper) already shows the person their own identity on a
  *    Profile tab, so the account entry sits there and Settings shows no
  *    identity card;
- *  - a PERSONAL app (Sound Shaper) has neither, and its home bar must not grow
+ *  - a PERSONAL app (Sound Shaper, Booker) has neither, and its home bar must not grow
  *    a second glyph to carry one — every app's home bar is the same single
  *    gear. So the entry comes here, and the identity card does the work
  *    instead of being decoration.

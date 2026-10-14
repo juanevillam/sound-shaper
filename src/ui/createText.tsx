@@ -61,9 +61,7 @@ export type TextVariant =
 // The 2026-09-06 line-height correction DOES move layout (+2dp per line at
 // the three rungs). Every ghost-measured bone (`SkeletonTextLine`) follows by
 // construction; the hard-coded boxes that could not follow were converted to
-// ghosts in the same change. The one deliberate holdout is the starter's
-// Android home header, whose padding was solved on-device against the old 18
-// and whose own comment defers this change to its next walk.
+// ghosts in the same change.
 const ANDROID_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: { fontSize: 36, lineHeight: 44 },
   headlineLarge: { fontSize: 28, lineHeight: 36 },

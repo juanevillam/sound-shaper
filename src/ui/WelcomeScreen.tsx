@@ -178,7 +178,7 @@ export type WelcomeScreenProps = {
   seedColor?: string;
   /** Optional legal disclaimer rendered under the auth buttons. Apps that
    *  handle user data pass it; expo-ui-starter was the one that omitted it and
-   *  was deleted 2026-09-16, so BOTH remaining apps pass it today. Keep it
+   *  was deleted 2026-09-16, so every remaining app passes it today. Keep it
    *  optional — an app with no account is a case this screen must still
    *  handle, and the branch is cheap. */
   legal?: WelcomeLegal;
