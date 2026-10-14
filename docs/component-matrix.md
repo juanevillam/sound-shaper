@@ -1,7 +1,7 @@
 # Component support matrix — Android vs iOS
 
-Which `@expo/ui` components the portfolio showcase can use on **Android (Jetpack
-Compose)** vs **iOS (SwiftUI)**. This is the decision aid for building real
+Which `@expo/ui` components exist on **Android (Jetpack Compose)** vs **iOS
+(SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both
 platforms or needs a custom iOS build.
 
@@ -22,7 +22,6 @@ iPhone 17 / iOS 26.5, all 47 components; the library-level Toggle tap bug is the
 one exception). That app was deleted on 2026-09-16, so neither column can be
 re-checked by opening it — the evidence is this table plus the types under
 `node_modules/@expo/ui`, which outrank it and always did.
-Physical-device verification is still pending.
 
 ## Legend
 
@@ -44,7 +43,7 @@ Physical-device verification is still pending.
 | **Portable (direct + equivalent)**   | **34 / 55** | **~62%** |
 | **Custom iOS work (partial + none)** | **21 / 55** | **~38%** |
 
-About **62%** of the Android showcase maps onto a SwiftUI export with little to no
+About **62%** of the Compose exports map onto a SwiftUI export with little to no
 rework. The other **~38%** is Material-specific (chips, badges, cards, FAB,
 snackbar, tooltips, search bars, pull-to-refresh, radio/checkbox, etc.) and needs
 a custom SwiftUI implementation.
@@ -109,10 +108,10 @@ a custom SwiftUI implementation.
 | Tooltip                     | `Tooltip`                        | —                    | 🔴  | No iOS tooltip; custom overlay or `Popover`.                                                                                    |
 | Use native state            | `useNativeState`                 | `useNativeState`     | ✅  | Cross-platform hook to sync state with the native view.                                                                         |
 
-## SwiftUI-only exports (no Android showcase yet)
+## SwiftUI-only exports
 
-`@expo/ui` ships SwiftUI components with **no Jetpack Compose counterpart** —
-candidates for an iOS-only showcase section: `Chart`, `Gauge`, `ColorPicker`,
+`@expo/ui` ships SwiftUI components with **no Jetpack Compose counterpart**:
+`Chart`, `Gauge`, `ColorPicker`,
 `Stepper`, `Form`, `Section`, `DisclosureGroup`, `Label`, `LabeledContent`,
 `Link`, `ShareLink`, `Menu`, `ContextMenu`, `ControlGroup`, `Popover`,
 `SwipeActions`, `ContentUnavailableView`, `Grid`, `SecureField`,
@@ -226,17 +225,14 @@ the same shape to a list of tops. `CommentListIos` was the last row to adopt it
 (2026-08-19) and closes the set.
 
 The genuine remaining limits are a row whose artwork CANNOT be given a concrete
-size up front, and a `Host` per cell across a large grid (see `emoji-picker`
-below, and the browse grid's note in `BrowseCellIos`).
+size up front, and a `Host` per cell across a large grid (see the browse grid's
+note in `BrowseCellIos`).
 
 Other standing exceptions:
 
-- **`emoji-picker` cells** — a `Host` per emoji in a large grid is a perf
-  non-starter; the whole picker would have to become a SwiftUI `LazyVGrid`.
-- **Sound Shaper's expanded player** (`PlayerConsole.ios`, `ClipHandles.ios`,
-  `ClipActionsRow.ios`, `PlayerScrubber.ios`) — the 2026-08-21 rewrite dropped
-  the card stack this entry used to name (`PlayerCards.ios`, gone; the plain
-  `PlayerCards.tsx` is the Android side). What replaced it is a transport over
+- **Sound Shaper's expanded player** (`PlayerConsole.ios`, `PlayerScrubber.ios`,
+  `ClipTrimFrame`) — the 2026-08-21 rewrite dropped the card stack this entry
+  used to name. What replaced it is a transport over
   a live scrubber on `GlassSurfaceIos`, with the clip trimmer as a TRIM FRAME
   drawn in RN. None of it imitates a system control — SwiftUI has no
   now-playing console to inherit — and the parts that DO map to one already
@@ -272,15 +268,14 @@ Other standing exceptions:
   `ActionButtonIos` and the verified mark is an SF Symbol. Only the avatar (a
   remote URL) and the stat presses remain RN, both for documented reasons. It was
   listed here as a refactor candidate; it is not one.
-- **`emoji-picker` cells** — unchanged: a `Host` per emoji across a large grid is
-  a perf non-starter, and the whole picker would have to become a SwiftUI
-  `LazyVGrid`.
 
 ### Gotchas found doing this
 
 - A native `Form` is a scroll container with **no intrinsic height**: under a
   `fitToContents` detent the sheet hugs its header and the form renders 0pt
-  tall. Editors use a fractional detent (`[0.9]`, clips `[0.6]`, shaper `[0.9]`).
+  tall. Editors use a fractional or full detent (edit-top `[0.38]`, edit-item
+  `[0.62]`, edit-sound `[0.65]`, shaper and clips `[1]` — see each app's
+  `lib/sheetRoutes.ts`).
 - `frame({ maxWidth: Infinity })` — shown in the `@expo/ui` docs — **does not
   stretch a `.bordered` button**; the value doesn't survive to the Swift
   `FrameModifier`. Get full width from the container (a `Section` row), not a
@@ -294,10 +289,10 @@ Other standing exceptions:
   This shipped broken in the `EmptyState.ios` CTA and was invisible to
   typechecking — it is the reason every one of these needs a screenshot.
 - **A swipe action translates the row's own content left by the action's full
-  width.** A worded action ("🗑 Delete clip", ~110pt) pushes a short row label
-  clean off the leading edge, leaving what looks like an empty row. Swipe
-  actions are therefore GLYPH-ONLY here (Mail does the same), with the wording
-  moved to `accessibilityLabel`.
+  width**, so a worded action pushes a short row label clean off the leading
+  edge. That is the system's own behaviour (Reminders does it), so swipe actions
+  stay LABELLED — `label` + `systemImage` — per the root `AGENTS.md`; the
+  glyph-only rule once written here was reversed.
 - SwiftUI `Form` handles keyboard avoidance itself; no `KeyboardAvoidingView`.
   Anything PINNED to a sheet's bottom instead uses
   `useSheetKeyboardInset()` from `@portfolio/mobile-ui` — keyboard avoidance is

@@ -31,18 +31,20 @@ NOT fix it), and it has three nastier variants. The standing rule: after
 several quick edits, verify a SPECIFIC new string/element actually rendered
 (screenshot) before concluding a change works.
 
-- **Reset recipe:** kill everything on 8081
-  (`lsof -tiTCP:8081 | xargs kill -9`; `pkill -9 -f "expo start"`), then
+- **Reset recipe:** kill everything on the app's port
+  (`lsof -tiTCP:<port> | xargs kill -9`; `pkill -9 -f "expo start"`), then
   `cd apps/<app> && npx expo start --clear`, then Android: `adb reverse
 tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
   relaunch (reaches localhost directly).
-- **Cross-app bundle collision (monorepo-specific):** all apps use port 8081,
-  so launching app B while app A's Metro runs makes **B silently load A's
-  bundle** — window focus shows B's package, the screen shows A's UI, nothing
-  errors. Before trusting any screenshot, ask Metro who it serves:
+- **Cross-app bundle collision (monorepo-specific):** two apps on one port —
+  e.g. app B launched against 8081 while app A's Metro holds it — makes **B
+  silently load A's bundle**: window focus shows B's package, the screen shows
+  A's UI, nothing errors. Each app has its own port (the map is in
+  [`ios-dev-workflow.md`](ios-dev-workflow.md)). Before trusting any
+  screenshot, ask Metro who it serves:
   `curl -s localhost:8081/ -H "expo-platform: android" | python3 -c
 "import json,sys;c=json.load(sys.stdin)['extra']['expoClient'];print(c['name'])"`.
-  Never run two apps' Metros at once.
+  Never run two apps' Metros on one port.
 - **New `.ios.tsx`/`.android.tsx` files are not picked up live** — Metro keeps
   resolving the old non-platform file across reloads. Full
   `expo start --clear` restart required.
@@ -74,9 +76,10 @@ SUCCESSFUL in 7m 17s`, the file still missing before and after.
 
 ## `patches/` — a dependency's source, overlaid on every install
 
-One dependency is patched: `react-native-audio-api`, whose time-stretcher is
+Two dependencies are patched: `react-native-audio-api`, whose time-stretcher is
 swapped for a phase vocoder (see
-[`../patches/react-native-audio-api/README.md`](../patches/react-native-audio-api/README.md)).
+[`../patches/react-native-audio-api/README.md`](../patches/react-native-audio-api/README.md)),
+and `@expo/ui` (see [`../patches/@expo/ui/README.md`](../patches/@expo/ui/README.md)).
 What to know before it surprises you:
 
 - **It applies from the root `postinstall`**, so `npm install`, `npm ci` and CI
@@ -136,9 +139,7 @@ dismisses the whole thing.
   [`expo-ui-customizations.md`](expo-ui-customizations.md) under `Host`.
 - Consequence: a sheet is only safe as a LEAF. If the surface pushes children,
   either give it a nested `Stack` under its own route group, or present the
-  children as stacked sheets of their own. (expo-ui-starter's Settings sheet
-  never hit this because it pushed nothing; that app is gone.) Topper's Settings
-  does, and took the stacked-sheets route — see `IOS_SHEET_SCREENS` in `lib/sheetRoutes.ts`.
+  children as stacked sheets of their own. Topper's Settings pushes, and took the stacked-sheets route — see `IOS_SHEET_SCREENS` in `lib/sheetRoutes.ts`.
 
 ## `headerLargeTitle` needs a TRANSLUCENT bar to collapse
 
@@ -239,12 +240,12 @@ motionevent UP x y`. The iOS side of the same test is the simulator MCP's
 
 ## Pixel-imitation harness — "measured, not guessed" applies to VERIFICATION
 
-House precedent (`formMetrics.ts`, `BrandTile.ios.tsx`, the ictool workflow):
+House precedent (`groupedRow.ts`, `BrandTile.tsx`, the ictool workflow):
 constants that imitate the OS are measured, never invented. The same applies
 to _checking_ them. When authored RN imitates a native surface:
 
-1. Screenshot the REAL surface (the in-app SwiftUI showcase twin, or Apple's
-   own app — Settings) and the imitation, **both modes**, same simulator.
+1. Screenshot the REAL surface (a native SwiftUI twin stood in the app, or
+   Apple's own app — Settings) and the imitation, **both modes**, same simulator.
 2. Band-scan both with the same script (PIL): background/card colors at fixed
    probes, card edges/insets, separator groups (thickness, insets, color),
    row pitch, glyph bands, brightest-pixel text colors. Compare a printed
@@ -255,11 +256,6 @@ to _checking_ them. When authored RN imitates a native surface:
    Crop and LOOK at what you measured before trusting the numbers.
 4. Harness sanity check: if ref and imitation match on every metric including
    known-different ones, the capture grabbed the same screen twice.
-
-Worked example: `HomeShowcaseList.tsx` (expo-ui-starter) — its constants
-header documented the measured values and what drifted on the first guess. The
-file went with that app on 2026-09-16; `git log --follow` retrieves it, and the
-method above is the part that was ever portable.
 
 5. **Check a DERIVED number against the real thing too.** A constant derived
    from a correct rule can still be wrong, because the rule may not apply.
