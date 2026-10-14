@@ -18,7 +18,7 @@ export const AUTHOR_NAME = 'juanevillam';
 // juanevillam.com/{app}/{page} — pages that live in apps/web.
 export const AUTHOR_URL = 'https://juanevillam.com';
 
-/** URL-safe app slug ("Expo UI Starter" → "expo-ui-starter") for paths + UTM. */
+/** URL-safe app slug ("Sound Shaper" → "sound-shaper") for paths + UTM. */
 const appSlug = (appName: string): string =>
   encodeURIComponent(appName.trim().toLowerCase().replace(/\s+/g, '-'));
 

@@ -45,8 +45,8 @@ export const GROUP_HEADERLESS_TOP_GAP = 28;
  * inner edges, so a run of rows reads as ONE card split by thin gaps.
  *
  * Exported because `groupRowShape` hands back a Compose `Shape`, which is no
- * use to a caller drawing the same group in React Native — the starter's home
- * catalogue is an RN `SectionList` and cannot take one. The rule this repo
+ * use to a caller drawing the same group in React Native — Topper's RN bones
+ * for grouped rows (`Skeleton.tsx`, `PeopleSheetList`) cannot take one. The rule this repo
  * already has for that case is to import the CONSTANTS rather than re-measure
  * them (`TopItemListIos` learned it the expensive way), so the numbers are the
  * shared term and each technology builds its own shape from them.

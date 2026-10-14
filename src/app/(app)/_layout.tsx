@@ -151,7 +151,7 @@ export default function AppLayout() {
             SHEETS (Settings opens from the home bar, Account presents over
             Settings from its identity banner, Trophies over Account, each
             dismissing back to the one below) — the
-            portfolio-wide placement, matching Topper and expo-ui-starter, with
+            portfolio-wide placement, matching Topper and Booker, with
             the children stacked rather than pushed because RNScreens gives a
             screen pushed on a `formSheet` root no back button at all. The
             reasoning lives in `IOS_SHEET_SCREENS`. On Android these stay

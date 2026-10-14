@@ -66,8 +66,8 @@ type EmptyStateProps = {
  * THE CTA SITS BESIDE IT, NOT INSIDE IT. Real `ContentUnavailableView` takes an
  * `actions` ViewBuilder; the @expo/ui 57.0.7 wrapper exposes only `title`,
  * `systemImage` and `description` (checked in
- * `build/swift-ui/ContentUnavailableView/index.d.ts`; none of the starter's
- * three showcases pass children). So the CTA is a sibling `Button` in the same
+ * `build/swift-ui/ContentUnavailableView/index.d.ts`; nor does any
+ * docs/expo-ui example pass children). So the CTA is a sibling `Button` in the same
  * `VStack` — still a real SwiftUI control, and visually where Apple puts it,
  * just not slotted into the view. Tracked in docs/pending-upstream.md; when
  * `actions` lands, move the button inside and drop the VStack.

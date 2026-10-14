@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 4,
   },
-  // The navigator's own Android header type, which Topper and Expo UI Starter get
+  // The navigator's own Android header type, which Topper gets
   // for free by using its header — 20sp medium, NOT the M3 titleLarge token
   // (22sp regular). Drawing this bar ourselves means matching it by hand, and
   // matching the other two apps beats being closer to the spec on this one

@@ -31,8 +31,8 @@ import { formatTime } from '@/lib/player';
 // AUTHORED RN, AND HERE IS THE NATIVE COMPONENT THAT WAS REJECTED: there is
 // none. UIKit's only public trimmer is `UIVideoEditorController`, a
 // video-file view controller that cannot trim an audio range in place;
-// SwiftUI and `@expo/ui` 57 ship no trim control at all (the starter
-// showcases every component — nothing trims). Photos' own trimmer is
+// SwiftUI and `@expo/ui` 57 ship no trim control at all (every
+// component is listed in docs/expo-ui — nothing trims). Photos' own trimmer is
 // private. So the frame is drawn by hand, measured against Photos, and its
 // two glyphs are still real SF Symbols in stated-box hosts.
 //
