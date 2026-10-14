@@ -148,10 +148,12 @@ need re-deriving:
   checklist (acquisition, enterprise customer, partner review), where "show me
   your OSS attributions" is a standard line.
 
-The UI work that outlived it: `SettingsInfoRow.destination` (the disclosure
-chevron that distinguishes an in-app destination from a hand-off to Safari) and
-the single `InfoRow` renderer shared by the About and Legal cards both came from
-this and stay — Topper's Credits row uses them.
+The UI work that outlived it: the single `InfoRow` renderer shared by the
+About and Legal cards (`SettingsScreen.tsx` / `.ios.tsx` in
+`@portfolio/mobile-ui`). Two other pieces it left behind have since gone too —
+`SettingsInfoRow.destination` (the disclosure chevron that told an in-app
+destination from a hand-off to Safari) and Topper's Credits row that used it;
+`SettingsInfoRow` is `label` / `value` / `url` / `onPress` today.
 
 ## Liquid Glass on Sound Shaper's header buttons + collapsed banner — REJECTED 2026-07-28
 
@@ -215,9 +217,11 @@ is still not exposed by @expo/ui 57.0.7 — **zero hits across the entire
 `swift-ui` build** — so the real `UISearchController` goes with it. RN keeps all
 three via `headerSearchBarOptions`.
 
-Shipped instead: iOS keeps its authored cells, measured against the real `List`
-(51pt row + 1pt separator on a 52pt pitch, header 30.7/14.3pt). Android keeps
-the Compose rows. The docblock in each `HomeShowcaseList` carries its own half.
+Shipped instead: iOS kept its authored cells, measured against the real `List`
+(51pt row + 1pt separator on a 52pt pitch, header 30.7/14.3pt). Android kept
+the Compose rows. Both `HomeShowcaseList` files went with expo-ui-starter on
+2026-09-16; the structural finding above is the part that applies to the
+remaining apps.
 
 ## Shared-element image morph in Topper (home thumbnail → detail) — INFEASIBLE, 2026-06
 
@@ -241,14 +245,20 @@ that file.
 
 ## Brand-mark glow — DROPPED (see AGENTS.md "Brand")
 
-Could not render identically on both platforms — react-native-svg's
-`FeGaussianBlur` no-ops on Android. The mark is flat; don't reintroduce.
+Dropped because it could not render identically on both platforms —
+react-native-svg's `FeGaussianBlur` no-oped on Android. **That reason EXPIRED**
+(found stale 2026-08-29: it renders on 15.15.4, which is what let `BrandTile`
+become one shared component with a real SVG shadow). The glow stays dropped on
+its own merits, not on the rendering limit. The mark is flat; don't
+reintroduce.
 
 ## `SearchBar` / `DockedSearchBar` as real inputs — IME DEAD on SDK 57
 
-The keyboard never opens. Material `TextField` pill replaces it where a
-working input is needed (Topper Explore). Details + the always-mounted
-`TrailingIcon` gotcha: `docs/expo-ui-customizations.md` → Keyboard section.
+The keyboard never opens. A Material `TextField` pill — `SearchField` in
+`@portfolio/mobile-ui` — replaces it where a working input is needed (Topper
+Explore). Details + the always-mounted `TrailingIcon` gotcha:
+[`expo-ui-customizations.md`](expo-ui-customizations.md) → Keyboard section;
+the unblock grep is in [`pending-upstream.md`](pending-upstream.md).
 
 ## SwiftUI `List` as the expo-ui-starter home catalogue — REJECTED 2026-08-01, design-level
 
@@ -265,9 +275,11 @@ stale-bundle false negatives. **Do not re-cite it. Re-probe instead.**
 
 What still stands: 57.0.7 lacks `searchable`, so a native `List` home in the
 STARTER would trade away native search, and the starter's home is a catalogue
-whose whole point is breadth. Its home stays an authored RN grouped list under
-real UIKit chrome, pixel-measured against the List showcase (see
-`HomeShowcaseList.tsx` header and `docs/dev-workflow.md` → harness).
+whose whole point is breadth. Its home stayed an authored RN grouped list under
+real UIKit chrome, pixel-measured against the List showcase (method:
+[`dev-workflow.md`](dev-workflow.md) → harness) — until the app was deleted on
+2026-09-16. Still true on 57.0.7 (re-grepped 2026-10-14): no `searchable`
+anywhere in the `swift-ui` build.
 
 The real cost of a native list, and the thing to weigh instead of the myth: one
 `Host` has to wrap the WHOLE list (per-row Hosts render blank — see
@@ -354,9 +366,9 @@ button's native `popover` — and removed both times. The popover presented
 **mis-anchored on first open on device** and went stale across a theme change,
 but the deciding reason was product rather than polish: someone with something
 to say opens comments themselves, and actively soliciting the comment is noise
-(Juan's call). ANDROID STILL SHOWS THE CARD — an open divergence since the
-freeze lifted on 2026-08-29, and the same product argument applies to it, so
-`TopReactions` still renders it behind `Platform.OS !== 'ios'`.
+(Juan's call). Android kept its card a little longer and lost it on
+2026-09-05 for the same product reason — there is no nudge on either platform
+now; `TopReactions.tsx` records it.
 
 ## A REORDER MODE on Topper's item list — REMOVED 2026-08-15
 
@@ -509,7 +521,7 @@ re-read where "now" lives at the exact moment they are trying to mark it.
 Photos gets away with a filmstrip because its viewer has no other progress
 surface; this player does.
 
-Shipped instead: `ClipTrimFrameIos` — the frame treatment the strip proved out
+Shipped instead: `ClipTrimFrameIos` (now `ClipTrimFrame`, both platforms) — the frame treatment the strip proved out
 (full-height chevron caps, rails, gen 2's faint accent wash) drawn directly on
 the visible, interactive slider, whose thumb stays the playhead. The whole
 decode pipeline (`lib/waveform.ts`, `useWaveform`) was deleted with the strip;
@@ -561,7 +573,8 @@ What shipped is the third design: pausing SETTLES the line onto the engine's
 parked position with one ~140ms glide, and resume plays from there with no
 seek at all — the console's own semantics, which is why the console never had
 the bug. Do not re-walk either rejected leg; the follower's doc block in
-`ClipTrimEditorIos` records all three.
+`ClipTrimEditor.tsx` (was `ClipTrimEditorIos`, one component for both
+platforms since `88ecdb6c`) records all three.
 
 ## Turning Preserve Pitch OFF automatically at any speed ≠ 1× — REJECTED 2026-08-21, reasoned down (not built)
 
@@ -593,7 +606,7 @@ moving switch and extra steps.
 
 **The stretcher was fixed the next day** (2026-08-22:
 `patches/react-native-audio-api/` swaps the WSOLA for a phase vocoder — see
-`pending-upstream.md`), and the off default retired with it: `keepPitch`
+[`pending-upstream.md`](pending-upstream.md)), and the off default retired with it: `keepPitch`
 defaults to on again. The auto-off idea above stays rejected — every reason it
 died is about a control moving on its own and a saved value lying, none of
 which the stretcher's quality ever changed.

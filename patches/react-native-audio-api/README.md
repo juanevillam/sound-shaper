@@ -33,7 +33,7 @@ A parameter sweep (windows 20/40/60 ms × search 15/30/50 ms × decimation 4/12)
 made every variant worse or equal: doubling/dropping transients is what WSOLA
 _is_ when the rate moves away from 1. Hence the algorithm swap, not a tuning.
 
-Full brief and history: `docs/pending-upstream.md` § "Preserve Pitch that
+Full brief and history: [`docs/pending-upstream.md`](../../docs/pending-upstream.md) § "Preserve Pitch that
 doesn't sound grainy". **Nothing was filed upstream and nothing should be** —
 that is a deliberate call (2026-08-22), not a to-do; the reasoning is in that
 entry.
@@ -210,4 +210,5 @@ overlay** rather than rebasing it. For the stretcher: diff the new version's
 `WsolaTimeStretcher.{h,cpp}` against 0.13.2's (if upstream's stretcher grew a
 music-grade path, retire this patch — that is the preferred outcome), re-check
 the call sites listed above for API drift, then update `patch.json`. The
-offline harness recipe lives in the pending-upstream entry.
+offline harness METHOD is described in the pending-upstream entry; the harness
+itself was never committed.

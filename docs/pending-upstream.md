@@ -7,6 +7,13 @@ entry names the exact API that unlocks it, so the check is mechanical.
 **Re-check this file on every `@expo/ui` / Expo SDK bump.** If an entry's API
 appears, the work is small and pre-approved in principle — build it.
 
+**Last swept 2026-10-14** against the installed `@expo/ui` 57.0.7,
+`react-native-screens` 4.25.2, `expo-router` 57.0.3 and `react-native-audio-api`
+0.13.2. Every grep below was re-run. **Three entries are now UNBLOCKED** — the
+two-capsule, pull-down-menu and prominent-✓ entries, all on
+`react-native-screens`' native bar-button items — and the welcome-footer fade
+has a new, unverified lead. Each is marked in place; none is built.
+
 ---
 
 ## Apple's scroll-edge fade behind the welcome footer — blocked on `@expo/ui`
@@ -37,6 +44,16 @@ on top — i.e. the same grey band already rejected on Sound Shaper's collapsed
 banner, and the same lesson as `rejected-experiments.md`: glass over a flat dark
 background has nothing to refract. Reverted.
 
+**A NEW LEAD, UNVERIFIED (2026-10-14).** `react-native-screens` 4.25.2 exposes
+`scrollEdgeEffects` (`{ top, bottom, left, right }` of
+`'automatic' | 'hard' | 'soft' | 'hidden'`, iOS 26) as a screen option, surfaced
+by expo-router's native stack — i.e. UIKit's own `UIScrollEdgeEffect` on the
+screen's real `UIScrollView`, which is option 2 below without a custom native
+module. What it does NOT settle: UIKit draws a bottom edge effect only where it
+knows chrome overlaps the scroller (a toolbar, a safe-area bar), and the welcome
+footer is an RN overlay it knows nothing about. Render it before believing it.
+`@expo/ui` itself is still at zero hits for both symbols.
+
 **What unlocks it (in preference order).**
 
 1. `@expo/ui` exposing **`scrollEdgeEffectStyle`** and/or **`safeAreaInset`** —
@@ -66,17 +83,16 @@ Apple's template, so only the fade is missing.
 
 ## `ContentUnavailableView`'s actions slot — blocked on `@expo/ui`
 
-**Mostly SHIPPED — one slot still missing.** Topper's iOS empty states
-(`EmptyState.ios.tsx`) now render as the real SwiftUI `ContentUnavailableView`.
+**Mostly SHIPPED — one slot still missing.** The iOS empty states
+(`packages/mobile-ui/src/EmptyState.ios.tsx`, shared by every app) now render as the real SwiftUI `ContentUnavailableView`.
 The emoji question that used to block this was decided: each state names an SF
 Symbol instead (🗑️ → `trash`, 🎉 → `checkmark.circle`, …), and Android keeps
 its emoji.
 
 **What is still missing.** The wrapper's props are `title`, `systemImage` and
 `description` — full stop (checked on **57.0.7**, and re-checked against
-published **57.0.9** on 2026-08-05 — unchanged:
-`node_modules/@expo/ui/build/swift-ui/ContentUnavailableView/index.d.ts`, and
-none of the three starter showcases pass children). SwiftUI's own
+published **57.0.9** on 2026-08-05, and on the installed 57.0.7 on 2026-10-14
+— unchanged: `node_modules/@expo/ui/build/swift-ui/ContentUnavailableView/index.d.ts`). SwiftUI's own
 `ContentUnavailableView` takes an `actions` ViewBuilder; the wrapper does not
 surface it. So the states that carry a CTA — "Try again" on the error states,
 "Add an item" on an owner's empty top — put their `Button` in a `VStack`
@@ -109,7 +125,8 @@ file.
 
 ## A grouped list's empty section-header slot — blocked on `@expo/ui`
 
-**What we want.** The See All people sheet (`(app)/people.tsx`) has no section
+**What we want.** The See All people sheet (`(app)/people.tsx`, list in
+`PeopleSheetListIos.tsx`) has no section
 header — the sheet's own bar carries its title — but an inset-grouped `List`
 reserves room above its first section for one anyway. Measured against the
 Settings sheet from identical anchors (iPhone 17 / iOS 26.5): title ink 93.33
@@ -132,7 +149,7 @@ before the content and you can drag through nothing. Juan spotted it within a
 day. A visible band beats a scroller that lies about what it holds.
 
 **What SHIPPED instead**, since the band was still too much by eye: `marginTop:
--EMPTY_HEADER_SLOT` on the RN wrapper AROUND the Host. Same 146.0, and no
+-SHEET_EMPTY_HEADER_SLOT` on the RN wrapper AROUND the Host. Same 146.0, and no
 phantom range — moving the hosting VIEW makes UIKit recompute its content inset
 with it, where moving the SwiftUI frame inside it did not. Verified stable at
 XXXL Dynamic Type (the empty slot has no text to grow by, so it stays 21 while
@@ -142,8 +159,17 @@ Settings' real header grows). It is still a compensation, not a removal —
 **What unlocks it.** `contentMargins` — the same modifier the search-list entry
 below is waiting on, which insets CONTENT while leaving the frame alone. Grep
 `node_modules/@expo/ui/build/swift-ui/modifiers/index.d.ts`; absent on 57.0.7.
-On the day it lands: `contentMargins` top = 0 on that List, and
-`SKELETON_TOP_MATCH` in the same file drops by 21.
+On the day it lands: `contentMargins` top = 0 on that List, and the
+skeleton's `BONE_TOP` in the same file follows it.
+
+**A SECTION-LEVEL LEVER HAS SINCE BEEN FOUND, and it is not yet applied here.**
+The table's `listSectionMargins` attempt was on the LIST; on the first `Section`
+it REPLACES the reserved slot 1:1, and Booker (2026-10-10) takes the slot off
+that way — `listSectionMargins({ edges: 'top', length: SHEET_FIRST_CARD_MARGIN })`
+— because pulling the hosting view up draws a titled bar's scroll-edge band at
+rest. See AGENTS.md → "PULLING THE HOSTING VIEW UP UNDER A TITLED BAR". This
+sheet still carries the `marginTop` pull-back; re-measuring it on the
+section-level lever is an open gap, not a decision.
 
 ---
 
@@ -203,7 +229,17 @@ Until the API exists the flat bar stays; it is correct in every other respect.
 
 ---
 
-## Two SEPARATE bar-button capsules — blocked on `react-native-screens`
+## Two SEPARATE bar-button capsules — UNBLOCKED 2026-10-14 (`react-native-screens`), not built
+
+**UNBLOCKED, UNVERIFIED.** `react-native-screens` 4.25.2 builds
+`navigationItem.rightBarButtonItems` (plural) from `headerRightBarButtonItems`,
+and expo-router's native stack surfaces it as **`unstable_headerRightItems`** —
+an array of `button` / `menu` / `spacing` / `custom` items, each with
+`sharesBackground` / `hidesSharedBackground`, which is the iOS 26 knob for
+splitting a pair into separate glass capsules. Nothing in the apps uses it yet.
+The items are UIKit's own (SF Symbol or title), not hosted SwiftUI, so this
+would also retire the `custom`-view `headerRight` path for these glyphs. The
+original entry follows unchanged.
 
 **What we want.** Profile's two trailing bar glyphs (`plus` → New Top,
 `person.crop.circle` → Account) rendered as **two independent Liquid Glass
@@ -224,9 +260,9 @@ separate hosts render two capsules"). That line was never measured; it is wrong.
 
 **What unlocks it.** RNScreens exposing **multiple right bar button items** —
 UIKit's own `navigationItem.rightBarButtonItems` (plural). Grep
-`node_modules/react-native-screens/ios` for `rightBarButtonItems`; only the
-singular `rightBarButtonItem` is set today, and expo-router surfaces no plural
-prop either. On the day it lands: `HeaderGlyphGroupIos` returns one item per
+`node_modules/react-native-screens/ios` for `rightBarButtonItems`, and
+`node_modules/expo-router/build/react-navigation/native-stack/types.d.ts` for
+`unstable_headerRightItems` — both present as of 2026-10-14 (see above). On the day it lands: `HeaderGlyphGroupIos` returns one item per
 glyph and the row's `CAPSULE_GAP` becomes UIKit's own spacing.
 
 **What we did instead, and it is not a fake.** The _reachability_ half of the
@@ -249,7 +285,15 @@ records for the iOS edit sheets. One honest pill beats two imitation capsules.
 
 ---
 
-## A bar overflow's PULL-DOWN MENU — blocked on `react-native-screens`
+## A bar overflow's PULL-DOWN MENU — UNBLOCKED 2026-10-14 (`react-native-screens`), not built
+
+**UNBLOCKED, UNVERIFIED.** The `unstable_headerRightItems` API in the entry
+above includes a `type: 'menu'` item — a native `UIMenu` on a real bar button,
+with `action` rows carrying `destructive`, `disabled`, `state` and submenus. That
+is the `UIBarButtonItem(menu:)` path this entry was waiting on. Build it on
+Recently Deleted's `⋯` (`apps/topper/src/app/(app)/trash.ios.tsx`, still an
+`ActionSheetIOS` today) and band-scan the anchor before shipping. The original
+entry follows unchanged.
 
 **What we want.** Recently Deleted's `⋯` opening a **pull-down menu anchored to
 its own glyph**, which is iOS 26's idiom for a bar overflow — Files' own
@@ -285,7 +329,12 @@ placement is not, and only one of those is visible to a person using it.
 
 ---
 
-## The editor sheets' PROMINENT ✓ bar item — blocked on `react-native-screens`
+## The editor sheets' PROMINENT ✓ bar item — UNBLOCKED 2026-10-14 (`react-native-screens`), not built
+
+**UNBLOCKED, UNVERIFIED.** A `button` item in `unstable_headerRightItems` takes
+`variant: 'plain' | 'done' | 'prominent'` ("prominent" iOS 26+) plus `disabled`
+— UIKit's own prominent bar item, with its disabled state drawn by the system.
+The original entry follows unchanged.
 
 **What we want.** The trailing ✓ of the editors' commit-modal pair rendered the
 way iOS 26 renders it in New Contact / New Event: the bar item's OWN capsule
@@ -309,7 +358,10 @@ leading ✕. State lives in colour; the glass stays real.
 **What unlocks it.** RNScreens exposing UIKit's prominent bar-button styling
 (or `rightBarButtonItems` with style control — see the two-capsule entry
 above, same underlying gap). On the day it lands: `SheetCommitGlyphIos`
-becomes a styled bar item and the fill returns as Apple draws it.
+(`packages/mobile-ui/src/SheetFormIos.tsx`) becomes a styled bar item and the
+fill returns as Apple draws it.
+
+---
 
 ## The play/pause SYMBOL REPLACE transition — blocked on `@expo/ui`
 
@@ -534,6 +586,30 @@ plain defect and would be a clean report.
 
 ---
 
+## Deterministic `ModalBottomSheet` content insets — PATCHED LOCALLY 2026-09-06, nothing filed upstream
+
+**Where this stands.** Every Compose sheet in the portfolio takes M3's TOP
+content inset and drops its BOTTOM one, via
+[`patches/@expo/ui/`](../patches/@expo/ui/README.md) — a one-file overlay on
+`ModalBottomSheetView.kt`. M3's bottom half collapses to 0 after one IME cycle
+and never returns, so every sheet was 48dp too tall-footed on first render;
+`composeSheetBottomPadding` in `@portfolio/mobile-ui` owns the bottom edge
+instead. The overlay's README carries the measurements and the re-verify steps.
+
+**What unlocks it.** `@expo/ui` exposing `contentWindowInsets` (or any
+window-inset control) on `ModalBottomSheet`. Grep for it mechanically:
+
+```bash
+grep -n "contentWindowInsets" node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
+grep -rn "contentWindowInsets\|windowInsets" node_modules/@expo/ui/build/jetpack-compose/ModalBottomSheet/index.d.ts
+```
+
+Absent on 57.0.7 (2026-10-14). On the day it lands: delete the overlay, set the
+insets from JS, and drop `"expo-ui"` from each app's
+`expo.autolinking.android.buildFromSource`.
+
+---
+
 ## Inline links that are the PLATFORM'S OWN — blocked on `@expo/ui` (both sides)
 
 **What we want.** The welcome screen's tappable runs of prose — the author
@@ -573,7 +649,8 @@ with an `offset`.
 
 1. **iOS** — an `openURL` key on `@expo/ui`'s `environment` modifier (grep
    `EnvironmentConfig` in `swift-ui/modifiers/environment.d.ts`; today it is a
-   four-member union). With it, `LegalFooter.ios.tsx` becomes one
+   four-member union). With it, `LegalFooter` (today one RN file in
+   `@portfolio/mobile-ui`) gains an `.ios` twin that is one
    `markdownEnabled` `Text` whose links still open the in-app sheet.
 2. **Android** — a press handler or link field on `TextSpanRecord` (grep
    `TextSpanStyleBase` / `TextSpanRecord` in
@@ -592,7 +669,7 @@ which is what the three links have today.
 
 ## A carousel PEEK item's rounded corner — blocked on `@expo/ui`
 
-**What we want.** Every item in the Carousel showcases rounded at M3's
+**What we want.** Every item in a Compose carousel rounded at M3's
 `shapes.extraLarge` (28dp) — including the squeezed peek strips, not only the
 focused item.
 
@@ -638,8 +715,9 @@ is the trap and this is what it costs.
 
 ## A `SearchBar`'s KEYBOARD — blocked on `@expo/ui`
 
-**What we want.** Tapping either search-bar showcase to open the soft keyboard,
-so the demo can actually be typed into.
+**What we want.** Tapping a Compose `SearchBar` / `DockedSearchBar` to open the
+soft keyboard, so it can actually be typed into. (The original ask was
+expo-ui-starter's two search-bar showcases; see the end of this entry.)
 
 **Why it matters here.** It cannot. Tapping focuses the field — the caret shows
 and key events land — but the IME never opens and the bar never expands, so both
@@ -716,13 +794,14 @@ grep -n "colors" node_modules/@expo/ui/build/jetpack-compose/DockedSearchBar/ind
 grep -n "colors" node_modules/@expo/ui/build/jetpack-compose/SearchBar/index.d.ts
 ```
 
-Non-empty = pass `{ containerColor: useSurfaceContainerHighest() }` from the
-files under `showcase/android/docked-search-bar/` and `showcase/android/search-bar/`.
+Non-empty = the colour is reachable; pass `{ containerColor: … }` from whatever
+renders the component then (nothing does today).
 
 **Note on the sibling.** The app's own Android search field does not use
 `SearchBar` at all — its IME is dead on 57, so `SearchField` in
 `@portfolio/mobile-ui` is a Material `TextField` pill, which is themeable. Only
-the SHOWCASES are stuck, because their job is to demonstrate the real component.
+the SHOWCASES were stuck, because their job was to demonstrate the real
+component.
 
 ---
 
