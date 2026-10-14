@@ -1,6 +1,6 @@
 # Running the apps on iOS — simulator and a real iPhone, at the same time
 
-Everything needed to get Topper and Sound Shaper live on **both** the
+Everything needed to get Topper, Sound Shaper and Booker live on **both** the
 simulator and the physical iPhone, with one Metro per app so several apps can
 run concurrently. Verified end to end 2026-08-11 (Xcode 26.6, iOS 26.5 sim /
 26.6 device, Expo SDK 57).
@@ -30,16 +30,16 @@ from `xcrun devicectl list devices`.
 | sound-shaper | `8082` | `sound-shaper` | `com.juanevillam.soundshaper` |
 | booker       | `8083` | `booker`       | `com.juanevillam.booker`      |
 
-`8083` was expo-ui-starter's until 2026-09-16. It went to Booker on 2026-10-09
-once that app's dev client was confirmed gone from every device (Juan), so
-nothing left pointed at it to answer as the wrong app.
+`8083` belonged to a deleted app until 2026-10-09; it was reused only once that
+app's dev client was gone from every device, so nothing left pointed at it to
+answer as the wrong app.
 
 Distinct ports are **mandatory**. Two apps on 8081 does not error — app B
 silently loads app A's bundle, which looks healthy and renders the wrong app.
 
 ## The daily loop
 
-Once the apps are installed, this is all there is. Two terminals, left open:
+Once the apps are installed, this is all there is. Three terminals, left open:
 
 ```bash
 cd apps/topper && npx expo start --dev-client --port 8081 --host lan
@@ -56,11 +56,11 @@ cd apps/booker && npx expo start --dev-client --port 8083 --host lan
 Confirm they are actually up before touching the apps:
 
 ```bash
-lsof -nP -iTCP:8081 -sTCP:LISTEN; lsof -nP -iTCP:8083 -sTCP:LISTEN
+for p in 8081 8082 8083; do lsof -nP -iTCP:$p -sTCP:LISTEN; done
 ```
 
 Then open the apps on both devices. They remember their server. Edits to
-JS/TS hot-reload on all four copies at once.
+JS/TS hot-reload on every copy at once.
 
 **iOS shows one app in the foreground per screen**, so "both apps at once"
 means installed side by side and swapped between — backgrounded apps stay
@@ -152,13 +152,12 @@ regenerates on the next signed build. Note that `-allowProvisioningUpdates`
 first is what actually resets the clock.
 
 When apps stop launching on the phone, nothing is broken — the profile expired.
-Rebuild. The permanent fix is the $99/yr Apple Developer Program.
+Rebuild. The permanent fix is the $99/yr Apple Developer Program — enrollment
+pending, see [`apple-developer-enrollment.md`](apple-developer-enrollment.md).
 
-Free team also caps you at **3 apps** on the device. That used to be exactly the
-number in this repo, dropped to two when Expo UI Starter was deleted
-(2026-09-16), and is exactly three again with Booker (2026-10-09) — so a fourth
-app means removing one first, and any stray test install on the iPhone blocks
-a real one.
+Free team also caps you at **3 apps** on the device — exactly this repo's three
+(Topper, Sound Shaper, Booker) — so a fourth app means removing one first, and
+any stray test install on the iPhone blocks a real one.
 
 ## Sign in with Apple is off, on purpose
 
@@ -196,7 +195,7 @@ healthy. If 8081 is already held by a different app, `run:ios` cannot prompt in
 a non-interactive shell, prints `Port 8081 is running <other app>` and
 `Skipping dev server`, and then still launches the dev client at
 `http://<lan-ip>:8081` — i.e. at the other app's bundler. Caught 2026-08-28
-with expo-ui-starter loading Topper's bundle. Re-point it by hand:
+with a since-deleted app loading Topper's bundle. Re-point it by hand:
 
 ```bash
 xcrun simctl openurl booted "exp+sound-shaper://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
@@ -241,8 +240,9 @@ built `.app` (2026-09-11):
 codesign -d --entitlements - <App>.app/PlugIns/<Name>.appex | grep -A3 application-groups
 ```
 
-**Nor did the extension's app id trip the 3-app device limit.** Four ids are now
-provisioned for this device (two apps, two widgets) and installs succeed. The
+**Nor did the extension's app id trip the 3-app device limit.** Four ids were
+provisioned for this device when it was verified (two apps, two widgets) and
+installs succeeded. The
 7-day profile clock is unchanged and applies to the widget's profile too, so
 BOTH expire together and a rebuild re-mints both.
 
@@ -268,9 +268,9 @@ anything still wrong is the reader's.
 
 ## Disk
 
-A full set of iOS builds is expensive: DerivedData reached **28 GB** when there
-were three apps (Topper 11G, Sound Shaper 7.9G, Expo UI Starter 4.8G — that one
-deleted 2026-09-16 — plus a 4.2G module cache). Wiping it is always safe — it is pure build output:
+A full set of iOS builds is expensive: DerivedData reached **28 GB** with three
+apps (Topper 11G, Sound Shaper 7.9G, a since-deleted 4.8G one, plus a 4.2G
+module cache). Wiping it is always safe — it is pure build output:
 
 ```bash
 rm -rf ~/Library/Developer/Xcode/DerivedData/*
