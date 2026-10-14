@@ -55,8 +55,8 @@ this overlay **never compiles** unless the app forces the module from source:
     "expo": { "autolinking": { "android": { "buildFromSource": ["expo-ui"] } } }
 
 in that app's `package.json` (the regex matches the gradle project name,
-`expo-ui`). Topper carries it; add it to any other app that adopts the
-overlay. The tell that it is missing: a gradle build with zero
+`expo-ui`). All three apps carry it (Topper, Sound Shaper, Booker); a new app
+must add it too, or its Compose sheets silently keep M3's default. The tell that it is missing: a gradle build with zero
 `Task :expo-ui:*` lines while the sheet keeps its old inset behaviour.
 
 ## How to re-verify after a bump
@@ -73,5 +73,5 @@ Upstream fix = `@expo/ui` exposing `contentWindowInsets` (or any window-inset
 control) on `ModalBottomSheet`. On every `@expo/ui` bump, grep the new
 `ModalBottomSheetView.kt` for `contentWindowInsets` — if it appears, DELETE
 this overlay and set the insets from JS instead. Tracked in
-`docs/pending-upstream.md`. Nothing is being filed upstream, matching the
+[`docs/pending-upstream.md`](../../../docs/pending-upstream.md). Nothing is being filed upstream, matching the
 audio-api overlay's standing decision.
