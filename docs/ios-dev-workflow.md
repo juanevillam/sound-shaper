@@ -8,6 +8,15 @@ run concurrently. Verified end to end 2026-08-11 (Xcode 26.6, iOS 26.5 sim /
 The short version: **build once per app per target, then the daily loop is just
 "start the Metro servers and open the apps."**
 
+**THE iPHONE RUNS RELEASE BUILDS NOW (Juan, since 2026-10-10).** The apps are
+far enough along that Juan tests by hand on his iPhone with Release builds, not
+Debug dev clients and not the simulator. A Release build carries its own JS
+bundle, so it needs no Metro and no LAN — the daily loop and the port map below
+apply to the SIMULATOR (and to a Debug device build, if one is ever wanted
+again). "Reinstall the apps" means: Release-build Topper, Sound Shaper and
+Booker for the device and install each with `devicectl` — §2 below. Simulator
+runs only when Juan agrees to one.
+
 ## The constants
 
 | thing                         | value                                        |
@@ -93,18 +102,24 @@ never passes `-allowProvisioningUpdates`:
 No profiles for 'com.juanevillam.topper' were found
 ```
 
-Minting one requires driving xcodebuild directly:
+Minting one requires driving xcodebuild directly — and since 2026-10-10 the
+device build is **Release** (see the top of this file). Per app, with
+`Topper` / `SoundShaper` / `Booker` as the workspace and scheme:
 
 ```bash
-cd apps/topper/ios && xcodebuild -workspace Topper.xcworkspace -scheme Topper -configuration Debug -destination 'id=00008120-000A3CEA28214932' -allowProvisioningUpdates DEVELOPMENT_TEAM=C65D64JUZK CODE_SIGN_STYLE=Automatic build
+cd apps/topper/ios && xcodebuild -workspace Topper.xcworkspace -scheme Topper -configuration Release -destination 'id=00008120-000A3CEA28214932' -allowProvisioningUpdates DEVELOPMENT_TEAM=C65D64JUZK CODE_SIGN_STYLE=Automatic build
 ```
 
 Look for `** BUILD SUCCEEDED **`. Then install (any directory — the path is
 absolute):
 
 ```bash
-xcrun devicectl device install app --device 031212A3-4D83-59BA-8645-CF765C47117E ~/Library/Developer/Xcode/DerivedData/Topper-*/Build/Products/Debug-iphoneos/Topper.app
+xcrun devicectl device install app --device 031212A3-4D83-59BA-8645-CF765C47117E ~/Library/Developer/Xcode/DerivedData/Topper-*/Build/Products/Release-iphoneos/Topper.app
 ```
+
+A Debug dev client is the same two commands with `-configuration Debug` and
+`Debug-iphoneos`, and then needs its Metro (§4). A patched C++ or Kotlin file
+under `patches/` lands only through a native build like this one.
 
 The iPhone must be **connected and unlocked** for both. Xcode.app does not need
 to be open, and its indexing is irrelevant — `xcodebuild` is a pure CLI.
