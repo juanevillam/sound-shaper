@@ -38,6 +38,7 @@ from `xcrun devicectl list devices`.
 | topper       | `8081` | `topper`       | `com.juanevillam.topper`      |
 | sound-shaper | `8082` | `sound-shaper` | `com.juanevillam.soundshaper` |
 | booker       | `8083` | `booker`       | `com.juanevillam.booker`      |
+| stacker      | `8084` | `stacker`      | `com.juanevillam.stacker`     |
 
 `8083` belonged to a deleted app until 2026-10-09; it was reused only once that
 app's dev client was gone from every device, so nothing left pointed at it to
