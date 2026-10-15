@@ -12,9 +12,10 @@ export type WidgetMedia = {
 };
 
 type NativeWidgetBridge = {
-  clear: (appGroup: string) => Promise<void>;
+  clear: (appGroup: string, scope: string) => Promise<void>;
   publish: (
     appGroup: string,
+    scope: string,
     snapshot: string,
     media: WidgetMedia[],
   ) => Promise<void>;
@@ -58,19 +59,30 @@ export const widgetMediaFile = async (url: string): Promise<string> => {
  */
 export const publishWidgetSnapshot = async ({
   appGroup,
+  scope = '',
   media,
   snapshot,
 }: {
   appGroup: string;
+  /**
+   * A subfolder of the container, for an app carrying SEVERAL widgets (Stacker
+   * holds Sound Shaper's and Topper's) — each writes its own snapshot and media
+   * there so neither overwrites the other. Omitted, the container itself.
+   */
+  scope?: string;
   media: WidgetMedia[];
   snapshot: unknown;
 }): Promise<void> => {
-  await native?.publish(appGroup, JSON.stringify(snapshot), media);
+  await native?.publish(appGroup, scope, JSON.stringify(snapshot), media);
 };
 
-/** Wipe the shared container — sign-out and account deletion. */
-export const clearWidgetSnapshot = async (appGroup: string): Promise<void> => {
-  await native?.clear(appGroup);
+/** Wipe the shared container (or one `scope` of it) — sign-out and account
+ *  deletion. */
+export const clearWidgetSnapshot = async (
+  appGroup: string,
+  scope = '',
+): Promise<void> => {
+  await native?.clear(appGroup, scope);
 };
 
 export { useWidgetPublisher } from './useWidgetPublisher';

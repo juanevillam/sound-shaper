@@ -45,8 +45,21 @@ enum WidgetSnapshotWriter {
   /// cached one, and an unchanged image is never downloaded twice. Anything no
   /// longer referenced is pruned in the same pass: the container is not the
   /// app's cache and nothing else ever cleans it.
-  static func publish(appGroup: String, snapshot: String, media: [MediaRecord]) async throws {
-    let root = try containerURL(appGroup)
+  /// The folder a widget's snapshot and media live in: the container itself,
+  /// or a `scope` subfolder of it when one app carries several widgets.
+  static func scopeURL(_ appGroup: String, _ scope: String) throws -> URL {
+    let container = try containerURL(appGroup)
+    guard !scope.isEmpty else { return container }
+
+    let url = container.appendingPathComponent(scope, isDirectory: true)
+    try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url
+  }
+
+  static func publish(
+    appGroup: String, scope: String, snapshot: String, media: [MediaRecord]
+  ) async throws {
+    let root = try scopeURL(appGroup, scope)
     let mediaRoot = root.appendingPathComponent(mediaDirectory, isDirectory: true)
 
     try FileManager.default.createDirectory(at: mediaRoot, withIntermediateDirectories: true)
@@ -68,7 +81,9 @@ enum WidgetSnapshotWriter {
     }
 
     prune(mediaRoot, keeping: referenced)
-    sweepContainerRoot(root)
+    // The container root holds OTHER scopes' folders when scoped, so the
+    // sweep of strays is only ever run on an unscoped root.
+    if scope.isEmpty { sweepContainerRoot(root) }
 
     try Data(snapshot.utf8).write(
       to: root.appendingPathComponent(snapshotFile), options: .atomic)
@@ -79,8 +94,8 @@ enum WidgetSnapshotWriter {
   /// Sign-out and account deletion. A widget keeps drawing its last snapshot
   /// until something replaces it, so leaving one behind is a privacy bug rather
   /// than a stale cache.
-  static func clear(appGroup: String) throws {
-    let root = try containerURL(appGroup)
+  static func clear(appGroup: String, scope: String) throws {
+    let root = try scopeURL(appGroup, scope)
 
     try? FileManager.default.removeItem(at: root.appendingPathComponent(snapshotFile))
     try? FileManager.default.removeItem(
