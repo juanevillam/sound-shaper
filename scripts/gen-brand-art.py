@@ -109,6 +109,16 @@ MARKS = {
             quad((24, 14), (32, 9.5), (39, 11)) + quad((39, 34), (32, 32), (24, 37.5)),
         )
     ],
+    # Stacker: three layers in perspective — a closed top plate and the two
+    # edges below it. Chosen 2026-10-15 over a card stack, a pile of offset
+    # lines and three trays: it is the only one that reads as a STACK before
+    # it reads as anything else.
+    "stacker": lambda: [
+        LinearRing([(24, 9), (39, 17), (24, 25), (9, 17)])
+        .buffer(HALF, resolution=RES, join_style=1),
+        stroke_line([(9, 24), (24, 32), (39, 24)]),
+        stroke_line([(9, 31), (24, 39), (39, 31)]),
+    ],
 }
 
 
