@@ -88,6 +88,7 @@ export {
 } from './InitialArt';
 export { iconSource, preloadIcons, type IconName } from './icons';
 export { WelcomeScreen, type AuthAction } from './WelcomeScreen';
+export { BrandTile, type BrandTileProps } from './BrandTile';
 export { ProgressOverlayIos } from './ProgressOverlayIos';
 export { ProgressViewIos } from './ProgressViewIos';
 // The platform pair: `ProgressView` resolves to the Compose spinner on Android
