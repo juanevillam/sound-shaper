@@ -42,6 +42,12 @@ export default [
         JSX: true,
       },
     },
+    // Stacker's mini-app aliases (`@sounds/…`, later `@tops/…`, `@books/…`)
+    // are the app's own code: typed INTERNAL, so they sort after `@/` rather
+    // than among the npm scopes.
+    settings: {
+      'import/internal-regex': '^@(sounds|tops|books)/',
+    },
     plugins: {
       '@typescript-eslint': tsPlugin,
       react: reactPlugin,
