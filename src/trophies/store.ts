@@ -81,10 +81,15 @@ export const useTrophyStore = create<TrophyState>()((set, get) => {
     // Platinum auto-award: when every OTHER trophy is now earned, award the
     // platinum too. It enqueues right after this one, so the two pop in
     // sequence. Skipped while awarding platinum itself (no self-recursion).
-    const platinum = state.configs.find(config => config.tier === 'platinum');
+    // Each set's platinum counts only its own set (see `TrophyConfig.group`).
+    const platinum = state.configs.find(
+      entry => entry.tier === 'platinum' && entry.group === config.group,
+    );
     if (platinum && platinum.id !== id) {
-      const others = state.configs.filter(config => config.id !== platinum.id);
-      if (others.every(config => awarded[config.id])) award(platinum.id);
+      const others = state.configs.filter(
+        entry => entry.group === config.group && entry.id !== platinum.id,
+      );
+      if (others.every(entry => awarded[entry.id])) award(platinum.id);
     }
   };
 
@@ -123,9 +128,14 @@ export const useTrophyStore = create<TrophyState>()((set, get) => {
       // and nothing would ever re-complete it (every objective re-award hits the
       // already-earned guard). Re-check completion against the loaded set here,
       // so the next launch pops/persists the missing platinum.
-      const platinum = configs.find(config => config.tier === 'platinum');
-      if (platinum && !loaded[platinum.id]) {
-        const objectives = configs.filter(config => config.id !== platinum.id);
+      for (const platinum of configs.filter(
+        config => config.tier === 'platinum',
+      )) {
+        if (loaded[platinum.id]) continue;
+        const objectives = configs.filter(
+          config =>
+            config.group === platinum.group && config.id !== platinum.id,
+        );
         if (
           objectives.length > 0 &&
           objectives.every(config => loaded[config.id])

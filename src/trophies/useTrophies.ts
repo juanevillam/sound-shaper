@@ -54,8 +54,17 @@ export type TrophySummary = {
  */
 export const useTrophies = (
   copy: Record<string, TrophyCopy>,
+  /** Read ONE set of a multi-set app (see `TrophyConfig.group`). */
+  group?: string,
 ): TrophySummary => {
-  const configs = useTrophyStore(state => state.configs);
+  const allConfigs = useTrophyStore(state => state.configs);
+  const configs = useMemo(
+    () =>
+      group === undefined
+        ? allConfigs
+        : allConfigs.filter(config => config.group === group),
+    [allConfigs, group],
+  );
   const awarded = useTrophyStore(state => state.awarded);
   const hydrated = useTrophyStore(state => state.hydrated);
 
