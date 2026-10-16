@@ -13,10 +13,9 @@ export type { DeletionReauth };
 
 /**
  * iOS twin of reauthForDeletion: it branches on the USER'S OWN sign-in
- * provider, not on which providers the welcome screen currently offers. That
- * distinction matters here — `APPLE_SIGN_IN_ENABLED` is false while the app is
- * on a free team, so nobody can sign in with Apple today, but an account that
- * already did must still be re-authenticated with Apple: a Google credential
+ * provider, not on which providers the welcome screen currently offers. An
+ * account that signed in with Apple must be re-authenticated with Apple, even
+ * on a build that stopped offering it: a Google credential
  * cannot reauthenticate an Apple-linked user, and the failure would land AFTER
  * the sweep, leaving them data-swept and undeletable. Topper hit exactly that.
  *

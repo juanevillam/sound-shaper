@@ -10,7 +10,7 @@
     "ios": {
       "icon": "./assets/AppIcon.icon",
       "appleTeamId": "PHLR7X3FGN",
-      "usesAppleSignIn": false,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "CFBundleLocalizations": ["en", "es", "zh"],
         "ITSAppUsesNonExemptEncryption": false
@@ -37,7 +37,6 @@
       "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
     },
     "plugins": [
-      "../../plugins/with-strip-apple-signin",
       "@bacons/apple-targets",
       "expo-router",
       "@react-native-firebase/app",
