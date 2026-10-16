@@ -13,13 +13,6 @@ export type TrophyConfig = {
   /** Stable id — the persistence key and the React key everywhere. */
   id: string;
   tier: TrophyTier;
-  /**
-   * OPTIONAL SET — for an app that hosts several trophy sets at once (Stacker:
-   * one per mini app). A platinum then counts only the trophies of its own
-   * group, and `useTrophies` can read one group. Configs without a group form
-   * one set, which is every single-app consumer's behaviour.
-   */
-  group?: string;
 };
 
 /**

@@ -32,7 +32,6 @@ import {
  */
 export const useWidgetPublisher = ({
   appGroup,
-  scope = '',
   build,
   ready,
   settleMs = 500,
@@ -40,8 +39,6 @@ export const useWidgetPublisher = ({
   signedIn,
 }: {
   appGroup: string;
-  /** Subfolder of the container, for an app carrying several widgets. */
-  scope?: string;
   /** Turn the app's current data into what the widget should draw. */
   build: () => Promise<{ media: WidgetMedia[]; snapshot: unknown }>;
   /** The data has actually arrived, and is not mid-gesture. */
@@ -64,7 +61,7 @@ export const useWidgetPublisher = ({
 
     if (!signedIn) {
       published.current = null;
-      void clearWidgetSnapshot(appGroup, scope);
+      void clearWidgetSnapshot(appGroup);
 
       return;
     }
@@ -80,7 +77,7 @@ export const useWidgetPublisher = ({
 
           if (cancelled) return;
 
-          await publishWidgetSnapshot({ appGroup, scope, media, snapshot });
+          await publishWidgetSnapshot({ appGroup, media, snapshot });
 
           // Marked published only once it actually is. Marking before the await
           // would make a failed publish look done, and the signature would have
@@ -101,5 +98,5 @@ export const useWidgetPublisher = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [appGroup, ready, scope, settleMs, signature, signedIn]);
+  }, [appGroup, ready, settleMs, signature, signedIn]);
 };
