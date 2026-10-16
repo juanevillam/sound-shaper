@@ -1496,21 +1496,19 @@ live in [`../../docs/expo-ui/`](../../docs/expo-ui). The installed TypeScript
 types under `node_modules/@expo/ui` are the source of truth when the docs
 disagree.
 
-## Sign in with Apple is temporarily OFF (free-team dev)
+## Sign in with Apple is ON (Grostify, 2026-10-16)
 
-`APPLE_SIGN_IN_ENABLED = false` in `src/app/(welcome)/welcome.tsx` hides the
-button on iOS, so the welcome screen offers Google alone. The
-`com.apple.developer.applesignin` entitlement needs a PAID Apple Developer
-membership, which the free personal team can't sign — a button that can only
-fail is worse than no button. The entitlement itself is stripped by
-`ios.usesAppleSignIn: false` plus the root `plugins/with-strip-apple-signin.js`, which
-must stay the **FIRST** entry in `app.json`'s `plugins` array (the entitlements
-mod registered earliest runs last, so listing it later loses to
-`expo-apple-authentication`). Revert all three together once the paid account
-lands (enrollment still pending as of 2026-10-14 — see the root `CLAUDE.md`) —
-App Store policy requires Apple sign-in wherever Google is offered.
-Nothing was deleted: `useAppleSignIn.ios.ts`, `services/firebase/appleAuth.ts`
-and `AppleSignInButton` stay wired and correct.
+Sound Shaper signs with Grostify LLC's paid team (`PHLR7X3FGN`, see the root
+`CLAUDE.md`), so the `com.apple.developer.applesignin` entitlement signs and
+the welcome screen offers Apple first, then Google, on iOS — App Store 4.8
+requires Apple wherever Google is offered. The three free-team knobs were
+reverted together: the `APPLE_SIGN_IN_ENABLED` flag is gone,
+`ios.usesAppleSignIn` is `true`, and `plugins/with-strip-apple-signin` is off
+this app's `plugins` (Topper and Booker, still on the free team, keep it).
+
+Deleting an Apple account calls `revokeToken` (App Store 5.1.1(v)), which needs
+Firebase Console → Authentication → Apple's OAuth code flow (Services ID, Team
+ID, Key ID, `.p8`) — see Phase C gate 2a in `docs/phase-c-release.md`.
 
 ## iOS build recipe — same as Topper's, deliberately
 

@@ -27,8 +27,7 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *     and artwork both, via `services/media-worker`. Best-effort.
  *  3. Sweep every Firestore trace (`deleteAccountData`).
  *  4. Revoke Apple tokens with the reauth's authorizationCode (App Store
- *     5.1.1(v)) — best-effort, and only when Apple was the provider, which
- *     cannot happen while `APPLE_SIGN_IN_ENABLED` is false.
+ *     5.1.1(v)) — best-effort, and only when Apple was the provider.
  *  5. Delete the Auth user.
  *
  * THE MEDIA USED TO ORPHAN, and this docblock used to say so: destroying it
