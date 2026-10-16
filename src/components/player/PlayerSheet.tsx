@@ -292,13 +292,16 @@ const BANNER_GLASS_FLOOR = GLASS_FLOOR;
 const CONSOLE_FADE_START = 0.18;
 const CONSOLE_FADE_END = 0.65;
 
-// The wash starts appearing only this far into the expansion. It was 0.8 —
-// "held back until the sheet is nearly open", because mid-drag the surface
-// still read as the banner growing and a visible wash looked like a stray
-// layer. With the console now riding in from CONSOLE_FADE_START, the surface
-// reads as the player well before that point, so the atmosphere follows the
-// content instead of popping in at the settle.
-const BACKDROP_FADE_START = 0.6;
+// THE WASH TAKES OVER FROM THE GLASS, NOT FROM BLACK (Juan, 2026-10-16). It
+// started at 0.6 — and before that at 0.8 — because it was a full-window
+// rectangle and, shown early, read as a stray layer outside the growing pill.
+// That left the stretch between the glass going (BANNER_GLASS_FADE) and the
+// wash arriving as a flat black slab sweeping up half the screen, which read
+// as the app stalling. The wash now lives inside the surface, clipped by its
+// box, so it can arrive as the glass leaves and the surface is never bare.
+// Fully in by 0.3: by 0.45 the dark arrived too late (Juan, 2026-10-16).
+const BACKDROP_FADE_START = 0.06;
+const BACKDROP_FADE_END = 0.3;
 
 /**
  * OPENING AND CLOSING ARE SPRINGS, not eased timings.
@@ -474,25 +477,45 @@ export function PlayerSheet() {
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
 
+  // The React side of opening or closing: the state the rest of the screen
+  // reads, mirrored so screens' back handlers can yield to the sheet's.
+  const markExpanded = useCallback((open: boolean) => {
+    setExpanded(open);
+    usePlayerStore.getState().setSheetExpanded(open);
+  }, []);
+
+  // `velocity` is the release speed in PROGRESS units per second — the drags
+  // hand it over so the settle continues the finger's own motion instead of
+  // restarting from rest (see the spring note above). A tap passes nothing
+  // and starts from rest exactly as before.
+  //
+  // A WORKLET, SO A RELEASE STARTS THE SPRING ON THE SAME FRAME (Juan,
+  // 2026-10-16: a short drag released felt sticky, a close worst of all).
+  // The drags used to hop to JS with `runOnJS(springTo)`, and springTo set
+  // React state BEFORE starting the spring — so `progress` sat frozen where
+  // the finger left it until JS had re-rendered the whole sheet, then took
+  // off. A long drag hid it (little was left to travel); a short one showed
+  // the hitch, and a close showed it most because it re-renders the most.
+  // The spring now starts on the UI thread and the React state follows.
+  const settle = (target: 0 | 1, velocity = 0) => {
+    'worklet';
+    progress.value = reduceMotion
+      ? // Reduce Motion takes the destination, not a faster spring: the
+        // setting asks for no movement, not for brisk movement.
+        withTiming(target, { duration: 0 })
+      : withSpring(target, {
+          ...(target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING),
+          velocity,
+        });
+  };
+
   const springTo = useCallback(
-    // `velocity` is the release speed in PROGRESS units per second — the
-    // drags hand it over so the settle continues the finger's own motion
-    // instead of restarting from rest (see the spring note above). A tap
-    // passes nothing and starts from rest exactly as before.
     (target: 0 | 1, velocity = 0) => {
-      setExpanded(target === 1);
-      // Mirrored so screens' back handlers can yield to the sheet's.
-      usePlayerStore.getState().setSheetExpanded(target === 1);
-      progress.value = reduceMotion
-        ? // Reduce Motion takes the destination, not a faster spring: the
-          // setting asks for no movement, not for brisk movement.
-          withTiming(target, { duration: 0 })
-        : withSpring(target, {
-            ...(target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING),
-            velocity,
-          });
+      markExpanded(target === 1);
+      settle(target, velocity);
     },
-    [progress, reduceMotion],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [markExpanded, progress, reduceMotion],
   );
 
   const expand = useCallback(() => springTo(1), [springTo]);
@@ -693,8 +716,10 @@ export function PlayerSheet() {
     .onEnd(event => {
       const commit =
         progress.value > SNAP_PROGRESS || event.velocityY < -SNAP_VELOCITY;
-      // The finger's speed, in progress units — the settle continues it.
-      runOnJS(springTo)(commit ? 1 : 0, -event.velocityY / travel);
+      // The finger's speed, in progress units — the settle continues it,
+      // starting on this frame; React catches up after (see `settle`).
+      settle(commit ? 1 : 0, -event.velocityY / travel);
+      runOnJS(markExpanded)(commit);
     });
 
   // Drag down anywhere above the scrubber (chevron row, artwork, title) to
@@ -711,8 +736,10 @@ export function PlayerSheet() {
       .onEnd(event => {
         const commit =
           progress.value < 1 - SNAP_PROGRESS || event.velocityY > SNAP_VELOCITY;
-        // The finger's speed, in progress units — the settle continues it.
-        runOnJS(springTo)(commit ? 0 : 1, -event.velocityY / travel);
+        // The finger's speed, in progress units — the settle continues it,
+        // starting on this frame; React catches up after (see `settle`).
+        settle(commit ? 0 : 1, -event.velocityY / travel);
+        runOnJS(markExpanded)(!commit);
       });
   const dragDown = makeDragDown();
   const dragDownTop = makeDragDown();
@@ -1017,13 +1044,10 @@ export function PlayerSheet() {
     ),
   }));
 
-  // Held back until the sheet is nearly open. Mid-drag the surface is still
-  // reading as the banner growing, and a visible wash there looks like a
-  // stray layer rather than part of the player.
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       progress.value,
-      [BACKDROP_FADE_START, 1],
+      [BACKDROP_FADE_START, BACKDROP_FADE_END],
       [0, 1],
       Extrapolation.CLAMP,
     ),
@@ -1171,7 +1195,27 @@ export function PlayerSheet() {
         <Animated.View
           style={[styles.surface, surfaceStyle]}
           pointerEvents="none"
-        />
+        >
+          {/* THE ARTWORK WASH LIVES INSIDE THE SURFACE (2026-10-16), so the
+              surface's own animated box and corner clip it — no second layer
+              animating the same height, insets and radius beside it. That
+              twin cost a second layout commit and a second rounded clip of a
+              blurred image on every frame, and the drag read as sticky.
+              It tracks the drag directly, so it grows in with the surface
+              instead of popping at the settle. MOUNTED ONLY WHILE THE PLAYER
+              IS ON SCREEN — see `playerMounted`: a collapsed banner does not
+              pay for it, and since `usePlayerStore`'s current sound prefetches
+              this exact transform, mounting it at a drag's first frame is a
+              decode, not a fetch. Window-sized and fixed, so the growing clip
+              uncovers it rather than re-fitting it every frame. */}
+          {playerMounted ? (
+            <Animated.View
+              style={[{ height: winH, width: winW }, backdropStyle]}
+            >
+              <PlayerBackdrop artUrl={current.artUrl || undefined} />
+            </Animated.View>
+          ) : null}
+        </Animated.View>
 
         {BANNER_GLASS ? (
           <Animated.View
@@ -1183,25 +1227,6 @@ export function PlayerSheet() {
               height={MINI_PLAYER_HEIGHT}
               radius={BANNER_RADIUS}
             />
-          </Animated.View>
-        ) : null}
-
-        {/* The artwork wash tracks the drag directly, so it grows in with the
-            surface instead of popping once the expanded chrome crosses its
-            fade threshold. */}
-        {/* MOUNTED ONLY WHILE THE PLAYER IS ON SCREEN — see `playerMounted`.
-            It still grows in with the drag rather than waiting for the sheet
-            to land, which is the whole point of the comment above; what
-            changes is that a COLLAPSED banner no longer pays for it. The
-            bytes are already local either way, because `usePlayerStore`'s
-            current sound prefetches this exact transform (below), so mounting
-            it at the first frame of a drag is a decode, not a fetch. */}
-        {playerMounted ? (
-          <Animated.View
-            style={[styles.backdropLayer, backdropStyle]}
-            pointerEvents="none"
-          >
-            <PlayerBackdrop artUrl={current.artUrl || undefined} />
           </Animated.View>
         ) : null}
 
@@ -1483,22 +1508,27 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         accessibilityRole="button"
         accessibilityLabel={first ? first.name : t('player.empty')}
       >
-        <View style={styles.idleArt}>
-          <SoundArt
-            artUrl={first?.artUrl || undefined}
-            size={MINI_ART_SIZE}
-            // A DISPLAY-SIZED VARIANT, for the same reason the hero above
-            // takes one — and this slot is 46pt, so the stored original was
-            // the most oversized fetch in the app. It is also the first thing
-            // a cold start with a library pays for: this banner stands parked
-            // on the newest sound before anything has been played.
-            displayWidth={MINI_ART_SIZE}
-            title={first?.name}
-            // Same corner the loaded banner's thumb renders at.
-            style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
-          />
-        </View>
-        <View style={styles.idleInfo}>
+        {/* AN EMPTY LIBRARY SHOWS NO ART (Juan, 2026-10-16): with no sound
+            to stand for, the placeholder fell back to a "?" — a question the
+            banner was asking the person. The words alone say it. */}
+        {first ? (
+          <View style={styles.idleArt}>
+            <SoundArt
+              artUrl={first?.artUrl || undefined}
+              size={MINI_ART_SIZE}
+              // A DISPLAY-SIZED VARIANT, for the same reason the hero above
+              // takes one — and this slot is 46pt, so the stored original was
+              // the most oversized fetch in the app. It is also the first thing
+              // a cold start with a library pays for: this banner stands parked
+              // on the newest sound before anything has been played.
+              displayWidth={MINI_ART_SIZE}
+              title={first?.name}
+              // Same corner the loaded banner's thumb renders at.
+              style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
+            />
+          </View>
+        ) : null}
+        <View style={[styles.idleInfo, !first && styles.idleInfoEmpty]}>
           {first ? (
             <>
               <AppText
@@ -1522,13 +1552,24 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               />
             </>
           ) : (
-            <AppText
-              doNotTranslate
-              muted
-              text={t('player.empty')}
-              variant="bodyLarge"
-              numberOfLines={1}
-            />
+            // The loaded banner's two lines, so the parked pill keeps its
+            // typesetting: the state as the title, what to do under it.
+            <>
+              <AppText
+                doNotTranslate
+                text={t('player.empty')}
+                variant="bodyLarge"
+                numberOfLines={1}
+                style={styles.miniTitle}
+              />
+              <AppText
+                doNotTranslate
+                muted
+                text={t('player.emptyHint')}
+                variant="bodyMedium"
+                numberOfLines={1}
+              />
+            </>
           )}
         </View>
         {first ? (
@@ -1580,6 +1621,11 @@ const styles = StyleSheet.create({
     marginLeft: BANNER_INSET,
     width: MINI_ART_SIZE,
   },
+  // No art beside the words, so they stand off the pill's curved end by two
+  // of its insets instead of one.
+  idleInfoEmpty: {
+    paddingLeft: BANNER_INSET * 2,
+  },
   idleInfo: {
     flex: 1,
     gap: MINI_COPY_GAP,
@@ -1596,17 +1642,12 @@ const styles = StyleSheet.create({
   },
   // Anchored to the container's top — the pill's own top edge — and grown
   // downward by the animated height.
+  // Clips the artwork wash inside it to the pill's corners as it grows.
   surface: {
+    overflow: 'hidden',
     position: 'absolute',
     top: 0,
     ...CONTINUOUS_CURVE,
-  },
-  backdropLayer: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   // Positioned from the container's TOP — which is the pill's top — because
   // the surface's animated height is not a layout its children can key off.

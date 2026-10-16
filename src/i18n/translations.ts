@@ -69,6 +69,7 @@ export const translations = {
     player: {
       title: 'Now Playing',
       empty: 'No Sounds Yet',
+      emptyHint: 'Add a sound to start listening.',
       play: 'Play',
       pause: 'Pause',
       next: 'Next Sound',
@@ -390,6 +391,7 @@ export const translations = {
     player: {
       title: 'Reproduciendo',
       empty: 'Aún no hay sonidos',
+      emptyHint: 'Añade un sonido para empezar a escuchar.',
       play: 'Reproducir',
       pause: 'Pausa',
       next: 'Siguiente sonido',
@@ -675,6 +677,7 @@ export const translations = {
     player: {
       title: '正在播放',
       empty: '还没有音频',
+      emptyHint: '添加一个音频即可开始收听。',
       play: '播放',
       pause: '暂停',
       next: '下一个音频',
