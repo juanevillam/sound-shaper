@@ -116,6 +116,10 @@ export const SettingsAccountSection = ({
               size={avatarSize}
               style={avatar}
               title={profile.displayName}
+              // Settings is a form sheet in every app, where a dark row is
+              // already `surfaceContainer` — unstepped, the disc landed on
+              // its own card and only its letter showed (Juan, 2026-10-16).
+              container="sheet"
             />
           )}
         </RNHostView>
