@@ -22,7 +22,7 @@ const WIDGET_CAPACITY = 16;
  */
 const TILE_WIDTH = 96;
 
-const APP_GROUP = 'group.com.juanevillam.soundshaper';
+const APP_GROUP = 'group.com.grostify.soundshaper';
 
 /**
  * PUBLISH THE LIBRARY TO THE HOME SCREEN WIDGET.

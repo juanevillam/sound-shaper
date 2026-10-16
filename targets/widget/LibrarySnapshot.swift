@@ -10,7 +10,7 @@ import Foundation
 /// draws its empty state, which is the correct failure on a Home Screen but a
 /// silent one.
 enum SharedContainer {
-  static let appGroup = "group.com.juanevillam.soundshaper"
+  static let appGroup = "group.com.grostify.soundshaper"
   // Both names are the package's — see `WidgetSnapshotWriter`.
   static let snapshotFile = "snapshot.json"
   static let mediaDirectory = "media"

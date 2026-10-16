@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/AppIcon.icon",
-      "appleTeamId": "C65D64JUZK",
+      "appleTeamId": "PHLR7X3FGN",
       "usesAppleSignIn": false,
       "infoPlist": {
         "CFBundleLocalizations": ["en", "es", "zh"],
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.juanevillam.soundshaper",
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.juanevillam.soundshaper"
+          "group.com.grostify.soundshaper"
         ]
       },
       "googleServicesFile": "./GoogleService-Info.plist"

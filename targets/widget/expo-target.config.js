@@ -12,6 +12,11 @@
 module.exports = config => ({
   type: 'widget',
   name: 'SoundShaperWidgets',
+  // Not the default `.widget`: Juan's free personal team claimed
+  // `com.juanevillam.soundshaper.widget` during device installs, bundle IDs
+  // are unique across all of Apple, and a free team cannot release one — so
+  // under Grostify (2026-10-16) the extension takes its own suffix.
+  bundleIdentifier: '.widgets',
   displayName: 'Sound Shaper',
   // iOS 17 is the floor for `containerBackground`, which WidgetKit requires of
   // any widget built against a modern SDK.
