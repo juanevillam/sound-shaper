@@ -24,7 +24,8 @@ runs only when Juan agrees to one.
 | Simulator (iPhone 17)         | `0D6B7E54-D5DD-45CA-9B3A-E504E964AFEB`       |
 | iPhone — build/install UDID   | `00008120-000A3CEA28214932`                  |
 | iPhone — **devicectl** UUID   | `031212A3-4D83-59BA-8645-CF765C47117E`       |
-| Signing team (free, personal) | `C65D64JUZK`                                 |
+| Signing team (free, personal) | `C65D64JUZK` — Topper, Booker                |
+| Signing team (Grostify LLC)   | `PHLR7X3FGN` — Sound Shaper                  |
 | Mac LAN IP                    | **drifts** — always `ipconfig getifaddr en0` |
 
 The two iPhone identifiers are **not interchangeable**. `xcodebuild` and
@@ -274,7 +275,7 @@ never published" from "the widget cannot read":
 BASE=~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Shared/AppGroup
 for d in $BASE/*/; do
   id=$(plutil -extract MCMMetadataIdentifier raw "$d.com.apple.mobile_container_manager.metadata.plist" 2>/dev/null)
-  [ "$id" = "group.com.juanevillam.soundshaper" ] && echo "$d" && ls -la "$d"
+  [ "$id" = "group.com.grostify.soundshaper" ] && echo "$d" && ls -la "$d"
 done
 ```
 
