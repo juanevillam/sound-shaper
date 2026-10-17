@@ -239,7 +239,6 @@ export const translations = {
     },
     settings: {
       account: {
-        title: 'Account',
         sheetTitle: 'Account',
         noName: 'Your Account',
         // The legend under the name on Settings' account banner — what is
@@ -553,7 +552,6 @@ export const translations = {
     },
     settings: {
       account: {
-        title: 'Cuenta',
         sheetTitle: 'Cuenta',
         noName: 'Tu cuenta',
         summary: 'Información de la cuenta y trofeos',
@@ -855,7 +853,6 @@ export const translations = {
     },
     settings: {
       account: {
-        title: '账户',
         sheetTitle: '账户',
         noName: '你的账户',
         summary: '账户信息和奖杯',

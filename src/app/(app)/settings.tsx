@@ -120,7 +120,6 @@ export default function Settings() {
         // Trophies moved behind manage-account with the rest of the
         // account-shaped rows, exactly as iOS has had it.
         account={{
-          title: t('settings.account.title'),
           profile,
           profileLink: {
             subtitle: t('settings.account.summary'),

@@ -128,12 +128,6 @@ export type SettingsAccountLink = {
 };
 
 export type SettingsAccountSectionProps = {
-  /**
-   * Section heading, e.g. "Account". Neither platform draws it today — the
-   * banner carries no header (see `SettingsAccountLink`) — and the caller
-   * still passes it.
-   */
-  title: string;
   /** The identity the banner draws. No profile, no banner. */
   profile?: SettingsAccountProfile;
   /**
