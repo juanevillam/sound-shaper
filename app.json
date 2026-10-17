@@ -88,14 +88,6 @@
       "expo-web-browser",
       "expo-font",
       [
-        "expo-audio",
-        {
-          "microphonePermission": "Sound Shaper never uses the microphone. Its audio engine includes recording features the app doesn't use.",
-          "recordAudioAndroid": false,
-          "enableBackgroundPlayback": true
-        }
-      ],
-      [
         "react-native-audio-api",
         {
           "androidForegroundService": true,
@@ -105,7 +97,8 @@
             "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
             "android.permission.POST_NOTIFICATIONS"
           ],
-          "iosBackgroundMode": true
+          "iosBackgroundMode": true,
+          "iosMicrophonePermission": "Sound Shaper never uses the microphone. Its audio engine includes recording features the app doesn't use."
         }
       ],
       [
