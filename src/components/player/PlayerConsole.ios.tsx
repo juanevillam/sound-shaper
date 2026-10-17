@@ -162,7 +162,7 @@ const ARTIST_VARIANT = 'bodyLarge' as const;
 const SPACER_LOWER_WEIGHT = 1.55;
 
 /* -------------------------------------------------------------------------- */
-/*  The bar row                                                               */
+/*  Edit                                                                      */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -175,13 +175,13 @@ const SPACER_LOWER_WEIGHT = 1.55;
  * screen is a second one. Juan called it: putting it in the bar leaves the UI
  * cleaner because there is less floating.
  *
- * So it is the bar's third compartment. It is NOT a third card — it carries no
- * label and no summary, because unlike Shape and Clips it has no live state to
- * say, and three cards on a 370pt bar leaves none of them room. The narrow
- * compartment is what makes it read as secondary; the INK stays `onSurface` at
- * the bar's own icon size, because a hand-muted glyph in a row of full-strength
- * ones reads as disabled, and `disabled(true)` is the only thing allowed to say
- * that.
+ * So it is the bar's third compartment. It is NOT a third equal card — it
+ * carries a one-word label and no summary, because unlike Shape and Clips it
+ * has no live state to say, and three equal cards on a 370pt bar leave none of
+ * them room (see the labelled-compartment note on `GlassFooter`). The INK
+ * stays `onSurface` at the bar's own icon size, because a hand-muted glyph in
+ * a row of full-strength ones reads as disabled, and `disabled(true)` is the
+ * only thing allowed to say that.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -213,8 +213,8 @@ const GLASS_FOOTER_ICON = 24;
  * A host that measures its child answers on the LAYOUT PATH — it updates its
  * size in the RN tree after the fact — and this glyph is the first child of a
  * flex row whose label and summary sit beside it, so a late answer slides the
- * copy on the exact frame the content mounts. That is the family AGENTS.md
- * names, and the reason it is worth restating here is that the measurement
+ * copy on the exact frame the content mounts. That is the family
+ * `docs/standards.md` names, and the reason it is worth restating here is that the measurement
  * usually resolves same-frame: it survives a band-scan of the settled state
  * and is caught by eye instead.
  *
@@ -290,15 +290,14 @@ const GLASS_EDIT_ICON = 28;
 
 /**
  * ONE MERGED LIQUID GLASS BAR — the same object as the banner this console
- * grew out of, and as Home's trailing pill: `GlassSurfaceIos` over the
- * portfolio's `GLASS_FLOOR`, no border and no shadow, because the material is
- * the edge. Merged rather than two capsules for the reason Home's is merged —
- * two floating objects side by side read as two decisions.
+ * grew out of: `GlassSurfaceIos` over `GLASS_FLOOR`, no border and no shadow,
+ * because the material is the edge. Merged rather than separate capsules
+ * because floating objects side by side read as separate decisions.
  *
  * SHAPE AND CLIPS ARE NOT APPLE MUSIC'S FOOTER, and that is why this is a bar
  * rather than a row of bare glyphs. AirPlay, lyrics and queue are incidental to
  * a music player; these two are the PRODUCT'S VERBS, and each carries live
- * state — "Flat · 1×", "3 Clips" — that a glyph alone cannot say.
+ * state — "Bright · 1.25×", "2 saved" — that a glyph alone cannot say.
  *
  * Two alternatives were built and rendered on device before this was chosen.
  * Folding the studios into the transport as two more equal-weight symbols with
@@ -309,8 +308,9 @@ const GLASS_EDIT_ICON = 28;
  * value rows read best of the three and were rejected only for reading like a
  * Settings section under a now-playing screen.
  *
- * The material is decorative and pointer-transparent, so both halves are
- * ordinary `Pressable`s above it. They are CARDS by container, so they squash.
+ * The material is decorative and pointer-transparent, so every compartment is
+ * an ordinary `Pressable` above it. They are CARDS by container, so they
+ * squash.
  */
 function GlassFooter({
   cards,
@@ -518,9 +518,8 @@ function GlassHalf({ card }: { card: PlayerCard }) {
  * FRAMING IS GONE FROM THIS CONSOLE (2026-08-26). A clip is made in the
  * dedicated Voice Memos-style editor (`clip-trim`) now — the Clips sheet
  * pushes it — so the trim frame, the range readout, the Cancel/Save bar and
- * the framing transport rules all left with it. The shared prop type still
- * carries the clip fields because ANDROID's console frames in place; this
- * side simply does not read them.
+ * the framing transport rules all left with it (Android's console followed on
+ * 2026-09-08, and the shared prop type carries no clip fields).
  */
 export function PlayerConsole({
   cards,
@@ -743,7 +742,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   // The invisible drag-to-close surface behind the whole region above the
-  // console — the bar row and the gutters beside the artwork.
+  // console — the band above the artwork and the gutters beside it.
   dragZone: {
     left: 0,
     position: 'absolute',
@@ -797,7 +796,7 @@ const styles = StyleSheet.create({
     width: HAIRLINE,
   },
   glassHalf: { height: '100%', width: '100%' },
-  // EACH HALF IS A ROW, and that is why its content leads rather than centres.
+  // EACH CARD IS A ROW, and that is why its content leads rather than centres.
   //
   // Centring was tried and made the bar look BIGGER than it needed to be: it
   // split the slack into four pockets, two of them at the bar's outer ends,
@@ -809,7 +808,7 @@ const styles = StyleSheet.create({
   // The bar keeps the collapsed banner's full width regardless. That width is
   // not decoration: it IS the banner's box, which is what makes expanding read
   // as the same object staying put. Hugging the content would also make the bar
-  // resize whenever a summary did — "No Clips Yet" against "3 Clips".
+  // resize whenever a summary did — "None" against "12 saved".
   glassHalfPress: {
     alignItems: 'center',
     flexDirection: 'row',

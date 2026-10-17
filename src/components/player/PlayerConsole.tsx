@@ -68,7 +68,7 @@ import {
 // hand-drawn Android set.
 //
 // Clip framing is GONE from this console on Android too: a clip is made in
-// the dedicated `clip-trim` editor, which the Clips sheet pushes.
+// the dedicated editor (`ClipTrimSheet`), stacked over the Clips sheet.
 // ---------------------------------------------------------------------------
 
 /**

@@ -37,13 +37,12 @@ import { withAlpha, useAppTheme } from '@/core';
 // here, because this player stands on the artwork wash rather than on Apple's
 // dark glass and must work in both appearances.
 //
-// IT ALSO ENDS A LONG-RUNNING FIGHT WITH THE TRIM FRAME. A native slider
-// claims a touch the instant it lands, so the frame's caps kept losing drags
-// aimed at them. This control first solved that by standing down while
-// framing (`disabled`); since 2026-08-25 it stays live instead — scrubbing
-// while framing is how a clip's end is found by ear — and the caps win their
-// touches by GEOMETRY (transparent touch wrappers, resolved by hit-testing)
-// rather than by this control's silence.
+// IT ALSO ENDED A LONG-RUNNING FIGHT WITH THE TRIM FRAME, back when clips
+// were framed ON this scrubber (that mode is gone — a clip is made in the clip
+// editor now, and nothing rides this bar). A native slider claims a touch the
+// instant it lands, so the frame's caps kept losing drags aimed at them; the
+// fix was to let the caps win their touches by GEOMETRY (transparent touch
+// wrappers, resolved by hit-testing) rather than by this control's silence.
 //
 // A TAP IS NOT A SEEK. Apple's scrubber moves relative to the finger, so a
 // touch that lands and lifts without travelling leaves the playhead where it

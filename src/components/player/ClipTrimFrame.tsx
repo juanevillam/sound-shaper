@@ -30,19 +30,21 @@ import { CONTINUOUS_CURVE } from '@/ui';
 // AUTHORED RN, AND HERE IS THE NATIVE COMPONENT THAT WAS REJECTED: there is
 // none. UIKit's only public trimmer is `UIVideoEditorController`, a
 // video-file view controller that cannot trim an audio range in place;
-// SwiftUI and `@expo/ui` 57 ship no trim control at all (every
-// component is listed in docs/expo-ui — nothing trims). Photos' own trimmer is
+// SwiftUI and `@expo/ui` 57 ship no trim control at all (checked against
+// its docs and installed types — nothing trims). Photos' own trimmer is
 // private. So the frame is drawn by hand, measured against Photos, and its
 // two glyphs are still real SF Symbols in stated-box hosts.
 //
-// A WAVEFORM STRIP STOOD HERE FOR ONE DAY (2026-08-23) AND JUAN REMOVED IT:
+// WHILE IT RODE THE SCRUBBER, A WAVEFORM STRIP STOOD UNDER IT FOR ONE DAY
+// (2026-08-23) AND JUAN REMOVED IT:
 // first with a zoomed window ("the more i drag it the more it expands"),
 // then static — and even static, a second track-shaped surface replacing
 // the slider read as "two diff progress sliders… out of place". The lesson
 // is recorded in docs/rejected-experiments.md: this player already has a
-// progress surface, and clip framing is a MODE OF IT, not a second one. So
-// the slider stays visible and interactive, its thumb stays unambiguously
-// the playhead, and the frame rides on top.
+// progress surface, and clip framing was a MODE OF IT, not a second one. So
+// the slider stayed visible and interactive, its thumb unambiguously the
+// playhead, and the frame rode on top. (The dedicated editor is a different
+// case — see `ClipTrimEditor`'s header.)
 //
 // THE FRAME'S TREATMENT IS THE ONE THE STRIP PROVED OUT, measured from
 // Photos' video trimmer (iPhone 17 / iOS 26.5: frame outer 51pt, rails 5,
@@ -73,8 +75,8 @@ import { CONTINUOUS_CURVE } from '@/ui';
 // motor buzz, not Apple's detent click. Save keeps its one
 // `haptics.selection()` at the save site.
 //
-// IT LIVES IN AN ABSOLUTE OVERLAY over the slider block, like every
-// generation before it: entering framing must move nothing (the band-scan
+// IT LIVES IN AN ABSOLUTE OVERLAY over the strip under it, like every
+// generation before it: showing the frame must move nothing (the band-scan
 // invariant), and an overlay costs no layout.
 
 /**
@@ -102,13 +104,13 @@ export const RANGE_FILL_ALPHA = 0.16;
 export const MIN_GAP_S = 1;
 /**
  * A cap is 14pt of ink; its TARGET is a transparent wrapper VIEW around it —
- * ±15 horizontal (44 wide, Apple's minimum, the same number that sized the
- * frame's height) and ±14 vertical (72 tall). It was RNGH `hitSlop` on the
- * gesture, and that stopped being enough the moment the scrubber underneath
- * came back to life for framing: slop is a GESTURE-arena expansion, so a
- * touch inside it still lands on the scrubber's view and the two pans race.
- * A wrapper the caps' pans own is resolved by hit-testing instead — topmost
- * view wins, deterministically, and the scrubber simply never sees a touch
+ * ±15 horizontal (44 wide, Apple's minimum) and ±14 vertical. It was RNGH
+ * `hitSlop` on the gesture, and that stopped being enough the moment the
+ * surface underneath had a pan of its own (then the player's scrubber, now
+ * the overview's scrub): slop is a GESTURE-arena expansion, so a touch inside
+ * it still lands on the view underneath and the two pans race. A wrapper the
+ * caps' pans own is resolved by hit-testing instead — topmost view wins,
+ * deterministically, and the surface underneath simply never sees a touch
  * aimed at an edge. When the clip is short the wrappers overlap the middle
  * zone; they are rendered after it, so the edges win, which is the right
  * priority — edges are what framing adjusts.
@@ -399,12 +401,11 @@ export function ClipTrimFrame({
       onLayout={event => setTrackWidth(event.nativeEvent.layout.width)}
     >
       {trackWidth > 0 && durationS > 0 ? (
-        // The frame FADES IN over the mode change — the same 200ms the time
-        // row takes to make room below it, so the two read as one transition
-        // rather than a pop and a slide. It is an inner wrapper because the
-        // outer view is the measuring overlay and must never animate; the
-        // band-scan invariant (entering framing moves nothing) is untouched,
-        // since opacity is not layout.
+        // The frame FADES IN (200ms) once the strip has a width, rather than
+        // popping. It was sized to the in-player mode change it once covered.
+        // It is an inner wrapper because the outer view is the measuring
+        // overlay and must never animate; the band-scan invariant (showing
+        // the frame moves nothing) is untouched, since opacity is not layout.
         <Animated.View
           entering={reduceMotion ? undefined : FadeIn.duration(200)}
           style={StyleSheet.absoluteFill}

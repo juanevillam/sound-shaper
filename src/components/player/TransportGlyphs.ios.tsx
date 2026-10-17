@@ -15,9 +15,9 @@ import { type TransportGlyphProps } from './TransportGlyphs';
  * triangle for play, two rounded bars for pause, a triangle plus a bar for
  * skip. The justification in the code was "Compose Icons here would blink on
  * navigation returns" — an ANDROID failure, applied to iOS, which is exactly
- * the drift AGENTS.md's native-primitive rule describes. iOS was drawing by
- * hand a control the system already ships, and the portfolio ALREADY owns these
- * four as real symbols: `AppIcon.ios` maps `play-arrow` and `pause` to
+ * the drift `docs/standards.md`'s native-primitive rule describes. iOS was
+ * drawing by hand a control the system already ships, and the app ALREADY owns
+ * these four as real symbols: `AppIcon.ios` maps `play-arrow` and `pause` to
  * `play.fill` and `pause.fill`. (Its `skip-next` / `skip-previous` entries
  * point at the BAR symbols, which is right for those Material names and
  * wrong for a music transport — see the skip pair below.)
@@ -36,7 +36,7 @@ import { type TransportGlyphProps } from './TransportGlyphs';
  * THE HOST STATES ITS BOX, never `matchContents`. A host that measures its
  * child answers on the layout path, and these sit inside a row that Reanimated
  * transforms every frame of the expand — the one place an async answer is
- * guaranteed to show. See AGENTS.md.
+ * guaranteed to show. See `docs/standards.md`.
  */
 
 /** Default point size — matches the ink the drawn glyphs occupied (~14–16pt). */

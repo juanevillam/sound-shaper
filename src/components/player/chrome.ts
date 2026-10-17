@@ -36,12 +36,11 @@ type AnyGesture = ComposedGesture | GestureType;
  * TOUCH target is restored by hit slop on the gesture rather than by padding
  * the layout, so the bar can sit close to its labels without becoming hard to
  * catch.
- * It lives HERE rather than in
- * `PlayerScrubber.ios.tsx` because the console centres the trim frame on it,
- * and a VALUE imported from a platform-suffixed file resolves back to that
- * same file from inside it — the self-import trap this module exists to
- * avoid. The full story of why the host both states this box AND ignores the
- * safe area is at the top of `PlayerScrubber.ios.tsx`.
+ * It lives HERE rather than in `PlayerScrubber.ios.tsx` because a VALUE
+ * imported from a platform-suffixed file resolves back to that same file from
+ * inside it — the self-import trap this module exists to avoid. The story of
+ * why the old SwiftUI host both stated this box AND ignored the safe area is
+ * at the top of `PlayerScrubber.ios.tsx`.
  */
 export const IOS_SLIDER_HOST_HEIGHT = 18;
 
@@ -161,15 +160,16 @@ export type PlayerCard = {
  * `progress` shared value, the springs it rides, the drag/skip gesture graph,
  * the neighbour paging, and the ONE artwork element that travels between the
  * banner and the console. The CONSOLE is the only part where the two platforms
- * want different things — Android's is a Material column with a FAB and two
- * outlined cards, iOS's is not — so the console is the only part with a twin.
+ * want different things — since 2026-09-08 the same arrangement said in each
+ * platform's language (Material chrome and glyphs on Android, glass and SF
+ * Symbols on iOS) — so the console is the only part with a twin.
  *
  * A full `PlayerSheet.ios.tsx` was the obvious alternative and is the wrong
  * shape: a handful of that file's ~1600 lines are platform branches (grep it
  * for `Platform.`), so a twin would copy hundreds of lines of correct,
  * frame-verified animation and gesture code that have nothing to do with
  * either platform's look. The copy would rot and every fix would need landing
- * twice — the re-implementation trap AGENTS.md names.
+ * twice — the re-implementation trap `docs/standards.md` names.
  *
  * The counts here were exact once and had already rotted by two hundred lines;
  * they name the grep now instead, the same rule `uiStateLab`'s skeleton note
@@ -323,7 +323,7 @@ export const playerArtFullSize = (
  * this surface has a bottom sheet's dismiss GESTURE but is not a sheet, and a
  * grabber is UIKit's promise that it is one.
  *
- * `PLAYER_BAR_TARGET` (43, the portfolio's bar-glyph target) used to be
+ * `PLAYER_BAR_TARGET` (43, the bar-glyph target) used to be
  * exported from here for that row. Nothing states it any more — the row is
  * gone and the console's only glyph-only control is a compartment of the glass
  * bar, which takes the bar's geometry rather than a bar item's.

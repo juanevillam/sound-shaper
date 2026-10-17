@@ -81,7 +81,7 @@ type PlayerState = {
   /** Follow a live end-cap edit while the editor's preview is sounding. */
   retargetClipEnd: (endS: number) => void;
   toggle: () => void;
-  /** Stop playback in place, idempotent — entering clip framing uses it. */
+  /** Stop playback in place, idempotent — opening the clip editor uses it. */
   pause: () => void;
   next: () => void;
   previous: () => void;
@@ -300,14 +300,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   /**
-   * ENTERING CLIP FRAMING USES THIS. Framing starts quiet: the song stops on
-   * the way in — which is what Photos and Voice Memos do when you open their
+   * OPENING THE CLIP EDITOR USES THIS. The editor starts quiet: the song stops
+   * on the way in — which is what Photos and Voice Memos do when you open their
    * trimmer, and what keeps the transport's glyph honest (a play glyph over
    * audible sound is a lie, and the alternative — leaving the song running —
    * made the first press pause the SONG instead of previewing the clip).
-   * Sound DURING framing is then the person's own doing: the preview, or
-   * plain playback scrubbed to and started by hand now that the scrubber
-   * stays live in the mode.
+   * Sound inside the editor is then the person's own doing: the preview, or
+   * plain playback from the playhead, started by hand.
    */
   pause: () => {
     if (!get().playing) return;

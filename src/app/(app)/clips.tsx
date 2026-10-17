@@ -78,8 +78,8 @@ function ClipsSheetScreen() {
   );
   const retry = useClipsStore(s => s.retry);
   /**
-   * A SPINNER, NOT A BONE, and it is the call Explore's search already made.
-   * The rule (AGENTS.md → "Waiting has two shapes") sends predictable shapes to
+   * A SPINNER, NOT A BONE, and it is the call Topper's search already made.
+   * The rule (`docs/standards.md` → "Waiting has two shapes") sends predictable shapes to
    * a bone and unpredictable ones to a spinner: nothing knows how many clips a
    * sound has until the snapshot lands, so a set of bones promises a row count
    * it cannot keep. Delayed by the same 400ms every other first-load surface
@@ -99,8 +99,8 @@ function ClipsSheetScreen() {
 
   // The editor stacks OVER this sheet (trophies-over-account), so saving or
   // cancelling lands back on the list — with the new clip already in it.
-  // Framing-on-the-scrubber was the old iOS entry; the nonce path it used
-  // stays for Android's in-place sheet.
+  // (Framing-on-the-scrubber was the old entry, on both platforms; it is
+  // gone.)
   const onNewClip = () => router.push('/clip-trim');
 
   return (
@@ -244,18 +244,18 @@ function ClipsSheetScreen() {
                   {/* EDIT RE-FRAMES — it pushes the same editor New Clip
                       uses, seeded with this clip's range: one anatomy for
                       framing and re-framing. On the LEADING edge, which is
-                      the portfolio's standard for opposed verbs on one row:
-                      `TopItemListIos` (edit leading / delete trailing) and
-                      `TrashListIos` (recover leading / delete trailing) both
-                      split them, so the two directions cannot be mistaken
+                      the standard for opposed verbs on one row (Topper's
+                      `TopItemListIos` — edit leading / delete trailing — and
+                      `TrashListIos` — recover leading / delete trailing —
+                      both split them), so the two directions cannot be mistaken
                       for each other — stacking Edit beside Delete on one
                       edge was built first and is exactly the misclick
                       adjacency Juan called (2026-08-27). `allowsFullSwipe`
                       off, the reference's own setting: a full swipe is a
                       committed gesture and editing is not a commitment. A
-                      non-destructive swipe action KEEPS THE ACCENT (root
-                      AGENTS.md: its label draws white whatever the tint, and
-                      the greys read as disabled). */}
+                      non-destructive swipe action KEEPS THE ACCENT
+                      (`docs/standards.md`: its label draws white whatever the
+                      tint, and the greys read as disabled). */}
                   <SwipeActions.Actions edge="leading" allowsFullSwipe={false}>
                     <Button
                       label={t('player.clips.editAction')}

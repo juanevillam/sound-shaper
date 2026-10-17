@@ -15,8 +15,8 @@ import { usePlayerStore } from '@/store/player';
 // and two labels. While COLLAPSED it did the same for a 3pt line.
 //
 // So the read lives at the leaf that draws it. `PlayerSheet` now hands down
-// `onSeek` and nothing else time-varying; this component and `BannerProgress`
-// are the only two that re-render on the tick, and neither has children.
+// `onSeek` and nothing else time-varying; this component is the only one in
+// the player that re-renders on the tick, and it has no children.
 //
 // The DRAG-LOCAL value lives here for the same reason. It used to be state on
 // the sheet, which meant every frame of a scrub re-rendered the sheet too —

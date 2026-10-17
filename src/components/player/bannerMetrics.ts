@@ -16,21 +16,20 @@ import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@/ui';
  * dev bar positioned at `bottom: NaN` rendered at the top of the screen.
  *
  * Nothing here may import anything that could reach back into the player.
- * Styles and `src/ui` are safe — a package never imports an app,
- * so neither can close the cycle. Anything that needs the banner's box imports
+ * `src/ui` is safe — nothing in it imports the player, so it cannot close the
+ * cycle. Anything that needs the banner's box imports
  * it from HERE, `PlayerSheet` included.
  */
 
 /**
- * The banner's HEIGHT and its iOS bottom gap are the PORTFOLIO'S, not this
- * app's — `SNACKBAR_BOTTOM_CLEARANCE` in `src/ui` is derived from
- * them, so the toast in EVERY app is positioned by this banner. The package
- * restated them as `8 + 68` while they lived here, with a comment admitting a
- * drift would go unnoticed; they moved the day a third surface (the expanded
- * console's glass footer) needed them too.
+ * The banner's HEIGHT and its iOS bottom gap live in `src/ui`'s
+ * `nowPlayingBanner`, because `SNACKBAR_BOTTOM_CLEARANCE` is derived from
+ * them and the toast is positioned by this banner. The snackbar restated them
+ * as `8 + 68` while they lived here, with a comment admitting a drift would go
+ * unnoticed; they moved the day a third surface (the expanded console's glass
+ * footer) needed them too.
  *
- * Re-exported under the names this app already uses, so its import paths do not
- * churn — the shim pattern `SHEET_CONTENT_TOP` and `GROUPED_ROW` both took.
+ * Re-exported here under the player's names (`BANNER_BOTTOM_GAP_IOS`).
  */
 export {
   MINI_PLAYER_HEIGHT,

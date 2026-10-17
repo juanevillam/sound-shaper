@@ -63,7 +63,8 @@ import {
 // Apple's audio-trimming anatomy, taken from Voice Memos on iOS 26 (Juan's
 // screenshots, 2026-08-26): a ZOOMED waveform that scrubs under a fixed
 // playhead, a full-track OVERVIEW strip carrying the selection frame, a large
-// centisecond timecode, and a ±15s transport. What it produces differs — Voice
+// timecode (whole seconds — Voice Memos' centiseconds were cut, see
+// `TimecodeLabel`), and a ±15s transport. What it produces differs — Voice
 // Memos cuts the recording; this saves a replay bookmark — so the commit is
 // the sheet bar's ✓ (the house commit-modal pair), not Voice Memos' Trim /
 // Delete pill row, which exists there because trimming has two destructive
@@ -80,13 +81,14 @@ import {
 // GEOMETRY. The zoomed view draws at a FIXED 100pt per second — measured off
 // the Voice Memos screenshots, where ~4 seconds of ruler span the screen —
 // and pans as one strip under a centred playhead. The strip is rendered in
-// CHUNKS (three windows, re-centred when the playhead crosses a boundary — the
-// neighbour-pager idiom from PlayerSheet) because a 3-minute track at 100pt/s
+// CHUNKS (12s tiles, ±2 around the playhead's once the sheet lands — five in
+// all — re-centred when the playhead crosses a boundary, the neighbour-pager
+// idiom from PlayerSheet) because a 3-minute track at 100pt/s
 // is an 18,000pt SVG nobody should rasterise whole.
 //
 // THE SELECTION IS ONE STATE WITH TWO SURFACES. The overview strip reuses
 // `ClipTrimFrame` — the caps, rails, arbitration, fine-scrub and VoiceOver
-// work built for the in-player frame — and the zoomed view draws the same
+// work built for the in-player frame that preceded this editor — and the zoomed view draws the same
 // shared values as a wash with two draggable edge lines. Both commit through
 // one `onChange`.
 // ---------------------------------------------------------------------------
@@ -157,15 +159,15 @@ const RULER_LABEL_BLEED = 18;
 const BAR_PITCH = 4.5;
 const BAR_WIDTH = 2;
 /**
- * An edge line's touch wrapper — Apple's 44pt minimum, the same number that
- * sized the trim frame's own box. The line inside is 3pt.
+ * An edge line's touch wrapper — Apple's 44pt minimum touch width. The line
+ * inside is 3pt.
  */
 const EDGE_TOUCH_WIDTH = 44;
 
 /**
- * The overview strip IS the trim frame's box — `ClipTrimFrame` rides it,
- * and that component was designed around exactly this 44 (Apple's minimum,
- * measured against Photos). Stated as the import, not a coincident 44.
+ * The overview strip IS the trim frame's box — `ClipTrimFrame` rides it, so
+ * the height is that component's `TRIM_FRAME_HEIGHT` (56), stated as the
+ * import rather than a coincident number.
  */
 const OVERVIEW_HEIGHT = TRIM_FRAME_HEIGHT;
 const OVERVIEW_BAR_PITCH = 2.5;
@@ -1349,9 +1351,10 @@ const WaveTile = memo(function WaveTile({
 /**
  * THE SELECTION'S CAPTION ROW — start, length, end on the overview's own
  * corners, the scrubber-label idiom (see the render site). A leaf reacting
- * on the ROUNDED edges (the only values this editor deals in), so an edge
- * drag moves the numbers live without the editor re-rendering — the
- * `ClipRangeLabelIos` idea, rebuilt on this surface's shared values.
+ * on the FLOORED edges (the only values this editor deals in), so an edge
+ * drag moves the numbers live without the editor re-rendering — the idea of
+ * the old scrubber range readout (since deleted), rebuilt on this surface's
+ * shared values.
  */
 const ClipRangeCaption = memo(function ClipRangeCaption({
   startSv,

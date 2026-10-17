@@ -54,9 +54,9 @@ import {
 } from '@/ui';
 
 // The saved-clips manager (the Shape sheet's sibling): play, re-frame or delete
-// what you've framed, or jump into the dedicated `clip-trim` editor for a new
-// one — the same editor iOS pushes; in-place framing left with the console
-// rework (2026-09-08).
+// what you've framed, or open the dedicated clip editor (`ClipTrimSheet`) for
+// a new one — the same editor iOS pushes as `clip-trim`; in-place framing left
+// with the console rework (2026-09-08).
 //
 // THE TWIN IS `app/(app)/clips.tsx`, and it has the same parts under the same
 // names: a title with an ADD action (never a commit — this sheet saves nothing),
@@ -140,13 +140,13 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const shownFailure = failure ?? (failed ? t('player.clips.loadError') : null);
   /**
    * A SPINNER, NOT A LINE OF TEXT — the same call iOS made, in Material. The
-   * rule (root AGENTS.md → "Waiting has two shapes") sends predictable shapes
+   * rule (`docs/standards.md` → "Waiting has two shapes") sends predictable shapes
    * to a bone and unpredictable ones to a spinner, and nothing knows how many
    * clips a sound has until the snapshot lands. This shipped as a muted
    * `bodySmall` reading "Loading clips…" on the argument that a bottom sheet
    * which has just animated in has no empty box to centre a control in; it has
-   * one, and a sentence where every other waiting surface in the portfolio
-   * shows a control was the odd one out. Delayed by the same 400ms every other
+   * one, and a sentence where every other waiting surface shows a control was
+   * the odd one out. Delayed by the same 400ms every other
    * first-load surface uses, so the usual instant cache hit shows nothing at
    * all rather than a flash.
    */
@@ -449,8 +449,8 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                         />
                       ) : null}
                       <DropdownMenu
-                        // The portfolio's one menu surface — every overflow
-                        // menu takes `menuContainer`; unset, Compose draws the
+                        // The one menu surface — every overflow menu takes
+                        // `menuContainer`; unset, Compose draws the
                         // raw One UI token this term exists to repair.
                         color={menuContainer(colors, scheme)}
                         expanded={menuClipId === rowClip.id}

@@ -82,8 +82,8 @@ import {
 // The player interaction: the collapsed banner and the full player are ONE
 // bottom-anchored, full-height container. `progress` (0 collapsed, 1 expanded)
 // drives everything — the container translates up, the single shared artwork
-// element scales/travels from the 44dp thumb to the expanded square, the mini
-// row cross-fades into the expanded controls.
+// element scales/travels from the banner's thumb (`MINI_ART_SIZE`) to the
+// expanded square, the mini row cross-fades into the expanded controls.
 //
 // Collapsed, the banner is DETACHED: a floating rounded rectangle inset from
 // both screen edges and lifted clear of the bottom one, not a bar welded to
@@ -94,10 +94,10 @@ import {
 // translates, so the gestures, the pager and the shared artwork are unchanged
 // by any of it.
 //
-// The expanded surface is a FIXED console: art, title (with an overflow menu
-// for sound info / editing), the native scrubber, transport, and two cards —
-// Shape and Clips — that open their own bottom sheets. Nothing scrolls, so
-// nothing can fight the drag-to-close gesture.
+// The expanded surface is a FIXED console: art, title and subtitle, the
+// scrubber, the transport, and a footer of three compartments — Shape, Clips
+// and Edit — that open their own sheets. Nothing scrolls, so nothing can fight
+// the drag-to-close gesture.
 // ---------------------------------------------------------------------------
 
 // A rounded RECTANGLE. Half the height would be a capsule, and a capsule at
@@ -190,8 +190,8 @@ const MINI_BUTTON_HIT_SLOP = 8;
 const MINI_TRAILING_GLYPH_INSET = 18;
 
 /**
- * Gap between the title and the artist under it — the PORTFOLIO'S, shared with
- * the trophy banner, which stood 1 for no reason it could name. With Body over
+ * Gap between the title and the artist under it — `FLOATING_COPY_GAP`, shared
+ * with the trophy banner, which stood 1 for no reason it could name. With Body over
  * Subheadline the two-line block measures 44pt (22 + 2 + 20) against the 46pt
  * artwork beside it, so the copy fills its own band instead of floating in it.
  */
@@ -243,8 +243,8 @@ const MINI_ROW_PADDING_RIGHT =
 const BANNER_GLASS = Platform.OS === 'ios';
 const BANNER_GLASS_FADE = 0.12;
 /**
- * THE FLOOR IS THE PORTFOLIO'S, NOT THIS BANNER'S. `GLASS_FLOOR` is the one
- * tonal floor every floating glass surface in every app stands on — the
+ * THE FLOOR IS THE FAMILY'S, NOT THIS BANNER'S. `GLASS_FLOOR` is the one
+ * tonal floor every floating glass surface stands on — the
  * snackbar and the trophy unlock banner take it through `GlassSurfaceIos`, and
  * the measurements that set it (and Apple's own number it is matched to) live
  * with it in `src/ui`.
@@ -382,26 +382,27 @@ const NO_CLIPS: never[] = [];
 const WARM_COOL_MS = 2000;
 
 /**
- * ANDROID'S BANNER PROGRESS — a full-bleed rule on the card's bottom edge.
+ * THE BANNER HAS NO PROGRESS LINE, ON EITHER PLATFORM.
  *
- * iOS HAS NONE, ON PURPOSE. It carried one until 2026-08-25, most recently as
+ * iOS carried one until 2026-08-25, most recently as
  * Apple's own inset `ProgressView`, and the component was never the problem:
  * a `ProgressView` is a CONTROL, with a control's capsule and a control's
  * margins, and the only space this banner has for it is the 11pt of card
  * padding under the artwork. Nothing fits a control there. Making it fit means
  * a taller banner, and `MINI_PLAYER_HEIGHT` is one box shared with the
- * expanded console's glass footer and the clip-framing row — so the fix would
- * have moved a bar on a different screen.
+ * expanded console's glass footer — so the fix would have moved a bar on a
+ * different screen.
  *
  * Apple's mini player in Music shows no progress at all: identity and
  * transport, with the position living in the expanded player. That is what
  * this is now, and the expanded player carries a real media scrubber
  * (`MediaScrubberIos`). Podcasts is the other Apple answer — a full-bleed
  * hairline on the bottom EDGE, a seam rather than a control — and it is the
- * shape to reach for if iOS ever wants one back. Not the inset capsule.
+ * shape to reach for if one is ever wanted back. Not the inset capsule.
  *
- * Android keeps its rule: it is a Material surface, and that is its own
- * bottom rule rather than a control dropped into padding.
+ * Android carried such a rule (a full-bleed line on the card's bottom edge)
+ * until 2026-09-08, when its banner shed it with the rest of its leftover
+ * chrome.
  */
 export function PlayerSheet() {
   const { t } = useI18n();
@@ -431,8 +432,8 @@ export function PlayerSheet() {
   const seek = usePlayerStore(s => s.seek);
   const playing = usePlayerStore(s => s.playing);
   /**
-   * `position` IS DELIBERATELY NOT READ HERE — see
-   * `PlayerScrubberLive`, the two leaves that draw it. The transport ticks it
+   * `position` IS DELIBERATELY NOT READ HERE — see `PlayerScrubberLive`, the
+   * leaf that draws it. The transport ticks it
    * ten times a second; subscribing on this component made the entire sheet
    * (both neighbour covers, every gesture recipe, the whole console tree)
    * re-render at that rate, whether the player was open or a 46pt pill.
@@ -445,7 +446,7 @@ export function PlayerSheet() {
   const expandNonce = usePlayerStore(s => s.expandNonce);
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
-  // is moderate (~58% width) so the whole console fits without scrolling.
+  // is the console's content-box width (`playerArtSize` in `chrome.ts`).
   const miniTotal = MINI_PLAYER_HEIGHT + bannerBottomOffset(bottomInset);
   const travel = winH - miniTotal;
   // The console's box is SHARED with whichever twin renders it — see
@@ -1052,21 +1053,10 @@ export function PlayerSheet() {
     ),
   }));
 
-  // The progress bar is flush with the banner's bottom edge, so it has to be
-  // masked by the banner's own corner — otherwise its square ends poke out past
-  // the curve. This clip is a SIBLING of the surface with a static box, which
-  // is what lets its child anchor to the bottom at all; only the corner (not a
-  // layout prop) animates, and the whole thing is gone well before the surface
-  // has finished squaring off.
-  // The progress bar belongs to the SETTLED banner and to nothing else. Its
-  // mask is the banner's collapsed box — fixed corners, fixed insets — while
-  // the surface behind it is growing, so any frame where both are visible
-  // shows a line still cut to a shape the surface has already left. It is
-  // gone within the first breath of the movement instead of fading across a
-  // third of it, which is also how it reads: the bar is part of the banner,
-  // so it leaves WITH the banner rather than dissolving inside the player.
-  // Rides the surface's bottom edge exactly as the progress bar does, so the
-  // material never floats inside a surface that has grown past it.
+  // The banner's glass belongs to the SETTLED banner: it fades within the
+  // first breath of the movement (`BANNER_GLASS_FADE`) and rides the surface's
+  // bottom edge meanwhile, so the material never floats inside a surface that
+  // has grown past it.
   const bannerGlassStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       progress.value,
@@ -1079,12 +1069,11 @@ export function PlayerSheet() {
 
   // -------------------------------------------------------------------------
 
-  // The bottom sheets + the title overflow menu.
+  // The console's sheets: Shape, Clips and Edit.
   const [shaperVisible, setShaperVisible] = useState(false);
 
-  // Framing-on-the-scrubber is GONE on BOTH platforms — a clip is made in
-  // the dedicated Voice Memos-style editor (`clip-trim`), which the Clips
-  // sheet pushes.
+  // A clip is made in the dedicated Voice Memos-style editor (`clip-trim` on
+  // iOS, `ClipTrimSheet` on Android), which the Clips sheet opens.
   const [clipsVisible, setClipsVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
@@ -1094,8 +1083,8 @@ export function PlayerSheet() {
    * It used to take `current?.id` outright, so a Firestore query attached the
    * moment ANY sound started — skip through twenty tracks and that is twenty
    * listener attaches for a subcollection nothing on screen was reading. Clips
-   * are drawn in exactly two places, and both live inside the expanded
-   * console: the Clips card's count, and the trim brackets while framing.
+   * are drawn only inside the expanded console: the Clips card's summary and
+   * the Clips sheet it opens.
    *
    * The store deliberately keeps what it has fetched (see the hook), so
    * re-opening a sound you have already looked at still shows its clips on the

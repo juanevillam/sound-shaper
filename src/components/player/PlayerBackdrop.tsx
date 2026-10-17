@@ -315,11 +315,16 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
                 especially the Shape / Clips cards sit on a settled surface
                 whatever colour the cover is — while the bottom still keeps a
                 trace of tint rather than cutting to flat black. */}
-            {/* THE BAR BAND IS PROTECTED, AND ONLY THE BAR BAND.
+            {/* THE BAR BAND IS PROTECTED, AND ONLY THE BAR BAND. It was sized
+                for the console's bar row (screen y 62–105), whose glyphs were
+                removed on 2026-08-21; the band still lies under the status
+                bar, and below y 74 the opaque cover covers all of it but the
+                gutters.
+
                 These offsets are in the OVERSCANNED box, not the screen: the
                 bleed runs `OVERSCAN` past both edges, so screen y maps to
                 `(OVERSCAN + y) / (OVERSCAN * 2 + screenH)` — 0.211 is the top
-                of the screen and 0.29 is just under the bar row.
+                of the screen and 0.29 is just under where the bar row was.
 
                 Across that 105pt the wash fades toward the PAGE colour, which
                 is what makes the glyphs safe by construction rather than by
@@ -329,8 +334,8 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
                 emerging from under the status bar, which is the same scrim
                 Apple lays over photography beneath a bar. */}
             <Stop offset="0" stopColor={colors.background} stopOpacity="0.24" />
-            {/* HELD FLAT ACROSS THE WHOLE BAR ROW (screen y 62–105, i.e. up to
-                offset 0.281) and only then released. A ramp that starts
+            {/* HELD FLAT ACROSS THE WHOLE BAR BAND (screen y 62–105, i.e. up
+                to offset 0.281) and only then released. A ramp that starts
                 decaying at the screen's top edge has already lost two thirds of
                 itself by the glyphs' own centre — measured at 1.34:1 before
                 this was corrected. */}
@@ -341,8 +346,8 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
             />
             {/* Clear by y ≈ 170. It costs the wash almost nothing to hold on
                 this long: the cover is an OPAQUE layer drawn above this one and
-                starts at y 119, so between the bar and there the wash is only
-                visible in the two 16pt side gutters. */}
+                starts at y 74, so below there the wash is only visible in the
+                two 16pt side gutters. */}
             <Stop
               offset="0.323"
               stopColor={colors.background}

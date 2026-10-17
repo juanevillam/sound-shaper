@@ -13,15 +13,17 @@ import { useSnackbar } from '@/ui';
 /**
  * THE CLIP-TRIM SCREEN'S LOGIC, one hook for both platform routes — the
  * Voice Memos-style editor is one surface with two chromes (an iOS sheet bar,
- * an Android pushed-screen header), and everything below the bar is shared:
+ * a Compose sheet's `SheetBar` on Android), and everything below the bar is
+ * shared:
  * the seeded range, the pause-on-entry, the leave-when-the-sound-changes
  * guard, and the one commit with its two shapes (create vs re-frame).
  *
  * Extracted 2026-09-08, when Android retired in-place framing for this
  * editor. IT TAKES ITS PARAMS AND ITS EXIT AS ARGUMENTS rather than reading
  * the router: iOS's chrome is a ROUTE (which passes search params and
- * router.back), Android's is an RN SHEET mounted by the player (which passes
- * props and its own dismiss) — one logic, two doors.
+ * router.back), Android's is a Compose SHEET (`ClipTrimSheet`, stacked over
+ * the Clips sheet, which passes props and its own dismiss) — one logic, two
+ * doors.
  */
 export function useClipTrimScreen({
   editing,

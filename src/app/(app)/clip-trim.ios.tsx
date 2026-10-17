@@ -14,8 +14,8 @@ import { HeaderGlyphButtonIos, HeaderGlyphGroupIos } from '@/ui';
 // selection; the editor draws and edits it. Entry mirrors what in-player
 // framing did: pause (a trim surface opens quiet — Photos, Voice Memos),
 // default the selection around the playhead. Everything but this bar is the
-// shared `useClipTrimScreen` + `ClipTrimEditor`; the Android twin wraps the
-// same pair in a pushed screen with a Material header.
+// shared `useClipTrimScreen` + `ClipTrimEditor`; on Android `ClipTrimSheet`
+// wraps the same pair in a Compose sheet with a `SheetBar`.
 export default function ClipTrimScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();

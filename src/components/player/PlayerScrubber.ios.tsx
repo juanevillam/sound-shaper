@@ -11,12 +11,14 @@ import {
   type PlayerScrubberProps,
 } from './chrome';
 
-// The Host gets a FIXED height rather than matchContents: an auto-sized Host
-// inside the player's absolutely-positioned console mis-measures on first
-// layout, and a scrubber that jumps is worse than one told its own height.
+// The scrubber's box gets a FIXED height (`IOS_SLIDER_HOST_HEIGHT`, in
+// `chrome.ts` because a value cannot be imported OUT of a platform-suffixed
+// file — see that module's header): a scrubber that jumps is worse than one
+// told its own height.
 //
-// THE STATED BOX IS ONLY HALF OF IT — the Host must also be told to IGNORE THE
-// SAFE AREA, or SwiftUI lays the slider out against a box of ZERO height and
+// WHILE THIS WAS SwiftUI's `Slider` IN A `Host` (until 2026-08-25, when
+// `MediaScrubberIos` replaced it), the box was only half of it — the Host
+// also had to be told to IGNORE THE SAFE AREA, or SwiftUI lays the slider out against a box of ZERO height and
 // CENTRES it on the Host's TOP edge, which puts the track 16.33pt (half the
 // box) too high, hard against the subtitle. It was measured on a cold launch,
 // iPhone 17 / iOS 26.5: ink centre 1662.5 against the Host's own centre of
@@ -30,21 +32,16 @@ import {
 // blurs the wash and opens the clips query, and the correction waited behind
 // all of it.
 //
-// EVERY OTHER FIXED-BOX HOST IN THIS CONSOLE ALREADY CARRIED IT — the two glass
-// footer glyphs, the transport glyphs, the clip row's ✕ — and this one did not,
-// because it came in through the cross-platform `ThemedHost` rather than the
-// iOS one. That is also why the import is `SwiftUIHost` now: the type checker
-// resolves the BASE specifier, so a `ThemedHost` call site is checked against
-// the Compose props, where `ignoreSafeArea` does not exist.
-//
-// The height itself is `IOS_SLIDER_HOST_HEIGHT` in `chrome.ts` — the console
-// positions the trim frame against it, and a value cannot be imported OUT of a
-// platform-suffixed file (see that module's header).
+// EVERY OTHER FIXED-BOX HOST IN THIS CONSOLE ALREADY CARRIED IT — the glass
+// footer glyphs, the transport glyphs — and that one did not, because it came
+// in through the cross-platform `ThemedHost` rather than `SwiftUIHost`: the
+// type checker resolves the BASE specifier, so a `ThemedHost` call site is
+// checked against the Compose props, where `ignoreSafeArea` does not exist.
+// Any SwiftUI host this console grows takes both.
 
-// iOS counterpart of `PlayerScrubber` — SwiftUI's own Slider (so it drags,
-// tracks and feels exactly like the system one) with the elapsed/total labels
-// in plain RN below it. SwiftUI reports the drag end through
-// `onEditingChanged(false)`; Compose has a dedicated finished callback.
+// iOS counterpart of `PlayerScrubber` — Apple's media scrubber
+// (`MediaScrubberIos`, authored RN) with the elapsed/total labels in plain RN
+// below it.
 export function PlayerScrubber({
   copyInset = 0,
   position,
