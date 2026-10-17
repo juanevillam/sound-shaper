@@ -1,7 +1,9 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { withTimeout } from '@/lib/withTimeout';
 import { userMediaFolder } from '@/services/cloudinary/folders';
 import { requireUid } from '@/services/firebase/auth';
+import { reported } from '@/services/firebase/crashlytics';
 
 // Media (audio + cover art) lives on Cloudinary, NOT Firebase Storage: Storage
 // requires the Blaze (paid) plan, and this app stays on Spark (free). Same
@@ -52,29 +54,31 @@ const uploadFile = async (
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
   const folder = userMediaFolder(requireUid());
 
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutHandle = setTimeout(
-      () => reject(new Error('Cloudinary upload timed out')),
-      UPLOAD_TIMEOUT_MS,
-    );
+  // AN UPLOAD TASK, NOT `uploadAsync`, so a timed-out upload can be CANCELLED.
+  // Racing the plain call against a timer only stopped WAITING for it: the
+  // native upload carried on in the background and could still land an asset
+  // nobody would ever reference.
+  const task = FileSystem.createUploadTask(url, uri, {
+    fieldName: 'file',
+    httpMethod: 'POST',
+    mimeType,
+    parameters: { upload_preset: UPLOAD_PRESET, folder },
+    uploadType: FileSystem.FileSystemUploadType.MULTIPART,
   });
 
-  const response = await Promise.race([
-    FileSystem.uploadAsync(url, uri, {
-      fieldName: 'file',
-      httpMethod: 'POST',
-      mimeType,
-      parameters: { upload_preset: UPLOAD_PRESET, folder },
-      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-    }),
-    timeout,
-  ]).finally(() => clearTimeout(timeoutHandle));
+  const response = await withTimeout(
+    task.uploadAsync(),
+    UPLOAD_TIMEOUT_MS,
+    'Cloudinary upload timed out',
+    () => void task.cancelAsync().catch(() => {}),
+  );
 
+  if (!response) throw new Error('Cloudinary upload was cancelled');
+
+  // The STATUS only. Cloudinary's error body can echo the request — the
+  // folder, i.e. the uid — and this message reaches Crashlytics.
   if (response.status < 200 || response.status >= 300)
-    throw new Error(
-      `Cloudinary upload failed: ${response.status} ${response.body}`,
-    );
+    throw new Error(`Cloudinary upload failed: HTTP ${response.status}`);
 
   return JSON.parse(response.body) as CloudinaryUploadResponse;
 };
@@ -111,13 +115,16 @@ export const uploadSoundAudio = async (
 
 /**
  * Upload a cover picked from the photo library — already a file on disk, so it
- * goes straight up. The ID3 path below has to write a temp file first because
+ * goes straight up. Reported here because its callers (the sound editors, the
+ * Account photo) call it directly; the audio and ID3-art uploads run inside
+ * `createSound`, which reports for them. The ID3 path below has to write a temp file first because
  * it starts from bytes; this one does not.
  */
-export const uploadCoverImage = (
-  uri: string,
-  mimeType: string,
-): Promise<CloudinaryAsset> => uploadFile(uri, 'image', mimeType).then(toAsset);
+export const uploadCoverImage = reported(
+  'cloudinary.uploadCoverImage',
+  (uri: string, mimeType: string): Promise<CloudinaryAsset> =>
+    uploadFile(uri, 'image', mimeType).then(toAsset),
+);
 
 /**
  * Upload the ID3-embedded cover art (base64 bytes). Cloudinary's multipart

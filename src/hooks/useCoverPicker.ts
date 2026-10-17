@@ -1,8 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 import * as ImagePicker from 'expo-image-picker';
 
-import { uploadCoverImage } from '@/services/cloudinary/upload';
+import {
+  type CloudinaryAsset,
+  uploadCoverImage,
+} from '@/services/cloudinary/upload';
 
 /** A picked-but-not-yet-uploaded local cover. */
 export type PickedCover = {
@@ -52,8 +55,25 @@ export const useCoverPicker = (): UseCoverPickerReturn => {
     return { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' };
   }, []);
 
+  /**
+   * THE LAST UPLOAD IS KEPT FOR A RETRY. When the upload lands and the save
+   * behind it fails, the editor stays open for another go — and uploading the
+   * same picture again would orphan the first copy on Cloudinary. So the same
+   * picked file (its local uri) returns the asset it already produced; a
+   * repick is a different uri and uploads afresh.
+   */
+  const lastUpload = useRef<{ asset: CloudinaryAsset; uri: string } | null>(
+    null,
+  );
+
   const uploadCover = useCallback(
-    async ({ uri, mimeType }: PickedCover) => uploadCoverImage(uri, mimeType),
+    async ({ uri, mimeType }: PickedCover): Promise<CloudinaryAsset> => {
+      if (lastUpload.current?.uri === uri) return lastUpload.current.asset;
+
+      const asset = await uploadCoverImage(uri, mimeType);
+      lastUpload.current = { asset, uri };
+      return asset;
+    },
     [],
   );
 
