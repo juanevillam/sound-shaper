@@ -14,7 +14,12 @@ vi.mock('expo-file-system/legacy', () => ({
   readAsStringAsync: async (path: string) => files.get(path) ?? '',
   writeAsStringAsync: async (path: string, body: string) =>
     void files.set(path, body),
-  deleteAsync: async (path: string) => void files.delete(path),
+  // A path ending in `/` is a directory: delete everything under it.
+  deleteAsync: async (path: string) => {
+    for (const key of [...files.keys()])
+      if (path.endsWith('/') ? key.startsWith(path) : key === path)
+        files.delete(key);
+  },
   moveAsync: async ({ from, to }: { from: string; to: string }) => {
     files.set(to, files.get(from) ?? '');
     files.delete(from);
@@ -32,7 +37,7 @@ vi.mock('@/lib/offlineAudio', () => ({
   offlineAudioPath: (id: string) => `file:///docs/audio/${id}.mp3`,
 }));
 
-const { forgetWaveform, getWaveform, peekWaveform } =
+const { clearWaveforms, forgetWaveform, getWaveform, peekWaveform } =
   await import('../../src/lib/waveform');
 
 const jsonPath = (id: string) => `file:///cache/waveforms/v2-${id}.json`;
@@ -97,5 +102,30 @@ describe('the JSON cache', () => {
     expect(await getWaveform('f', 'https://x/f.mp3')).toEqual(stored);
     expect(decode).not.toHaveBeenCalled();
     forgetWaveform('f');
+  });
+});
+
+describe('clearWaveforms', () => {
+  it('empties the session and deletes every cached file', async () => {
+    decode.mockResolvedValue(buffer());
+    await getWaveform('g', 'https://x/g.mp3');
+    await getWaveform('h', 'https://x/h.mp3');
+    expect(files.has(jsonPath('g'))).toBe(true);
+
+    await clearWaveforms();
+
+    expect(peekWaveform('g')).toBeUndefined();
+    expect(peekWaveform('h')).toBeUndefined();
+    expect(files.has(jsonPath('g'))).toBe(false);
+    expect(files.has(jsonPath('h'))).toBe(false);
+  });
+
+  it('decodes again after a wipe rather than answering from memory', async () => {
+    decode.mockResolvedValue(buffer());
+    await getWaveform('i', 'https://x/i.mp3');
+    await clearWaveforms();
+    await getWaveform('i', 'https://x/i.mp3');
+    expect(decode).toHaveBeenCalledTimes(2);
+    forgetWaveform('i');
   });
 });

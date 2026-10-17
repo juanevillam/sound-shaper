@@ -116,6 +116,22 @@ export function forgetWaveform(soundId: string): void {
 }
 
 /**
+ * Forget EVERY sound's buckets — the sign-out wipe (`useAuthListener`). The
+ * JSON on disk is a picture of the signed-out account's sounds, filed under
+ * that account's document ids, and the session maps hold the same thing in
+ * memory; a device-local cache is not a device-local fact, so both go, the
+ * way the offline mirror does. Fire-and-forget: the next session decodes what
+ * it opens.
+ */
+export function clearWaveforms(): Promise<void> {
+  memory.clear();
+  resolved.clear();
+  return FileSystem.deleteAsync(cacheDir(), { idempotent: true }).catch(
+    () => {},
+  );
+}
+
+/**
  * The buckets this session already decoded (or read from disk) for a sound,
  * or `undefined` — synchronous, so a surface can stand on its first frame what
  * it already has. It never starts work and never reports a failure.

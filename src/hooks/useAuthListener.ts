@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 
+import { Image } from 'expo-image';
+
 import { forgetPrefetchedArt } from '@/hooks/useOfflineMirror';
 import { clearMirror } from '@/lib/offlineAudio';
 import {
   hydrateTrophyCounters,
   resetTrophyCounterSync,
 } from '@/lib/trophyCounters';
+import { clearWaveforms } from '@/lib/waveform';
 import {
   configureGoogleSignIn,
   consumeManualSignOutFlag,
@@ -81,6 +84,16 @@ export const useAuthListener = () => {
         useOfflineStore.getState().clear();
         forgetPrefetchedArt();
         void clearMirror();
+        /**
+         * AND THE OTHER TWO DISK CACHES OF THAT ACCOUNT'S LIBRARY — the
+         * decoded waveforms and expo-image's covers. Both are purgeable, so
+         * nothing breaks for keeping them; but they are still the last
+         * account's sounds and pictures on a phone someone else signs into.
+         * Fire-and-forget, like the mirror.
+         */
+        void clearWaveforms();
+        void Image.clearDiskCache().catch(() => {});
+        void Image.clearMemoryCache().catch(() => {});
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
         return;
