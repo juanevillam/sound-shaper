@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { Platform } from 'react-native';
 
 import { makeGlassUnderlay } from '@portfolio/mobile-ui';
@@ -21,6 +23,7 @@ import { useTrophyTriggers } from '@/hooks/useTrophyTriggers';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { IOS_FORM_SHEETS, IOS_SHEET_SCREENS } from '@/lib/sheetRoutes';
+import { playTrophySound, preloadTrophySounds } from '@/lib/trophySound';
 import { useAuthStore } from '@/store/auth';
 
 // iOS: the banner's surface is the portfolio's one floating-glass surface,
@@ -54,6 +57,8 @@ function AuthenticatedSubscriptions() {
   // store-derived objectives re-evaluate on every snapshot.
   useTrophiesSync();
   useTrophyTriggers();
+  // Decoded up front, so the first unlock's chime lands with its banner.
+  useEffect(preloadTrophySounds, []);
   useListeningTime();
   /**
    * THE LIBRARY, MIRRORED TO THE PHONE — so a sound plays with no signal at
@@ -201,9 +206,8 @@ export default function AppLayout() {
           Android's MediaSession notification in the shade and on the lock
           screen — with their transport wired back to the store. */}
       <NowPlayingBridge />
-      {/* Top-anchored unlock banner, above every screen. No sound with it: this
-          app IS a player, and a jingle over what you are listening to is the
-          one place a trophy must not intrude — the haptic carries it. */}
+      {/* Top-anchored unlock banner, above every screen. It sounds: the song
+          pauses for the chime and comes back after it (`lib/trophySound`). */}
       <TrophyOverlay
         copy={copy}
         // A native form sheet covers the RN root — hold banners until it goes.
@@ -217,9 +221,12 @@ export default function AppLayout() {
         underlay={glassUnderlay}
         strings={overlayStrings}
         onPress={() => router.push('/trophies')}
-        onShow={trophy =>
-          trophy.tier === 'platinum' ? haptics.dragDrop() : haptics.medium()
-        }
+        onShow={trophy => {
+          const platinum = trophy.tier === 'platinum';
+          if (platinum) haptics.dragDrop();
+          else haptics.medium();
+          playTrophySound(platinum ? 'platinum' : 'normal');
+        }}
       />
     </>
   );
