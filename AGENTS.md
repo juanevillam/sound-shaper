@@ -1138,8 +1138,10 @@ kept PRODUCING OUTPUT from one.
 
 **Confirmed still intentional, so nobody re-opens them:** `subscribeToSounds`
 is unbounded (capping hides someone's own library; the honest fix is paging),
-`upsertOwnProfile`'s one extra `getDoc` per sign-in (Firestore has no
-set-if-absent for a field). The three Cloudinary orphan doors it listed
+`upsertOwnProfile`'s `getDoc` per sign-in (Firestore has no set-if-absent for a
+field) — which since 2026-10-16 is the launch's ONLY read of the profile: it
+returns what it read, the auth listener seeds the store from it, and it writes
+only when the name or photo changed. The three Cloudinary orphan doors it listed
 alongside them — delete a sound, replace a cover, delete an account — are
 CLOSED as of 2026-09-12; each site carries its own note.
 
@@ -1151,6 +1153,18 @@ fetched mp3 is deleted in a `finally` (since 2026-09-14 it usually borrows the
 offline mirror's copy instead — see Status). It is once per sound per cache generation;
 `cacheDirectory` being OS-purgeable is the correct trade, since it self-heals
 and cannot grow without bound.
+
+**THE TROPHY TOTALS ARE SERVER-SIDE** (re-audited 2026-10-16, gate 2d).
+Minutes listened and clips saved are `users/{uid}.listenedSeconds` and
+`.clipsSaved`, and `lib/trophyCounters.ts` is the only thing that writes them.
+Three rules carry it: **`increment`, never a total** (two devices writing
+totals is last-writer-wins and erases one's listening); **a boundary, never a
+block** (the 5-second blocks reach AsyncStorage, Firestore hears pause, sound
+change, background and sign-out — a few writes a session, not 720 an hour);
+and **nothing is sent before the server totals are taken**, because an account
+with no total adopts the device's whole local figure as its first push, and a
+push ahead of that would count twice. Deletion holds the sync for the sweep,
+since a late `merge` would recreate the swept doc.
 
 ## What it relearns — audited 2026-08-28
 
