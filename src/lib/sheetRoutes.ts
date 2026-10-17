@@ -30,7 +30,7 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    * close glyph this table's `titled` branch supplies by default. `shaper`
    * overrides NOTHING: nothing on it commits, so the plain close glyph is the
    * whole bar — Apple's split between a commit modal and a panel that applies
-   * as you go (see `HeaderCloseButton`).
+   * as you go (see `HeaderCloseButtonIos`).
    */
   titled?: boolean;
   /** Translation key for the bar's title. Required when `titled`. */

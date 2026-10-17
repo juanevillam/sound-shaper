@@ -16,7 +16,7 @@ import { HEADER_CLOSE_GLYPH_SIZE, HeaderGlyphButtonIos } from '@/ui';
 // Size and colour come from the shared `HeaderGlyphButtonIos`; the dismiss
 // glyph is the one bar item NOT sized against the title beside it, which is
 // what `HEADER_CLOSE_GLYPH_SIZE` encodes.
-export function HeaderCloseButton() {
+export function HeaderCloseButtonIos() {
   const { t } = useI18n();
 
   return (

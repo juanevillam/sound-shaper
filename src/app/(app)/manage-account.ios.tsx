@@ -5,7 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Image as RemoteImage } from 'expo-image';
 import { router, useNavigation } from 'expo-router';
 
-import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
+import { HeaderCloseButtonIos } from '@/components/ui/HeaderCloseButtonIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { useAppTheme } from '@/core';
 import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
@@ -129,7 +129,7 @@ export default function ManageAccount() {
     navigation.setOptions({
       gestureEnabled: !showDeleting,
       sheetGrabberVisible: !showDeleting,
-      headerRight: showDeleting ? () => null : () => <HeaderCloseButton />,
+      headerRight: showDeleting ? () => null : () => <HeaderCloseButtonIos />,
     });
   }, [navigation, showDeleting]);
 

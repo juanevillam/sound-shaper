@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { NowPlayingBridge } from '@/components/player/NowPlayingBridge';
-import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
+import { HeaderCloseButtonIos } from '@/components/ui/HeaderCloseButtonIos';
 import { useAppTheme } from '@/core';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
@@ -96,7 +96,7 @@ export default function AppLayout() {
           headerLargeTitle: false,
           headerShadowVisible: false,
           headerTransparent: true,
-          headerRight: () => <HeaderCloseButton />,
+          headerRight: () => <HeaderCloseButtonIos />,
         }
       : { headerShown: false }),
   });

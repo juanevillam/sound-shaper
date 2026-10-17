@@ -28,7 +28,7 @@ import { SwiftUIHost } from './SwiftUIHost';
  * It was lifted into the shared kit because two portfolio apps had already
  * drifted: the starter's glyphs were label-coloured at 24/20pt while Topper's
  * were accent-tinted at 22pt. The geometry and the colour rule live here; thin
- * named adapters (`HeaderSettingsButton`, `HeaderCloseButton`) supply a route
+ * named adapters (`HeaderSettingsButtonIos`, `HeaderCloseButtonIos`) supply a route
  * and a translation.
  *
  * LABEL-COLOURED, never accent-tinted — and this reversed on iOS 26. The older

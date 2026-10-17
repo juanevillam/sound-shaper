@@ -93,7 +93,7 @@ screen. Don't reintroduce social affordances (visibility toggles, feeds,
 follows) or playlists — simplicity is the point.
 
 **Where Settings and Account live (2026-08-20; Android 2026-09-08).** Home's
-bar carries ONE glyph, the gear (`HeaderSettingsButton`) — the portfolio-wide
+bar carries ONE glyph, the gear (`HeaderSettingsButtonIos`) — the portfolio-wide
 rule in [`docs/standards.md`](docs/standards.md). The account entry is Settings' own IDENTITY
 BANNER (`SettingsAccountLink`), leading the form, and Trophies sits behind
 Account. A personal app has no profile tab for the account to hang off the way
@@ -502,7 +502,7 @@ What that bought, and what it cost, so neither has to be re-derived:
 - **The bar collapsed to one glyph.** The ✓ was the sheet's only commit, so with
   it gone `sheetCommitBarOptionsIos` had nothing to state and the sheet fell
   back to `IOS_FORM_SHEETS`' default close glyph. That is Apple's own split, and
-  `HeaderCloseButton` was already documenting it: Done for a commit modal, a
+  `HeaderCloseButtonIos` was already documenting it: Done for a commit modal, a
   close glyph for a panel that applies as you go. This sheet has always been the
   second kind — every row edits the live graph as you move it — and the ✓ was
   the only thing pretending otherwise.

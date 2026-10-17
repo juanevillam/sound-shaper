@@ -27,7 +27,7 @@ import {
   type PickedSoundFile,
 } from '@/components/sounds/EditSoundSheet';
 import { AddSoundTile, SoundTile } from '@/components/sounds/SoundTile';
-import { HeaderSettingsButton } from '@/components/ui/HeaderSettingsButton';
+import { HeaderSettingsButtonIos } from '@/components/ui/HeaderSettingsButtonIos';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SoundTileSkeleton } from '@/components/ui/Skeleton';
@@ -582,7 +582,7 @@ export default function HomeScreen() {
                 headerTitle: sheetExpanded ? '' : t('app.title'),
                 headerRight: sheetExpanded
                   ? () => null
-                  : () => <HeaderSettingsButton />,
+                  : () => <HeaderSettingsButtonIos />,
               }
             : { headerShown: false }
         }

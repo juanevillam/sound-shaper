@@ -17,7 +17,7 @@ import { HeaderGlyphButtonIos } from '@/ui';
 // already sits centred in UIKit's 44pt minimum capsule, and forcing the box
 // there only stretches the capsule. The measurements are in
 // `HeaderGlyphButtonIos.tsx`.
-export function HeaderSettingsButton() {
+export function HeaderSettingsButtonIos() {
   const { t } = useI18n();
 
   return (
