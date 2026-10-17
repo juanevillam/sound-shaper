@@ -56,9 +56,11 @@ export const cleanupMyMedia = (): Promise<{ destroyed: number }> =>
   callBackend('cleanupMyMedia');
 
 /**
- * Destroy one asset the caller is deleting or replacing. Call BEFORE the doc
- * stops referencing it — ownership is the path prefix, and the document is
- * what told us the id.
+ * Destroy one asset the caller is deleting or replacing. Read its id off the
+ * document first — ownership is the path prefix, and the document is what
+ * tells us the id — but call this only AFTER the write that stops referencing
+ * it, so an offline write can never leave a document naming a dead asset
+ * (`sounds.ts`'s `destroySoundMedia` has the argument).
  *
  * The resource type is Cloudinary's own split, not ours: an mp3 is filed as a
  * `video` (audio is a video with no picture) and a cover as an `image`, and
