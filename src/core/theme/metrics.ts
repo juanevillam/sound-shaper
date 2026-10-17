@@ -59,15 +59,6 @@ export const TILE_GAP = Platform.select({ ios: 14, default: 16 }) as number;
 export const SECTION_GAP = Platform.select({ ios: 28, default: 24 }) as number;
 
 /**
- * Minimum height of a tappable row. The platform touch-target minimums differ
- * by design: Apple specifies 44pt, Material 48dp.
- */
-export const ROW_MIN_HEIGHT = Platform.select({
-  ios: 44,
-  default: 48,
-}) as number;
-
-/**
  * Inset a row's own content sits at INSIDE its container. iOS list cells run
  * 16pt from the container edge; M3 list items 16dp — the same, so this exists
  * only as the named anchor the two share.

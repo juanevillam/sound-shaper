@@ -8,7 +8,6 @@ export {
 export {
   opticalTextInset,
   ROW_INSET,
-  ROW_MIN_HEIGHT,
   SCREEN_PADDING,
   SECTION_GAP,
   TILE_GAP,

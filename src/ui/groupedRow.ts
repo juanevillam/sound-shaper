@@ -76,5 +76,10 @@ export const GROUPED_ROW = {
   separatorInset: SEPARATOR_INSET,
 } as const;
 
-/** One bone row's footprint, separator included. */
+/**
+ * One bone row's footprint, separator included. Exported (and listed in
+ * `docs/standards.md`'s single-source table) although nothing reads it today:
+ * it is the term any bone stack standing where grouped rows stand must step
+ * by, so the next one imports it rather than re-adding `pitch + separator`.
+ */
 export const GROUPED_ROW_PITCH = ROW_PITCH + SEPARATOR_HEIGHT;

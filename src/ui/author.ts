@@ -1,5 +1,7 @@
 /**
- * The author byline shown on the welcome screen. Hardcoded here (not a prop)
+ * The author byline shown on the welcome screen ("by juanevillam"), in two
+ * parts because the welcome screen links only the name (iOS renders it as a
+ * native SwiftUI `Link`, so the "by" stays plain). Hardcoded here (not a prop)
  * because the credit is fixed: it is the same byline juanevillam puts on every
  * app he ships.
  *
@@ -8,9 +10,6 @@
  * developer credit (App Store, Play Store), while `@handle` reads as a
  * social-network idiom.
  */
-export const AUTHOR_CREDIT = 'by juanevillam';
-/** The byline split in two, for platforms that link only the name (iOS renders
- *  the name as a native SwiftUI `Link`, so the "by" stays plain). */
 export const AUTHOR_CREDIT_PREFIX = 'by';
 export const AUTHOR_NAME = 'juanevillam';
 // The author's site. Every link the app opens outside itself is built on it:
