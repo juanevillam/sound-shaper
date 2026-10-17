@@ -68,5 +68,6 @@ skeletons that share geometry — are in [`docs/standards.md`](docs/standards.md
 
 ## License
 
-All rights reserved. The source is public to read; it is not licensed for
-reuse or redistribution.
+All rights reserved — see [`LICENSE`](LICENSE). The source is public to read;
+it is not licensed for reuse or redistribution. Vendored third-party code keeps
+its own license.

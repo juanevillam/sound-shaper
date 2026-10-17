@@ -1,0 +1,15 @@
+Copyright (c) 2026 Juan Villa. All rights reserved.
+
+This repository is public so its source can be read. It is not open source.
+
+No license is granted to use, copy, modify, merge, publish, distribute,
+sublicense, or sell any part of this software, its assets, or its
+documentation, in whole or in part, except as permitted by GitHub's Terms of
+Service (which allow viewing and forking this repository on GitHub) or with
+the copyright holder's prior written permission.
+
+"Sound Shaper", its name and its marks are not licensed for any use.
+
+Third-party code vendored in this repository (for example, the Signalsmith
+Stretch library under patches/) remains under its own license, included
+beside it.
