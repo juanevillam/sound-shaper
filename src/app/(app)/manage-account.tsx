@@ -35,7 +35,7 @@ const formatMemberSince = (millis: number | null, locale: string) =>
 
 export default function ManageAccount() {
   const { t, locale } = useI18n();
-  const { colors } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const user = useAuthStore(s => s.user);
   // The profile is fetched HERE rather than held live app-wide — this sheet
@@ -126,6 +126,10 @@ export default function ManageAccount() {
   return (
     <ManageAccountScreen
       colors={colors}
+      // The app's RESOLVED appearance, not the device's: without it the
+      // screen's Hosts followed the system light/dark and ignored Settings →
+      // Appearance. The iOS route has always passed it.
+      colorScheme={scheme}
       info={{
         title: t('settings.manageAccount.infoTitle'),
         rows: infoRows,
