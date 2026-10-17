@@ -196,11 +196,8 @@ to one is a change to the other.
 
 ## Before submitting — still open
 
-- **The legal pages were rewritten 2026-10-17** (website repo, all three
-  languages: the publisher line, unlisted-not-private wording, retention,
-  children, copyright complaints, Apple's EULA) **but are not deployed** —
-  they go live with juanevillam.com's first deploy, which has to happen
-  before the app is submitted.
+- **The legal pages are LIVE** (2026-10-17, juanevillam.com, site `v1.0.0`):
+  both URLs above answer 200.
 - Screenshots: a first set is generated in `store/screenshots/` (6.9" iPhone,
   1320 × 2868, the one size Apple requires). **It shows commercial album
   covers (Bad Bunny's DÁKITI with its Parental Advisory label among them) and

@@ -3,19 +3,19 @@
 Sound Shaper ships first on iOS, then Android, published under Grostify LLC's
 Apple Developer membership (team `PHLR7X3FGN`).
 
-| gate | what                                                                 | state                                                                    |
-| ---- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 1    | privacy policy, support and account-deletion pages                   | ✅ 2026-10-17 — live on juanevillam.com, all four answer 200             |
-| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                        |
-| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                       |
-| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                     |
-| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                      |
-| 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports              |
-| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)       |
-| 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation            |
-| 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build |
-| 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                    |
-| 4    | submit                                                               | ⬜                                                                       |
+| gate | what                                                                 | state                                                                      |
+| ---- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1    | privacy policy, support and account-deletion pages                   | ✅ 2026-10-17 — live at juanevillam.com (site v1.0.0), all three languages |
+| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                          |
+| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                         |
+| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                       |
+| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                        |
+| 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports                |
+| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)         |
+| 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation              |
+| 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build   |
+| 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                      |
+| 4    | submit                                                               | ⬜                                                                         |
 
 ## 2i — console hardening
 
