@@ -90,7 +90,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false,
+          "microphonePermission": "Sound Shaper never uses the microphone. Its audio engine includes recording features the app doesn't use.",
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": true
         }
@@ -113,7 +113,7 @@
         {
           "microphonePermission": false,
           "cameraPermission": false,
-          "photosPermission": "Sound Shaper uses your photo library so you can set cover art for your sounds."
+          "photosPermission": "Sound Shaper uses your photo library so you can set cover art for your sounds and a photo for your account."
         }
       ]
     ],
