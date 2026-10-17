@@ -15,7 +15,6 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
 import { useOfflineMirror } from '@/hooks/useOfflineMirror';
-import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useSoundsSubscription } from '@/hooks/useSoundsSubscription';
 import { useTrophiesSync } from '@/hooks/useTrophiesSync';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
@@ -41,18 +40,12 @@ function AuthenticatedSubscriptions() {
   // writes that doc and one row on one rarely-opened screen reads it, so
   // holding a listener over it for the whole session bought nothing.
   useSoundsSubscription();
-  /**
-   * The profile, ONE read at launch — the grid needs it now, not just the
-   * Account sheet.
-   *
-   * It carries `addTilePosition`, which decides where the add tile sits in
-   * home's order, so the screen that reads it is the first one drawn. Still a
-   * one-shot rather than a listener, for the reason `useOwnProfile` states:
-   * nothing else writes this doc. The cost of that is the one thing to know —
-   * the add tile's slot syncs from another device on the NEXT launch, where a
-   * sound's slot syncs live off the library snapshot.
-   */
-  useOwnProfile();
+  // The profile's launch read is the one `upsertOwnProfile` already makes,
+  // seeded into the store by the auth listener — the grid needs its
+  // `addTilePosition` now. Still a one-shot, not a listener: nothing else
+  // writes this doc, so the add tile's slot syncs from another device on the
+  // NEXT launch, where a sound's slot syncs live off the library snapshot.
+
   // Trophies: point the engine at this user, bank listening time, and let the
   // store-derived objectives re-evaluate on every snapshot.
   useTrophiesSync();
