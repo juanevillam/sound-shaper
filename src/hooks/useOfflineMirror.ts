@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { NetworkStateType, useNetworkState } from 'expo-network';
 
 import { soundGridCell } from '@/components/sounds/SoundTile';
+import { artBackdropUrl } from '@/components/ui/ArtImage';
 import {
   listMirrored,
   mirrorSound,
@@ -119,8 +120,15 @@ export const useOfflineMirror = (): void => {
         }
 
         if (sound.artUrl) {
-          const artUri = thumbUrl(sound.artUrl, artWidth);
-          if (!prefetchedArt.has(artUri)) {
+          // BOTH LAYERS A TILE DRAWS: the cover, and on iOS the tiny variant
+          // its letterbox backdrop blurs — which, cold and offline, left
+          // non-square art standing in a grey box.
+          const backdropUri = artBackdropUrl(sound.artUrl);
+          const artUris = [thumbUrl(sound.artUrl, artWidth)];
+          if (backdropUri) artUris.push(backdropUri);
+
+          for (const artUri of artUris) {
+            if (prefetchedArt.has(artUri)) continue;
             prefetchedArt.add(artUri);
             void Image.prefetch(artUri, 'disk').catch(() => {
               // Not banked: the next pass tries again.

@@ -58,6 +58,14 @@ const BACKDROP_BLUR = 18;
 // size-independent and matches Android at every slot. Topper's ItemImage does
 // the same.
 const BACKDROP_SOURCE_WIDTH = 64;
+
+/**
+ * The url iOS's letterbox backdrop requests for a cover, or `null` where the
+ * backdrop reuses the art's own sized url (Android). Exported so a warm-up
+ * (the offline mirror's) fetches exactly this variant, not a near miss.
+ */
+export const artBackdropUrl = (uri: string): string | null =>
+  Platform.OS === 'ios' ? thumbUrl(uri, BACKDROP_SOURCE_WIDTH) : null;
 // Short cross-dissolve so artwork fades in instead of popping. Cached images
 // load synchronously and skip it, so lists of already-seen art never flash.
 const FADE_MS = 200;
@@ -78,8 +86,7 @@ export function ArtImage({
   const { colors, scheme } = useAppTheme();
   const sizedUri = displayWidth ? thumbUrl(uri, displayWidth) : uri;
   const source = { uri: sizedUri };
-  const backdropUri =
-    Platform.OS === 'ios' ? thumbUrl(uri, BACKDROP_SOURCE_WIDTH) : sizedUri;
+  const backdropUri = artBackdropUrl(uri) ?? sizedUri;
   // `thumbUrl` returning the url it was handed means there is no sized variant
   // behind it — a local pick, or an already-transformed url. That is the only
   // test needed here, and it keeps this file from carrying a second copy of
