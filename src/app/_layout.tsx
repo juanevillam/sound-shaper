@@ -54,7 +54,6 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         onSurface: colors.onSurface,
         onSurfaceMuted: colors.onSurfaceMuted,
         primary: colors.primary,
-        onPrimary: colors.onPrimary,
       }}
     />
   );

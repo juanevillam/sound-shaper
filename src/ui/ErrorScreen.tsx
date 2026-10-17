@@ -2,14 +2,17 @@ import React from 'react';
 
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { withAlpha } from '@/core';
+
 import { PRESSED_OPACITY } from './SquashPressable';
 
 export type ErrorScreenColors = {
   background: string;
   onSurface: string;
   onSurfaceMuted: string;
+  /** iOS only — its borderless Retry is a text button, which keeps the
+   *  accent. Android's filled button takes the ink. */
   primary: string;
-  onPrimary: string;
 };
 
 export type ErrorScreenProps = {
@@ -27,6 +30,14 @@ export type ErrorScreenProps = {
  * styled to each platform's error-state idiom: Material 3 type roles + filled
  * button with ripple on Android, `ContentUnavailableView` metrics + borderless
  * tinted action on iOS. The system font already gives Roboto/SF per platform.
+ *
+ * WHY THE ANDROID BUTTON IS AN RN `Pressable` AND NOT A COMPOSE `Button`: this
+ * screen must render when the Compose / native layer is the very thing that
+ * failed, so it cannot stand on a `Host`. The `Pressable` is drawn as M3's
+ * filled button instead, and it is MONOCHROME by the filled-button rule — the
+ * `onSurface` fill with the `background` label, the same mapping `EmptyState`
+ * and the sheet bar's commit pill carry. A filled button's accent is only
+ * Material's default, so it carries no information here.
  */
 export const ErrorScreen = ({
   title,
@@ -44,11 +55,11 @@ export const ErrorScreen = ({
       <Pressable
         accessibilityRole="button"
         onPress={onRetry}
-        android_ripple={{ color: `${colors.onPrimary}33` }}
+        android_ripple={{ color: withAlpha(colors.background, 0.2) }}
         style={({ pressed }) => [
           styles.button,
           Platform.OS === 'android'
-            ? { backgroundColor: colors.primary }
+            ? { backgroundColor: colors.onSurface }
             : pressed && styles.buttonPressedIos,
         ]}
       >
@@ -57,7 +68,7 @@ export const ErrorScreen = ({
             styles.buttonLabel,
             {
               color:
-                Platform.OS === 'android' ? colors.onPrimary : colors.primary,
+                Platform.OS === 'android' ? colors.background : colors.primary,
             },
           ]}
         >
