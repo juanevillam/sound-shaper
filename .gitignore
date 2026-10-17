@@ -48,6 +48,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -56,3 +57,4 @@ yarn-error.*
 # Cloudflare Worker local state
 media-worker/.wrangler/
 media-worker/node_modules/
+media-worker/.dev.vars

@@ -7,9 +7,6 @@
 # - Firebase client config (`google-services.json`, `GoogleService-Info.plist`):
 #   the `AIza…` keys ship inside every app binary; Firestore rules are the
 #   boundary, and the keys are restricted per bundle/package in Google Cloud.
-# - `firebase-tools`' installed-app OAuth client secret, used by the admin
-#   scripts in `scripts/` to exchange the LOCAL refresh token (read from
-#   ~/.config, never committed). It is published in firebase-tools' own source.
 # - Lockfile checksums, which trip the generic-api-key entropy rule.
 #
 # Anything else it flags is a real finding: remove it from the commit, rotate
@@ -27,8 +24,3 @@ paths = [
   '''(^|/)Manifest\.lock$''',
   '''(^|/)package-lock\.json$''',
 ]
-
-[[allowlists]]
-description = "firebase-tools' public installed-app OAuth client secret"
-regexTarget = "match"
-regexes = ['''CLIENT_SECRET\s*=\s*["']j9iVZfS8kkCEFUPaAeJV0sAi["']''']
