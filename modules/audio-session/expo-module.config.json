@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AudioSessionModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.audiosession.AudioSessionModule"]
+  }
+}

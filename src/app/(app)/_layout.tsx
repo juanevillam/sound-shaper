@@ -199,9 +199,9 @@ export default function AppLayout() {
           Android's MediaSession notification in the shade and on the lock
           screen — with their transport wired back to the store. */}
       <NowPlayingBridge />
-      {/* Top-anchored unlock banner, above every screen. It sounds while a
-          song of ours plays: the song is held once for the whole run of
-          chimes, then comes back (`lib/trophySound`). */}
+      {/* Top-anchored unlock banner, above every screen. It sounds unless
+          another app is playing; a song of ours is held once for the whole
+          run of chimes, then comes back (`lib/trophySound`). */}
       <TrophyOverlay
         copy={copy}
         // A native form sheet covers the RN root — hold banners until it goes.

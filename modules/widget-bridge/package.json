@@ -1,5 +1,5 @@
 {
-  "name": "`modules/widget-bridge`",
+  "name": "widget-bridge",
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",

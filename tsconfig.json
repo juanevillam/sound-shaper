@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@assets/*": ["./assets/*"],
-      "@modules/widget-bridge": ["./modules/widget-bridge/src/index.ts"]
+      "@modules/widget-bridge": ["./modules/widget-bridge/src/index.ts"],
+      "@modules/audio-session": ["./modules/audio-session/src/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
