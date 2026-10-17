@@ -35,6 +35,7 @@ export {
 export {
   MediaPickerAvatar,
   MEDIA_PICKER_SIZE,
+  mediaPickerSlotHeight,
   type MediaPickerAvatarProps,
 } from './MediaPickerAvatar';
 export {

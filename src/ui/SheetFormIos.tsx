@@ -24,6 +24,7 @@ import {
   controlSize,
   disabled as disabledModifier,
   font,
+  frame,
   foregroundStyle,
   keyboardType as keyboardTypeModifier,
   lineLimit,
@@ -39,6 +40,7 @@ import { useAppTheme } from '@/core';
 // the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
 // suffix of its own to resolve against).
 import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
+import { mediaPickerSlotHeight } from './MediaPickerAvatar';
 import {
   SHEET_EMPTY_HEADER_SLOT,
   SHEET_FIRST_CARD_MARGIN,
@@ -330,10 +332,15 @@ export function SheetFormMediaIos({
       spacing={spacing.sm}
       modifiers={[listRowBackground('transparent'), listRowSeparator('hidden')]}
     >
-      {/* RNHostView takes no style and `matchContents` is boolean-only, so
-          the RN child must carry its own size AND centre itself in a
-          full-width wrapper — the slot is as big as what you hand it. */}
-      <RNHostView matchContents>{children}</RNHostView>
+      {/* THE BOX IS RESERVED IN SWIFTUI, never asked of the child: a
+          `matchContents` host inside a native row answers its size after the
+          row has laid out once without it — a shift on the frame the media
+          mounts (the house ban). At its default the host fills its parent, so
+          the framed stack states the slot's height and the row hands it the
+          width; the RN child still centres itself in that full-width box. */}
+      <VStack modifiers={[frame({ height: mediaPickerSlotHeight() })]}>
+        <RNHostView>{children}</RNHostView>
+      </VStack>
       {/* ALWAYS a Button, even for the busy status — a `Text` swapped in
           here rendered a footnote line where a small control had been, so
           every state change jumped the sheet's layout (Juan caught the CLS).

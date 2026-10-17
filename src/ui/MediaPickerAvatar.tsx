@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { TEXT_VARIANTS } from './createText';
 import {
@@ -45,6 +45,19 @@ import { SquashPressable } from './SquashPressable';
  */
 export const MEDIA_PICKER_SIZE = 120;
 const AVATAR_SIZE = MEDIA_PICKER_SIZE;
+
+/**
+ * THE SLOT'S WHOLE BOX — the picture, the caption gap and one caption line —
+ * so a native row can RESERVE it rather than ask the RN child afterwards
+ * (`matchContents` in a native row is banned: the row lays out once without
+ * the size and again when it lands). The caption's line box follows Dynamic
+ * Type the way RN's own text does, so the reservation is read at render, not
+ * frozen at the default size.
+ */
+export const mediaPickerSlotHeight = () =>
+  MEDIA_PICKER_SIZE +
+  EMPTY_MEDIA_CAPTION_GAP +
+  (TEXT_VARIANTS.bodyMedium.lineHeight ?? 0) * PixelRatio.getFontScale();
 const AVATAR_RADIUS = AVATAR_SIZE / 2;
 
 export type MediaPickerAvatarProps = {
