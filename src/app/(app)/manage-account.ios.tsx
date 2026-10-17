@@ -31,7 +31,7 @@ import {
 } from '@/ui';
 
 /**
- * Thin adapter over the shared `ManageAccountScreen` (the package resolves its
+ * Thin adapter over the shared `ManageAccountScreen` (`src/ui` resolves its
  * native SwiftUI `Form` twin — this screen used to hand-roll grouped rows out
  * of RN views, which read as an imitation of the real control). Only the
  * delete CONFIRMATION is platform-specific.
@@ -135,7 +135,8 @@ export default function ManageAccount() {
 
   /**
    * THE ROW SET IS THE SAME WHILE LOADING — three rows, values and all, with
-   * `redacted` over them (see `ManageAccountScreen`'s `info.loading`). Name and
+   * the values boned with `SkeletonBone` (see `ManageAccountScreen`'s
+   * `info.loading`). Name and
    * Email come off the auth object and are there on the first frame, while
    * Member Since waits on the Firestore profile, so the card would otherwise
    * grow under the reader as that row landed. It therefore stands its own
@@ -223,7 +224,7 @@ export default function ManageAccount() {
 
   return (
     // `SheetScreen` for the toast, not for the surface: `ManageAccountScreen`
-    // is a package screen and brings its own (colour-less) root. Wrapping it is
+    // is a shared `src/ui` screen and brings its own (colour-less) root. Wrapping it is
     // what lets a failed deletion's snackbar be SEEN — a sheet is presented
     // above the RN root, so the root's toast draws behind it.
     <SheetScreen screen="account">
@@ -296,10 +297,9 @@ export default function ManageAccount() {
           rows: infoRows,
           loading,
         }}
-        // Trophies lives here on iOS: the home bar shows ONE identity glyph
-        // (Apple's Apple Account pattern) and everything account-shaped sits
-        // behind it. Untitled card — the label says what it is. Android keeps
-        // Trophies in Settings and passes no `sections`.
+        // Trophies lives behind Account: Settings' identity banner is the way
+        // in (Apple's Apple Account pattern) and everything account-shaped
+        // sits behind it. Untitled card — the label says what it is.
         sections={[
           {
             rows: [

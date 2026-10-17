@@ -58,8 +58,8 @@ export default function ManageAccount() {
    * `deleting` PINS THE DIALOG rather than a scrim, because that is where this
    * platform does its blocking: iOS's `UIAlertController` cannot go busy, so
    * the overlay lives on its screen, while Android's confirm dialog is Compose
-   * and holds its own busy state (AGENTS.md — same job, each in its own
-   * language).
+   * and holds its own busy state (docs/standards.md — same job, each in its
+   * own language).
    */
   const accountLab = useUiStateLab(state => state.account);
   const lab = UI_STATE_LAB && accountLab !== 'live';

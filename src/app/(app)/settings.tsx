@@ -104,9 +104,9 @@ export default function Settings() {
   return (
     <SettingsRoot>
       <SettingsScreen
-        // Sign Out is the ONE session action every app has, so it lives here
-        // rather than in the Account screen — that is what keeps this screen
-        // identical across the portfolio: General, About, Legal, Sign Out.
+        // Sign Out is the ONE session action, so it lives here rather than in
+        // the Account screen — that keeps this screen to General, About,
+        // Legal, Sign Out.
         // Everything else account-shaped sits behind the Account entry.
         //
         // THE ACCOUNT ENTRY IS THIS SCREEN'S OWN IDENTITY BANNER, BOTH
@@ -182,7 +182,7 @@ export default function Settings() {
         legal={{
           title: t('settings.legal.title'),
           // Terms first, then Privacy — the App Store's Apple Account sheet's
-          // order, matched across all three apps.
+          // order.
           rows: [
             {
               label: t('welcome.legal.terms'),

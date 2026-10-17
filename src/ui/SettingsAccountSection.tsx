@@ -127,8 +127,7 @@ export type SettingsUsernameEditor = {
  *    Profile tab, so the account entry sits there and Settings shows no
  *    identity card;
  *  - a PERSONAL app (Sound Shaper, Booker) has neither, and its home bar must not grow
- *    a second glyph to carry one — every app's home bar is the same single
- *    gear. So the entry comes here, and the identity card does the work
+ *    a second glyph to carry one — the home bar is a single gear. So the entry comes here, and the identity card does the work
  *    instead of being decoration.
  *
  * BOTH PLATFORMS. It shipped iOS-only, with Android rendering the entry as a
