@@ -1,3 +1,4 @@
+import { useTrophyStore } from '@portfolio/trophies';
 import { type AudioBuffer } from 'react-native-audio-api';
 
 import { audioEngine } from '@/lib/audioEngine';
@@ -16,6 +17,17 @@ import { usePlayerStore } from '@/store/player';
  * session out of the `playback` category the player lives on — background
  * audio, the Lock Screen player — so the chime shares the player's session
  * instead. Same two files as Topper's, one family of sounds.
+ *
+ * IT SOUNDS ONLY WHILE ONE OF OUR SONGS IS PLAYING. That is the one moment
+ * the app provably owns the audio. Paused, the session may belong to another
+ * app — Music, Spotify — and the `playback` category does not mix, so a chime
+ * would stop that app's song for good. There the haptic carries the unlock
+ * alone, as it always did.
+ *
+ * ONE PAUSE PER RUN OF UNLOCKS. Trophies often land together (a first upload
+ * earns several) and the overlay shows them one banner at a time; pausing and
+ * resuming around each chime made the song stutter once per banner. The song
+ * is held from the first chime to the last and comes back once.
  */
 type Variant = 'normal' | 'platinum';
 
@@ -25,8 +37,8 @@ const SOURCES: Record<Variant, number> = {
 };
 const VOLUME: Record<Variant, number> = { normal: 0.7, platinum: 0.9 };
 
-// Long enough for the song's own pause to land before the chime starts, and
-// a beat of silence after it before the song comes back.
+// A beat before the first chime, for the song's pause to land, and one after
+// the last before the song comes back.
 const LEAD_IN_MS = 120;
 const TAIL_MS = 250;
 
@@ -45,49 +57,86 @@ export const preloadTrophySounds = (): void => {
   bufferFor('platinum').catch(() => {});
 };
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, ms));
+
+// How long a held song waits for the next queued banner before coming back
+// anyway — longer than a platinum banner stays up (5.4s), so it only fires
+// when the overlay stops pulling (held by a form sheet) mid-run.
+const HOLD_GRACE_MS = 6000;
+
+/** The sound paused for the current run of chimes, if any. */
+let heldId: string | null = null;
+/** Chimes play one after another, never over each other. */
+let chain: Promise<void> = Promise.resolve();
+let releaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+const chime = async (variant: Variant): Promise<void> => {
+  const buffer = await bufferFor(variant);
+  const ctx = audioEngine.getContext();
+
+  await audioEngine.activateSession();
+  if (ctx.state === 'suspended') await ctx.resume();
+
+  const source = ctx.createBufferSource();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  gain.gain.value = VOLUME[variant];
+  source.connect(gain);
+  gain.connect(ctx.destination);
+
+  await new Promise<void>(resolve => {
+    source.onEnded = () => resolve();
+    source.start();
+  });
+};
+
+// Put the held song back — only THAT song, still paused: anything the person
+// did meanwhile wins.
+const release = () => {
+  releaseTimer = null;
+  const id = heldId;
+  heldId = null;
+  const now = usePlayerStore.getState();
+  if (id && now.current?.id === id && !now.playing) now.toggle();
+};
 
 /**
- * Play an unlock chime, pausing the song around it. Fire-and-forget: any
- * failure leaves the unlock silent (the haptic still lands) and the song as
- * it was.
+ * Play an unlock chime, holding the song across the whole run of unlocks.
+ * Fire-and-forget: any failure leaves that unlock silent (the haptic still
+ * lands) and the song comes back as usual.
  */
-export const playTrophySound = async (variant: Variant): Promise<void> => {
+export const playTrophySound = (variant: Variant): void => {
   const player = usePlayerStore.getState();
-  // Only a song that is actually playing is paused — and only THAT song,
-  // still paused, is resumed: anything the person does meanwhile wins.
-  const pausedId = player.current && player.playing ? player.current.id : null;
 
-  try {
-    const buffer = await bufferFor(variant);
-    const ctx = audioEngine.getContext();
+  // The person resumed between two banners: the run is theirs now.
+  if (heldId && player.playing) heldId = null;
 
-    if (pausedId) {
-      player.pause();
-      await wait(LEAD_IN_MS);
-    }
-
-    await audioEngine.activateSession();
-    if (ctx.state === 'suspended') await ctx.resume();
-
-    const source = ctx.createBufferSource();
-    const gain = ctx.createGain();
-    source.buffer = buffer;
-    gain.gain.value = VOLUME[variant];
-    source.connect(gain);
-    gain.connect(ctx.destination);
-
-    await new Promise<void>(resolve => {
-      source.onEnded = () => resolve();
-      source.start();
-    });
-    await wait(TAIL_MS);
-  } catch {
-    // Silent unlock; fall through to put the song back.
+  if (!heldId) {
+    if (!player.current || !player.playing) return;
+    heldId = player.current.id;
+    player.pause();
+    // Long enough for the song's own pause to land before the chime starts.
+    chain = wait(LEAD_IN_MS);
   }
 
-  if (!pausedId) return;
+  if (releaseTimer) {
+    clearTimeout(releaseTimer);
+    releaseTimer = null;
+  }
 
-  const now = usePlayerStore.getState();
-  if (now.current?.id === pausedId && !now.playing) now.toggle();
+  chain = chain
+    .then(() => chime(variant))
+    .catch(() => {})
+    .then(() => wait(TAIL_MS))
+    .then(() => {
+      if (!heldId) return;
+      // The showing banner is still the queue's head; anything behind it is
+      // another chime on its way, so the song stays held for it.
+      if (useTrophyStore.getState().queue.length > 1) {
+        releaseTimer = setTimeout(release, HOLD_GRACE_MS);
+      } else {
+        release();
+      }
+    });
 };
