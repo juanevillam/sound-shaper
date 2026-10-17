@@ -1,3 +1,5 @@
+import { ROW_INSET } from '@/core';
+
 /**
  * THE TWO-LINE NATIVE GROUPED ROW'S GEOMETRY — one measured spec, for every
  * `insetGrouped` row in the portfolio.
@@ -33,9 +35,9 @@ const ART = 44;
 const ROW_PITCH = ART + LIST_ROW_PADDING_VERTICAL * 2;
 /**
  * Row insets: the card's own 16, then 12 to the text — so a separator starts at
- * 72 (measured x=88 against a card edge of 16), and a title's ink at 89.
+ * 72 (measured x=88 against a card edge of 16), and a title's ink at 89. The
+ * card's 16 is the shared `ROW_INSET`.
  */
-const ROW_INSET = 16;
 const ART_GAP = 12;
 const SEPARATOR_INSET = ROW_INSET + ART + ART_GAP;
 /**

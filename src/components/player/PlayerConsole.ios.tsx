@@ -129,12 +129,12 @@ import {
  * subject, and the copy's job is to name it quietly, so the ratio falling as
  * the picture grows is correct rather than a deficit to correct for.
  *
- * 22/17 — `title2` over `body`, both named rungs with Apple's own leading.
+ * 22/17 — `title2` over `body`, both named rungs with Apple's own leading,
+ * taken as the ladder's own variants (`titleLarge` / `bodyLarge`) rather than
+ * restated as numbers, which is what the Android twin already does.
  */
-const TITLE_SIZE = 22;
-const TITLE_LEADING = 28;
-const ARTIST_SIZE = 17;
-const ARTIST_LEADING = 22;
+const TITLE_VARIANT = 'titleLarge' as const;
+const ARTIST_VARIANT = 'bodyLarge' as const;
 
 /**
  * TRANSPORT — three controls of equal weight, no filled disc. The FAB story,
@@ -571,6 +571,7 @@ export function PlayerConsole({
         doNotTranslate
         text={sound.name}
         numberOfLines={1}
+        variant={TITLE_VARIANT}
         style={styles.title}
       />
       <AppText
@@ -578,7 +579,7 @@ export function PlayerConsole({
         muted
         text={sound.artist || ' '}
         numberOfLines={1}
-        style={styles.artist}
+        variant={ARTIST_VARIANT}
       />
     </>
   );
@@ -776,12 +777,7 @@ const styles = StyleSheet.create({
   titleBlock: { paddingBottom: 30, width: '100%' },
   // Overlays the real title block, so a neighbour's copy costs no layout.
   titleGhost: { position: 'absolute', top: 0 },
-  title: {
-    fontSize: TITLE_SIZE,
-    fontWeight: '700',
-    lineHeight: TITLE_LEADING,
-  },
-  artist: { fontSize: ARTIST_SIZE, lineHeight: ARTIST_LEADING },
+  title: { fontWeight: '700' },
   sliderBlock: { position: 'relative', width: '100%' },
   transportRow: {
     alignItems: 'center',

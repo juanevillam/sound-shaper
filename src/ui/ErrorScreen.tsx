@@ -2,6 +2,8 @@ import React from 'react';
 
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PRESSED_OPACITY } from './SquashPressable';
+
 export type ErrorScreenColors = {
   background: string;
   onSurface: string;
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
       default: { minHeight: 44, paddingHorizontal: 16 },
     }),
   },
-  buttonPressedIos: { opacity: 0.3 },
+  buttonPressedIos: { opacity: PRESSED_OPACITY },
   // Android: M3 labelLarge (14, medium, +0.1). iOS: semibold subheadline, the
   // App Store / Wi-Fi settings "Retry" idiom.
   buttonLabel: {

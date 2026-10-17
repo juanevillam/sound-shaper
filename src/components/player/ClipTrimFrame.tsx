@@ -17,6 +17,7 @@ import { withAlpha } from '@/core';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
+import { CONTINUOUS_CURVE } from '@/ui';
 
 // THE TRIM FRAME — the selection's caps, rails and wash.
 //
@@ -513,12 +514,12 @@ const styles = StyleSheet.create({
   },
   capStart: {
     borderBottomLeftRadius: CAP_RADIUS,
-    borderCurve: 'continuous',
+    ...CONTINUOUS_CURVE,
     borderTopLeftRadius: CAP_RADIUS,
   },
   capEnd: {
     borderBottomRightRadius: CAP_RADIUS,
-    borderCurve: 'continuous',
+    ...CONTINUOUS_CURVE,
     borderTopRightRadius: CAP_RADIUS,
   },
   chevronHost: { height: 24, width: CAP_WIDTH },

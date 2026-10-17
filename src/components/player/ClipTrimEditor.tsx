@@ -41,7 +41,7 @@ import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { SCREEN_PADDING } from '@/styles/metrics';
-import { CARD_RADIUS, CONTINUOUS_CURVE } from '@/styles/shape';
+import { CARD_RADIUS, CONTINUOUS_CURVE, SHAPE_SM } from '@/styles/shape';
 import { SHEET_CONTENT_TOP, SkeletonBone, useSheetLanded } from '@/ui';
 
 import {
@@ -1538,7 +1538,7 @@ const styles = StyleSheet.create({
   },
   /** Enough ground either side that the playhead clears the words. */
   waveNoticePill: {
-    borderRadius: 8,
+    borderRadius: SHAPE_SM,
     overflow: 'hidden',
     paddingHorizontal: 10,
     paddingVertical: 4,

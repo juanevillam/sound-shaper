@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnUI } from 'react-native-worklets';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
+import { FLOATING_RADIUS } from './GlassSurfaceIos';
 import type { StateLabGroup } from './StateLab';
 
 /**
@@ -65,7 +66,8 @@ import type { StateLabGroup } from './StateLab';
 /** Two lines of note, always — see `NOTE_LINES`. */
 const NOTE_LINES = 2;
 /** The bar's corner. Applied inside SwiftUI — see the `clipShape` note. */
-const CARD_RADIUS = 22;
+// A floating card over content — the family's corner, not a copy of it.
+const CARD_RADIUS = FLOATING_RADIUS;
 /** Clearance for a floating tab bar, when the caller does not say otherwise. */
 const DEFAULT_BOTTOM_OFFSET = 52;
 
