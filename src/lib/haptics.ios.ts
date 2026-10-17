@@ -48,8 +48,8 @@ export const haptics = {
     fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)),
   /**
    * A two-beat "set down" (UINotificationFeedbackType.success) — and in this
-   * app it is also the PLATINUM trophy's, under that trophy's own chime
-   * (`lib/trophySound`, which pauses the song around it).
+   * app it is also the PLATINUM trophy's — under its chime while a song
+   * plays, alone otherwise (`lib/trophySound`).
    */
   dragDrop: () =>
     fire(() =>
