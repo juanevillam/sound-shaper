@@ -90,8 +90,12 @@ landed on `main`. What they left, deliberately:
   through the Worker, authenticated Cloudinary delivery, a Worker rate limit,
   field validation in `firestore.rules`, and iOS's second delete-account
   confirm (Android asks once).
-- **Juan, outside the code:** a max file size on the `sound_shaper_unsigned`
-  preset and "Resource list" restricted in Cloudinary; Anonymous and
+- **Cloudinary, checked in the console 2026-10-17:** "Resource list" is
+  already restricted (Settings → Security → Restricted image types, beside
+  Fetched URL and Sprite). A preset has NO max-file-size setting, so the
+  only size cap is the free plan's own — 10 MB per image, 100 MB per
+  video/audio file — which is what bounds an abuser of the unsigned preset.
+- **Juan, outside the code:** Anonymous and
   Email/Password sign-in off in Firebase Auth; App Privacy in App Store
   Connect filled from `docs/store-listing.md`; deploy the Worker change
   (memoised signing keys, and since 2026-10-17 the CDN purge on every
