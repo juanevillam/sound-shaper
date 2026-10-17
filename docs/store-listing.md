@@ -147,19 +147,26 @@ is No. Result: **4+**.
 **Do you or your third-party partners collect data from this app?** Yes.
 **Is any of it used for tracking?** No — for every type below.
 
-| data type (Apple's name)         | what it is in the app                        | linked to the user | purpose           |
-| -------------------------------- | -------------------------------------------- | ------------------ | ----------------- |
-| Contact Info → Email Address     | the sign-in email (or Apple's relay address) | Yes                | App Functionality |
-| Contact Info → Name              | the name from sign-in, or the one they set   | Yes                | App Functionality |
-| User Content → Photos            | song artwork and the profile photo           | Yes                | App Functionality |
-| User Content → Audio Data        | the MP3s they upload                         | Yes                | App Functionality |
-| Identifiers → User ID            | the Firebase account id                      | Yes                | App Functionality |
-| Usage Data → Product Interaction | listening time and clips saved, for trophies | Yes                | App Functionality |
-| Diagnostics → Crash Data         | Crashlytics reports                          | **No**             | App Functionality |
+| data type (Apple's name)            | what it is in the app                          | linked to the user | purpose           |
+| ----------------------------------- | ---------------------------------------------- | ------------------ | ----------------- |
+| Contact Info → Email Address        | the sign-in email (or Apple's relay address)   | Yes                | App Functionality |
+| Contact Info → Name                 | the name from sign-in, or the one they set     | Yes                | App Functionality |
+| User Content → Photos or Videos     | song artwork and the profile photo             | Yes                | App Functionality |
+| User Content → Audio Data           | the MP3s they upload                           | Yes                | App Functionality |
+| User Content → Other User Content   | sound titles and subtitles, clips              | Yes                | App Functionality |
+| Identifiers → User ID               | the Firebase account id                        | Yes                | App Functionality |
+| Usage Data → Product Interaction    | listening time and clips saved, for trophies   | Yes                | App Functionality |
+| Diagnostics → Crash Data            | Crashlytics reports                            | **No**             | App Functionality |
+| Diagnostics → Other Diagnostic Data | the device, OS and app state on a crash report | **No**             | App Functionality |
+| Identifiers → Device ID             | Crashlytics' installation id                   | **No**             | App Functionality |
 
 Not collected: location, contacts, browsing or search history, purchases,
-financial info, health, sensitive info, advertising data, device ID beyond
-the above. There is no analytics SDK and Crashlytics is never given a user id.
+financial info, health, sensitive info, advertising data. There is no
+analytics SDK and Crashlytics is never given a user id.
+
+The same table is declared in the app's own privacy manifest
+(`ios.privacyManifests` in `app.json`, `NSPrivacyCollectedDataTypes`); a change
+to one is a change to the other.
 
 ## App Review information
 
