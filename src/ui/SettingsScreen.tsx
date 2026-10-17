@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useState } from 'react';
 
-import { Linking, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import {
   Column,
@@ -68,9 +68,7 @@ export type SettingsInfoRow = {
   label: string;
   /** Optional supporting value; omit for label-only link rows (legal pages). */
   value?: string;
-  /** Optional external link the row opens when tapped, e.g. package docs. */
-  url?: string;
-  /** Optional tap handler (wins over `url`), e.g. the legal pages. */
+  /** Optional tap handler, e.g. the legal pages. */
   onPress?: () => void;
 };
 
@@ -251,9 +249,9 @@ PreferenceRow.displayName = 'PreferenceRow';
 
 /**
  * A read-only row in the Android "About phone" idiom: setting name with the
- * value as supporting text. Rows with an `onPress` run it on tap; rows with a
- * `url` open it in the browser (the "About phone" rows that lead somewhere
- * look identical to those that don't, so no trailing affordance).
+ * value as supporting text. Rows with an `onPress` run it on tap (the "About
+ * phone" rows that lead somewhere look identical to those that don't, so no
+ * trailing affordance).
  */
 const InfoRow = ({
   row,
@@ -273,11 +271,7 @@ const InfoRow = ({
     modifiers={[
       fillMaxWidth(),
       clip(shape),
-      ...(row.onPress
-        ? [clickable(row.onPress)]
-        : row.url
-          ? [clickable(() => Linking.openURL(row.url!))]
-          : []),
+      ...(row.onPress ? [clickable(row.onPress)] : []),
     ]}
   >
     <ListItem.HeadlineContent>

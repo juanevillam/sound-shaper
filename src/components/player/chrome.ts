@@ -184,7 +184,6 @@ export type PlayerConsoleProps = {
   expanded: boolean;
 
   /* The sound. */
-  soundId: string;
   title: string;
   /** Artist, or a single space so the line never collapses. */
   subtitle: string;

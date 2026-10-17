@@ -72,20 +72,10 @@ const CARD_RADIUS = FLOATING_RADIUS;
 const DEFAULT_BOTTOM_OFFSET = 52;
 
 export function StateLab({
-  anchored = false,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   colors,
   groups,
-  onSelectGroup,
 }: {
-  /** Float 8 above the bottom of the view the bar is MOUNTED IN, ignoring
-   *  the safe inset and the keyboard — for a bar mounted inside a sheet's
-   *  own content area (the iOS comments sheet), whose parent already stops
-   *  above the composer. Same contract as the base twin's flag; this file
-   *  shipped without it for two days and silently dropped it (`d14c382`
-   *  landed it in `StateLab.tsx` only, which iOS never resolves — the third
-   *  accepted-but-ignored-prop incident this week). */
-  anchored?: boolean;
   bottomOffset?: number;
   colors: {
     card: string;
@@ -95,7 +85,6 @@ export function StateLab({
     surfaceContainer: string;
   };
   groups: readonly StateLabGroup[];
-  onSelectGroup?: (key: string) => void;
 }) {
   const { bottom } = useSafeAreaInsets();
   const [activeKey, setActiveKey] = useState(groups[0]?.key);
@@ -134,19 +123,12 @@ export function StateLab({
     group.onChange(group.states[(index + delta + length) % length].value);
   };
 
-  const selectGroup = (key: string) => {
-    setActiveKey(key);
-    onSelectGroup?.(key);
-  };
-
   return (
     <View
       style={[
         styles.shell,
         {
-          bottom:
-            (anchored ? 0 : keyboard > 0 ? keyboard : bottom + bottomOffset) +
-            8,
+          bottom: (keyboard > 0 ? keyboard : bottom + bottomOffset) + 8,
         },
       ]}
     >
@@ -170,7 +152,7 @@ export function StateLab({
               <Picker
                 modifiers={[pickerStyle('segmented')]}
                 selection={group.key}
-                onSelectionChange={selectGroup}
+                onSelectionChange={setActiveKey}
               >
                 {groups.map(option => (
                   <Text key={option.key} modifiers={[tag(option.key)]}>

@@ -19,9 +19,8 @@ import { useProfileStore } from '@/store/profile';
 import { DestructiveConfirmDialog, ManageAccountScreen } from '@/ui';
 
 // Thin adapter over the shared `ManageAccountScreen`. This is a PERSONAL app —
-// no social module — so it passes no `privacy` section (Topper's blocked-users
-// push) and no username row; the shared screen simply omits them. Everything
-// else is the same screen Topper renders.
+// no social module — so it passes no username row; the shared screen simply
+// omits it. Everything else is the same screen Topper renders.
 
 const formatMemberSince = (millis: number | null, locale: string) =>
   millis

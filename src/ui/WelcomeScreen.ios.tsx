@@ -1,15 +1,8 @@
 import React from 'react';
 
-import {
-  ScrollView,
-  StyleSheet,
-  Text as RNText,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
 
 import {
-  Button,
   HStack,
   Host,
   Image,
@@ -20,20 +13,14 @@ import {
   type ImageProps,
 } from '@expo/ui/swift-ui';
 import {
-  buttonBorderShape,
-  buttonStyle,
-  controlSize,
-  disabled,
   font,
   foregroundStyle,
   frame,
   multilineTextAlignment,
-  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
-import { AppIcon } from './AppIcon';
 import { AppleSignInButton } from './AppleSignInButton';
 import { authButtonPoleKey } from './AuthButtonIos';
 import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
@@ -41,7 +28,7 @@ import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { LegalFooter } from './LegalFooter';
 import { Screen } from './Screen';
-import { duration, layout, spacing } from './tokens';
+import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 import { type AuthAction, type WelcomeScreenProps } from './WelcomeScreen';
 
@@ -68,8 +55,6 @@ import { type AuthAction, type WelcomeScreenProps } from './WelcomeScreen';
  */
 const CONTENT_INSET = 38;
 const LOGO_SIZE = 82;
-const LOGO_RADIUS = 24;
-const LOGO_LETTER_SIZE = 48;
 /** Glyph box for the brand mark inside the hero tile — sized so the mark reads
  *  like the app icon (mirrors its foreground proportions: 0.9375 of the tile). */
 const LOGO_GLYPH_SIZE = 77;
@@ -101,26 +86,11 @@ const FOOTER_ENTRY_DELAY = 120;
 // SwiftUI `.infinity` stand-in — `frame` only takes numbers, so an
 // over-large max width lets the CTA label stretch to the button's edges.
 const FILL_WIDTH = 10_000;
-// A `bordered`/`borderedProminent` button paints its capsule around the label,
-// so `.frame` on the button only pads the slot — the label is what grows the
-// pill. At `controlSize('regular')` SwiftUI adds ~7pt above and below.
-const CTA_LABEL_INSET = 7;
-const CTA_LABEL_HEIGHT = layout.authButtonHeight - CTA_LABEL_INSET * 2;
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   actions: { gap: spacing.sm },
-  logo: {
-    height: LOGO_SIZE,
-    width: LOGO_SIZE,
-    marginBottom: LOGO_TITLE_GAP,
-    alignSelf: 'center',
-    borderRadius: LOGO_RADIUS,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   logoSlot: { marginBottom: LOGO_TITLE_GAP, alignSelf: 'center' },
-  logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1 },
 });
 
@@ -131,9 +101,8 @@ const anyLoading = (actions: readonly AuthAction[]) =>
  * iOS counterpart of `WelcomeScreen` — same prop API as the Android (Jetpack
  * Compose) variant, laid out as Apple's standard onboarding/welcome template:
  * centered logo and large bold title up top, leading-aligned feature rows with
- * tinted SF Symbol icons (falling back to the shared emoji when a feature has
- * no `systemImage`), and full-width large `borderedProminent`/`bordered`
- * buttons pinned to the bottom.
+ * tinted SF Symbol icons, and the Apple and Google sign-in buttons pinned to
+ * the bottom.
  */
 export const WelcomeScreen = ({
   appName,
@@ -177,8 +146,8 @@ export const WelcomeScreen = ({
             duration={HERO_ENTRY_DURATION}
             isVisible={isSplashHidden}
           >
-            {/* Brand mark on a themed tile. Apps pass their vector glyph via
-              `logo`; the letter is the fallback when they don't. */}
+            {/* Brand mark on a themed tile — the app's vector glyph via
+              `logo`. */}
             {logo ? (
               <View style={styles.logoSlot}>
                 <BrandTile
@@ -188,23 +157,7 @@ export const WelcomeScreen = ({
                   logo={logo}
                 />
               </View>
-            ) : (
-              <View
-                style={[
-                  styles.logo,
-                  { backgroundColor: colors?.primaryContainer },
-                ]}
-              >
-                <RNText
-                  style={[
-                    styles.logoLetter,
-                    { color: colors?.onPrimaryContainer },
-                  ]}
-                >
-                  {appName.charAt(0).toUpperCase()}
-                </RNText>
-              </View>
-            )}
+            ) : null}
             <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
               {/* Leading, not centred: Apple centres the app icon and then runs
                 the title, the rows and the CTA off one shared left edge. The
@@ -275,16 +228,7 @@ export const WelcomeScreen = ({
                           color={colors?.primary}
                           modifiers={[frame({ width: FEATURE_ICON_SLOT })]}
                         />
-                      ) : (
-                        <Text
-                          modifiers={[
-                            font({ size: FEATURE_ICON_SIZE }),
-                            frame({ width: FEATURE_ICON_SLOT }),
-                          ]}
-                        >
-                          {feature.emoji}
-                        </Text>
-                      )}
+                      ) : null}
                       <VStack alignment="leading" spacing={FEATURE_TEXT_GAP}>
                         <Text
                           modifiers={[
@@ -336,7 +280,6 @@ export const WelcomeScreen = ({
                   action.isLoading && action.loadingLabel
                     ? action.loadingLabel
                     : action.label;
-                const isOutlined = action.variant === 'outlined';
                 const isDisabled = someLoading && !action.isLoading;
 
                 // Google's branding rules pin this button's colors, logo, and
@@ -371,80 +314,7 @@ export const WelcomeScreen = ({
                   );
                 }
 
-                return (
-                  <Host
-                    key={action.label}
-                    matchContents={{ vertical: true }}
-                    colorScheme={colorScheme}
-                  >
-                    <Button
-                      onPress={action.onPress}
-                      modifiers={[
-                        buttonStyle(
-                          isOutlined ? 'bordered' : 'borderedProminent',
-                        ),
-                        // Sized to the branded sign-in buttons it stacks with
-                        // (`layout.authButtonHeight`), so the welcome CTAs read
-                        // as one family — the constrained button sets the
-                        // height and this one follows, while its SHAPE and
-                        // colour stay Apple's (prominent capsule, system tint,
-                        // ≥44pt tap target). See that token for why 44.
-                        // NOT `glassProminent`, though @expo/ui 57 offers it:
-                        // Apple's own iOS 26.5 onboarding CTA measures a solid
-                        // fill (0,144,255), not glass.
-                        controlSize('regular'),
-                        buttonBorderShape('capsule'),
-                        // MONOCHROME (2026-08-22), with `actionButtonModifiersIos`
-                        // and the empty-state CTA. Apple's own onboarding
-                        // capsule measures a solid blue and this deliberately
-                        // departs from it: the portfolio's marks and grounds
-                        // are the two neutrals, and the first screen anyone
-                        // sees is where that has to hold.
-                        // Ink for the FILLED capsule; the outlined variant
-                        // keeps the accent, because a bordered button's wash
-                        // AND label both come from the tint and grey reads as
-                        // disabled. See `actionButtonModifiersIos`.
-                        ...(isOutlined
-                          ? colors?.primary
-                            ? [tint(colors.primary)]
-                            : []
-                          : colors?.onSurface
-                            ? [tint(colors.onSurface)]
-                            : []),
-                        // The filled capsule does not invert its own label —
-                        // see `labelColor` on `actionButtonModifiersIos`. The
-                        // outlined variant takes the tint and needs nothing.
-                        ...(!isOutlined && colors?.background
-                          ? [foregroundStyle(colors.background)]
-                          : []),
-                        disabled(isDisabled || Boolean(action.isLoading)),
-                      ]}
-                    >
-                      <HStack
-                        spacing={spacing.sm}
-                        // Two frames on purpose: `frame` takes the exact-size
-                        // branch as soon as `height` is set (dropping `maxWidth`),
-                        // so the fill-width frame has to be its own modifier.
-                        modifiers={[
-                          frame({ height: CTA_LABEL_HEIGHT }),
-                          frame({ maxWidth: FILL_WIDTH }),
-                        ]}
-                      >
-                        {action.icon ? (
-                          <AppIcon
-                            name={action.icon}
-                            size={18}
-                            // Filled (borderedProminent) labels are tinted by the
-                            // system; only outlined buttons need the explicit
-                            // tint, and it is the accent, with its capsule.
-                            tint={isOutlined ? colors?.primary : undefined}
-                          />
-                        ) : null}
-                        <Text>{label}</Text>
-                      </HStack>
-                    </Button>
-                  </Host>
-                );
+                return null;
               })}
             </View>
             {legal ? <LegalFooter legal={legal} colors={colors} /> : null}

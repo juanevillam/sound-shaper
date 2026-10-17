@@ -50,7 +50,6 @@ export const ManageAccountScreen = ({
   hero,
   info,
   sections,
-  privacy,
   danger,
   children,
 }: ManageAccountScreenProps) => (
@@ -130,19 +129,6 @@ export const ManageAccountScreen = ({
             ))}
           </Section>
         ))}
-
-        {privacy ? (
-          <Section title={privacy.title}>
-            {/* Disclosure rows (neutral label + chevron), not tinted actions:
-                in Apple's Settings blue text means "do something", while
-                navigation stays neutral. */}
-            {privacy.rows.map(row => (
-              <Button key={row.id} onPress={row.onPress}>
-                <FormDisclosureRowIos label={row.label} colors={colors} />
-              </Button>
-            ))}
-          </Section>
-        ) : null}
 
         {danger ? (
           /**

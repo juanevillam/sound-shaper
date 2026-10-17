@@ -1329,7 +1329,6 @@ export function PlayerSheet() {
             onToggle={onToggle}
             pagerStyle={pagerStyle}
             playing={playing}
-            soundId={current.id}
             subtitle={subtitle}
             title={current.name}
             titleGesture={titleGesture}

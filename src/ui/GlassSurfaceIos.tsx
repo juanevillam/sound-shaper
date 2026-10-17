@@ -1,21 +1,11 @@
 import { memo, type ReactNode } from 'react';
 
-import {
-  Platform,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { HStack, Spacer } from '@expo/ui/swift-ui';
-import {
-  frame,
-  glassEffect,
-  shadow as shadowModifier,
-} from '@expo/ui/swift-ui/modifiers';
+import { frame, glassEffect } from '@expo/ui/swift-ui/modifiers';
 
-import { IOS_COLORS, useAppTheme, withAlpha } from '@/core';
+import { useAppTheme, withAlpha } from '@/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 
@@ -145,30 +135,6 @@ export type GlassSurfaceIosProps = {
   shape?: 'capsule' | 'roundedRectangle';
   /** Ignored for `capsule`. */
   cornerRadius?: number;
-  /**
-   * SwiftUI shadow, for a surface that has to cast its own — a glass layer
-   * standing in for a card's background leaves the RN shell transparent, and an
-   * RN `shadow*` traces the view's own alpha, so a transparent shell casts
-   * nothing.
-   */
-  shadow?: { color: string; radius: number; y: number };
-  /**
-   * Extra room around the Host so a SwiftUI shadow is not clipped by the
-   * hosting view's bounds. Pass at least the shadow's radius.
-   */
-  shadowRoom?: number;
-  style?: StyleProp<ViewStyle>;
-  /**
-   * THE APPEARANCE OF WHAT THE GLASS SITS ON, when that is not the app's.
-   *
-   * The material and its floor both follow the app by default, which is right
-   * everywhere the app draws the ground. Booker's reader is the exception: its
-   * page carries a theme of its own, so a dark app reading on a Light, Sepia or
-   * Paper page put dark discs — dark floor, dark-adapted glass — under the
-   * page's dark ink, and the glyphs all but vanished (Juan, 2026-10-10). Pass
-   * the PAGE's appearance and the surface follows it instead.
-   */
-  colorScheme?: 'light' | 'dark';
 };
 
 /**
@@ -197,17 +163,12 @@ export const GlassSurfaceIos = memo(function GlassSurfaceIos({
   height,
   shape = 'roundedRectangle',
   cornerRadius = 0,
-  shadow,
-  shadowRoom = 0,
-  style,
-  colorScheme,
 }: GlassSurfaceIosProps) {
-  const { colors: appColors } = useAppTheme();
-  const colors = colorScheme ? IOS_COLORS[colorScheme] : appColors;
+  const { colors } = useAppTheme();
   const radius = shape === 'capsule' ? height / 2 : cornerRadius;
 
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View
         style={[
           styles.floor,
@@ -227,14 +188,7 @@ export const GlassSurfaceIos = memo(function GlassSurfaceIos({
           modifier cannot reach it (pixel-verified no-op). */}
       <SwiftUIHost
         ignoreSafeArea="all"
-        {...(colorScheme ? { colorScheme } : null)}
-        style={{
-          height: height + shadowRoom * 2,
-          left: -shadowRoom,
-          position: 'absolute',
-          top: -shadowRoom,
-          width: width + shadowRoom * 2,
-        }}
+        style={{ height, left: 0, position: 'absolute', top: 0, width }}
       >
         <HStack
           modifiers={[
@@ -246,7 +200,6 @@ export const GlassSurfaceIos = memo(function GlassSurfaceIos({
               shape,
               ...(shape === 'roundedRectangle' ? { cornerRadius } : null),
             }),
-            ...(shadow ? [shadowModifier(shadow)] : []),
           ]}
         >
           <Spacer />
@@ -262,7 +215,7 @@ const styles = StyleSheet.create({
 
 /**
  * The trophy banner's injected surface — hand it to `TrophyOverlay`'s
- * `underlay` and the banner becomes a clear shell over this, shadow included.
+ * `underlay` and the banner becomes a clear shell over this.
  *
  * Both apps call it, so the two unlock banners are one surface rather than one
  * app's glass beside another's solid card (which is what they were).
@@ -285,18 +238,18 @@ const styles = StyleSheet.create({
  * no shadow here, no hairline on the now-playing banner, nothing on the
  * snackbar. Re-measure before adding any of it back.
  *
- * The corner defaults to the family's, which is also what the banner's own
- * shell takes — the two MUST agree, and they drifted apart once already when
- * the apps passed their card radius here and to the shell separately.
+ * The corner is the family's, which is also what the banner's own shell
+ * takes — the two MUST agree, and they drifted apart once already when the
+ * apps passed their card radius here and to the shell separately.
  *
  * Call it at module scope — the identity has to be stable across renders.
  */
 export const makeGlassUnderlay =
-  (cornerRadius: number = FLOATING_RADIUS) =>
+  () =>
   ({ width, height }: { width: number; height: number }): ReactNode => (
     <GlassSurfaceIos
       width={width}
       height={height}
-      cornerRadius={cornerRadius}
+      cornerRadius={FLOATING_RADIUS}
     />
   );

@@ -32,9 +32,8 @@ import {
 /**
  * Thin adapter over the shared `ManageAccountScreen` (the package resolves its
  * native SwiftUI `Form` twin — this screen used to hand-roll grouped rows out
- * of RN views, which read as an imitation of the real control). No `privacy`
- * section: this is a personal app with no social module. Only the delete
- * CONFIRMATION is platform-specific.
+ * of RN views, which read as an imitation of the real control). Only the
+ * delete CONFIRMATION is platform-specific.
  *
  * ANDROID'S DIALOG BECOMES THREE THINGS HERE, and none of them is a timer. A
  * `UIAlertController` cannot disable, relabel or go busy, so a countdown would

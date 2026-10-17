@@ -7,7 +7,6 @@ import {
   Form,
   Host,
   LabeledContent,
-  Link,
   Picker,
   Section,
   Text,
@@ -42,17 +41,13 @@ const styles = StyleSheet.create({
  * that ever grew one would have silently dropped it. One definition also means
  * the chevron rule below is stated once.
  *
- * Three shapes, decided by the row rather than by which card it is in:
- *
- *  - `onPress` runs on tap and WINS over `url` (that precedence was written for
- *    a version-row easter egg, removed in 2026-07 when the legal pages took the
- *    slot, and the legal rows use it now);
- *  - `url` becomes a native `Link` that hands off to the browser;
- *  - neither is a plain fact, e.g. a version number.
+ * Two shapes, decided by the row rather than by which card it is in: a row
+ * with `onPress` runs it on tap (the legal rows), and one without is a plain
+ * fact, e.g. a version number.
  *
  * `foregroundStyle` keeps the label from picking up the control tint inside a
- * `Button` or a `Link` — in Apple's Settings blue means "do something", and a
- * policy link that hands off to Safari is not that.
+ * `Button` — in Apple's Settings blue means "do something", and a policy link
+ * that hands off to Safari is not that.
  */
 const InfoRow = ({
   row,
@@ -63,7 +58,7 @@ const InfoRow = ({
 }) => {
   // Valueless rows (the legal links) render as a plain label — LabeledContent
   // with empty trailing text reads as a broken row.
-  const label = row.value ? (
+  const content = row.value ? (
     <LabeledContent label={row.label}>
       {/* SwiftUI dims a LabeledContent's trailing text to the secondary style,
           which reads as "disabled" next to the link rows — those sit inside a
@@ -75,8 +70,6 @@ const InfoRow = ({
     <Text>{row.label}</Text>
   );
 
-  const content = label;
-
   if (row.onPress)
     return (
       <Button
@@ -85,16 +78,6 @@ const InfoRow = ({
       >
         {content}
       </Button>
-    );
-
-  if (row.url)
-    return (
-      <Link
-        destination={row.url}
-        modifiers={[foregroundStyle(colors.onSurface)]}
-      >
-        {content}
-      </Link>
     );
 
   return content;

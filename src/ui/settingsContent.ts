@@ -1,6 +1,5 @@
 import type {
   SettingsAboutConfig,
-  SettingsInfoRow,
   SettingsRadioSection,
 } from './SettingsScreen';
 
@@ -77,9 +76,6 @@ export const buildGeneralSettingsSections = <
 export const buildAboutSettingsSection = (
   t: Translate,
   appVersion: string,
-  /** App-specific trailing rows, e.g. Topper's legal-page links (stores
-   *  require the privacy policy reachable from inside the app). */
-  extraRows: SettingsInfoRow[] = [],
 ): SettingsAboutConfig => ({
   title: t('settings.about.title'),
   rows: [
@@ -87,6 +83,5 @@ export const buildAboutSettingsSection = (
       label: t('settings.about.appVersion'),
       value: appVersion,
     },
-    ...extraRows,
   ],
 });

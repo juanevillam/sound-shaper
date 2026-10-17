@@ -124,28 +124,15 @@ const NOTE_GHOST = ' \n ';
 const DEFAULT_BOTTOM_OFFSET = 52;
 
 export function StateLab({
-  anchored = false,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   colors,
   groups,
-  onSelectGroup,
 }: {
-  /**
-   * The bar floats 8 above the bottom edge of the view it is mounted IN,
-   * which already clears the safe area and the keyboard — a thread area
-   * standing above a keyboard-driven composer (Topper's iOS comments sheet).
-   * Off, the bar reckons from the screen edge: safe inset + `bottomOffset`,
-   * or the keyboard when one is up.
-   */
-  anchored?: boolean;
   /** Height of whatever floats at the bottom of THIS surface — a tab bar on a
-   *  screen, nothing on a sheet. Ignored when `anchored`. */
+   *  screen, nothing on a sheet. */
   bottomOffset?: number;
   colors: StateLabColors;
   groups: readonly StateLabGroup[];
-  /** Called when the active group changes, for surfaces where pinning one
-   *  group has to release the other (see Topper's Explore). */
-  onSelectGroup?: (key: string) => void;
 }) {
   const { bottom } = useSafeAreaInsets();
   const { scheme } = useAppTheme();
@@ -185,20 +172,13 @@ export function StateLab({
     group.onChange(group.states[(index + delta + length) % length].value);
   };
 
-  const selectGroup = (key: string) => {
-    setActiveKey(key);
-    onSelectGroup?.(key);
-  };
-
   return (
     <View
       style={[
         styles.bar,
         {
           backgroundColor: colors.card,
-          bottom:
-            (anchored ? 0 : keyboard > 0 ? keyboard : bottom + bottomOffset) +
-            8,
+          bottom: (keyboard > 0 ? keyboard : bottom + bottomOffset) + 8,
         },
       ]}
     >
@@ -225,7 +205,7 @@ export function StateLab({
                 <SegmentedButton
                   key={option.key}
                   selected={option.key === group.key}
-                  onClick={() => selectGroup(option.key)}
+                  onClick={() => setActiveKey(option.key)}
                   modifiers={[weight(1)]}
                 >
                   <SegmentedButton.Label>

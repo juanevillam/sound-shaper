@@ -131,7 +131,7 @@ export type ManageAccountScreenProps = {
     loading?: boolean;
   };
   /**
-   * Optional destination sections between `info` and `privacy`. Untitled ones
+   * Optional destination sections between `info` and `danger`. Untitled ones
    * render as a bare card, which is what Apple does for a group whose rows say
    * what they are (on Android the bare card asks for the headerless top gap,
    * the same term the trailing sign-out card takes).
@@ -142,12 +142,6 @@ export type ManageAccountScreenProps = {
    * that was the schedule wearing a Material argument's clothes.
    */
   sections?: Array<{ title?: string; rows: ManageAccountNavRow[] }>;
-  /**
-   * Optional middle section (Topper: Privacy → Blocked users). OMIT IT
-   * ENTIRELY in an app with no social module — the section header must not
-   * render with nothing under it.
-   */
-  privacy?: { title: string; rows: ManageAccountNavRow[] };
   /**
    * The irreversible action, always last. `onPress` opens the HOST's own
    * confirmation — the countdown dialog and the native alert are different
@@ -185,8 +179,7 @@ export type ManageAccountScreenProps = {
  * nobody gets CTA'd into them next to everyday rows like Log out.
  *
  * Shared by every portfolio app and configured by props, exactly like
- * `SettingsScreen`: an app with no social module simply omits `privacy`.
- * Before this was lifted, each app had written its own — and they had already
+ * `SettingsScreen`. Before this was lifted, each app had written its own — and they had already
  * drifted onto different layouts AND different delete flows.
  */
 export const ManageAccountScreen = ({
@@ -194,7 +187,6 @@ export const ManageAccountScreen = ({
   colorScheme,
   info,
   sections,
-  privacy,
   danger,
   children,
 }: ManageAccountScreenProps) => {
@@ -231,8 +223,7 @@ export const ManageAccountScreen = ({
   );
 
   /**
-   * One grouped card of push rows — the destination `sections` and `privacy`
-   * are the same object, so they render through the same term. A HEADERLESS
+   * One grouped card of push rows — a destination section. A HEADERLESS
    * card asks for the headerless top gap, exactly as the trailing sign-out
    * card does on the Settings screen: without it the bare card lands hard
    * against the group above and reads as more rows of it.
@@ -407,13 +398,6 @@ export const ManageAccountScreen = ({
                   {navGroup(section.rows, !section.title)}
                 </React.Fragment>
               ))}
-
-              {privacy ? (
-                <>
-                  {sectionHeader(privacy.title)}
-                  {navGroup(privacy.rows)}
-                </>
-              ) : null}
 
               {/* NO HEADER, A FOOTER — Apple's shape for a destructive group,
                   taken by Android too (Juan, 2026-09-04). The header was a

@@ -75,12 +75,6 @@ export type TrophyOverlayProps = {
   colors: TrophyOverlayColors;
   strings: TrophyOverlayStrings;
   /**
-   * Banner corner radius. Defaults to the portfolio's FLOATING corner, which is
-   * what this is — apps stopped passing their CARD radius (`TILE_RADIUS`, 26),
-   * which made this the only floating surface in either app not at 22.
-   */
-  radius?: number;
-  /**
    * Optional surface layer rendered UNDER the banner content at its measured
    * size (e.g. an iOS Liquid Glass sheet via @expo/ui — injected so this
    * package stays dependency-light). When set, the banner paints NO solid
@@ -158,7 +152,6 @@ type TrophyBannerProps = {
   copy: Record<string, TrophyCopy>;
   colors: TrophyOverlayColors;
   strings: TrophyOverlayStrings;
-  radius: number;
   underlay?: TrophyOverlayProps['underlay'];
   onPress?: (id: string) => void;
   onShow?: (trophy: QueuedTrophy) => void;
@@ -182,7 +175,6 @@ const TrophyBanner = ({
   copy,
   colors,
   strings,
-  radius,
   underlay,
   onPress,
   onShow,
@@ -432,7 +424,7 @@ const TrophyBanner = ({
             }}
             style={[
               styles.banner,
-              { borderRadius: radius },
+              { borderRadius: FLOATING_RADIUS },
               // With an underlay the banner is a clear shell — the injected
               // surface (glass) provides the depth, INCLUDING its shadow: an
               // RN `shadow*` traces the view's own alpha, so a transparent
@@ -498,8 +490,8 @@ const TrophyBanner = ({
                       y={0}
                       width={bannerWidth}
                       height={bannerHeight}
-                      rx={radius}
-                      ry={radius}
+                      rx={FLOATING_RADIUS}
+                      ry={FLOATING_RADIUS}
                     />
                   </ClipPath>
                 </Defs>
@@ -620,7 +612,6 @@ export const TrophyOverlay = ({
   copy,
   colors,
   strings,
-  radius = FLOATING_RADIUS,
   underlay,
   onPress,
   onShow,
@@ -659,7 +650,6 @@ export const TrophyOverlay = ({
       copy={copy}
       colors={colors}
       strings={strings}
-      radius={radius}
       underlay={underlay}
       onPress={onPress}
       onShow={onShow}

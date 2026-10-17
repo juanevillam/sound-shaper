@@ -32,10 +32,6 @@ export type TrophySummary = {
   /** Earned count and the total, both INCLUDING platinum. */
   earned: number;
   total: number;
-  /** Earned count and total of the non-platinum objectives (the real progress). */
-  earnedObjectives: number;
-  totalObjectives: number;
-  platinumEarned: boolean;
   /**
    * The awarded cache has come back from storage. FALSE MEANS THE COUNTS ARE
    * NOT YET TRUE, and that is the reason this is surfaced: before hydration
@@ -61,16 +57,11 @@ export const useTrophies = (
 
   return useMemo(() => {
     const trophies = resolveTrophies(configs, awarded, copy);
-    const objectives = trophies.filter(trophy => trophy.tier !== 'platinum');
-    const platinum = trophies.find(trophy => trophy.tier === 'platinum');
 
     return {
       trophies,
       earned: trophies.filter(trophy => trophy.unlocked).length,
       total: trophies.length,
-      earnedObjectives: objectives.filter(trophy => trophy.unlocked).length,
-      totalObjectives: objectives.length,
-      platinumEarned: Boolean(platinum?.unlocked),
       hydrated,
     };
   }, [configs, awarded, copy, hydrated]);

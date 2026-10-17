@@ -23,11 +23,8 @@ import {
   buttonStyle,
   controlSize,
   disabled as disabledModifier,
-  font,
   frame,
   foregroundStyle,
-  keyboardType as keyboardTypeModifier,
-  lineLimit,
   listRowBackground,
   listSectionMargins,
   listRowSeparator,
@@ -241,9 +238,6 @@ type SheetFormFieldProps = {
   value: string;
   onChangeText: (next: string) => void;
   placeholder: string;
-  error?: string | null;
-  multiline?: boolean;
-  keyboardType?: 'default' | 'numberPad';
 };
 
 /**
@@ -257,11 +251,7 @@ export function SheetFormFieldIos({
   value,
   onChangeText,
   placeholder,
-  error,
-  multiline = false,
-  keyboardType = 'default',
 }: SheetFormFieldProps) {
-  const { colors } = useAppTheme();
   const text = useNativeState(value);
 
   return (
@@ -270,24 +260,7 @@ export function SheetFormFieldIos({
         text={text}
         placeholder={placeholder}
         onTextChange={onChangeText}
-        axis={multiline ? 'vertical' : 'horizontal'}
-        modifiers={[
-          keyboardTypeModifier(
-            keyboardType === 'numberPad' ? 'numeric' : 'default',
-          ),
-          ...(multiline ? [lineLimit(6, { reservesSpace: true })] : []),
-        ]}
       />
-      {error ? (
-        <SwiftUIText
-          modifiers={[
-            font({ textStyle: 'footnote' }),
-            foregroundStyle(colors.danger),
-          ]}
-        >
-          {error}
-        </SwiftUIText>
-      ) : null}
     </VStack>
   );
 }
@@ -295,38 +268,18 @@ export function SheetFormFieldIos({
 type SheetFormMediaProps = {
   /** RNHostView bridges ONE RN element into SwiftUI — not a ReactNode list. */
   children: React.ReactElement;
-  /**
-   * Already-translated label under the media — an ACTION when `onPress` is
-   * given ("Add Photo"), a muted status otherwise.
-   *
-   * OPTIONAL because a caller may render the caption INSIDE its own press
-   * target instead (Topper's item editor does, so the artwork and its label
-   * are one control — the arrangement Home's create tile uses). Omit it and
-   * this component is just the transparent, separator-less media row.
-   */
-  caption?: string;
-  /** Makes the caption the tappable half of the picker (Contacts' "Add
-   *  Photo" label). Omit while busy to render it as a plain status line. */
-  onPress?: () => void;
 };
 
 /**
- * Centred media over its caption — CONTACTS' photo-editor arrangement: the
- * row is TRANSPARENT (no grouped fill, no separator), so the artwork floats
- * directly on the sheet background with a small tinted action label under
- * it. It sat on a grouped row fill before, and the placeholder's own fill on
- * top of the row's read as a box inside a box (Juan: "looks weird") —
- * Contacts draws exactly this control with no container behind it.
+ * Centred media — CONTACTS' photo-editor arrangement: the row is TRANSPARENT
+ * (no grouped fill, no separator), so the artwork floats directly on the
+ * sheet background. Callers render the caption INSIDE their own press target,
+ * so the artwork and its label are one control. It sat on a grouped row fill
+ * before, and the placeholder's own fill on top of the row's read as a box
+ * inside a box (Juan: "looks weird") — Contacts draws exactly this control
+ * with no container behind it.
  */
-const noop = () => {};
-
-export function SheetFormMediaIos({
-  children,
-  caption,
-  onPress,
-}: SheetFormMediaProps) {
-  const { colors } = useAppTheme();
-
+export function SheetFormMediaIos({ children }: SheetFormMediaProps) {
   return (
     <VStack
       spacing={spacing.sm}
@@ -341,23 +294,6 @@ export function SheetFormMediaIos({
       <VStack modifiers={[frame({ height: mediaPickerSlotHeight() })]}>
         <RNHostView>{children}</RNHostView>
       </VStack>
-      {/* ALWAYS a Button, even for the busy status — a `Text` swapped in
-          here rendered a footnote line where a small control had been, so
-          every state change jumped the sheet's layout (Juan caught the CLS).
-          Same control, same box; only the tint and the enabled state
-          change. */}
-      {caption ? (
-        <Button
-          label={caption}
-          onPress={onPress ?? noop}
-          modifiers={[
-            buttonStyle('borderless'),
-            controlSize('small'),
-            tint(onPress ? colors.primary : colors.onSurfaceMuted),
-            ...(onPress ? [] : [disabledModifier(true)]),
-          ]}
-        />
-      ) : null}
     </VStack>
   );
 }
@@ -370,9 +306,9 @@ export function SheetFormMediaIos({
  * wearing an iOS palette, and a different imitation per screen. One stack, so
  * the button is the platform's button.
  *
- * It is a modifier stack rather than a component because its callers
- * (`EmptyState.ios`, `WelcomeScreen.ios`) put the `Button` inside a SwiftUI
- * tree they already host, and a `Host` cannot nest inside another one.
+ * It is a modifier stack rather than a component because its caller
+ * (`EmptyState.ios`) puts the `Button` inside a SwiftUI tree it already
+ * hosts, and a `Host` cannot nest inside another one.
  *
  * MONOCHROME ONLY WHERE IT STILL READS AS A BUTTON (2026-08-22). The FILLED
  * variant takes the ink: a solid black-in-light, white-in-dark capsule is
