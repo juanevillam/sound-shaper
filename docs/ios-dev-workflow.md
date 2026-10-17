@@ -153,6 +153,11 @@ This is a one-time step per app per device — the launcher remembers.
 
 ## Provisioning profiles expire every 7 days (free team)
 
+> **Sound Shaper is OFF this clock since 2026-10-16** — it signs with Grostify
+> LLC's paid team (`PHLR7X3FGN`), whose development profiles last a year and
+> whose device installs need no "trust this developer" step. What follows is
+> Topper's and Booker's, which still sign with the free team.
+
 A free personal team caps profiles at 7 days, and they are minted at different
 times, so they drift out of sync. Inspect them:
 
@@ -168,14 +173,19 @@ regenerates on the next signed build. Note that `-allowProvisioningUpdates`
 first is what actually resets the clock.
 
 When apps stop launching on the phone, nothing is broken — the profile expired.
-Rebuild. The permanent fix is the $99/yr Apple Developer Program — enrollment
-pending, see [`apple-developer-enrollment.md`](apple-developer-enrollment.md).
+Rebuild. Juan's own paid membership was abandoned (see
+[`apple-developer-enrollment.md`](apple-developer-enrollment.md)); Sound Shaper
+moved to Grostify's instead.
 
 Free team also caps you at **3 apps** on the device — exactly this repo's three
 (Topper, Sound Shaper, Booker) — so a fourth app means removing one first, and
 any stray test install on the iPhone blocks a real one.
 
-## Sign in with Apple is off, on purpose
+## Sign in with Apple is off on the free team, on purpose
+
+**Sound Shaper has it ON (2026-10-16)**, signed by Grostify's paid team: no flag,
+no strip plugin, `ios.usesAppleSignIn: true` — see its `AGENTS.md`. The rest of
+this section is Topper's and Booker's.
 
 The `com.apple.developer.applesignin` entitlement needs a **paid** membership,
 so a free team cannot sign any app that declares it. It is stripped by
@@ -243,8 +253,9 @@ installed an empty pod directory. See
 ## Widgets, and what the free team turned out to allow
 
 Both Topper and Sound Shaper ship a Home Screen widget as an app extension with
-its own bundle id (`com.juanevillam.<app>.widget`), built by
-`@bacons/apple-targets` from `apps/<app>/targets/widget`.
+its own bundle id (`com.juanevillam.<app>.widget` — Sound Shaper's is
+`.widgets` since it moved to Grostify's team, the free team still holding the
+original), built by `@bacons/apple-targets` from `apps/<app>/targets/widget`.
 
 **APP GROUPS WORK ON THE FREE PERSONAL TEAM.** This was the open question before
 the first device build and the answer is yes: `xcodebuild … -allowProvisioningUpdates`
