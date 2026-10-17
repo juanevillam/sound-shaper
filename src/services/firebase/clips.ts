@@ -20,7 +20,11 @@ import {
   SOUNDS_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
-import { reported, reportedOnError } from '@/services/firebase/crashlytics';
+import {
+  recordError,
+  reported,
+  reportedOnError,
+} from '@/services/firebase/crashlytics';
 
 // A clip is a personal bookmark into a sound: "the part I love, from here to
 // here". Purely for the owner's replay — nothing is shared.
@@ -94,6 +98,60 @@ export const subscribeToClips = ({
     next: snapshot => onNext(snapshot.docs.map(clipToModel)),
   });
 };
+
+/**
+ * WHAT ALL CLIPS REPEAT NEEDS AND NOTHING ELSE HAS: the clips of sounds that
+ * are not open. The live store holds only the sound the console is showing
+ * (`useClipsSubscription`), so when the Clips sheet's Repeat runs past a
+ * sound's last clip the next sound's list comes from here.
+ *
+ * ONE `getDocs` PER SOUND, ON DEMAND, NOT A COLLECTION-GROUP QUERY. A group
+ * query would be one round trip, but it needs a `match /{path=**}/clips/...`
+ * rule and an index — the wider read surface `deleteClipsOfSound` already
+ * declined to open. A personal library is small, persistence answers from
+ * disk, and this is asked once per sound per session at most.
+ *
+ * THE CACHE IS PER SESSION AND DIES ON SIGN-OUT (`forgetClipsOfSounds`), like
+ * every other cache of one account's library. It is a snapshot, so a clip
+ * edited on ANOTHER device since it was taken is seen late; the open sound's
+ * live list always wins over it at the call site. A sound whose read fails is
+ * simply not cached — it counts as having no clips this time and is asked
+ * again next time.
+ */
+const clipsOfSoundCache = new Map<string, Clip[]>();
+
+export const getClipsOfSounds = async (
+  soundIds: readonly string[],
+): Promise<Record<string, Clip[]>> => {
+  const missing = soundIds.filter(id => !clipsOfSoundCache.has(id));
+
+  await Promise.all(
+    missing.map(async soundId => {
+      try {
+        const snapshot = await getDocs(
+          query(clipsCollection(soundId), orderBy('startMs', 'asc')),
+        );
+        clipsOfSoundCache.set(soundId, snapshot.docs.map(clipToModel));
+      } catch (error) {
+        recordError(error, 'clips.getClipsOfSounds');
+      }
+    }),
+  );
+
+  return Object.fromEntries(
+    soundIds.flatMap(id => {
+      const clips = clipsOfSoundCache.get(id);
+      return clips ? [[id, clips]] : [];
+    }),
+  );
+};
+
+/** What `getClipsOfSounds` already holds for one sound, without asking. */
+export const cachedClipsOfSound = (soundId: string): Clip[] | undefined =>
+  clipsOfSoundCache.get(soundId);
+
+/** Sign-out: the cached lists are the signed-out account's clips. */
+export const forgetClipsOfSounds = (): void => clipsOfSoundCache.clear();
 
 /**
  * Write a new clip. THE ID IS MINTED ON THE PHONE (`doc(collection)`), so the

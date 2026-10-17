@@ -14,8 +14,10 @@ import {
   consumeManualSignOutFlag,
   subscribeToAuthChanges,
 } from '@/services/firebase/auth';
+import { forgetClipsOfSounds } from '@/services/firebase/clips';
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { useClipRepeatStore } from '@/store/clipRepeat';
 import { useClipsStore } from '@/store/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { useListeningStore } from '@/store/listening';
@@ -47,6 +49,10 @@ export const useAuthListener = () => {
         usePlayerStore.getState().reset();
         useSoundsStore.getState().clear();
         useClipsStore.getState().clear();
+        // The Clips sheet's Repeat, and the other sounds' clips All Clips
+        // read: one account's choice and one account's clips.
+        useClipRepeatStore.getState().reset();
+        forgetClipsOfSounds();
         useProfileStore.getState().clear();
         /**
          * THE TWO PERSISTED TROPHY COUNTERS ARE USER-SCOPED TOO, and they were

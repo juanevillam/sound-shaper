@@ -1,11 +1,26 @@
 import { create } from 'zustand';
 
 import { audioEngine } from '@/lib/audioEngine';
+import { nextClip, type ClipRange, type NextClip } from '@/lib/clipQueue';
+import {
+  cachedClipsOfSound,
+  getClipsOfSounds,
+  type Clip,
+} from '@/services/firebase/clips';
 import { type Sound } from '@/services/firebase/sounds';
+import { useClipRepeatStore } from '@/store/clipRepeat';
+import { useClipsStore } from '@/store/clips';
+import { useSoundsStore } from '@/store/sounds';
 
 // Restart-vs-previous threshold: past this many seconds into a sound, the
 // "previous" control restarts it instead (the universal music-app idiom).
 export const RESTART_THRESHOLD_S = 3;
+
+/** A clip being replayed — see `PlayerState.activeClip`. */
+export type ActiveClip = { clipId: string; startS: number; endS: number };
+
+/** The clip editor's preview borrows `activeClip` under this id. */
+const PREVIEW_CLIP_ID = 'preview';
 
 // Global playback state. WHAT is playing (sound + its playlist queue), the
 // user's shaping choices (rate, pitch), and the live transport (position /
@@ -65,10 +80,18 @@ type PlayerState = {
    * tick must never re-publish the info dictionary, only discontinuities.
    */
   seekNonce: number;
-  // A clip being replayed: playback auto-pauses at `endS`. Cleared by a manual
-  // scrub, a track change, or the clip running out. Keyed by the clip id so
-  // the clips list can highlight the active row.
-  activeClip: { clipId: string; startS: number; endS: number } | null;
+  // A clip being replayed: at `endS` the Clips sheet's Repeat decides what
+  // happens (`continueRun`) — with Repeat off it auto-pauses there, as it
+  // always has. Cleared by a manual scrub, a track change, or the clip running
+  // out. Keyed by the clip id so the clips list can highlight the active row.
+  activeClip: ActiveClip | null;
+  /**
+   * A clip of the sound that is LOADING, to be started once it has — how All
+   * Clips (or any repeat that has to reload) crosses to another sound. Set
+   * only by `continueRun`; picked up by `onLoaded`; cleared by every (re)load
+   * through `loadReset`, so a skip during the load cancels it.
+   */
+  pendingClip: ActiveClip | null;
   // Mirror of the PlayerSheet's expanded state, so screens' own Android-back
   // handlers can yield to the sheet's collapse handler.
   sheetExpanded: boolean;
@@ -100,12 +123,68 @@ type PlayerState = {
   setDuration: (seconds: number) => void;
   setPlaying: (playing: boolean) => void;
   onEnded: () => void;
+  /** The fresh `<Audio>` has loaded and its handle is registered. */
+  onLoaded: () => void;
 };
 
 // A freshly loaded stream always starts at 0, but the OUTGOING <Audio> can
 // emit one last position before it unmounts. Below this, a reported time
 // counts as "the new stream has actually started".
 const START_EPSILON_S = 1;
+
+/**
+ * THE CLIP RUN — what the Clips sheet's Repeat keeps going, and what ends it.
+ *
+ * A run starts when a person plays a saved clip (`playClip`) and continues at
+ * each clip's end for as long as the Repeat mode has an answer
+ * (`lib/clipQueue.ts`). It ENDS, exactly where a single clip replay always
+ * ended, on any manual move of the playhead or the sound: a scrub or a ±15
+ * skip (`seek`), next / previous (including the restart), picking a sound,
+ * playing another clip (which starts a new run), the sound being deleted,
+ * and sign-out. Each of those already clears `activeClip`; they also call
+ * `endRun`, which invalidates any continuation still in flight.
+ *
+ * PAUSE DOES NOT END IT. Pausing and resuming — in the app, on the Lock
+ * Screen, from a headset — leaves `activeClip` standing, so the run carries
+ * on from where it was. The clip editor's preview is never part of a run.
+ */
+let runToken = 0;
+
+/**
+ * AFTER A JUMP, THE ENGINE'S NEXT REPORT CAN STILL BE FROM BEFORE IT. A seek
+ * lands ~100ms later, and the report in between sits at the old clip's end —
+ * which, looping one clip, is past the very boundary that just fired, so the
+ * loop would seek again on every tick until the engine caught up. Reports
+ * outside the new clip are dropped until one lands inside it, or until the
+ * window runs out (a seek that failed must not freeze the scrubber).
+ */
+let settle: { startS: number; endS: number; until: number } | null = null;
+const SETTLE_WINDOW_MS = 1500;
+const SETTLE_SLACK_S = 0.25;
+
+/** All Clips is waiting on other sounds' clips — see `continueRun`. */
+let fetching = false;
+/** The element ran out while `fetching`, so the continuation must reload. */
+let endedWhileFetching = false;
+
+const endRun = (): void => {
+  runToken++;
+  settle = null;
+  fetching = false;
+  endedWhileFetching = false;
+};
+
+const toRange = (clip: ActiveClip): ClipRange => ({
+  endMs: clip.endS * 1000,
+  id: clip.clipId,
+  startMs: clip.startS * 1000,
+});
+
+const toActive = (clip: ClipRange): ActiveClip => ({
+  clipId: clip.id,
+  endS: clip.endMs / 1000,
+  startS: clip.startMs / 1000,
+});
 
 /**
  * RESTART THE SOUND THAT IS ALREADY LOADED — a seek, not a reload.
@@ -130,6 +209,7 @@ const restartLoaded = (
   // or a clip whose start is 0 parked by its boundary), an unguarded seek(0)
   // leaves `pendingOffloadedSeeks` standing and the play() below starts
   // nothing.
+  endRun();
   if (positionNowS > 0.05) audioEngine.seek(0);
   audioEngine.play();
   // `pendingStart` for the same reason a reload sets it: a position report can
@@ -177,6 +257,7 @@ const nextSeekNonce = () => ++seekNonceCounter;
 // known sounds never flashes the scrubber's `-:--` placeholder.
 const loadReset = (nonce: number, sound?: Sound | null) => ({
   activeClip: null,
+  pendingClip: null,
   position: 0,
   duration: sound?.durationMs ? sound.durationMs / 1000 : 0,
   loadNonce: nonce + 1,
@@ -200,6 +281,7 @@ const clearedForMissing = (
   current: null,
   playing: false,
   activeClip: null,
+  pendingClip: null,
   position: 0,
   duration: 0,
   loadNonce: state.loadNonce + 1,
@@ -218,23 +300,37 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   playing: false,
   seekNonce: 0,
   activeClip: null,
+  pendingClip: null,
   sheetExpanded: false,
   setSheetExpanded: sheetExpanded => set({ sheetExpanded }),
 
   // Selecting a sound always (re)loads and plays it from the start — the
   // <AudioEngine> plays on load because `playing` is true.
-  playSound: (sound, queue) =>
+  playSound: (sound, queue) => {
+    endRun();
     set(state => ({
       current: sound,
       queue,
       playing: true,
       ...loadReset(state.loadNonce, sound),
-    })),
+    }));
+  },
 
   requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
 
   playClip: (clipId, startMs, endMs) => {
-    if (!get().current) return;
+    const sound = get().current;
+    if (!sound) return;
+
+    // A new run. All Clips will want the other sounds' clips when this
+    // sound's run out, so they are asked for now rather than at the boundary.
+    endRun();
+    if (
+      clipId !== PREVIEW_CLIP_ID &&
+      useClipRepeatStore.getState().mode === 'all'
+    ) {
+      void getClipsOfSounds(useSoundsStore.getState().sounds.map(s => s.id));
+    }
 
     const startS = startMs / 1000;
     /**
@@ -321,6 +417,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const { current, queue } = get();
     if (!current) return;
 
+    endRun();
+
     const index = queue.findIndex(sound => sound.id === current.id);
     const nextSound =
       queue.length > 0 ? queue[(index + 1) % queue.length] : undefined;
@@ -355,6 +453,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
 
+    endRun();
     set(state => ({
       current: previousSound,
       playing: true,
@@ -368,7 +467,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // already clamped at either edge — paused, each left the engine's
     // pending-seek count standing and the next play started nothing.
     if (Math.abs(get().position - seconds) > 0.05) audioEngine.seek(seconds);
-    // A manual scrub ends any clip replay.
+    // A manual scrub ends any clip replay, and with it the run.
+    endRun();
     set({ position: seconds, activeClip: null, seekNonce: nextSeekNonce() });
   },
 
@@ -389,6 +489,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // The loaded sound was deleted — stop playback and clear the player so the
     // banner disappears (a deleted sound must not stay playable).
     audioEngine.pause();
+    endRun();
     set(state => clearedForMissing(state, nextQueue));
   },
 
@@ -446,6 +547,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     if (!freshCurrent) {
       audioEngine.pause();
+      endRun();
       set(state => clearedForMissing(state, nextQueue));
       return;
     }
@@ -464,6 +566,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   reset: () => {
     audioEngine.pause();
+    endRun();
     set({
       current: null,
       queue: [],
@@ -473,6 +576,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       duration: 0,
       playing: false,
       activeClip: null,
+      pendingClip: null,
     });
   },
 
@@ -487,12 +591,22 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       set({ pendingStart: false });
     }
 
+    if (settle) {
+      const landed =
+        seconds >= settle.startS - SETTLE_SLACK_S && seconds < settle.endS;
+      if (!landed && Date.now() < settle.until) return;
+      settle = null;
+    }
+
     set({ position: seconds });
 
-    // End an active clip replay: pause at its boundary and park back on the
-    // clip start so a plain play replays it.
+    // A clip ran out. Repeat decides what comes next; with nothing next (Off,
+    // or nothing left to play) the replay ends as it always has: pause at
+    // the boundary and park back on the clip start so a plain play replays it.
     const clip = get().activeClip;
     if (clip && get().playing && seconds >= clip.endS) {
+      if (fetching || continueRun(clip, false)) return;
+
       audioEngine.pause();
       audioEngine.seek(clip.startS);
       set({
@@ -515,8 +629,16 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   // Playing THROUGH the last sound parks it paused rather than looping the
   // library forever; only an explicit skip wraps.
   onEnded: () => {
-    const { current, queue } = get();
+    const { activeClip, current, queue } = get();
     if (!current) return;
+
+    // A clip that runs to the very end of its sound ends HERE rather than at
+    // its boundary, and an ended element has to be reloaded to play again.
+    if (activeClip && fetching) {
+      endedWhileFetching = true;
+      return;
+    }
+    if (activeClip && continueRun(activeClip, true)) return;
 
     const index = queue.findIndex(sound => sound.id === current.id);
     const isLast = index === -1 || index === queue.length - 1;
@@ -532,4 +654,173 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     get().next();
   },
+
+  /**
+   * START THE CLIP A REPEAT CROSSED TO, now that its sound has loaded. Called
+   * by `<AudioEngine>`'s `onLoad` after the new handle is registered and
+   * BEFORE it plays, so the seek travels with that play — the half of the
+   * no-op-seek trap that a seek on a paused graph falls into.
+   *
+   * So if the person paused while the sound was loading, the clip is NOT
+   * started: seeking a graph nothing is about to play leaves the engine's
+   * pending-seek count standing and the next play dies. The run ends there
+   * and the sound sits paused at its start, as any paused load does.
+   */
+  onLoaded: () => {
+    const pending = get().pendingClip;
+    if (!pending) return;
+
+    if (!get().playing) {
+      endRun();
+      set({ pendingClip: null });
+      return;
+    }
+
+    // A fresh stream sits at 0, so the guard only skips a clip AT 0.
+    if (pending.startS > 0.05) audioEngine.seek(pending.startS);
+    settle = {
+      startS: pending.startS,
+      endS: pending.endS,
+      until: Date.now() + SETTLE_WINDOW_MS,
+    };
+    set({
+      activeClip: pending,
+      pendingClip: null,
+      // The load's own guard is answered by `settle` from here on, and it
+      // would otherwise wait for a report under 1s that a clip deep in the
+      // sound never sends.
+      pendingStart: false,
+      position: pending.startS,
+      seekNonce: nextSeekNonce(),
+    });
+  },
 }));
+
+// --- The clip run's continuation ------------------------------------------
+// Module functions over the store rather than closures inside it: they are
+// reached only from the store's own actions, long after it exists.
+const getPlayer = () => usePlayerStore.getState();
+const setPlayer = usePlayerStore.setState;
+/**
+ * Carry a run on past `finished`, or say it is over (`false`, and the
+ * caller ends the replay as it always has). `ended` means the element
+ * itself ran out, so even the same sound has to reload to play again.
+ */
+const continueRun = (finished: ActiveClip, ended: boolean): boolean => {
+  const mode = useClipRepeatStore.getState().mode;
+  const sound = getPlayer().current;
+  if (mode === 'off' || finished.clipId === PREVIEW_CLIP_ID || !sound) {
+    return false;
+  }
+
+  const library = useSoundsStore.getState().sounds;
+  const live = useClipsStore.getState().bySoundId;
+  const decide = (fetched: Record<string, Clip[]>) =>
+    nextClip({
+      // The open sound's LIVE list wins over any snapshot — it is the one
+      // the sheet is showing, edits and deletions included.
+      clipsBySound: { ...fetched, ...live },
+      current: toRange(finished),
+      libraryOrder: library.map(s => s.id),
+      mode,
+      soundId: sound.id,
+    });
+
+  // All Clips needs every sound's list to know which one comes next. They
+  // were asked for when the run started; if any are still missing the
+  // sound plays on past the boundary for the moment it takes to read them
+  // (from Firestore's disk cache, usually), and the run resumes after.
+  const unknown =
+    mode === 'all' &&
+    library.some(s => !live[s.id] && !cachedClipsOfSound(s.id));
+
+  if (!unknown) {
+    const fetched: Record<string, Clip[]> = {};
+    for (const s of library) {
+      const cached = cachedClipsOfSound(s.id);
+      if (cached) fetched[s.id] = cached;
+    }
+    const target = decide(fetched);
+    return target ? jumpTo(target, ended) : false;
+  }
+
+  const token = runToken;
+  fetching = true;
+  void getClipsOfSounds(library.map(s => s.id)).then(fetched => {
+    if (token !== runToken) return;
+    const reload = ended || endedWhileFetching;
+    fetching = false;
+    endedWhileFetching = false;
+
+    const target = decide(fetched);
+    if (target && jumpTo(target, reload)) return;
+
+    // Nothing to go on to after all: end the replay the Off way.
+    endRun();
+    audioEngine.pause();
+    if (!reload) audioEngine.seek(finished.startS);
+    setPlayer(
+      reload
+        ? state => ({
+            playing: false,
+            ...loadReset(state.loadNonce, state.current),
+          })
+        : {
+            activeClip: null,
+            playing: false,
+            position: finished.startS,
+            seekNonce: nextSeekNonce(),
+          },
+    );
+  });
+
+  return true;
+};
+
+/** Make `target` the clip that is sounding. */
+const jumpTo = (target: NextClip, ended: boolean): boolean => {
+  const current = getPlayer().current;
+  if (!current) return false;
+
+  const clip = toActive(target.clip);
+
+  if (target.soundId === current.id && !ended) {
+    // The no-op-seek trap `playClip` documents: a clip that starts exactly
+    // where the last one ended needs no seek at all, and must not get one.
+    if (Math.abs(getPlayer().position - clip.startS) > 0.05) {
+      audioEngine.seek(clip.startS);
+    }
+    audioEngine.play();
+    settle = {
+      startS: clip.startS,
+      endS: clip.endS,
+      until: Date.now() + SETTLE_WINDOW_MS,
+    };
+    setPlayer({
+      activeClip: clip,
+      playing: true,
+      position: clip.startS,
+      seekNonce: nextSeekNonce(),
+    });
+    return true;
+  }
+
+  // Another sound (or this one, ended): the ordinary load path, which picks
+  // the mirrored file when there is one, and `onLoaded` starts the clip.
+  // The queue is left alone — it is the library the transport skips
+  // through, and moving within it is what `current` already says.
+  const sound =
+    target.soundId === current.id
+      ? current
+      : useSoundsStore.getState().sounds.find(s => s.id === target.soundId);
+  if (!sound) return false;
+
+  settle = null;
+  setPlayer(state => ({
+    current: sound,
+    playing: true,
+    ...loadReset(state.loadNonce, sound),
+    pendingClip: clip,
+  }));
+  return true;
+};

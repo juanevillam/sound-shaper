@@ -115,6 +115,9 @@ export function AudioEngine() {
     audioEngine.registerHandle(tag);
     audioEngine.buildGraph(tag);
     void audioEngine.activateSession();
+    // A repeat that crossed to this sound seeks to its clip here, before the
+    // play below — see the store's `onLoaded`.
+    usePlayerStore.getState().onLoaded();
     if (usePlayerStore.getState().playing) tag.play();
   }, []);
 
