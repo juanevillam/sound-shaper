@@ -1,9 +1,5 @@
 import { View } from 'react-native';
 
-import {
-  HeaderGlyphButtonIos,
-  HeaderGlyphGroupIos,
-} from '@portfolio/mobile-ui';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { ClipTrimEditor } from '@/components/player/ClipTrimEditor';
@@ -11,6 +7,7 @@ import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
+import { HeaderGlyphButtonIos, HeaderGlyphGroupIos } from '@/ui';
 
 // The Voice Memos-style clip editor, pushed as its own full-height sheet over
 // the Clips list (the trophies-over-account stacking). It OWNS the committed

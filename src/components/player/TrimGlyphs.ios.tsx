@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 
 import { Image } from '@expo/ui/swift-ui';
-import { SwiftUIHost } from '@portfolio/mobile-ui';
+
+import { SwiftUIHost } from '@/ui';
 
 import { type TrimGlyphProps } from './TrimGlyphs';
 

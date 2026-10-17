@@ -9,9 +9,11 @@ import {
   Text as ComposeText,
 } from '@expo/ui/jetpack-compose';
 import { height, weight } from '@expo/ui/jetpack-compose/modifiers';
-import { useAppTheme } from '@portfolio/core';
+
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useAppTheme } from '@/core';
 
 import { TEXT_VARIANTS } from './createText';
 import {

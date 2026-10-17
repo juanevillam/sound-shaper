@@ -14,7 +14,7 @@ type ThemeState = {
 /**
  * Theme preference (`light` / `dark` / `system`), persisted across launches and
  * read by `useAppTheme`. Kept separate from locale so it carries no app-specific
- * coupling — `useAppTheme` can live in `@portfolio/core` and every app shares it.
+ * coupling — `useAppTheme` can live in `src/core` and every app shares it.
  * `hasHydrated` lets the root layout hold the splash until the value is restored,
  * avoiding a flash of the default theme.
  */

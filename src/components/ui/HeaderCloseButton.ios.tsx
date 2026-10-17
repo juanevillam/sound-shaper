@@ -1,10 +1,7 @@
-import {
-  HEADER_CLOSE_GLYPH_SIZE,
-  HeaderGlyphButtonIos,
-} from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 
 import { useI18n } from '@/i18n';
+import { HEADER_CLOSE_GLYPH_SIZE, HeaderGlyphButtonIos } from '@/ui';
 
 // A sheet's dismiss action. `xmark`, not "Done": nothing is being committed —
 // Settings and the account screen apply as you go, so there is no edit to

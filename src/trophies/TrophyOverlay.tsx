@@ -14,14 +14,6 @@ import {
   View,
 } from 'react-native';
 
-import { SCREEN_PADDING } from '@portfolio/core';
-import {
-  FLOATING_COPY_GAP,
-  FLOATING_EDGE_GAP,
-  FLOATING_RADIUS,
-  usePressSquash,
-} from '@portfolio/mobile-ui';
-
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -45,6 +37,14 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
+
+import { SCREEN_PADDING } from '@/core';
+import {
+  FLOATING_COPY_GAP,
+  FLOATING_EDGE_GAP,
+  FLOATING_RADIUS,
+  usePressSquash,
+} from '@/ui';
 
 import { useTrophyStore } from './store';
 import { tierColor } from './tierColors';

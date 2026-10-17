@@ -1,5 +1,6 @@
-import { withAlpha } from '@portfolio/core';
 import Svg, { Path } from 'react-native-svg';
+
+import { withAlpha } from '@/core';
 
 /**
  * iOS's disclosure chevron, for a custom row whose tap PUSHES a screen. A

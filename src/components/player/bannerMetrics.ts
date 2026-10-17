@@ -1,8 +1,7 @@
 import { Platform } from 'react-native';
 
-import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@portfolio/mobile-ui';
-
 import { SCREEN_PADDING } from '@/styles/metrics';
+import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@/ui';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -17,14 +16,14 @@ import { SCREEN_PADDING } from '@/styles/metrics';
  * dev bar positioned at `bottom: NaN` rendered at the top of the screen.
  *
  * Nothing here may import anything that could reach back into the player.
- * Styles and `@portfolio/mobile-ui` are safe — a package never imports an app,
+ * Styles and `src/ui` are safe — a package never imports an app,
  * so neither can close the cycle. Anything that needs the banner's box imports
  * it from HERE, `PlayerSheet` included.
  */
 
 /**
  * The banner's HEIGHT and its iOS bottom gap are the PORTFOLIO'S, not this
- * app's — `SNACKBAR_BOTTOM_CLEARANCE` in `@portfolio/mobile-ui` is derived from
+ * app's — `SNACKBAR_BOTTOM_CLEARANCE` in `src/ui` is derived from
  * them, so the toast in EVERY app is positioned by this banner. The package
  * restated them as `8 + 68` while they lived here, with a comment admitting a
  * drift would go unnoticed; they moved the day a third surface (the expanded
@@ -36,7 +35,7 @@ import { SCREEN_PADDING } from '@/styles/metrics';
 export {
   MINI_PLAYER_HEIGHT,
   NOW_PLAYING_BOTTOM_GAP_IOS as BANNER_BOTTOM_GAP_IOS,
-} from '@portfolio/mobile-ui';
+} from '@/ui';
 
 /**
  * Gap from the banner to each screen edge. It is the SCREEN GUTTER, not a

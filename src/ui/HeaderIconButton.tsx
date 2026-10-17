@@ -1,7 +1,7 @@
 import { Box, Host, IconButton } from '@expo/ui/jetpack-compose';
 import { size } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 import { AppIcon } from './AppIcon';
 import type { IconName } from './icons';

@@ -2,11 +2,10 @@ import { type ReactNode } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { SnackbarOutlet } from '@portfolio/mobile-ui';
-
 // DEV LAB — these imports and the picker below go with `src/dev`.
 import { UI_STATE_LAB, type LabScreen } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
+import { SnackbarOutlet } from '@/ui';
 
 /**
  * THE ROOT OF A FULL-HEIGHT iOS FORM SHEET — one definition, for every route
@@ -36,7 +35,7 @@ export const SHEET_TOAST_INSET = 16;
 /**
  * THE FAMILY'S SHEET GEOMETRY, re-exported so this app's sheets keep importing
  * it from the component they already import — the definitions live in
- * `@portfolio/mobile-ui/sheetMetrics`, because `SheetFormIos` is in that
+ * `src/ui`/sheetMetrics`, because `SheetFormIos` is in that
  * package and the editors need the same numbers.
  *
  * `SHEET_BONE_TOP` is the alias for `SHEET_CONTENT_TOP`: where a bone stands
@@ -45,7 +44,7 @@ export const SHEET_TOAST_INSET = 16;
 export {
   SHEET_CONTENT_TOP as SHEET_BONE_TOP,
   SHEET_EMPTY_HEADER_SLOT,
-} from '@portfolio/mobile-ui';
+} from '@/ui';
 
 export function SheetScreen({
   children,

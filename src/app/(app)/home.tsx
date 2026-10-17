@@ -2,12 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import {
-  DRAG_ACTIVE_SCALE,
-  StateWrap,
-  EmptyState,
-  useHeaderScroll,
-} from '@portfolio/mobile-ui';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Animated, {
@@ -65,6 +59,12 @@ import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import { useSoundsStore } from '@/store/sounds';
 import { TILE_GAP, SCREEN_PADDING } from '@/styles/metrics';
+import {
+  DRAG_ACTIVE_SCALE,
+  StateWrap,
+  EmptyState,
+  useHeaderScroll,
+} from '@/ui';
 
 /**
  * ONE GRID CELL — a sound, or the add tile.
@@ -533,7 +533,7 @@ export default function HomeScreen() {
           glyphs staying put in the bar the whole way. Same bar Topper's iOS
           home runs, which is what makes the two read as one family; it
           replaced a hand-built Reanimated collapse (`CollapsingHeaderBar` +
-          `CollapsingHeaderTitle` — deleted from @portfolio/mobile-ui
+          `CollapsingHeaderTitle` — deleted from `src/ui`
           2026-08-27; Android's home never used it either) whose bar buttons
           had to ask SwiftUI for `.glassEffect` by hand because there was no
           real navigation bar to take the material from.

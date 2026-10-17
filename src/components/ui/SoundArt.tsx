@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { type StyleProp, type ViewStyle } from 'react-native';
 
-import { InitialArt, type MediaContainer } from '@portfolio/mobile-ui';
-
 import { ArtImage } from '@/components/ui/ArtImage';
+import { InitialArt, type MediaContainer } from '@/ui';
 
 type SoundArtProps = {
   /** Box style — set the size + borderRadius here; the media fills it. */

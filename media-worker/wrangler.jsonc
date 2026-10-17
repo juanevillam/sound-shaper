@@ -1,15 +1,11 @@
 {
-  // ONE source, THREE deployments. The apps sit on different Firebase projects,
-  // and the ID token's `aud`/`iss` are checked against FIREBASE_PROJECT_ID, so
-  // a shared instance could not verify both. Environments give each app its own
-  // Worker, its own vars and its own secrets off a single codebase — a second
-  // copy of the token verifier is exactly the duplication
-  // `scripts/shared-code-audit.mjs` exists to catch.
+  // Sound Shaper's media Worker: it holds the Cloudinary API secret so the app
+  // can delete its own uploads, and proves ownership by the upload PATH alone
+  // (see README.md). The same source once served the portfolio's other apps,
+  // which is why it is an environment rather than the top level.
   //
   // ALWAYS DEPLOY WITH `--env`:
-  //   npx wrangler deploy --env topper
   //   npx wrangler deploy --env sound-shaper
-  //   npx wrangler deploy --env booker
   //
   // `vars` are NOT inherited from the top level by named environments, and
   // nothing here defines them, so a bare `wrangler deploy` produces a Worker
@@ -22,15 +18,6 @@
   "compatibility_date": "2025-01-01",
   "observability": { "enabled": true },
   "env": {
-    "topper": {
-      "name": "topper-media-worker",
-      "vars": {
-        "CLOUDINARY_CLOUD_NAME": "juanevillam",
-        "FIREBASE_PROJECT_ID": "topper-da7db",
-        // Must equal the app's `ITEMS_MEDIA_ROOT` (cloudinary/folders.ts).
-        "MEDIA_FOLDER_ROOT": "topper/items",
-      },
-    },
     "sound-shaper": {
       "name": "sound-shaper-media-worker",
       "vars": {
@@ -38,15 +25,6 @@
         "FIREBASE_PROJECT_ID": "sound-shaper",
         // Must equal the app's `MEDIA_ROOT` (cloudinary/folders.ts).
         "MEDIA_FOLDER_ROOT": "sound-shaper",
-      },
-    },
-    "booker": {
-      "name": "booker-media-worker",
-      "vars": {
-        "CLOUDINARY_CLOUD_NAME": "juanevillam",
-        "FIREBASE_PROJECT_ID": "booker-3764a",
-        // Must equal the app's `MEDIA_ROOT` (cloudinary/folders.ts).
-        "MEDIA_FOLDER_ROOT": "booker/covers",
       },
     },
   },

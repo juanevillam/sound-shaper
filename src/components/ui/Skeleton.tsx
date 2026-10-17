@@ -1,14 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 
 import {
-  SkeletonBone as Skeleton,
-  SkeletonTextLine,
-} from '@portfolio/mobile-ui';
-
-import {
   CAPTION_VARIANTS,
   useSoundTileMetrics,
 } from '@/components/sounds/SoundTile';
+import { SkeletonBone as Skeleton, SkeletonTextLine } from '@/ui';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
@@ -17,7 +13,7 @@ export const SKELETON_DELAY_MS = 400;
 
 /**
  * ONE NEUTRAL PLACEHOLDER BLOCK — now `SkeletonBone` from
- * `@portfolio/mobile-ui`, re-exported here so this app's import path is
+ * `src/ui`, re-exported here so this app's import path is
  * unchanged.
  *
  * It moved because Topper had a byte-identical copy of it, and because the
@@ -76,7 +72,7 @@ export function SoundTileSkeleton() {
 
 /**
  * The ghost-measured caption line itself is `SkeletonTextLine` in
- * `@portfolio/mobile-ui` now — it was written HERE (2026-08-28, for the grid
+ * `src/ui` now — it was written HERE (2026-08-28, for the grid
  * captions whose Android boxes rendered ~2dp past their stated `lineHeight`)
  * and moved the day Topper's owner-row bone hit the identical defect, per the
  * same-component rule. The full argument, the invisible-space trick and the

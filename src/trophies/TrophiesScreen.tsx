@@ -1,13 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import Svg, { Circle } from 'react-native-svg';
+
 import {
   DisclosureChevron,
   SCREEN_CONTENT_TOP,
   SkeletonBone,
   SkeletonTextLine,
   TEXT_VARIANTS,
-} from '@portfolio/mobile-ui';
-import Svg, { Circle } from 'react-native-svg';
+} from '@/ui';
 
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';

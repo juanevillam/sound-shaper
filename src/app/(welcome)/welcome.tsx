@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 
 import { Platform } from 'react-native';
 
-import { legalUrl, WelcomeScreen, type AuthAction } from '@portfolio/mobile-ui';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -13,6 +12,7 @@ import { useGoogleSignIn } from '@/hooks/useGoogleSignIn';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { useAuthStore } from '@/store/auth';
+import { legalUrl, WelcomeScreen, type AuthAction } from '@/ui';
 
 const APP_NAME = Constants.expoConfig?.name ?? '';
 

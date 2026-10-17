@@ -2,14 +2,6 @@ import { useEffect, useRef } from 'react';
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
-import {
-  AppIcon,
-  FLOATING_RADIUS,
-  GlassSurfaceIos,
-  SwiftUIHost,
-  usePressSquash,
-} from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,10 +15,18 @@ import {
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
 import { Text as AppText } from '@/components/ui/Text';
+import { withAlpha } from '@/core';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { opticalTextInset } from '@/styles/metrics';
 import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
+import {
+  AppIcon,
+  FLOATING_RADIUS,
+  GlassSurfaceIos,
+  SwiftUIHost,
+  usePressSquash,
+} from '@/ui';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {

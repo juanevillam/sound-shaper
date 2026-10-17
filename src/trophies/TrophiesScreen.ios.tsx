@@ -24,11 +24,8 @@ import {
   scrollContentBackground,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import {
-  FormDisclosureIndicatorIos,
-  GROUPED_ROW,
-  SkeletonBone,
-} from '@portfolio/mobile-ui';
+
+import { FormDisclosureIndicatorIos, GROUPED_ROW, SkeletonBone } from '@/ui';
 
 import { tierColor } from './tierColors';
 import {

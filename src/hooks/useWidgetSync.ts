@@ -2,7 +2,7 @@ import {
   useWidgetPublisher,
   widgetMediaFile,
   type WidgetMedia,
-} from '@portfolio/widget-bridge';
+} from '@modules/widget-bridge';
 
 import { useI18n } from '@/i18n';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';

@@ -1,4 +1,4 @@
-import { type TrophyConfig } from '@portfolio/trophies';
+import { type TrophyConfig } from '@/trophies';
 
 // Sound Shaper's seven trophies, in PlayStation tiers: 3 bronze, 2 silver,
 // 1 gold, 1 platinum — the same shape as Topper's set. Ids are the Firestore

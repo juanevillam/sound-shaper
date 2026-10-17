@@ -1,20 +1,20 @@
 import { Platform, Pressable, StyleSheet } from 'react-native';
 
+import Animated from 'react-native-reanimated';
+
+import { ThemedHost } from '@/components/ui/ThemedHost';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { ROW_MIN_HEIGHT } from '@/styles/metrics';
 import {
   AppIcon,
   ICON_PRESS_OPACITY,
   ICON_PRESS_SCALE,
   usePressSquash,
   type IconName,
-} from '@portfolio/mobile-ui';
-import Animated from 'react-native-reanimated';
-
-import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { ROW_MIN_HEIGHT } from '@/styles/metrics';
+} from '@/ui';
 
 // The app's ONE icon button, and the only press treatment it has: the
-// portfolio squash from `@portfolio/mobile-ui`, not a ripple.
+// portfolio squash from `src/ui`, not a ripple.
 //
 // A ripple is a Material affordance that renders NOTHING on iOS — which is how
 // the player's transport ended up with no press feedback there at all — and a

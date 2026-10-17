@@ -1,9 +1,5 @@
 import { useState } from 'react';
 
-import {
-  DestructiveConfirmDialog,
-  ManageAccountScreen,
-} from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
@@ -20,6 +16,7 @@ import { haptics } from '@/lib/haptics';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
+import { DestructiveConfirmDialog, ManageAccountScreen } from '@/ui';
 
 // Thin adapter over the shared `ManageAccountScreen`. This is a PERSONAL app —
 // no social module — so it passes no `privacy` section (Topper's blocked-users

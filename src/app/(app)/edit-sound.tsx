@@ -3,16 +3,7 @@ import { useRef, useState } from 'react';
 import { ActionSheetIOS, StyleSheet, View } from 'react-native';
 
 import { Section } from '@expo/ui/swift-ui';
-import {
-  artworkRadius,
-  confirmDestructiveIos,
-  emptyMediaColor,
-  SheetFormDestructiveIos,
-  SheetFormFieldIos,
-  sheetCommitBarOptionsIos,
-  SheetFormBodyIos,
-  SheetFormMediaIos,
-} from '@portfolio/mobile-ui';
+
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { type PickedSoundFile } from '@/components/sounds/EditSoundSheet';
@@ -37,6 +28,16 @@ import {
 import { takePendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { nextLeadPosition, useSoundsStore } from '@/store/sounds';
+import {
+  artworkRadius,
+  confirmDestructiveIos,
+  emptyMediaColor,
+  SheetFormDestructiveIos,
+  SheetFormFieldIos,
+  sheetCommitBarOptionsIos,
+  SheetFormBodyIos,
+  SheetFormMediaIos,
+} from '@/ui';
 
 // Strip the extension for the name prefill when the file had no ID3 title.
 const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');

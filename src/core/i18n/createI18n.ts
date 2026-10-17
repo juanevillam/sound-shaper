@@ -33,7 +33,7 @@ type LocaleState<L extends string> = {
  *
  * `useLocaleState` is a hook the app supplies that reads the current locale and
  * its setter from wherever the app keeps them (e.g. a zustand store) — this keeps
- * `@portfolio/core` decoupled from any specific store.
+ * `src/core` decoupled from any specific store.
  *
  * @example
  * const useLocaleState = () => ({

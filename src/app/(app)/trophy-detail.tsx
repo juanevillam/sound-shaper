@@ -1,6 +1,5 @@
 import { View } from 'react-native';
 
-import { TrophyDetailContent, useTrophies } from '@portfolio/trophies';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,10 +7,11 @@ import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
+import { TrophyDetailContent, useTrophies } from '@/trophies';
 
 // iOS-only route: one trophy's detail as a content-hugging native form sheet
 // (Android presents the Compose `TrophyDetailSheet` in place). The sheet's
-// CONTENT lives in @portfolio/trophies (`TrophyDetailContent`) so this surface
+// CONTENT lives in `src/trophies` (`TrophyDetailContent`) so this surface
 // is pixel-identical across the portfolio — this route only resolves the
 // trophy, localizes the caption, and passes the platform palette through.
 function TrophyDetailSheetScreen() {

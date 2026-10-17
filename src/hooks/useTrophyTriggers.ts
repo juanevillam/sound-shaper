@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 
-import { awardTrophy, useTrophyStore } from '@portfolio/trophies';
-
 import {
   LIBRARY_SOUND_COUNT,
   LISTENING_MINUTES,
@@ -13,6 +11,7 @@ import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 import { useSoundsStore } from '@/store/sounds';
+import { awardTrophy, useTrophyStore } from '@/trophies';
 
 /**
  * Awards every store-derived trophy straight from the live caches, rather than

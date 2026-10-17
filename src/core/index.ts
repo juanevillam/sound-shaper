@@ -21,7 +21,6 @@ export {
 } from './theme/metrics';
 export { DEFAULT_THEME, SUPPORTED_THEMES, type Theme } from './theme/themes';
 export { useAppTheme, type ResolvedScheme } from './theme/useAppTheme';
-export { useAuthStore } from './stores/auth';
 export { createLayoutStore } from './stores/createLayoutStore';
 export { useThemeStore } from './stores/theme';
 export { createI18n, type DotPaths, type Translator } from './i18n/createI18n';

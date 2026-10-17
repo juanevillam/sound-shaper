@@ -14,7 +14,8 @@ import {
   glassEffect,
   shadow as shadowModifier,
 } from '@expo/ui/swift-ui/modifiers';
-import { IOS_COLORS, useAppTheme, withAlpha } from '@portfolio/core';
+
+import { IOS_COLORS, useAppTheme, withAlpha } from '@/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 

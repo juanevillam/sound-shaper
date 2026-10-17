@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 
-import { useAppTheme } from '@portfolio/core';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -25,6 +24,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useAppTheme } from '@/core';
 
 import {
   FLOATING_EDGE_GAP,

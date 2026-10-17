@@ -3,11 +3,6 @@ import { useSyncExternalStore } from 'react';
 import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 
 import {
-  artworkRadius,
-  MINI_PLAYER_HEIGHT,
-  type IconName,
-} from '@portfolio/mobile-ui';
-import {
   type ComposedGesture,
   type GestureType,
 } from 'react-native-gesture-handler';
@@ -15,6 +10,7 @@ import { type AnimatedStyle } from 'react-native-reanimated';
 
 import { bannerBottomOffset } from '@/components/player/bannerMetrics';
 import { SCREEN_PADDING } from '@/styles/metrics';
+import { artworkRadius, MINI_PLAYER_HEIGHT, type IconName } from '@/ui';
 
 /** A style produced by `useAnimatedStyle` and handed down to a twin. */
 type AnimatedViewStyle = StyleProp<AnimatedStyle<ViewStyle>>;

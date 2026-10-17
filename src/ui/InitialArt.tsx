@@ -7,7 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 /**
  * Stand-in artwork for something that has none: the title's first character,

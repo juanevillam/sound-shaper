@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -10,6 +9,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+
+import { withAlpha } from '@/core';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 

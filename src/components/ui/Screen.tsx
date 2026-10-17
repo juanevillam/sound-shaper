@@ -1,8 +1,7 @@
 import { type ViewProps } from 'react-native';
 
-import { Screen as BaseScreen } from '@portfolio/mobile-ui';
-
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { Screen as BaseScreen } from '@/ui';
 
 export const Screen = ({ children, ...rest }: ViewProps) => {
   const { colors } = useAppTheme();

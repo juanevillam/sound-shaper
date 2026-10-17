@@ -1,6 +1,6 @@
 import { Host, type HostProps } from '@expo/ui/swift-ui';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 // iOS counterpart of `ThemedHost`: the SwiftUI embed point for every iOS
 // showcase demo. SwiftUI has no `getMaterialColors`; on iOS the app's theme

@@ -43,7 +43,7 @@ export const DestructiveConfirmDialog = ({
     // The same container the two hand-built dialogs paint, so the app's three
     // dialogs are one surface. Left to itself this draws M3's
     // `surfaceContainerHigh`, which is 32.6 L* off the page on a One UI palette
-    // — see `dialogMaterial` in `@portfolio/core`.
+    // — see `dialogMaterial` in `src/core`.
     colors={{ containerColor: colors.surfaceDialog }}
     onDismissRequest={() => {
       if (!busy) onDismiss();

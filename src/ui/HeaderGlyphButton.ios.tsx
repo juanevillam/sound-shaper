@@ -9,7 +9,8 @@ import {
   frame,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useAppTheme } from '@portfolio/core';
+
+import { useAppTheme } from '@/core';
 
 import { SwiftUIHost } from './SwiftUIHost';
 

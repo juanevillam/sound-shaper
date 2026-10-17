@@ -20,18 +20,11 @@ import {
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 
-import { withAlpha } from '@portfolio/core';
-import {
-  COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_TO_CONTENT,
-  composeSheetBottomPadding,
-  sheetContainer,
-  SheetDragHandle,
-} from '@portfolio/mobile-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { withAlpha } from '@/core';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import {
@@ -50,6 +43,13 @@ import {
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import {
+  COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
+  composeSheetBottomPadding,
+  sheetContainer,
+  SheetDragHandle,
+} from '@/ui';
 
 // All the sound-shaping controls in one native bottom sheet (the YT-Music /
 // pro-app idiom for secondary controls): EQ presets + stepped band sliders,

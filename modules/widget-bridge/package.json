@@ -1,5 +1,5 @@
 {
-  "name": "@portfolio/widget-bridge",
+  "name": "`modules/widget-bridge`",
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",

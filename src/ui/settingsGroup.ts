@@ -101,7 +101,7 @@ export const groupRowShape = (index: number, count: number): GroupShape => {
  * which on this palette is 32.6 L* off a near-black page. Once `cardMaterial`
  * brought the cards down to 5.7, the dialogs were the last slabs on a screen
  * that had gone quiet. `surfaceDialog` is the same repair one step higher; see
- * `dialogMaterial` in `@portfolio/core`.
+ * `dialogMaterial` in `src/core`.
  *
  * The sign-out dialog is Compose's real `AlertDialog` and takes the same value
  * through `colors.containerColor`, so all three dialogs in the app are one

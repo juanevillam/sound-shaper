@@ -2,12 +2,6 @@ import { useEffect } from 'react';
 
 import { Appearance, Platform, StyleSheet } from 'react-native';
 
-import {
-  ErrorScreen,
-  preloadIcons,
-  setSplashHidden,
-  useNavigationTheme,
-} from '@portfolio/mobile-ui';
 import { Stack, ThemeProvider, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
@@ -27,6 +21,12 @@ import { recordError } from '@/services/firebase/crashlytics';
 import { useAuthStore } from '@/store/auth';
 import { useLayoutStore } from '@/store/layout';
 import { useThemeStore } from '@/store/theme';
+import {
+  ErrorScreen,
+  preloadIcons,
+  setSplashHidden,
+  useNavigationTheme,
+} from '@/ui';
 
 // No brand seed: like every portfolio app, Sound Shaper rides the platform
 // default palette — wallpaper-derived Material You on Android, Apple system

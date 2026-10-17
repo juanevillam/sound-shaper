@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
-
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -14,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { CapChevron } from '@/components/player/TrimGlyphs';
+import { withAlpha } from '@/core';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
@@ -225,7 +224,7 @@ export function ClipTrimFrame({
    * `accentFill` is where that argument now lives — the accent at SOURCE
    * tone rather than the tone-80 ink repair, measured #387AFF here against
    * the pastel #B5C4FA a fill was taking. See its docblock in
-   * `@portfolio/core`.
+   * `src/core`.
    */
   const frameAccent = colors.accentFill;
   const onFrameAccent = colors.onPrimary;
