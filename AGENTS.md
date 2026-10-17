@@ -1,5 +1,39 @@
 # Sound Shaper
 
+## Working in this repo — read before your first commit or device check
+
+- **This is a standalone Expo app**, extracted on 2026-10-16 with its history
+  from the portfolio monorepo it was built in. `src/ui`, `src/core` and
+  `src/trophies` were that monorepo's shared packages; `modules/widget-bridge`
+  was its one native package. The standing rules they were built to are in
+  [`docs/standards.md`](docs/standards.md) — read it as part of this file.
+- **Commit directly on `main`**, logical conventional-commit chunks, don't push
+  unless asked. **`git commit` hangs silently** unless the SSH signing key is
+  loaded — check `ssh-add -l` first; never `--no-gpg-sign`.
+- **Run `node scripts/apply-patches.mjs` after every install on Juan's Mac.**
+  `~/.npmrc` sets `ignore-scripts = true`, so the `postinstall` that applies
+  `patches/` never runs there and the app builds without its phase vocoder and
+  its now-playing fixes. EAS's builders run it normally.
+- **Signing.** iOS signs with Grostify LLC's team `PHLR7X3FGN`
+  (`ios.appleTeamId`), the membership the app is published under. The App
+  Group is `group.com.grostify.soundshaper` and the widget extension
+  `com.juanevillam.soundshaper.widgets`: Juan's free personal team holds the
+  `group.com.juanevillam.soundshaper` and `…soundshaper.widget` identifiers and
+  a free team can never release one, so neither can come back.
+- **Device checks are Release builds on Juan's iPhone**, never the simulator
+  unless he says so:
+
+  ```bash
+  cd ios && xcodebuild -workspace SoundShaper.xcworkspace -scheme SoundShaper -configuration Release -destination 'id=00008120-000A3CEA28214932' -allowProvisioningUpdates DEVELOPMENT_TEAM=PHLR7X3FGN CODE_SIGN_STYLE=Automatic build
+  ```
+
+  then `xcrun devicectl device install app --device <CoreDevice UUID>
+~/Library/Developer/Xcode/DerivedData/SoundShaper-*/Build/Products/Release-iphoneos/SoundShaper.app`.
+  The rest of the device workflow is
+  [`docs/ios-dev-workflow.md`](docs/ios-dev-workflow.md).
+
+- **What is left before the store** is [`docs/release.md`](docs/release.md).
+
 A **PERSONAL** music player + tweaker — zero social
 features, by design (2026-07-18): every upload is for the uploader alone, which
 keeps the copyright surface at zero. Upload your own `.mp3`s, read their tags,
@@ -38,7 +72,7 @@ widget drew a snapshot that may be older than the session. A small widget is one
 tap target — WidgetKit ignores `Link` there — so that size opens the library.
 
 Now Playing and Clips widgets were both proposed and REJECTED (Juan,
-2026-09-11): see [`docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
+2026-09-11): see [`docs/rejected-experiments.md`](docs/rejected-experiments.md).
 The shared plumbing and its traps are `@portfolio/widget-bridge` and the root
 `AGENTS.md`.
 
@@ -58,7 +92,7 @@ follows) or playlists — simplicity is the point.
 
 **Where Settings and Account live (2026-08-20; Android 2026-09-08).** Home's
 bar carries ONE glyph, the gear (`HeaderSettingsButton`) — the portfolio-wide
-rule in the root `AGENTS.md`. The account entry is Settings' own IDENTITY
+rule in [`docs/standards.md`](docs/standards.md). The account entry is Settings' own IDENTITY
 BANNER (`SettingsAccountLink`), leading the form, and Trophies sits behind
 Account. A personal app has no profile tab for the account to hang off the way
 Topper's does, and the two-glyph bar it had before (Account beside Settings,
@@ -349,7 +383,7 @@ the reference — and rejected the result outright: it overcomplicates a screen
 whose whole case is being calm.
 
 The full post-mortem is in
-[`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md), and
+[`docs/rejected-experiments.md`](docs/rejected-experiments.md), and
 the two findings worth knowing before anyone reaches for this again are that
 **the wash cannot be the thing that moves** (it is the ground the title,
 transport and cards are read against, so a moving ground reads as instability
@@ -452,7 +486,7 @@ residual there — the Form wants the flat 21 — and both sheets now read 84.00
 both appearances. The component takes `fullHeight` and this app's two `[1]`
 routes pass it; `edit-sound` (`[0.65]`) does not and is unchanged at 98.33, which
 is Topper's `edit-item` hero shape to within 0.66. The trap is written up in the
-root `AGENTS.md`.
+[`docs/standards.md`](docs/standards.md).
 
 **SAVED SHAPES WERE BUILT AND REMOVED** (Juan's call, 2026-08-22). The Shape
 sheet could save the whole live config under a name — the curve plus rate and
@@ -876,7 +910,7 @@ inherent to WSOLA, not tunable (every window/search/decimation variant doubled
 or dropped transients), so **`patches/react-native-audio-api/` replaces the
 stretcher's internals with a phase vocoder** (vendored Signalsmith Stretch,
 same class, same API — read that README before touching it, and
-[`../../docs/pending-upstream.md`](../../docs/pending-upstream.md) for the
+[`docs/pending-upstream.md`](docs/pending-upstream.md) for the
 measurements). The patch is applied by the root
 postinstall (`scripts/apply-patches.mjs`), so it survives `npm ci` and
 `prebuild --clean`; it is C++ in the pod, so changing it needs a native
@@ -893,7 +927,7 @@ defect, listen to close it.
 
 **Flipping the switch AUTOMATICALLY at rate ≠ 1 was proposed while the
 stretcher was broken and stays rejected** —
-see [`../../docs/rejected-experiments.md`](../../docs/rejected-experiments.md).
+see [`docs/rejected-experiments.md`](docs/rejected-experiments.md).
 The short version: a control that moves on its own, and a shape that stores a
 choice nobody made.
 
@@ -1262,7 +1296,7 @@ by anyone else.** There is no public feed to shield, and no preview clip.
 
 **Built on both platforms; Phase B closed 2026-09-11, and what is left before
 the stores is the release gates in
-[`docs/phase-c-release.md`](../../docs/phase-c-release.md).** Auth (Google;
+[`docs/release.md`](docs/release.md).** Auth (Google;
 Apple is off for now — below), sound upload (document-picker → ID3 parse
 `src/lib/id3.ts` → `EditSoundSheet` → **Cloudinary** audio as a `video`
 resource + embedded art → Firestore at `users/{uid}/songs`), the hand-ordered
@@ -1441,7 +1475,7 @@ track, and `""` / `null` both fell through to a load that failed and left every
 field standing. Nothing a caller could send cleared it short of `hide()`, which
 on Android releases the MediaSession and zeroes the control bitmask. The bridge
 now publishes `artwork: ''` and
-[`patches/react-native-audio-api`](../../patches/react-native-audio-api/README.md)
+[`patches/react-native-audio-api`](patches/react-native-audio-api/README.md)
 makes that mean REMOVE on both sides, with a generation counter so a late
 artwork load cannot land on a session that has moved on. What the emptied slot
 falls back to is each platform's own art-less placeholder — what Music and
@@ -1500,13 +1534,13 @@ Composer document iOS renders itself, so the shine, the squircle and the
 tinted/clear appearances all come from the OS), `icon.png`, both splash glyphs
 and the Android adaptive set — all generated by `scripts/gen-brand-art.py`, and
 the Welcome hero passes it through `WelcomeScreen`'s `logo` prop. Never
-hand-edit any of those outputs; the runbook is in the root `AGENTS.md`.
+hand-edit any of those outputs; the runbook is in [`docs/standards.md`](docs/standards.md).
 
 ## Expo has changed
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before
 writing native code. `@expo/ui` (Jetpack Compose + SwiftUI) markdown snapshots
-live in [`../../docs/expo-ui/`](../../docs/expo-ui). The installed TypeScript
+are mirrored on docs.expo.dev (Expo UI → SwiftUI / Jetpack Compose). The installed TypeScript
 types under `node_modules/@expo/ui` are the source of truth when the docs
 disagree.
 
@@ -1522,7 +1556,7 @@ this app's `plugins` (Topper and Booker, still on the free team, keep it).
 
 Deleting an Apple account calls `revokeToken` (App Store 5.1.1(v)), which needs
 Firebase Console → Authentication → Apple's OAuth code flow (Services ID, Team
-ID, Key ID, `.p8`) — see Phase C gate 2a in `docs/phase-c-release.md`.
+ID, Key ID, `.p8`) — see gate 2a in [`docs/release.md`](docs/release.md).
 
 ## iOS build recipe — same as Topper's, deliberately
 
