@@ -35,14 +35,12 @@ import { useAppTheme } from '@/core';
  * where a container has to carry its own error, and it is the same `danger` ink
  * the fields' supporting text already speaks.
  *
- * IT MOVED HERE THE DAY TOPPER TOOK IT (2026-08-28), which is how
- * `SHEET_CONTENT_TOP` and `GROUPED_ROW` both got here too. It was app-local
- * while Sound Shaper was its only caller and the note said exactly that.
+ * It joined the shared kit the day a second app took it (2026-08-28), the
+ * move `SHEET_CONTENT_TOP` and `GROUPED_ROW` also made.
  *
- * It reads the palette from `src/core` rather than taking `colors` as a
- * prop: every app's `useAppTheme` is a pure re-export of that hook, so this is
- * the same theme they resolve and not a second one — the same call `EmptyState`
- * makes one file over.
+ * It reads the palette from `useAppTheme` (`@/core`) rather than taking
+ * `colors` as a prop — the one theme every screen resolves, the same call
+ * `EmptyState` makes one file over.
  */
 export function SheetErrorLine({ message }: { message: string }) {
   const { colors } = useAppTheme();

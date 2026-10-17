@@ -39,9 +39,9 @@ export type ResolvedTrophy = TrophyConfig & {
 };
 
 /**
- * Injected persistence so the engine stays storage-agnostic. Topper backs this
- * with Firestore (`users/{uid}/trophies/{id}`) so trophies survive a reinstall;
- * another app could use anything. The engine keeps an in-memory zustand cache
+ * Injected persistence so the engine stays storage-agnostic. The app backs this
+ * with Firestore (`users/{uid}/trophies/{id}`, `src/services/firebase/trophies.ts`)
+ * so trophies survive a reinstall. The engine keeps an in-memory zustand cache
  * for instant reads and optimistic unlocks, so neither method ever blocks the
  * popup — `load` runs once on configure, `save` is fire-and-forget.
  */

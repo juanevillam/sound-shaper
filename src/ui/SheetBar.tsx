@@ -33,20 +33,22 @@ type SheetBarProps = {
   /**
    * A glyph action LEADING the title — `SheetBarAction`.
    *
-   * Only a sheet that SWAPPED its content has one: Sound Shaper's clips sheet
-   * becomes the clip editor in place, and going back up is an on-screen
-   * affordance because the hardware BACK cannot be reached. A Compose sheet is
-   * its own dialog window and consumes the press before RN's `BackHandler`
-   * sees it — measured on the A54: with the sheet's own
-   * `shouldDismissOnBackPress` left on, BACK closed the whole sheet; turned
-   * off, BACK did nothing at all and the handler never fired.
+   * NO CALLER PASSES IT TODAY. It was for a sheet that SWAPPED its content —
+   * the clips sheet once became the clip editor in place — where going back up
+   * had to be an on-screen affordance because the hardware BACK cannot be
+   * reached: a Compose sheet is its own dialog window and consumes the press
+   * before RN's `BackHandler` sees it (measured on the A54: with the sheet's
+   * own `shouldDismissOnBackPress` left on, BACK closed the whole sheet;
+   * turned off, BACK did nothing at all and the handler never fired). The
+   * editor now stacks as its own sheet (`ClipTrimSheet`), so BACK dismisses
+   * just that sheet and nothing needs this slot.
    */
   leading?: ReactNode;
   /**
    * Glyph actions, leading the commit pill — `SheetBarAction` elements.
    *
    * THEY ARE CONTAINED, and that is the whole reason they go through this bar
-   * rather than being dropped in by each sheet. Sound Shaper's clips and clip
+   * rather than being dropped in by each sheet. The clips sheet and the clip
    * editor hand-rolled their own `Row` of bare `IconButton`s, which on a sheet
    * read as glyphs floating on the page — iOS gets away with the same
    * arrangement because its bar items are Liquid Glass capsules, i.e. already

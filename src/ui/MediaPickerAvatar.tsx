@@ -9,22 +9,20 @@ import {
 import { SquashPressable } from './SquashPressable';
 
 /**
- * THE MEDIA SLOT AT THE TOP OF AN EDITOR SHEET — one component, every app.
+ * THE MEDIA SLOT AT THE TOP OF AN EDITOR SHEET — one component.
  *
- * It lived in BOTH apps and had forked badly. Topper's took the whole iOS pass
+ * It lived in both Topper and Sound Shaper and had forked badly. Topper's took the whole iOS pass
  * (120pt Contacts-sized box, the shared empty-media plus, a caption inside the
  * press target, a real artwork radius); Sound Shaper's stayed exactly as it
  * shipped for Android and so, on iOS, drew a 72pt CIRCLE — the size Juan had
  * already rejected in Topper as "soo small", and a crop that app renders
- * nowhere else. `shared-code-audit` scored the pair 63.4%: low BECAUSE they had
+ * nowhere else. A similarity audit scored the pair 63.4%: low BECAUSE they had
  * drifted, which is the reading that matters.
  *
- * THE PACKAGE OWNS THE BOX, THE APP OWNS THE PICTURE. Every app fetches its
- * artwork through its own Cloudinary wrapper (`ItemImage`, `ArtImage` — each
- * with its own `thumbUrl` service and its own letterbox treatment), and none of
- * that can move into a package that declares no Firebase or Cloudinary
- * dependency. So the caller passes the rendered image as `preview` and this
- * owns everything else: the size, the corner, the placeholder, the press
+ * THE KIT OWNS THE BOX, THE CALLER OWNS THE PICTURE. Artwork is fetched through
+ * the app's own Cloudinary wrapper (`ArtImage`, with its `thumbUrl` service and
+ * its letterbox treatment), which `src/ui` does not import. So the caller
+ * passes the rendered image as `preview` and this owns everything else: the size, the corner, the placeholder, the press
  * feedback and the caption slot.
  */
 

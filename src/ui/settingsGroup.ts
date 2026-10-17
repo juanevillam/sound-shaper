@@ -22,8 +22,9 @@ export const GROUP_SIDE_PADDING = 16;
  * IT IS NOT THE HEADED GROUPS' CARD-TO-CARD DISTANCE, and it was written as
  * exactly that first: 56, back-solved so the sign-out card came to rest 71.11dp
  * below Legal against the headed groups' 70.76dp. That is the intent PLUS a
- * header, paid to a card that draws no header — the very trap AGENTS.md names
- * ("was the old render the intent, or the intent plus a box?"), applied
+ * header, paid to a card that draws no header — the very trap of restoring
+ * the box rather than the intent ("was the old render the intent, or the
+ * intent plus a box?"), applied
  * correctly to this row's removed icon in the same change and then missed one
  * line down. Juan read it as too far apart on the device before the numbers did.
  *
@@ -112,7 +113,7 @@ export const dialogContainer = (colors: { surfaceDialog: string }): string =>
 
 /**
  * THE CONTAINER A DROPDOWN MENU PAINTS — every `DropdownMenu` opened from an
- * overflow or icon button, in every app.
+ * overflow or icon button.
  *
  * NOT `dialogContainer`, and the difference is the SCRIM: a dialog floats
  * over a dimmed page, where One UI's ~11 L* light step reads as a layer; a
@@ -134,19 +135,21 @@ export const menuContainer = (
 ): string => (scheme === 'dark' ? colors.surfaceDialog : colors.card);
 
 /**
- * THE GROUND UNDER EVERY BOTTOM SHEET — Compose's and the one RN twin's.
+ * THE GROUND UNDER EVERY COMPOSE BOTTOM SHEET.
  *
  * A Compose `ModalBottomSheet` left without `containerColor` draws M3's own
  * default, which is the OEM-token case this family of functions exists to
  * take out of the framework's hands. It went unnoticed because the default
- * LOOKS right: Sound Shaper's three Compose sheets (clips, shaper, the sound
- * editor) all wear it and all were signed off wearing it.
+ * LOOKS right: the three Compose sheets of the time (clips, shaper, the sound
+ * editor) all wore it and all were signed off wearing it.
  *
- * What made it visible is the fourth sheet. The Android clip editor is drawn
- * in RN — its content is gestures end to end, which a Compose sheet's dialog
- * window eats (`ClipTrimSheet` carries that argument) — so it had to name a
- * colour, reached for `colors.sheet`, and landed somewhere else entirely.
- * Two sheets in ONE flow, two grounds, band-scanned on a Galaxy A54:
+ * What made it visible is the fourth sheet. The Android clip editor was then
+ * drawn as a hand-built RN sheet — on the since-disproved belief that a
+ * Compose sheet's dialog window eats its gestures (`ClipTrimSheet` records how
+ * that was undone; it is a Compose sheet now and takes this ground too) — so
+ * it had to name a colour, reached for `colors.sheet`, and landed somewhere
+ * else entirely. Two sheets in ONE flow, two grounds, band-scanned on a
+ * Galaxy A54:
  *
  *                      light                dark
  *   clips (Compose)    #F1F1F3              #252528
@@ -157,8 +160,8 @@ export const menuContainer = (
  *
  * THE VALUE IS THE ONE THE APPROVED SHEETS ALREADY RENDER, stated rather
  * than defaulted — `surfaceDialog` in dark, the page ground in light, which
- * is what those measurements name. Nothing that was signed off moves; the RN
- * twin gets a colour it can share; and a palette that shifts under us now
+ * is what those measurements name. Nothing that was signed off moved; the
+ * editor got a colour it could share; and a palette that shifts under us now
  * breaks a stated intent instead of silently redecorating four surfaces.
  *
  * NOT `colors.sheet`, and not `menuContainer` either. Both resolve to `card`

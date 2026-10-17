@@ -96,9 +96,9 @@ const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
 };
 
 /**
- * The type scale itself. Exported so package-level components (which can't
- * call an app's `useI18n`, so can't use the app `Text`) still render on the
- * exact same steps as every app screen.
+ * The type scale itself. Exported so `src/ui` components (which take
+ * already-translated strings, so don't use the app's translating `Text`) still
+ * render on the exact same steps as every screen.
  */
 export const TEXT_VARIANTS: Record<TextVariant, TextStyle> =
   Platform.OS === 'ios' ? IOS_VARIANTS : ANDROID_VARIANTS;

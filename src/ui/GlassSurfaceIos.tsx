@@ -11,12 +11,11 @@ import { SwiftUIHost } from './SwiftUIHost';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THE ONE FLOATING GLASS SURFACE — every app, every shape.
+ *  THE ONE FLOATING GLASS SURFACE — every shape.
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Three surfaces in this portfolio float over content and carry text on
- * Liquid Glass: the shared snackbar, the trophy unlock banner, and Sound
- * Shaper's now-playing banner. They had drifted to THREE different materials —
+ * Three surfaces float over content and carry text on Liquid Glass: the
+ * snackbar, the trophy unlock banner, and the now-playing banner. They had drifted to THREE different materials —
  * the snackbar and Topper's trophy banner were pure `glassEffect` with nothing
  * behind them, Sound Shaper's banner had a hand-rolled tonal floor, and Sound
  * Shaper's trophy banner was not glass at all but a solid card. Same idea, four
@@ -104,7 +103,7 @@ export const FLOATING_EDGE_GAP = 12;
  * DISCRETE (4/8/12/16/28) — stepping Android off 16 would leave the system for
  * the sake of a proportion.
  *
- * It lived in Sound Shaper's `styles/shape` while the now-playing banner was
+ * It lived in the app's own `styles/shape` while the now-playing banner was
  * the only thing that floated. The trophy banner was drawing `TILE_RADIUS`
  * (26) — a CARD's corner on a floating surface, and the only one of the three
  * not at 22 — so the term moved here the day a second and third surface needed

@@ -298,9 +298,10 @@ const styles = StyleSheet.create({
   /**
    * The surface. Radius matches the `clipShape` inside the `Host` — see there.
    *
-   * NOTE FOR ANYONE EDITING THIS FILE: changes to `packages/mobile-ui` do NOT
-   * fast-refresh into a running app. Relaunch it, or you will spend a while
-   * "fixing" something that was already fixed and never loaded.
+   * NOTE FOR ANYONE EDITING THIS FILE: when this lived in a workspace package,
+   * its edits did not fast-refresh into a running app. If an edit here seems
+   * not to land, relaunch before "fixing" something that was already fixed and
+   * never loaded.
    */
   card: { backgroundColor: 'transparent', borderRadius: CARD_RADIUS },
   host: { width: '100%' },

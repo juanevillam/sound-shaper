@@ -47,8 +47,8 @@ const INITIAL_RATIO = EMPTY_MEDIA_INITIAL_RATIO;
 export type MediaContainer = 'page' | 'sheet';
 
 /**
- * THE EMPTY-MEDIA MATERIAL — one term, for every art-less box in the portfolio:
- * an item's initial, a person's disc, a song's placeholder.
+ * THE EMPTY-MEDIA MATERIAL — one term, for every art-less box: a sound's
+ * initial, a person's disc, an add tile.
  *
  * ONE MATERIAL was the owner's call (2026-08-08) and it still is: on iOS every
  * art-less box takes `surfaceContainer`, the same solid systemGray5 the create

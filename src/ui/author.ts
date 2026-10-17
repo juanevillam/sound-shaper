@@ -1,7 +1,7 @@
 /**
- * The portfolio author byline shown on every app's welcome screen. Hardcoded
- * here (not a prop) so the credit stays identical across all apps — the byline
- * is fixed even though each app owns its own name, features, and palette.
+ * The author byline shown on the welcome screen. Hardcoded here (not a prop)
+ * because the credit is fixed: it is the same byline juanevillam puts on every
+ * app he ships.
  *
  * Plain name, no `@`: the byline credits an author and links to a portfolio
  * site, not a social profile — "by <name>" is what both platforms use for a
@@ -13,9 +13,9 @@ export const AUTHOR_CREDIT = 'by juanevillam';
  *  the name as a native SwiftUI `Link`, so the "by" stays plain). */
 export const AUTHOR_CREDIT_PREFIX = 'by';
 export const AUTHOR_NAME = 'juanevillam';
-// The portfolio site. Every link the apps open outside themselves is built
-// on it: the welcome byline, and each app's legal pages at
-// juanevillam.com/{app}/{page} — pages that live in apps/web.
+// The author's site. Every link the app opens outside itself is built on it:
+// the welcome byline, and the legal pages at juanevillam.com/{app}/{page},
+// which live in the site's own repository.
 export const AUTHOR_URL = 'https://juanevillam.com';
 
 /** URL-safe app slug ("Sound Shaper" → "sound-shaper") for paths + UTM. */

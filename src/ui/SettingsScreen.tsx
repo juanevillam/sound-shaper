@@ -63,7 +63,7 @@ export type SettingsAccountConfig = Omit<
   'colors' | 'onOpenUsernameDialog' | 'onOpenSignOutConfirm'
 >;
 
-/** A read-only label/value row, e.g. a bundled package version. */
+/** A read-only label/value row, e.g. the app version. */
 export type SettingsInfoRow = {
   label: string;
   /** Optional supporting value; omit for label-only link rows (legal pages). */
@@ -72,7 +72,7 @@ export type SettingsInfoRow = {
   onPress?: () => void;
 };
 
-/** Trailing read-only block, e.g. "About" with app/package versions. */
+/** Trailing read-only block, e.g. "About" with the app version. */
 export type SettingsAboutConfig = {
   title?: string;
   rows: SettingsInfoRow[];
@@ -507,11 +507,11 @@ export const SettingsScreen = ({
   /**
    * IS THE ACCOUNT BLOCK A GROUP, OR JUST THE SIGN-OUT ACTION?
    *
-   * An app that passes a profile, nav rows or danger rows has a real account
-   * GROUP, and it renders where it always has — between General and About.
-   * An app that passes only the sign-out fields (Topper, whose identity lives
-   * on its Profile tab — and expo-ui-starter until it was deleted 2026-09-16)
-   * has no group at all: it has one
+   * A caller that passes a profile, nav rows or danger rows has a real account
+   * GROUP, and it renders
+   * where it always has — between General and About. A caller that passes
+   * only the sign-out fields (Topper, whose identity lives on its Profile tab,
+   * and the deleted expo-ui-starter) has no group at all: it has one
    * destructive ACTION, and a lone action does not belong wedged between two
    * content groups under a header naming a group that isn't there.
    *

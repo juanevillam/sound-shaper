@@ -8,8 +8,8 @@ import type { IconName } from './icons';
 
 /**
  * AN ACTION IN THE NAVIGATOR'S OWN APP BAR — Android's twin of
- * `HeaderGlyphButtonIos`, and the only way any of the three apps should put a
- * glyph in a header. A real Compose `IconButton`, so the glyph, the touch target
+ * `HeaderGlyphButtonIos`, and the only way this app should put a glyph in a
+ * header. A real Compose `IconButton`, so the glyph, the touch target
  * and the ripple are the platform's rather than ours.
  *
  * ═══════════════════════════════════════════════════════════════════════════
@@ -22,12 +22,12 @@ import type { IconName } from './icons';
  * a Galaxy A54 against the navigator's own back arrow, which is native and
  * therefore the reference.
  *
- *  1. `matchContents` — the portfolio's original. Shrink-wraps the `Host` to the
- *     GLYPH, so the ripple was drawn into a 24dp box and clipped out of
- *     existence. Every header button in every app had no press feedback at all,
- *     only a glyph that dimmed slightly. The base `HeaderGlyphButton.tsx`
- *     asserted the opposite in its own docblock — true of the control, false of
- *     how we mounted it.
+ *  1. `matchContents` — the original. Shrink-wraps the `Host` to the GLYPH, so
+ *     the ripple was drawn into a 24dp box and clipped out of existence. Every
+ *     header button had no press feedback at all, only a glyph that dimmed
+ *     slightly. The Android `HeaderGlyphButton.tsx` of the time (since deleted)
+ *     asserted the opposite in its own docblock — true of the control, false
+ *     of how we mounted it.
  *
  *  2. A STATED `Host` (48, then 40). The ripple is sized to the HOST, not to the
  *     button — host 40 → 39.5dp, 48 → 47.3, 56 → 55.5 — so a 48dp host drew a

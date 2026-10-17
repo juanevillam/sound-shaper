@@ -56,9 +56,8 @@ export type SnackbarContextValue = {
   boundOutlet: number | null;
 };
 
-// The provider deliberately lives in each app (their snackbars have diverged);
-// only the context and consumer hook are shared, so every app exposes the same
-// `useSnackbar` surface.
+// The context and its consumer hook, apart from `SnackbarProvider` so a caller
+// can import `useSnackbar` without pulling in the provider's views.
 export const SnackbarContext = createContext<SnackbarContextValue | null>(null);
 
 export const useSnackbar = () => {

@@ -599,19 +599,13 @@ export function withAlpha(color: string, alpha: number): string {
 }
 
 /**
- * Canonical Material 3 baseline palette, used only as a fallback when the native
- * Material palette is unavailable (Android without `getMaterialColors`, web, and
- * any other platform without its own palette — iOS has `IOS_COLORS`). These are
- * Google's default Material 3 tokens — not custom colors — so the app looks
- * consistent everywhere it runs.
- */
-/**
  * iOS palette built from Apple's UIKit semantic and system colors (HIG), so the
  * app reads native on iOS instead of inheriting Google's Material baseline.
  * Surfaces map to the grouped-background ramp, text to label/secondaryLabel,
- * primary to systemBlue, danger to systemRed. The decorative container pairs
- * (a role iOS doesn't define) are static tints of system colors — blue, gray,
- * pink, red, teal — with darkened/lightened companions for readable text.
+ * primary to systemBlue, danger to systemRed, `switchOn` to systemGreen. The
+ * one container pair (`primaryContainer`, a role iOS doesn't define) is a
+ * static tint of systemBlue with a darkened/lightened companion for readable
+ * text.
  */
 export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
   light: {
@@ -660,6 +654,13 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
   },
 };
 
+/**
+ * Canonical Material 3 baseline palette, used only as a fallback when the native
+ * Material palette is unavailable (Android without `getMaterialColors`, web, and
+ * any other platform without its own palette — iOS has `IOS_COLORS`). These are
+ * Google's default Material 3 tokens — not custom colors — so the app looks
+ * consistent everywhere it runs.
+ */
 export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
   light: {
     background: '#FEF7FF',

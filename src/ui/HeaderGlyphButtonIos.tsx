@@ -20,17 +20,16 @@ import { useAppTheme } from '@/core';
 import { SwiftUIHost } from './SwiftUIHost';
 
 /**
- * A single SF Symbol bar-button item, shared by every portfolio app's iOS
- * navigation bars. The glyph sits inside a `plain` `Button` — an `Image` does
+ * A single SF Symbol bar-button item, for every iOS navigation bar. The glyph sits inside a `plain` `Button` — an `Image` does
  * expose `onPress` directly, but only a real control takes SwiftUI's own
  * `disabled` treatment, and a bar item that can be present-but-inert needs it
  * (see the `disabled` prop).
  *
- * It lives here rather than per app because the two apps had already drifted:
- * the starter's glyphs were label-coloured at 24/20pt while Topper's were
- * accent-tinted at 22pt. The geometry and the colour rule are the shared part;
- * each app keeps a thin named adapter (`HeaderSettingsButton`,
- * `HeaderCloseButton`) that supplies its own route and its own translation.
+ * It was lifted into the shared kit because two portfolio apps had already
+ * drifted: the starter's glyphs were label-coloured at 24/20pt while Topper's
+ * were accent-tinted at 22pt. The geometry and the colour rule live here; thin
+ * named adapters (`HeaderSettingsButton`, `HeaderCloseButton`) supply a route
+ * and a translation.
  *
  * LABEL-COLOURED, never accent-tinted — and this reversed on iOS 26. The older
  * rule claimed Apple tints every interactive bar element; both Photos' select
@@ -80,8 +79,8 @@ const HEADER_TAP_TARGET = 43;
 
 /**
  * A LONE GLYPH'S TARGET — and "a lone glyph has no dead space" (above) was
- * wrong about the half that mattered (Juan, 2026-10-10, all three apps: "se
- * anima pero no hace la acción").
+ * wrong about the half that mattered (Juan, 2026-10-10, across the portfolio's
+ * apps: "se anima pero no hace la acción").
  *
  * UIKit's glass capsule answers a touch ANYWHERE inside its 44pt circle — it
  * squashes and brightens on its own — while the SwiftUI `Button` inside it

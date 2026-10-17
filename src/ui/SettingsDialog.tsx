@@ -39,7 +39,7 @@ import { dialogContainer } from './settingsGroup';
  * sibling modifiers (clip shapes mis-assign on unmount).
  */
 
-/** One width for every hand-built settings dialog, in every app. */
+/** One width for every hand-built settings dialog. */
 export const DIALOG_WIDTH = 312;
 /** M3's extra-large shape — what `AlertDialog` itself is clipped to. */
 const DIALOG_CORNER = 28;

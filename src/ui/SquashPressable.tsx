@@ -13,14 +13,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 /**
- * THE press-feedback language for every portfolio app: a Reanimated squash
- * that behaves identically on both platforms.
+ * THE press-feedback language: a Reanimated squash that behaves identically on
+ * both platforms.
  *
- * It lives in the package because both apps had grown their own copy of the
- * same file, and because press feedback is the kind of thing that silently
- * drifts — one app on Compose ripples, another on `android_ripple`, a third
- * surface with no feedback at all. There is one spring here and every custom
- * pressable in the portfolio uses it.
+ * It was lifted into the shared kit because two portfolio apps had grown their
+ * own copy of the same file, and because press feedback is the kind of thing
+ * that silently drifts — one surface on Compose ripples, another on
+ * `android_ripple`, a third with no feedback at all. There is one spring here
+ * and every custom pressable uses it.
  *
  * Two shapes:
  *

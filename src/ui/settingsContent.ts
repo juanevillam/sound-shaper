@@ -20,10 +20,10 @@ export type GeneralSettingsState<L extends string, Th extends string> = {
 };
 
 /**
- * The "General" preferences every portfolio app shares: a language picker and a
- * theme picker. Option labels are derived from a fixed key convention
- * (`settings.language.<code>` / `settings.theme.<value>`), so apps only supply
- * the translator and their supported lists — no per-app label maps.
+ * The "General" preferences: a language picker and a theme picker. Option
+ * labels are derived from a fixed key convention (`settings.language.<code>` /
+ * `settings.theme.<value>`), so the caller only supplies the translator and the
+ * supported lists — no label maps.
  */
 export const buildGeneralSettingsSections = <
   L extends string,
@@ -53,13 +53,12 @@ export const buildGeneralSettingsSections = <
 ];
 
 /**
- * The standard "About" block: the installed app version first (read from the
- * native binary, so it reflects what's actually on the device), then the
- * bundled @expo/ui version linking to that platform's @expo/ui docs.
+ * The standard "About" block: the installed app version (read from the native
+ * binary, so it reflects what's actually on the device).
  */
 /**
  * NO FRAMEWORK VERSION. This used to carry an "Expo UI Version" row linking to
- * the Expo docs, and it is gone from every app deliberately (Juan, 2026-08-20):
+ * the Expo docs, and it is gone deliberately (Juan, 2026-08-20):
  * a shipped product should not announce what it is built with. Anyone reading
  * that row learns the app is React Native, which is an invitation to go looking.
  *

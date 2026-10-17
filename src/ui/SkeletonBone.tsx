@@ -25,15 +25,14 @@ import { useAppTheme } from '@/core';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THE LOADING PLACEHOLDER — one bone, one sweep, for every app.
+ *  THE LOADING PLACEHOLDER — one bone, one sweep, for every wait.
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Both apps had a byte-identical copy of this atom (`Skeleton` in each app's
- * `components/ui/Skeleton.tsx`), which is exactly the duplication the shared
- * package exists to end — and it is what let them both carry the same wrong
- * animation for as long as they did. Each app keeps its own file of
- * CONTENT-SHAPED bones (a rail tile's bone is that app's geometry); only this
- * atom is shared.
+ * Topper and Sound Shaper once had a byte-identical copy of this atom
+ * (`Skeleton` in each app's `components/ui/Skeleton.tsx`), and that is what let
+ * them both carry the same wrong animation for as long as they did. The
+ * CONTENT-SHAPED bones (a grid tile's bone is that tile's geometry) live beside
+ * the surfaces they stand for; only this atom is shared.
  *
  * ───────────────────────────────────────────────────────────────────────────
  *  WHY A SWEEP, AND WHAT APPLE ACTUALLY DOES
@@ -47,25 +46,29 @@ import { useAppTheme } from '@/core';
  * that swap for content, no pulse and no sweep. Where Apple wants to signal
  * ACTIVITY rather than SHAPE it uses a spinner, which is a different control
  * for a different job — `ProgressViewIos`, the sibling of this file. Which of
- * the two a given wait takes is decided by AGENTS.md → "Waiting has two
- * shapes", and NOT by how long the wait is: a bone promises a layout that is
+ * the two a given wait takes is decided by `docs/standards.md` → "Waiting has
+ * two shapes", and NOT by how long the wait is: a bone promises a layout that is
  * going to arrive, so a surface whose shape cannot be predicted before it
  * lands (search results) or a task the person started (a delete, a save) is
  * the spinner's, however long it runs.
  *
  * THE NATIVE PRIMITIVE IS THEREFORE NAMED AND REJECTED, as the standard
- * requires, and the reason is reach rather than taste: `.redacted` is a SwiftUI
- * view modifier, and most of what these bones stand in for is an RN scroller
- * (Home's feed, Profile's grid, Explore's mosaic). It cannot be applied to
- * them. Where a surface IS a native `List`, `redacted` is the better answer and
- * should be preferred — it is reachable today.
+ * requires. The first reason is reach: `.redacted` is a SwiftUI view modifier,
+ * and much of what these bones stand in for is an RN scroller (the home grid,
+ * Topper's feeds where this was written). It cannot be applied to them. The
+ * second reason covers the native `List`s too, where it IS reachable: one
+ * placeholder language. A static grey card beside a sweeping bone makes one
+ * surface the odd one out, and `redacted` also blanks a row's LABEL with its
+ * value, changing the row's height. It was tried on a native list and
+ * rejected in the shipping code — `FormDisclosureRowIos` carries the argument.
+ * A native container takes a bridged bone, not `redacted`.
  *
  * THE SWEEP IS NOT AN ANDROID IDIOM EITHER, which is the misreading worth
  * heading off: it is Facebook's, open-sourced in 2015 for both platforms, and
  * it spread to Instagram, LinkedIn and YouTube. It is PRODUCT-CATEGORY
  * vernacular — what a social app looks like while it waits — and it renders
  * identically on both platforms, so adopting it does not make iOS wear
- * Android's clothes. It earns its place here because these apps wait on
+ * Android's clothes. It earns its place here because this app waits on
  * Firestore over a network, where Apple's static block reads as frozen rather
  * than as loading.
  *

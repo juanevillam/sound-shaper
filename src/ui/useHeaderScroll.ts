@@ -59,7 +59,7 @@ export type HeaderScrollColors = {
  * - 2026-09-08 reverses THAT: the permanent band reads worse than no band,
  *   so the bar rests bare and the old static colour became the lifted one.
  *   The one-pair-everywhere rule survives every swing: whatever the pair is,
- *   it is the same pair on every screen of every app.
+ *   it is the same pair on every screen.
  *
  * IT MUST WATCH THE END OF THE GESTURE, NOT ONLY THE STREAM — this is the half
  * that was missing, and it made the bar a one-way trip. A throttled `onScroll`

@@ -1,9 +1,10 @@
 import { type TextStyle } from 'react-native';
 
 /**
- * THE PORTFOLIO'S "ADD MEDIA" PLACEHOLDER — one spec for every box that offers
- * to fill itself: Topper's create-top rail tile and item-editor picker, and
- * Sound Shaper's Add Sound grid cell. They are the same affordance (a filled square, a centred plus,
+ * THE "ADD MEDIA" PLACEHOLDER — one spec for every box that offers to fill
+ * itself: the Add Sound grid cell and the editor's empty media slot here, and
+ * (in the portfolio this kit was built in) Topper's create-top rail tile and
+ * item-editor picker. They are the same affordance (a filled square, a centred plus,
  * tap to choose), and they had drifted on all four terms — different
  * background token, different plus CHARACTER, a hand-tuned size against a
  * derived one, and muted ink against full strength.

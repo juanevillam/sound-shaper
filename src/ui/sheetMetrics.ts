@@ -1,11 +1,10 @@
 /**
- * WHERE A SHEET'S CONTENT STARTS — one geometry, for every sheet in every app.
+ * WHERE A SHEET'S CONTENT STARTS — one geometry, for every sheet.
  *
  * These two numbers are APPLE'S, band-scanned out of Settings on iPhone 17 /
- * iOS 26.5, not this portfolio's taste. They lived in Topper while only Topper's
- * account family needed them, and moved here when the editors — which are built
- * on `SheetFormIos`, in this package, and are used by Sound Shaper too — were
- * found sitting below the same standard for the same reason.
+ * iOS 26.5, not taste. They were first measured for Topper's account family
+ * and moved into the shared kit when the editors — built on `SheetFormIos` —
+ * were found sitting below the same standard for the same reason.
  */
 
 /**
@@ -18,13 +17,14 @@
  * anchors against 167.0 with the slot: exactly 21.
  *
  * TAKE IT OFF THE RN WRAPPER where there is one, never off the `List`.
- * `PeopleSheetListIos` names the seven levers that were measured and why six of
- * them are wrong; the short version is that moving the SwiftUI frame inside the
- * Host leaves RNScreens' content inset describing the old layout, so the
- * scroller gains 21pt of empty travel. Moving the hosting VIEW makes UIKit
- * recompute with it. A `Form` that is NOT the RNScreens scroll root — the
- * editors' — takes it as negative padding instead, which is measured, not
- * assumed.
+ * Seven levers were measured (on Topper's `PeopleSheetListIos`) and six are
+ * wrong; the short version is that moving the SwiftUI frame inside the Host
+ * leaves RNScreens' content inset describing the old layout, so the scroller
+ * gains 21pt of empty travel. Moving the hosting VIEW makes UIKit recompute
+ * with it. The editors' `Form`, which is NOT the RNScreens scroll root, takes
+ * it the same way — off its Host (`SheetFormBodyIos`); negative padding on the
+ * `Form` itself was measured to be a no-op. A full-height titled sheet takes
+ * `SHEET_FIRST_CARD_MARGIN` instead (below).
  *
  * IT IS A COMPENSATION, NOT A REMOVAL. `contentMargins` — absent on @expo/ui
  * 57, tracked in docs/pending-upstream.md — is what actually deletes the slot,
@@ -55,7 +55,7 @@ export const SHEET_CONTENT_TOP = 84;
  * the same 84, but slides the top of the `Form` under the sheet's bar, and
  * UIKit reads that as content scrolled under it: the bar draws its hard
  * scroll-edge band and a separator at rest, before anything has moved. Booker's
- * editors shipped that band (Juan, 2026-10-10: New Highlight "no tiene el
+ * editors (a sibling app) shipped that band (Juan, 2026-10-10: New Highlight "no tiene el
  * padding top correcto"), while Settings, on this margin, never had one.
  */
 export const SHEET_FIRST_CARD_MARGIN = 18;
@@ -96,15 +96,13 @@ export const composeSheetBottomPadding = (insetBottom: number): number =>
 /**
  * HOW FAR IN A COMPOSE SHEET'S CONTENT STARTS FROM ITS SIDE EDGES.
  *
- * M3's own bottom-sheet content inset, and what most of Topper's sheets
- * already use. Sound Shaper's three disagreed — 16 in the sound editor, 24 in
+ * M3's own bottom-sheet content inset. This app's three sheets disagreed — 16 in the sound editor, 24 in
  * Clips and Shape — so two sheets a tap apart in one player started their
  * text at different places, measured 18.13dp against 25.60dp of ink on the
  * A54.
  *
  * A CENTRED-HERO SHEET IS THE EXCEPTION AND STATES ITS OWN. `TrophyDetailSheet`
- * and Topper's `ItemDetailSheet` / `CreatorInfoSheet` stand one centred column
- * rather than rows, and 24 is right there; the constant is for sheets holding
+ * stands one centred column rather than rows, and 24 is right there; the constant is for sheets holding
  * LIST ROWS OR A FORM, which is what "content inset" means in the spec.
  */
 export const COMPOSE_SHEET_GUTTER = 16;
@@ -118,15 +116,14 @@ export const COMPOSE_SHEET_GUTTER = 16;
  * The anatomy every Compose sheet here shares is `SheetDragHandle` (M3's
  * 48dp box) → a header row → content. The header row is `SheetBar`, and it
  * is `COMPOSE_SHEET_HEADER_HEIGHT` tall whether it carries a commit pill (the
- * editors — a Material `Button` is 40) or only a title (the follow lists,
- * comments), so a title's ink sits on the same line in both. The first
- * content BOX — a field, a grouped card, a list row's padding box — starts
+ * editors — a Material `Button` is 40) or only a title (a list sheet), so a
+ * title's ink sits on the same line in both. The first content BOX — a field,
+ * a grouped card, a list row's padding box — starts
  * `COMPOSE_SHEET_HEADER_TO_CONTENT` under that row; a headerless hero sheet
- * (an item's read sheet, the creator badge) takes the same gap under the
- * handle, the way every iOS sheet takes 84 whether its bar has a title or not.
+ * (`TrophyDetailSheet`) takes the same gap under the handle, the way every iOS sheet takes 84 whether its bar has a title or not.
  *
- * Before these existed the family had drifted to four answers for one job
- * (editors 16 by way of their form gap, follow lists 12, comments 8, the hero
+ * Before these existed the portfolio's sheets had drifted to four answers for
+ * one job (editors 16 by way of their form gap, list sheets 12 and 8, the hero
  * sheets 8), which is exactly the per-sheet wobble the iOS 84 was
  * standardised to kill (Juan, 2026-09-05: standardise the top spacing of
  * every screen and sheet the way iOS does).

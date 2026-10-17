@@ -2,7 +2,7 @@ import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THE PORTFOLIO'S SHAPE TERMS — one file, every app.
+ *  THE SHAPE TERMS — one file.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Topper and Sound Shaper each carried a `styles/shape.ts` of their own, and
@@ -17,11 +17,11 @@ import { Platform, StyleSheet, type ViewStyle } from 'react-native';
  * whole floating family's terms are.
  */
 
-// Container corner radii for the apps' CUSTOM cards / rows / tiles, matched
-// to each platform's NATIVE list container so custom surfaces read in tone
-// with native ones (a Settings Form section beside a TopCard must feel like
-// one family): Android = the M3 card values the apps shipped with;
-// iOS = the iOS 26 inset-grouped-list radius.
+// Container corner radii for CUSTOM cards / rows / tiles, matched to each
+// platform's NATIVE list container so custom surfaces read in tone with
+// native ones (a Settings Form section beside a custom card must feel like
+// one family): Android = the M3 card values; iOS = the iOS 26
+// inset-grouped-list radius.
 const IOS_GROUP_RADIUS = 26;
 
 /** Standard card/row container (M3 12 / iOS grouped 26). */
@@ -59,7 +59,7 @@ export const SHAPE_MD = 12;
  * grouped-list radius is 26 whether the section is 180pt or 370pt wide, so a
  * card and a wider card are the same shape family. Only ARTWORK scales — a
  * picture is cut to a ratio of its own size (`artworkRadius`, its own file in
- * this package, where the ratio's origin and the three-way drift it unified
+ * `src/ui`, where the ratio's origin and the three-way drift it unified
  * are recorded).
  *
  * The failure mode to watch is a container much SHORTER than 2 × radius, which

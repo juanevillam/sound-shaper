@@ -10,12 +10,12 @@ import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
 import { type ResolvedTrophy } from './types';
 
-// One trophy's detail — the CONTENT of the iOS form-sheet route, shared by
-// every app so the surface is pixel-identical across the portfolio (it drifted
-// once: Sound Shaper re-implemented it without the disc). The glyph sits on a
+// One trophy's detail — the CONTENT of the iOS form-sheet route, written once
+// here so the surface cannot drift (it did once in the portfolio: Sound
+// Shaper re-implemented it without the disc). The glyph sits on a
 // soft tier-tinted disc — the Game Center idiom; a bare floating icon read
-// unfinished on the elevated sheet. Colors ride in as props like the package's
-// other screens, so each app's platform palette applies.
+// unfinished on the elevated sheet. Colors ride in as props like the module's
+// other screens, so the platform palette applies.
 
 // A CONTAINER HERO, so it takes the BADGE size rather than the bare-symbol one
 // — see `sheetHero` for the measurement that separates the two.
@@ -114,12 +114,11 @@ const styles = StyleSheet.create({
     width: DISC_SIZE,
   },
   // THE SHARED SCALE, not three hand-written pairs. `TEXT_VARIANTS` is
-  // exported from `src/ui` for exactly this — "so package-level
-  // components still render on the exact same steps as every app screen" — and
-  // this file was writing the numbers out instead, which is how it came to
-  // render ANDROID's body size on iOS: 14/20 against the 15/20 its sibling
-  // sheet (`creator-info`, the verified-badge explainer) gets from
-  // `bodyMedium`. Same layout, same padding, same hero rhythm, one step of type
+  // exported from `src/ui` for exactly this — so components that take
+  // already-translated strings "still render on the exact same steps as every
+  // screen" — and this file was writing the numbers out instead, which is how
+  // it came to render ANDROID's body size on iOS: 14/20 against the 15/20 a
+  // sibling sheet (Topper's verified-badge explainer) got from `bodyMedium`. Same layout, same padding, same hero rhythm, one step of type
   // apart.
   title: { ...TEXT_VARIANTS.titleLarge, textAlign: 'center' },
   caption: { ...TEXT_VARIANTS.labelMedium, textAlign: 'center' },

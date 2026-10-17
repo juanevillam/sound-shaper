@@ -27,9 +27,9 @@ type LocaleState<L extends string> = {
 };
 
 /**
- * Builds the shared `useI18n` hook so every app gets identical i18n-js wiring
- * (fallback on, memoized translator keyed by locale) while owning its own
- * `translations` and locale type.
+ * Builds the `useI18n` hook — i18n-js wiring with fallback on and a memoized
+ * translator keyed by locale — from the `translations` and locale type it is
+ * handed (`src/i18n/index.tsx`).
  *
  * `useLocaleState` is a hook the app supplies that reads the current locale and
  * its setter from wherever the app keeps them (e.g. a zustand store) — this keeps

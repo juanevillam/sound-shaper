@@ -43,12 +43,11 @@ import { withAlpha } from '@/core';
  * 7.00 × 12.00pt, stroke 2.12, dark and light). So the shared term is the SVG
  * one and Topper's rasterisation compromise is retired rather than copied.
  *
- * `react-native-svg` is already a peer dependency of this package and a direct
- * dependency of all three apps, so this costs nothing to host here. The
- * alternatives both still cost more than the glyph is worth: `AppIcon.ios`
+ * `react-native-svg` is already a dependency, so this costs nothing to host
+ * here. The alternatives both still cost more than the glyph is worth: `AppIcon.ios`
  * renders a real `chevron.right` but only inside a SwiftUI `Host`, and a Host
  * per row is the measured perf ceiling these lists already avoid; `expo-symbols`
- * is not a dependency of every app that needs this.
+ * is not a dependency at all.
  */
 
 /** Settings' cell chevron, measured beside a regular 17pt label. */

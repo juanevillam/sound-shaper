@@ -1,24 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THE NOW-PLAYING BANNER'S BOX — the portfolio's, not one app's.
+ *  THE NOW-PLAYING BANNER'S BOX — in the UI kit, not beside the player.
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Only Sound Shaper draws this banner, so these look like they belong to that
- * app, and they lived there. They do not: `SNACKBAR_BOTTOM_CLEARANCE` is where
- * the toast stands in EVERY app, and it is derived from this box — the tallest
- * bottom chrome in the portfolio clearing itself. Topper's toast is positioned
- * by Sound Shaper's banner, and that is deliberate (a toast in a different spot
- * per app is a difference nobody using one app can see).
+ * Only the player draws this banner, but `SNACKBAR_BOTTOM_CLEARANCE` is
+ * derived from it — the toast stands on the tallest bottom chrome clearing
+ * itself — so the box lives where the snackbar can read it.
  *
- * A package cannot import an app, so the box was restated inside
- * `SnackbarProvider` as `8 + 68` with a comment saying that if either number
- * ever moved, nothing would tell you. Three things now depend on it — the
- * banner, the expanded console's glass footer, and the toast — and one of them
- * lives here, so the term moves here and the app re-exports it. That is what
- * `SHEET_CONTENT_TOP` and `GROUPED_ROW` both did the day a third surface needed
- * them.
+ * It was once restated inside `SnackbarProvider` as `8 + 68` with a comment
+ * saying that if either number ever moved, nothing would tell you. Three
+ * things depend on it — the banner, the expanded console's glass footer, and
+ * the toast — so it is one term here, the move `SHEET_CONTENT_TOP` and
+ * `GROUPED_ROW` both made the day a third surface needed them.
  *
- * A LEAF: nothing here may import anything. Sound Shaper's `bannerMetrics`
+ * A LEAF: nothing here may import anything. The player's `bannerMetrics`
  * carries a hard-won rule about staying importable from anywhere (a require
  * cycle through the dev lab once left its constants `undefined` and rendered a
  * bar at `bottom: NaN`), and it re-exports these — so they inherit the rule.

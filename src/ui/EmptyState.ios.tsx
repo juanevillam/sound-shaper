@@ -60,17 +60,17 @@ type EmptyStateProps = {
 
 /**
  * iOS empty / error state — SwiftUI's own `ContentUnavailableView`, which is
- * exactly this surface. Shared by every app; the Android twin's header says why
- * it lives here rather than once per app. Apple's typography, spacing, symbol weight and
+ * exactly this surface; the Android twin's header says why it is one shared
+ * component. Apple's typography, spacing, symbol weight and
  * secondary colours, plus Dynamic Type, instead of the RN column of emoji +
  * title + subtitle this used to hand-build with app type styles.
  *
  * THE CTA SITS BESIDE IT, NOT INSIDE IT. Real `ContentUnavailableView` takes an
  * `actions` ViewBuilder; the @expo/ui 57.0.7 wrapper exposes only `title`,
  * `systemImage` and `description` (checked in
- * `build/swift-ui/ContentUnavailableView/index.d.ts`; nor does any
- * docs/expo-ui example pass children). So the CTA is a sibling `Button` in the same
- * `VStack` — still a real SwiftUI control, and visually where Apple puts it,
+ * `build/swift-ui/ContentUnavailableView/index.d.ts`; nor does any example
+ * in the @expo/ui docs pass children). So the CTA is a sibling `Button` in the
+ * same `VStack` — still a real SwiftUI control, and visually where Apple puts it,
  * just not slotted into the view. Tracked in docs/pending-upstream.md; when
  * `actions` lands, move the button inside and drop the VStack.
  *

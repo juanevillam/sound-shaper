@@ -98,8 +98,8 @@ export function LegalFooter({ legal, colors }: LegalFooterProps) {
 }
 
 const styles = StyleSheet.create({
-  // Footnote metrics (12/16) on the platform system font, centered under the
-  // last auth button.
+  // `FOOTER`'s metrics (iOS footnote 13/18, Android bodySmall 12/16 — see
+  // above) on the platform system font, centered under the last auth button.
   legal: {
     fontSize: FOOTER.fontSize,
     lineHeight: FOOTER.lineHeight,

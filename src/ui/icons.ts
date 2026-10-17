@@ -58,8 +58,8 @@ export const iconSource = (name: IconName): ImageSourcePropType => icons[name];
  * for one, because every surface that calls `iconSource` (`SettingsScreen`,
  * `SettingsAccountSection`, `ManageAccountScreen`, `WelcomeScreen`) is an
  * Android base with an `.ios.tsx` twin beside it, and `AppIcon.ios` draws SF
- * Symbols instead. Unguarded, every iOS cold start in all three apps resolved
- * 60 assets to warm a cache with no readers.
+ * Symbols instead. Unguarded, every iOS cold start resolved the whole set
+ * (60 assets at the time) to warm a cache with no readers.
  *
  * Resolves to an empty array off Android so callers keep their
  * fire-and-forget shape.

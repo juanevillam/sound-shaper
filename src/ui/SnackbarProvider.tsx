@@ -57,32 +57,27 @@ type SnackbarProviderProps = {
    * iOS clearance between the toast and the bottom safe-area edge.
    *
    * ONLY A PRESENTED SURFACE PASSES THIS — see `SnackbarOutlet`, where a sheet
-   * states its own. An APP does not: the toast stands in the same place in
-   * every app, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
+   * states its own. A screen does not: the toast stands in the same place on
+   * every screen, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
    */
   iosBottomInset?: number;
 };
 
 /**
  * WHERE THE TOAST STANDS ON iOS, measured up from the bottom safe-area edge —
- * and it is the PORTFOLIO'S number, not each app's.
+ * one number, not one per screen.
  *
- * The apps used to pass their own, a flat 76 in both, which was right for
- * neither: it left Topper's tab bar 27pt of air and overlapped Sound Shaper's
+ * It used to be a flat 76 passed in by the caller, which overlapped the
  * now-playing banner by 3.33pt, the two surfaces fighting for one band. The
- * obvious repair was to derive it per app from that app's own bottom chrome —
- * and that is worse, because it puts the same toast in a different place in
- * every app for a reason nobody using one app can see.
- *
- * So it is one place everywhere, and the number is the tallest bottom chrome in
- * the portfolio clearing itself. Topper's tab bar is shorter, so its toast
- * simply carries more air — the same surface in the same spot, which is the
- * point.
+ * number is now the tallest bottom chrome (that banner) clearing itself, so a
+ * screen with no banner simply gives the toast more air — the same surface in
+ * the same spot, which is the point. (This was one number across the portfolio
+ * this kit was built in, and that is where the rule was learned.)
  *
  * IT USED TO BE THE ONE MANUAL LINK IN THIS FAMILY — the banner's box restated
  * here as `8 + 68`, with a comment admitting that if either number moved in
  * Sound Shaper, nothing would tell you. It is not restated any more: the box
- * lives in `nowPlayingBanner` and the app re-exports it, so the three surfaces
+ * lives in `nowPlayingBanner`, so the three surfaces
  * that depend on it (the banner, the expanded console's glass footer, and this
  * toast) all read the same term.
  */
@@ -111,9 +106,10 @@ const SWIPE_DISMISS_VELOCITY = 800;
 const SWIPE_ACTIVATION_OFFSET = 8;
 
 /**
- * The one snackbar for every portfolio app: a Material 3 bar on Android and a
- * Liquid Glass capsule toast on iOS (which has no snackbar idiom). Apps differ
- * only by `iosBottomInset` — never fork this to restyle one app.
+ * The one snackbar: a Material 3 bar on Android and a Liquid Glass capsule
+ * toast on iOS (which has no snackbar idiom). A presented surface differs only
+ * by `iosBottomInset` (through `SnackbarOutlet`) — never fork this to restyle
+ * one screen.
  */
 const SnackbarProvider = ({
   children,

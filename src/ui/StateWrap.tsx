@@ -16,8 +16,8 @@ import { ScrollView, StyleSheet } from 'react-native';
  * simply a full-height scroller and the `top` / centred contract still holds.
  * Every Topper caller was already aliasing the old name back to this one.
  *
- * IT LIVES IN THE PACKAGE because the question it answers is the same in every
- * app: where does a state that is not a list stand, on a screen whose chrome is
+ * IT IS SHARED because the question it answers is the same on every screen:
+ * where does a state that is not a list stand, on a screen whose chrome is
  * UIKit's. Topper wrote it (out of two divergent copies of its own), Sound
  * Shaper's home needed the identical thing the day it moved to the system large
  * title, and a second copy is exactly the drift this component already exists to

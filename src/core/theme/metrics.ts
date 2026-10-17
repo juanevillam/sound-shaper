@@ -13,8 +13,8 @@ import { Platform } from 'react-native';
  * describes those builds, it does not change them. Every iOS value is the
  * Apple convention it corresponds to, cited in its comment.
  *
- * It lives in the package because Sound Shaper and Topper each had their own
- * copy and they had already drifted: Topper was inseting content 16 where the
+ * It was lifted into the shared kit because Sound Shaper and Topper each had
+ * their own copy and they had already drifted: Topper was inseting content 16 where the
  * iOS convention (and its sibling) is 20, had no section-gap token at all, and
  * had settled on a 12pt tile gutter against the sibling's 14. Three constants
  * short, in a file whose whole purpose is to stop exactly that.

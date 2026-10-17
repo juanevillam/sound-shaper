@@ -84,22 +84,22 @@ import { spacing } from './tokens';
 const BODY_PULL_BACK = SHEET_EMPTY_HEADER_SLOT - 3.33;
 
 /**
- * Chrome for the iOS form-sheet routes, shared by every portfolio app: the
- * grouped `Form` with its title + tinted-action header, the `TextField` row,
- * the centred media row, the affirmative button and the destructive row.
+ * Chrome for the iOS form-sheet routes: the grouped `Form` body under the
+ * system bar, the `TextField` row, the centred media row, the button
+ * modifiers and the destructive row.
  *
- * It lives in the package rather than per app because these are the SAME
- * surface — an app that re-authored one drifted from the others within a week
- * (mismatched delete buttons, two different media treatments). Labels arrive
- * already translated (the package has no app translator), and colors come from
- * the shared `useAppTheme`, so a call site passes only content.
+ * It is one file because these are the SAME surface — in the portfolio this
+ * kit came from, an app that re-authored one drifted from the others within a
+ * week (mismatched delete buttons, two different media treatments). Labels
+ * arrive already translated (the kit takes no translator), and colors come
+ * from `useAppTheme`, so a call site passes only content.
  *
  * Everything here is the platform's own control. An earlier version of this
  * file drew the same sheet out of RN views — a `Pressable` for the action, a
  * styled `TextInput` per field, an `ActivityIndicator` while saving, and an
  * outlined pill for delete that was, unwittingly, Material's `OutlinedButton`
  * redrawn by hand and shipped on iOS. Beside the real controls in
- * `apps/expo-ui-starter`'s showcase the imitation was obvious; worse, the ANDROID
+ * the (since deleted) Expo UI Starter's showcase the imitation was obvious; worse, the ANDROID
  * twins of these sheets were already 100% Compose, so iOS was the only platform
  * wearing hand-made paint. Those RN components were deleted once the last
  * sheet (`shaper.tsx`) moved over — going through SwiftUI also hands us press
@@ -159,11 +159,12 @@ const styles = StyleSheet.create({
  * ✕ / ✓ ride `headerLeft` / `headerRight` (see `sheetCommitBarOptionsIos`).
  * That is the arrangement that gets genuine Liquid Glass — the bar is the
  * system's, so scrolling content dissolves under it and the glyph capsules
- * refract for real, which the authored header in `SheetFormIos` never can
- * (its glass sits over a static sheet with nothing ever passing behind it).
+ * refract for real, which the authored header this file once drew never could
+ * (its glass sat over a static sheet with nothing ever passing behind it).
  *
- * IT IS A SEPARATE EXPORT rather than a `titledBar` flag on `SheetFormIos`,
- * because the flag made five of that component's props dead on arrival — a
+ * IT WAS A SEPARATE EXPORT rather than a `titledBar` flag on the old
+ * `SheetFormIos` component, because the flag made five of that component's
+ * props dead on arrival — a
  * titled caller still had to pass `title`, `actionLabel`, `actionEnabled`,
  * `busy` and `onAction`, none of which were read, while stating the same five
  * things for real in its `Stack.Screen`. Both Topper editors did exactly that,
@@ -425,7 +426,7 @@ type SheetCommitBarOptions = {
 
 /**
  * THE COMMIT-MODAL PAIR AS `Stack.Screen` OPTIONS — one statement of a titled
- * editor sheet's bar, for every editor in the portfolio.
+ * editor sheet's bar, for every editor sheet in the app.
  *
  * Apple's arrangement, in the only place it can be genuine: the ✕ is a plain
  * bar glyph that UIKit gives its own glass circle, the ✓ is
@@ -477,7 +478,7 @@ export function SheetCommitGlyphIos({
 
   // THE BAR GLYPH, NOT A SECOND ONE. This was a bare `Image` with `onPress`,
   // a hand-painted muted ink while it could not commit, and `disabled(true)`
-  // on top — the exact arrangement `HeaderGlyphButton.ios` records as the bug:
+  // on top — the exact arrangement `HeaderGlyphButtonIos` records as the bug:
   // SwiftUI's disabled treatment reaches CONTROLS, so on a bare Image it
   // dimmed nothing and the colour was doing the platform's job. Routed through
   // `HeaderGlyphButtonIos`, the ✓ is a real `Button`, disabled the way every

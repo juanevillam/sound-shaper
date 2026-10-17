@@ -35,8 +35,7 @@ import {
  * committing", and earned its place: nearly every layout-shift and spacing
  * defect this repo has caught was found by stepping states side by side.
  * Scaffolding you rebuild each time is scaffolding you skip, so it lives here
- * instead — one implementation for every app, every screen, and (when they
- * come) every bottom sheet.
+ * instead — one implementation for every screen and sheet.
  *
  * IT RENDERS NOTHING IN A RELEASE BUILD. The bar returns null unless `__DEV__`,
  * so the guard cannot be forgotten at a call site.
@@ -260,7 +259,7 @@ export function StateLab({
   );
 }
 
-// THE PORTFOLIO'S ICON PRESS, not a pressed fill. This shipped with a
+// THE ICON PRESS (`ICON_PRESS_*`), not a pressed fill. This shipped with a
 // `surfaceContainer` fill under the pressed glyph on the argument that a dim is
 // hard to see under a thumb — which is exactly what `ICON_PRESS_SCALE` +
 // `ICON_PRESS_OPACITY` exist to solve for a lone glyph, and what the iOS twin

@@ -1,6 +1,5 @@
 /**
- * HOW A DRAGGED TILE LIFTS — one value for every reorderable surface in the
- * portfolio.
+ * HOW A DRAGGED TILE LIFTS — one value for every reorderable surface.
  *
  * `react-native-sortables` scales the item under the finger to say "this one
  * is travelling". 1.03 is small on purpose: the tile has to read as picked up

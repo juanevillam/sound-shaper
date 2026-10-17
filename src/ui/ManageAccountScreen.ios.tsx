@@ -32,15 +32,15 @@ import { TextEditRowIos } from './TextEditRowIos';
  * THE `Screen` TAKES NO COLOUR AND NO EDGES, and both halves of that are the
  * corrections its twin already carried:
  *
- *  - NO `backgroundColor`. This screen presents as a form SHEET in Topper and
- *    as a pushed screen in Sound Shaper, and in BOTH cases the navigator has
- *    already painted the right surface (`contentStyle` — `colors.sheet` for a
+ *  - NO `backgroundColor`. This screen presents as a form SHEET (and was a
+ *    pushed screen elsewhere in the portfolio), and in BOTH cases the
+ *    navigator has already painted the right surface (`contentStyle` — `colors.sheet` for a
  *    sheet, `colors.background` for a push). Painting `background` here was
  *    invisible in light, where the two are the same `#F2F2F7`, and in dark it
  *    covered the sheet's `#1C1C1E` with `#000000` — so the account sheet read
  *    BLACK beside Settings, its own twin, one gesture away in the same stack.
- *    `SettingsScreen.ios` states the rule; `SheetScreenIos` in Topper states
- *    it again for the app's own sheets.
+ *    `SettingsScreen.ios` states the rule; `SheetScreenIos`
+ *    (`src/components/ui`) states it again for the app's own sheets.
  *  - NO `edges`. The `Form` scrolls and insets itself natively; a `SafeAreaView`
  *    around it only insets the box the Form is already insetting inside.
  */

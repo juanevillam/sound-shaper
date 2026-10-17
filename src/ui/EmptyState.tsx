@@ -16,10 +16,10 @@ import type { IconName } from './icons';
  *
  * `EmptyState` hosts its own Compose `Host`, and a Host inside another Host is
  * the nesting blow-up the RNHostView notes record — so a Compose bottom sheet
- * standing an empty state has to draw the parts itself. Sound Shaper's Clips
- * sheet does, and it had hand-copied all four numbers, which is the
- * "re-implement in another technology, import its constants" rule from the
- * root AGENTS.md pointing at exactly this shape. There is one caller today and
+ * standing an empty state has to draw the parts itself. The Clips sheet does,
+ * and it had hand-copied all four numbers, which is the "re-implement in
+ * another technology, import its constants" rule in `docs/standards.md`
+ * pointing at exactly this shape. There is one caller today and
  * that is the point: the steps are stated here, and the copy is gone.
  */
 export const EMPTY_STATE_STEPS = {
@@ -71,17 +71,17 @@ type EmptyStateProps = {
 };
 
 /**
- * THE PORTFOLIO'S EMPTY / ERROR STATE, one component for every app.
+ * THE EMPTY / ERROR STATE — one component for every screen that has one.
  *
  * It lived in Topper and was PORTED into Sound Shaper on 2026-08-20, which is
- * exactly the drift AGENTS.md's "a surface solved in one app must be THE SAME
- * COMPONENT in the others" rule exists to end — the two copies were already 87%
- * identical on iOS and 96% on Android before either had been touched twice.
+ * exactly the drift `docs/standards.md`'s "a surface solved in one app must be
+ * THE SAME COMPONENT in the others" rule exists to end — the two copies were
+ * already 87% identical on iOS and 96% on Android before either had been
+ * touched twice.
  *
- * It hosts its own Compose embed rather than taking an app's `ThemedHost`, and
- * reads the palette straight from `src/core` — each app's `useAppTheme`
- * is a pure re-export of that hook, so this is the same theme they resolve and
- * not a second one.
+ * It hosts its own Compose embed rather than taking the app's `ThemedHost`, and
+ * reads the palette from `useAppTheme` (`@/core`) — the one theme every screen
+ * resolves, not a second one.
  *
  * The Host matches contents only VERTICALLY: a boolean `matchContents` sizes it
  * to the text's intrinsic single-line width, which can exceed the screen (text
@@ -102,9 +102,9 @@ export function EmptyState({
     <View style={styles.centered}>
       {/* The app-side `ThemedHost` this used to take is a `Host` with the
           resolved scheme forwarded; a package component can ask for the scheme
-          itself. There is NO brand seed today (every portfolio app rides the
-          platform-default palette), but it is forwarded so this stays ready if
-          one ever returns. */}
+          itself. There is NO brand seed (the app rides the platform-default
+          palette); forwarding the scheme is what keeps the Compose embed's
+          appearance in step with the app's. */}
       <Host
         colorScheme={scheme}
         style={styles.host}

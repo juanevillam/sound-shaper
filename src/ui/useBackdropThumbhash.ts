@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 import { Image } from 'expo-image';
 
 /**
- * A TINY SOURCE FOR A BACKDROP THAT HAS NONE TO FETCH — one hook, every app.
+ * A TINY SOURCE FOR A BACKDROP THAT HAS NONE TO FETCH — one hook.
  *
- * Both apps letterbox artwork the same way: the picture uncropped (`contain`)
+ * Artwork is letterboxed one way everywhere: the picture uncropped (`contain`)
  * over a blurred, zoomed copy of itself (`cover`), so the empty bars fill with
  * colour drawn from the image. On iOS that blur is applied by SDWebImage to the
  * DECODED SOURCE bitmap, before the view shrinks it — so the radius only reads
- * as a blur when the source is already small, which is why `ItemImage` and
- * `ArtImage` both fetch a 64px Cloudinary variant for that layer.
+ * as a blur when the source is already small, which is why `ArtImage` (and
+ * Topper's `ItemImage`, where this was learned) fetch a 64px Cloudinary variant for that layer.
  *
  * A LOCAL PICK HAS NO VARIANT TO FETCH. An image straight out of the library is
  * a full-resolution `file://`, so the same radius comes out sub-pixel and the

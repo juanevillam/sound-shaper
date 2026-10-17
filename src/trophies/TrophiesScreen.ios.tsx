@@ -81,7 +81,7 @@ import { type ResolvedTrophy } from './types';
  */
 const ICON_SIZE = 26;
 /**
- * THE LEADING SLOT IS THE PORTFOLIO'S GROUPED-ROW SLOT, not a size of its own.
+ * THE LEADING SLOT IS THE SHARED GROUPED-ROW SLOT, not a size of its own.
  *
  * This row is structurally the same row a person and a trashed top get: leading
  * media, a body line over a footnote, a chevron. It ran a 34pt slot against
@@ -98,21 +98,17 @@ const ICON_SIZE = 26;
 const ICON_SLOT = GROUPED_ROW.art;
 
 /**
- * THE PROGRESS HEADER'S OWN GEOMETRY, for the ONE bridged host that stands it
- * while the award cache loads.
+ * THE PROGRESS HEADER WHILE THE AWARD CACHE LOADS.
  *
  * The header is a native `Gauge` + `Text` once the counts are real — the
  * platform primitives, which is the whole reason the summary moved into the
- * `Section` in the first place. It cannot ALSO bone its parts in place:
- * a bridged host per figure is a second and third `RNHostView` in one row, and
- * that blew the layout apart (titles clipped off the leading edge, the icon
- * slot gone, the header collapsed to a stub). One host per row is the ceiling.
- *
- * So the loading header is a SINGLE host holding the whole summary in RN — a
- * disc for the ring and two bars for the count and the pips — and the numbers
- * here exist to land it exactly where the native one sits. Verified by
- * band-scan (iPhone 17 / iOS 26.5): card top 218.0 and every separator
- * identical between the two states.
+ * `Section` in the first place. While loading it bones its parts IN PLACE: a
+ * disc for the ring and one bone per figure, each in its own small
+ * `RNHostView`, inside a row whose height is stated. That is three hosts in one
+ * block, above the one-per-row ceiling everywhere else — an earlier header
+ * with a host per figure blew the layout apart, and a single host holding the
+ * whole summary rendered blank here. The `SUMMARY BONES` note in the styles
+ * records why the split version is the one that draws.
  *
  * The header content box is 338 wide at a 32pt inset — the grouped header's
  * inset, not the card's 18. Re-measure if the header's type or

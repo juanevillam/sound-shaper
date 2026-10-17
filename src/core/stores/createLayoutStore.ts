@@ -11,11 +11,10 @@ type LayoutState<L extends string> = {
 };
 
 /**
- * Builds the app's persisted locale store. The wiring (device-locale default,
- * AsyncStorage persistence under the `layout` key, `hasHydrated` splash gate)
- * is identical across apps; only the locale union differs, so each app passes
- * its own `SUPPORTED_LOCALES` and fallback. Theme preference is app-agnostic
- * and lives in `useThemeStore`.
+ * Builds the persisted locale store: device-locale default, AsyncStorage
+ * persistence under the `layout` key, and a `hasHydrated` splash gate, over the
+ * `SUPPORTED_LOCALES` and fallback the caller passes (`src/store/layout.ts`).
+ * Theme preference lives in `useThemeStore`.
  */
 export function createLayoutStore<L extends string>(
   supportedLocales: readonly L[],

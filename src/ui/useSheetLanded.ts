@@ -31,14 +31,10 @@ import { useNavigation } from 'expo-router';
  * THE WAIT IS INVISIBLE because a pixel-matched skeleton stands in for it. That
  * is the second job the bones have earned on every sheet that uses this.
  *
- * MOVED HERE from Topper's hooks the day a second app needed it (Sound
- * Shaper's clip editor defers its off-centre waveform tiles until the sheet
- * lands, 2026-08-27) — the terms-move rule: the definition lives in the
- * package, the apps keep thin re-exports.
- *
- * IT LIVES HERE, not in the one screen that first needed it: three sheets now
- * host a native `List` (See All, Followers/Following, Blocked Users) and every
- * one of them has this failure mode. NOT to be confused with
+ * MOVED into the shared kit from Topper's hooks the day a second app needed
+ * it (the clip editor defers its off-centre waveform tiles until the sheet
+ * lands, 2026-08-27). Topper's three native-`List` sheets were where the
+ * failure mode was found; here the one caller is the clip editor. NOT to be confused with
  * `useIosSheetPresented`, which answers a different question — "is ANY native
  * sheet covering the RN root right now", asked by the trophy overlay.
  */

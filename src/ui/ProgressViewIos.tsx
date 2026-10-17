@@ -15,15 +15,16 @@ import { SwiftUIHost } from './SwiftUIHost';
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * `SkeletonBone` and this file are siblings, not alternatives, and the rule
- * that picks between them is written once in AGENTS.md → "Waiting has two
- * shapes". In one line: a BONE stands content whose shape is already known on
+ * that picks between them is written once in `docs/standards.md` → "Waiting
+ * has two shapes". In one line: a BONE stands content whose shape is already known on
  * a screen the person NAVIGATED to; a SPINNER stands WORK THE PERSON STARTED,
  * or content whose shape cannot be predicted before it lands.
  *
- * The second half of that is why this exists. Explore's search results are a
- * MIX of person rows and top rows in a proportion and count nothing knows
- * until the query answers, so a bone set there promises a shape it cannot
- * keep — the one placeholder in the app that was lying. Apple's own search
+ * The second half of that is why this exists. It was learned on Topper's
+ * search results — a MIX of person rows and top rows in a proportion and count
+ * nothing knows until the query answers — where a bone set promised a shape it
+ * could not keep. Here it is the Clips list: nothing knows how many clips a
+ * sound has until the snapshot lands. Apple's own search
  * surfaces (Music, App Store, Maps) show a spinner for exactly that reason.
  *
  * ───────────────────────────────────────────────────────────────────────────
@@ -34,9 +35,8 @@ import { SwiftUIHost } from './SwiftUIHost';
  * fact, so the surface lays out once without it and again when it lands — the
  * async-answer family this repo has been bitten by three times. A circular
  * `ProgressView` has a fixed intrinsic size per control size, so there is
- * nothing to discover: the box is stated and the spinner centres inside it. The
- * starter's showcase keeps `matchContents` because demonstrating the API is its
- * job; product code reserves the box.
+ * nothing to discover: the box is stated and the spinner centres inside it.
+ * Product code reserves the box.
  *
  * ───────────────────────────────────────────────────────────────────────────
  *  LARGE, NOT THE DEFAULT MEDIUM

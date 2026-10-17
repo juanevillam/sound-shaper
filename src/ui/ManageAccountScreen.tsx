@@ -40,8 +40,8 @@ import { SkeletonBone } from './SkeletonBone';
 /**
  * App-resolved colors the manage-account screen paints with.
  * `surfaceVariant` / `surfaceDialog` exist for the username dialog (the same
- * `UsernameDialog` the Settings profile row used to open); every app already
- * passes its full palette, so widening the type costs no caller anything.
+ * `UsernameDialog` the Settings profile row used to open); the caller already
+ * passes its full palette, so widening the type costs it nothing.
  */
 export type ManageAccountColors = {
   primary: string;
@@ -178,9 +178,9 @@ export type ManageAccountScreenProps = {
  * (WhatsApp/Google) buries irreversible account actions one level deeper so
  * nobody gets CTA'd into them next to everyday rows like Log out.
  *
- * Shared by every portfolio app and configured by props, exactly like
- * `SettingsScreen`. Before this was lifted, each app had written its own — and they had already
- * drifted onto different layouts AND different delete flows.
+ * Configured by props, exactly like `SettingsScreen`. Before it was lifted
+ * into the shared kit, each portfolio app had written its own — and they had
+ * already drifted onto different layouts AND different delete flows.
  */
 export const ManageAccountScreen = ({
   colors,
