@@ -14,7 +14,7 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)                       |
 | 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation                            |
 | 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build                 |
-| 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                                            |
+| 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                                    |
 | 4    | submit                                                               | ⬜                                                                                       |
 
 ## 2i — console hardening
@@ -78,6 +78,26 @@ every dynamic import against the exports of the framework it names:
 widget extension, against `xcrun dyld_info -exports` of each framework —
 following `[re-export]` entries (ffmpeg's `libavcodec` re-exports
 `libavutil`). Run it on the EAS `.ipa` once one exists.
+
+## 3 — the audits, run 2026-10-17
+
+All five audit commands (`docs/audit-playbook.md`) ran in order on this repo
+after the extraction — craft (iOS, then Android), data, cache, the parity
+closing pass, quality — each report-first, with the fixes Juan approved
+landed on `main`. What they left, deliberately:
+
+- **Not taken (Juan's calls, recorded):** Firebase App Check, signed uploads
+  through the Worker, authenticated Cloudinary delivery, a Worker rate limit,
+  field validation in `firestore.rules`, and iOS's second delete-account
+  confirm (Android asks once).
+- **Juan, outside the code:** a max file size on the `sound_shaper_unsigned`
+  preset and "Resource list" restricted in Cloudinary; Anonymous and
+  Email/Password sign-in off in Firebase Auth; App Privacy in App Store
+  Connect filled from `docs/store-listing.md`; deploy the Worker change
+  (memoised signing keys) with `npm run deploy` in `media-worker/`.
+- **Android, at its own release:** a device walk of every Android change since
+  2026-09-11 (none has run on the A54 since the extraction), the Android API
+  key restriction, and the Play Data safety form.
 
 ## 3 — `npm audit`: cleared to the floor, blocking at critical (2026-10-17)
 
