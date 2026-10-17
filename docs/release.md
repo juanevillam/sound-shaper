@@ -14,7 +14,7 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)      |
 | 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation           |
 | 2i   | console hardening before the repo is public                          | ⬜ API-key restrictions, the unsigned preset, secret scanning           |
-| 3    | the engineering quality audit                                        | ⬜ after 2e and 2f                                                      |
+| 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                           |
 | 4    | submit                                                               | ⬜                                                                      |
 
 ## 2i — console hardening
@@ -40,3 +40,19 @@ every dynamic import against the exports of the framework it names:
 widget extension, against `xcrun dyld_info -exports` of each framework —
 following `[re-export]` entries (ffmpeg's `libavcodec` re-exports
 `libavutil`). Run it on the EAS `.ipa` once one exists.
+
+## 3 — `npm audit` is advisory in CI until this is cleared
+
+`npm audit --omit=dev --audit-level=high` reports high advisories, all
+transitive through Expo, React Native and Firebase (2026-10-16: `@grpc/grpc-js`,
+`node-forge`, `@xmldom/xmldom`, `braces`, `nanoid` and others). The CI step runs
+with `continue-on-error` so the build stays meaningful. Resolve it in the
+quality audit — by Expo/Firebase bumps or `overrides`, re-verifying every
+`patches/` pin and the `ExpoImage` drift check afterwards — then make the step
+blocking again.
+
+The lockfile is written by **npm 10 on Linux** (`node:22`, what CI runs).
+npm 11 on macOS leaves out `@emnapi/*`, the peers of the wasm-only
+`@napi-rs/wasm-runtime`, and `npm ci` on Linux then refuses the lock. After a
+dependency change, regenerate it in a `node:22` container with
+`npm install --package-lock-only`.
