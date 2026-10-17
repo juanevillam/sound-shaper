@@ -169,9 +169,17 @@ const soundDoc = (soundId: string) =>
   );
 
 /**
- * Destroy a sound's Cloudinary assets — best-effort, and BEFORE the document
- * that names them goes away, since the document is the only thing that knows
- * their public ids.
+ * Destroy a sound's Cloudinary assets — best-effort, and AFTER the Firestore
+ * write that stops naming them. The caller reads the public ids first (the
+ * document is the only thing that knows them), writes, then destroys.
+ *
+ * THE ORDER IS WRITE-THEN-DESTROY, as `ownProfile.setOwnPhoto` does it, and
+ * the reason is offline. The write queues locally and lands later; the Worker
+ * call simply fails. Destroying first meant a delete or a cover change made
+ * with no signal either destroyed media under a document that kept pointing
+ * at it, or — on a write that then failed — left a live document naming a
+ * dead asset. An orphaned asset is a cost; a document pointing at a dead
+ * asset is a defect.
  *
  * Each failure is swallowed on its own so one dead call cannot strand the
  * other asset, and neither can fail the delete the person actually asked for:
@@ -330,8 +338,8 @@ export const createSound = reported(
 /**
  * Update a sound's metadata (the audio file itself never changes).
  *
- * REPLACING OR CLEARING THE COVER DESTROYS THE OLD ONE FIRST — it used to
- * strand it, the same accepted gap deleting a sound had, and the same worker
+ * REPLACING OR CLEARING THE COVER DESTROYS THE OLD ONE — after the write,
+ * never before it (see `destroySoundMedia`). It used to strand it, the same accepted gap deleting a sound had, and the same worker
  * closes both. Only `cover !== undefined` means the artwork is being touched,
  * so a plain rename still costs no extra read.
  */
@@ -347,17 +355,12 @@ export const updateSound = reported(
   }: UpdateSoundParams): Promise<void> => {
     const ref = soundDoc(soundId);
 
-    if (cover !== undefined) {
-      const previous =
-        ((await getDoc(ref)).data()?.artPublicId as string) ?? '';
-
-      if (previous && previous !== cover?.publicId)
-        try {
-          await destroySoundArt(previous);
-        } catch (error) {
-          recordError(error, 'updateSound.destroySoundArt');
-        }
-    }
+    // Read the cover being replaced BEFORE the write, destroy it AFTER — see
+    // `destroySoundMedia` for why the order matters.
+    const previous =
+      cover === undefined
+        ? ''
+        : (((await getDoc(ref)).data()?.artPublicId as string) ?? '');
 
     await updateDoc(ref, {
       ...(album === undefined ? {} : { album }),
@@ -371,6 +374,13 @@ export const updateSound = reported(
           ? { artPublicId: cover.publicId, artUrl: cover.url }
           : { artPublicId: '', artUrl: '' }),
     });
+
+    if (previous && previous !== cover?.publicId)
+      try {
+        await destroySoundArt(previous);
+      } catch (error) {
+        recordError(error, 'updateSound.destroySoundArt');
+      }
   },
 );
 
@@ -448,7 +458,7 @@ export const renormalizeSoundPositions = reported(
 );
 
 /**
- * Remove a sound — ITS CLIPS FIRST, then the document.
+ * Remove a sound — ITS CLIPS FIRST, then the document, then its media.
  *
  * The order is not a preference. Firestore does not delete a subcollection
  * with its parent, so removing the sound doc alone left `clips` standing under
@@ -475,11 +485,11 @@ export const deleteSound = reported(
     const ref = soundDoc(soundId);
     const snapshot = await getDoc(ref);
     const data = snapshot.data();
-
-    await destroySoundMedia({
+    // Captured before the write, destroyed after it — see `destroySoundMedia`.
+    const media = {
       artPublicId: (data?.artPublicId as string) ?? '',
       audioPublicId: (data?.audioPublicId as string) ?? '',
-    });
+    };
 
     await deleteClipsOfSound(soundId);
     await deleteDoc(ref);
@@ -487,5 +497,7 @@ export const deleteSound = reported(
     // The mirrored mp3 is the same case as the buckets: a local copy of a
     // document that no longer exists, under an id that can never recur.
     removeMirroredSound(soundId);
+
+    await destroySoundMedia(media);
   },
 );
