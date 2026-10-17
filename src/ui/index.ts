@@ -11,13 +11,10 @@ export { AppIcon } from './AppIcon';
 export {
   CARD_RADIUS,
   CONTINUOUS_CURVE,
-  CONTROL_RADIUS,
   HAIRLINE,
   innerRadius,
-  PILL_RADIUS,
   SHAPE_MD,
   SHAPE_SM,
-  SHAPE_XS,
   TILE_RADIUS,
 } from './shape';
 export { legalUrl, type LegalPage } from './author';
@@ -59,15 +56,10 @@ export {
   GROUPED_ROW_PITCH,
   LIST_ROW_PADDING_VERTICAL,
 } from './groupedRow';
-export { LIST_ROW_ONE_LINE, LIST_ROW_TWO_LINES } from './listRowText';
-export {
-  SHEET_HERO_BADGE_SIZE,
-  SHEET_HERO_GLYPH_SIZE,
-  SHEET_HERO_SYMBOL_SIZE,
-} from './sheetHero';
+export { LIST_ROW_ONE_LINE } from './listRowText';
+export { SHEET_HERO_BADGE_SIZE, SHEET_HERO_GLYPH_SIZE } from './sheetHero';
 export {
   composeSheetBottomPadding,
-  COMPOSE_SHEET_GLYPH_INSET,
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_HEIGHT,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
@@ -116,7 +108,6 @@ export { useBackdropThumbhash } from './useBackdropThumbhash';
 export { useNavigationTheme } from './useNavigationTheme';
 export { createText, TEXT_VARIANTS, type TextVariant } from './createText';
 export {
-  ActionButtonIos,
   actionButtonModifiersIos,
   sheetCommitBarOptionsIos,
   SheetFormBodyIos,

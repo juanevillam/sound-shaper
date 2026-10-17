@@ -1,68 +1,18 @@
 import { Platform, type ImageSourcePropType } from 'react-native';
 
-import AccountCircle from '@expo/material-symbols/account_circle.xml';
 import Add from '@expo/material-symbols/add.xml';
-import Apps from '@expo/material-symbols/apps.xml';
-import ArrowBack from '@expo/material-symbols/arrow_back.xml';
-import ArrowDownward from '@expo/material-symbols/arrow_downward.xml';
-import ArrowUpward from '@expo/material-symbols/arrow_upward.xml';
-import Block from '@expo/material-symbols/block.xml';
-import ChatBubble from '@expo/material-symbols/chat_bubble.xml';
-import Check from '@expo/material-symbols/check.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
-import Close from '@expo/material-symbols/close.xml';
 import ContentCut from '@expo/material-symbols/content_cut.xml';
-import DarkMode from '@expo/material-symbols/dark_mode.xml';
 import Delete from '@expo/material-symbols/delete.xml';
-import DeleteForever from '@expo/material-symbols/delete_forever.xml';
-import DeleteSweep from '@expo/material-symbols/delete_sweep.xml';
-import Devices from '@expo/material-symbols/devices.xml';
-import DragIndicator from '@expo/material-symbols/drag_indicator.xml';
 import Edit from '@expo/material-symbols/edit.xml';
-import Extension from '@expo/material-symbols/extension.xml';
-import Favorite from '@expo/material-symbols/favorite.xml';
-import Flag from '@expo/material-symbols/flag.xml';
-import Flight from '@expo/material-symbols/flight.xml';
-import FormatListBulleted from '@expo/material-symbols/format_list_bulleted.xml';
-import Forum from '@expo/material-symbols/forum.xml';
-import FrontHand from '@expo/material-symbols/front_hand.xml';
 import GraphicEq from '@expo/material-symbols/graphic_eq.xml';
-import Groups from '@expo/material-symbols/groups.xml';
-import Help from '@expo/material-symbols/help.xml';
-import Home from '@expo/material-symbols/home.xml';
 import Image from '@expo/material-symbols/image.xml';
-import Info from '@expo/material-symbols/info.xml';
-import KeyboardArrowDown from '@expo/material-symbols/keyboard_arrow_down.xml';
-import Language from '@expo/material-symbols/language.xml';
-import Lock from '@expo/material-symbols/lock.xml';
 import Logout from '@expo/material-symbols/logout.xml';
-import ManageAccounts from '@expo/material-symbols/manage_accounts.xml';
 import MoreVert from '@expo/material-symbols/more_vert.xml';
 import MusicNote from '@expo/material-symbols/music_note.xml';
-import Notifications from '@expo/material-symbols/notifications.xml';
-import Palette from '@expo/material-symbols/palette.xml';
-import Pause from '@expo/material-symbols/pause.xml';
 import Person from '@expo/material-symbols/person.xml';
-import PersonAdd from '@expo/material-symbols/person_add.xml';
-import PlayArrow from '@expo/material-symbols/play_arrow.xml';
-import Public from '@expo/material-symbols/public.xml';
-import Report from '@expo/material-symbols/report.xml';
-import RestoreFromTrash from '@expo/material-symbols/restore_from_trash.xml';
-import RocketLaunch from '@expo/material-symbols/rocket_launch.xml';
-import Search from '@expo/material-symbols/search.xml';
-import Send from '@expo/material-symbols/send.xml';
-import SentimentDissatisfied from '@expo/material-symbols/sentiment_dissatisfied.xml';
 import Settings from '@expo/material-symbols/settings.xml';
-import Share from '@expo/material-symbols/share.xml';
-import SkipNext from '@expo/material-symbols/skip_next.xml';
-import SkipPrevious from '@expo/material-symbols/skip_previous.xml';
-import Star from '@expo/material-symbols/star.xml';
-import SwapVert from '@expo/material-symbols/swap_vert.xml';
-import Trophy from '@expo/material-symbols/trophy.xml';
 import Tune from '@expo/material-symbols/tune.xml';
-import VisibilityOff from '@expo/material-symbols/visibility_off.xml';
-import Warning from '@expo/material-symbols/warning.xml';
-import Widgets from '@expo/material-symbols/widgets.xml';
 import { Asset } from 'expo-asset';
 
 /**
@@ -76,85 +26,22 @@ import { Asset } from 'expo-asset';
  * below; the `IconName` union updates automatically.
  */
 const icons = {
-  'account-circle': AccountCircle,
   add: Add,
-  apps: Apps,
-  'arrow-back': ArrowBack,
-  'arrow-downward': ArrowDownward,
-  'arrow-upward': ArrowUpward,
-  block: Block,
-  // The comments entry — a single bubble, `bubble.right`'s twin (the two-bubble
-  // `forum` is the EMPTY state's glyph: a conversation, not the door to one).
-  'chat-bubble': ChatBubble,
-  check: Check,
-  // FILLED, for the verified badge: the check is KNOCKED OUT of the disc, so
-  // whatever ground the badge sits on shows through it — the same mechanism
-  // as `checkmark.circle.fill`. A hand-built primary disc with a white check
-  // shipped ~1.6:1 in dark (white on One UI's light-periwinkle primary).
-  'check-circle-filled': require('./assets/icons/check-circle-filled.xml'),
   'content-cut': ContentCut,
   chevron: ChevronRight,
-  'chevron-down': KeyboardArrowDown,
-  close: Close,
-  'dark-mode': DarkMode,
   delete: Delete,
-  'delete-forever': DeleteForever,
-  'delete-sweep': DeleteSweep,
-  devices: Devices,
-  'drag-indicator': DragIndicator,
   edit: Edit,
-  extension: Extension,
-  favorite: Favorite,
-  'favorite-filled': require('./assets/icons/favorite-filled.xml'),
-  flag: Flag,
-  flight: Flight,
-  'format-list-bulleted': FormatListBulleted,
-  forum: Forum,
-  'front-hand': FrontHand,
   // The sounding-row marker — Material's equalizer bars, which is also this
   // app's own now-playing emblem over a grid tile. Pairs with the accent so
   // colour is not the only indicator.
   'graphic-eq': GraphicEq,
-  groups: Groups,
-  help: Help,
-  home: Home,
-  'home-filled': require('./assets/icons/home-filled.xml'),
   image: Image,
-  info: Info,
-  language: Language,
-  lock: Lock,
   logout: Logout,
-  'manage-accounts': ManageAccounts,
   'more-vert': MoreVert,
   'music-note': MusicNote,
-  notifications: Notifications,
-  'notifications-filled': require('./assets/icons/notifications-filled.xml'),
-  palette: Palette,
-  pause: Pause,
   person: Person,
-  'person-add': PersonAdd,
-  'play-arrow': PlayArrow,
-  'person-filled': require('./assets/icons/person-filled.xml'),
-  public: Public,
-  report: Report,
-  restore: RestoreFromTrash,
-  'rocket-launch': RocketLaunch,
-  search: Search,
-  send: Send,
-  'sentiment-dissatisfied': SentimentDissatisfied,
   settings: Settings,
-  'settings-filled': require('./assets/icons/settings-filled.xml'),
-  share: Share,
-  'skip-next': SkipNext,
-  'skip-previous': SkipPrevious,
-  sort: SwapVert,
-  star: Star,
-  'star-filled': require('./assets/icons/star-filled.xml'),
-  trophy: Trophy,
   tune: Tune,
-  'visibility-off': VisibilityOff,
-  warning: Warning,
-  widgets: Widgets,
 } satisfies Record<string, ImageSourcePropType>;
 
 export type IconName = keyof typeof icons;
@@ -166,8 +53,8 @@ export const iconSource = (name: IconName): ImageSourcePropType => icons[name];
  * Warm the drawable cache for every icon so the first render of each one does
  * not pay a Metro fetch/decode cost. Call once at app startup; fire-and-forget.
  *
- * ANDROID ONLY, and the set is why: these are Android VECTOR DRAWABLE XML —
- * 60 files, 52 KB — which iOS cannot render at all. Nothing on iOS ever asks
+ * ANDROID ONLY, and the set is why: these are Android VECTOR DRAWABLE XML,
+ * which iOS cannot render at all. Nothing on iOS ever asks
  * for one, because every surface that calls `iconSource` (`SettingsScreen`,
  * `SettingsAccountSection`, `ManageAccountScreen`, `WelcomeScreen`) is an
  * Android base with an `.ios.tsx` twin beside it, and `AppIcon.ios` draws SF

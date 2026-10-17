@@ -5,7 +5,7 @@ import {
   type ReactElement,
 } from 'react';
 
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import {
   Button,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
    * so it is the account family's shape, not the inline-header one: its `Form`
    * reserves room above its first section for a header it does not have, and
    * the band under the title read as a hole. Measured 55.67 below the title's
-   * ink against the family's `SHEET_TITLE_TO_CONTENT` of 38.5.
+   * ink against the family's 38.5.
    *
    * IT COMES OFF THE HOSTING VIEW, never off the `Form`. `PeopleSheetListIos`
    * measured seven levers and this is the one that shipped: moving the SwiftUI
@@ -362,48 +362,23 @@ export function SheetFormMediaIos({
   );
 }
 
-type ActionButtonProps = {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  /**
-   * `prominent` is the filled capsule (a screen's primary call to action);
-   * `bordered` is the tinted tonal one (a secondary or in-sheet action).
-   */
-  variant?: 'bordered' | 'prominent';
-  /**
-   * SwiftUI `controlSize`. `large` (default) is the standalone-CTA size —
-   * sheets, empty states, full-width actions. `regular` and `small` are for
-   * an action living inside a tile or row, where the content leads and the
-   * button follows: `small` beside list-row-scale art (the App Store's GET),
-   * `regular` beside larger artwork that would dwarf the small pill.
-   */
-  size?: 'small' | 'regular' | 'large';
-  /** Positioning only — the button's own look belongs to the system. */
-  style?: StyleProp<ViewStyle>;
-};
-
 /**
- * The affirmative counterpart of `SheetFormDestructiveIos`: a system `Button`,
- * for every forward action across the portfolio's iOS surfaces — "Edit item" in
- * a sheet, an empty state's CTA, an Unblock pill.
+ * THE PORTFOLIO BUTTON'S MODIFIER STACK — the affirmative counterpart of
+ * `SheetFormDestructiveIos`, for every forward action on the app's iOS
+ * surfaces. Every one of those used to be a `Pressable` with a hand-drawn
+ * pill, a hardcoded fill and its own opacity ramp — i.e. Material's button
+ * wearing an iOS palette, and a different imitation per screen. One stack, so
+ * the button is the platform's button.
  *
- * Every one of those used to be a `Pressable` with a hand-drawn pill, a
- * hardcoded fill and its own opacity ramp — i.e. Material's button wearing an
- * iOS palette, and a different imitation per screen. One export, so a portfolio
- * button is the platform's button.
- */
-/**
- * THE PORTFOLIO BUTTON'S MODIFIER STACK, on its own — so a caller that cannot
- * use `ActionButtonIos` still gets the identical control.
+ * It is a modifier stack rather than a component because its callers
+ * (`EmptyState.ios`, `WelcomeScreen.ios`) put the `Button` inside a SwiftUI
+ * tree they already host, and a `Host` cannot nest inside another one.
  *
- * There is exactly one such caller and it is a real constraint, not laziness:
- * `EmptyState.ios` puts its CTA in a `VStack` beside a `ContentUnavailableView`
- * (the @expo/ui wrapper exposes no `actions` slot — see that file), and
- * `ActionButtonIos` brings its own `Host`, which cannot nest inside another
- * one. It was therefore hand-rolling `borderedProminent` + `large` + `tint`,
- * three lines that had to stay in step with this file by memory. Now the stack
- * is the shared thing and only the Host differs.
+ * MONOCHROME ONLY WHERE IT STILL READS AS A BUTTON (2026-08-22). The FILLED
+ * variant takes the ink: a solid black-in-light, white-in-dark capsule is
+ * unmistakably a control. The BORDERED variant KEEPS THE ACCENT, because it
+ * derives BOTH its wash and its label from the tint; inked, it renders a grey
+ * capsule with grey-ish text — iOS's vocabulary for DISABLED.
  */
 export function actionButtonModifiersIos({
   tintColor,
@@ -437,55 +412,6 @@ export function actionButtonModifiersIos({
       : []),
     ...(disabled ? [disabledModifier(true)] : []),
   ];
-}
-
-export function ActionButtonIos({
-  label,
-  onPress,
-  disabled = false,
-  variant = 'bordered',
-  size = 'large',
-  style,
-}: ActionButtonProps) {
-  const { colors } = useAppTheme();
-
-  return (
-    // `matchContents` hugs BOTH axes, and there is no option not to. Hugging
-    // only the vertical axis (what `SheetFormDestructiveIos` does, because a
-    // Section row hands it a width) leaves the Host filling whatever width it
-    // is given — and a capsule CTA is usually given none: a centred column or a
-    // row's trailing slot has auto width, the button measures at ~0 wide, and
-    // it renders as a tall BLANK bar with no label at all. Stretching is not
-    // the alternative either: a `.bordered` button hugs its label whatever
-    // width the Host has (`frame({ maxWidth: Infinity })` is a no-op), so full
-    // width only ever comes from a `Section` row.
-    <Host matchContents style={style}>
-      <Button
-        label={label}
-        onPress={onPress}
-        modifiers={actionButtonModifiersIos({
-          // MONOCHROME ONLY WHERE IT STILL READS AS A BUTTON (2026-08-22).
-          //
-          // The FILLED variant takes the ink: a solid black-in-light,
-          // white-in-dark capsule is unmistakably a control, and the fill was
-          // always what said "this is the affirmative action" — the hue was
-          // along for the ride.
-          //
-          // The BORDERED variant KEEPS THE ACCENT, because it derives BOTH its
-          // wash and its label from the tint. Inked, it renders a grey capsule
-          // with grey-ish text — which is iOS's vocabulary for DISABLED, and
-          // was rejected on sight on the item sheet, where "Edit Item" is the
-          // only action there is. See the monochrome rule's opening principle.
-          tintColor:
-            variant === 'prominent' ? colors.onSurface : colors.primary,
-          labelColor: colors.background,
-          variant,
-          size,
-          disabled,
-        })}
-      />
-    </Host>
-  );
 }
 
 type SheetFormDestructiveProps = {

@@ -4,28 +4,12 @@ import {
   CAPTION_VARIANTS,
   useSoundTileMetrics,
 } from '@/components/sounds/SoundTile';
-import { SkeletonBone as Skeleton, SkeletonTextLine } from '@/ui';
+import { SkeletonBone, SkeletonTextLine } from '@/ui';
 
 // A first-load surface waits this long before showing its skeleton, so a
 // cached snapshot that settles inside the window never flashes one. Pair with
 // `useDelayedShow`.
 export const SKELETON_DELAY_MS = 400;
-
-/**
- * ONE NEUTRAL PLACEHOLDER BLOCK — now `SkeletonBone` from
- * `src/ui`, re-exported here so this app's import path is
- * unchanged.
- *
- * It moved because Topper had a byte-identical copy of it, and because the
- * animation stopped being a per-bone concern: the sweep runs off ONE app-wide
- * clock and is positioned by where each bone sits on screen. See that file for
- * what Apple actually does here (nothing — `.redacted` is static), why the
- * sweep is not an Android idiom, and what was wrong with the pulse it
- * replaces.
- *
- * The CONTENT-SHAPED bones below stay here: they are this app's geometry.
- */
-export { Skeleton };
 
 /**
  * Stand-in for `SoundTile` — the home grid: artwork square + two text lines
@@ -54,7 +38,7 @@ export function SoundTileSkeleton() {
       {/* Yoga ignores aspectRatio once width AND height are both set, so the
           square comes from a wrapper and the block just fills it. */}
       <View style={[styles.tileArt, { marginBottom: artToCaption }]}>
-        <Skeleton radius={artRadius} style={styles.fill} />
+        <SkeletonBone radius={artRadius} style={styles.fill} />
       </View>
       <SkeletonTextLine
         variant={CAPTION_VARIANTS.title}

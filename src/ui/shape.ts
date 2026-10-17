@@ -39,19 +39,6 @@ export const TILE_RADIUS = Platform.select({
 }) as number;
 
 /**
- * A small interactive control that is NOT a capsule — a filled field, a
- * compact tile. iOS keeps the continuous 12pt control corner; Android uses
- * the M3 small step.
- */
-export const CONTROL_RADIUS = Platform.select({
-  ios: 12,
-  default: 8,
-}) as number;
-
-/** Fully-rounded capsule (pill buttons, chips-as-buttons). */
-export const PILL_RADIUS = 999;
-
-/**
  * The corner CURVE, not its size. Apple's corners are continuous ("squircle")
  * — the curvature eases in rather than meeting the edge at a hard tangent —
  * while Material's are circular arcs. At the radii above the difference is
@@ -66,7 +53,6 @@ export const CONTINUOUS_CURVE: { borderCurve: ViewStyle['borderCurve'] } = {
 // M3 shape-scale steps — the Android radius of a surface nested inside a
 // CARD_RADIUS / TILE_RADIUS container (M3 has no concentric-corner rule; it
 // keys nested radii to this fixed scale instead).
-export const SHAPE_XS = 4;
 export const SHAPE_SM = 8;
 export const SHAPE_MD = 12;
 

@@ -61,18 +61,6 @@ export const SHEET_CONTENT_TOP = 84;
 export const SHEET_FIRST_CARD_MARGIN = 18;
 
 /**
- * THE GAP BETWEEN A SHEET TITLE'S INK AND ITS FIRST CONTENT — the number to
- * check when a sheet does NOT take the inline UIKit bar.
- *
- * The account family's bar is one object, so pinning `SHEET_CONTENT_TOP` fixes
- * those sheets outright. The editors draw their own header, so their absolute
- * offset can be right for the wrong reason (or wrong for a right one) — this is
- * the invariant that survives a different bar. Band-scanned across the family:
- * account 38.67, trophies 38.33.
- */
-export const SHEET_TITLE_TO_CONTENT = 38.5;
-
-/**
  * WHAT A COMPOSE `ModalBottomSheet`'S CONTENT MUST CLEAR AT THE BOTTOM.
  *
  * A Compose bottom sheet's window runs to the SCREEN's bottom edge, not to the
@@ -122,8 +110,8 @@ export const composeSheetBottomPadding = (insetBottom: number): number =>
 export const COMPOSE_SHEET_GUTTER = 16;
 
 /**
- * A COMPOSE SHEET'S HEADER ROW — the Android counterpart of the two iOS sheet
- * terms above (`SHEET_CONTENT_TOP`, `SHEET_TITLE_TO_CONTENT`): one geometry
+ * A COMPOSE SHEET'S HEADER ROW — the Android counterpart of the iOS sheet
+ * term above (`SHEET_CONTENT_TOP`): one geometry
  * for where EVERY sheet's first content starts, whether or not the sheet has
  * a title.
  *
@@ -145,14 +133,3 @@ export const COMPOSE_SHEET_GUTTER = 16;
  */
 export const COMPOSE_SHEET_HEADER_HEIGHT = 40;
 export const COMPOSE_SHEET_HEADER_TO_CONTENT = 16;
-
-/**
- * THE TRAILING PADDING THAT LANDS A BAR GLYPH ON THE GUTTER.
- *
- * An icon button is a 24dp glyph centred in a 48dp touch box, so aligning the
- * BOX to the gutter pushes the glyph 12dp inboard of every label under it.
- * `COMPOSE_SHEET_GUTTER − 12` is what puts the glyph itself on the margin,
- * which is the same arithmetic Sound Shaper's home app bar does by hand
- * (`paddingRight: 4` under a 16 leading inset).
- */
-export const COMPOSE_SHEET_GLYPH_INSET = COMPOSE_SHEET_GUTTER - 12;

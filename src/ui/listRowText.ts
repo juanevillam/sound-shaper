@@ -21,13 +21,5 @@ import { lineLimit, truncationMode } from '@expo/ui/swift-ui/modifiers';
  * and worse for a screen — the same gesture on two rows of one app should
  * shorten text the same way. If that trade is ever revisited, it is revisited
  * HERE, once, and every row follows.
- *
- * `TWO_LINES` is the one deliberate variant: `TopItemListIos`'s item names get
- * two, because an item title is content rather than a label. It lives beside
- * this so the pair is visible in one place instead of looking like a fifth copy
- * that drifted.
  */
 export const LIST_ROW_ONE_LINE = [lineLimit(1), truncationMode('tail')];
-
-/** Two lines, same truncation — for a row whose text IS the content. */
-export const LIST_ROW_TWO_LINES = [lineLimit(2), truncationMode('tail')];

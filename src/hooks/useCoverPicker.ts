@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 import * as ImagePicker from 'expo-image-picker';
 
@@ -11,7 +11,6 @@ export type PickedCover = {
 };
 
 type UseCoverPickerReturn = {
-  isUploading: boolean;
   pickCover: () => Promise<PickedCover | null>;
   uploadCover: (cover: PickedCover) => Promise<{
     publicId: string;
@@ -38,8 +37,6 @@ const IMAGE_QUALITY = 0.8;
  * backend call to delete one with.
  */
 export const useCoverPicker = (): UseCoverPickerReturn => {
-  const [isUploading, setIsUploading] = useState(false);
-
   const pickCover = useCallback(async (): Promise<PickedCover | null> => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
@@ -53,15 +50,10 @@ export const useCoverPicker = (): UseCoverPickerReturn => {
     return { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' };
   }, []);
 
-  const uploadCover = useCallback(async ({ uri, mimeType }: PickedCover) => {
-    setIsUploading(true);
+  const uploadCover = useCallback(
+    async ({ uri, mimeType }: PickedCover) => uploadCoverImage(uri, mimeType),
+    [],
+  );
 
-    try {
-      return await uploadCoverImage(uri, mimeType);
-    } finally {
-      setIsUploading(false);
-    }
-  }, []);
-
-  return { isUploading, pickCover, uploadCover };
+  return { pickCover, uploadCover };
 };

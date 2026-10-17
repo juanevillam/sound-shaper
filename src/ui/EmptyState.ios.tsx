@@ -106,7 +106,7 @@ export function EmptyState({
               // The portfolio's own button, minus its Host — this CTA has to
               // live in the VStack beside the view, and a Host cannot nest.
               modifiers={actionButtonModifiersIos({
-                // Monochrome, with `ActionButtonIos` — see its own note, and
+                // Monochrome — see `actionButtonModifiersIos`, and
                 // `labelColor` for why a filled capsule has to be told what
                 // colour its own label is.
                 tintColor: colors.onSurface,

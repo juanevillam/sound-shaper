@@ -394,7 +394,7 @@ export const WelcomeScreen = ({
                         // fill (0,144,255), not glass.
                         controlSize('regular'),
                         buttonBorderShape('capsule'),
-                        // MONOCHROME (2026-08-22), with `ActionButtonIos`
+                        // MONOCHROME (2026-08-22), with `actionButtonModifiersIos`
                         // and the empty-state CTA. Apple's own onboarding
                         // capsule measures a solid blue and this deliberately
                         // departs from it: the portfolio's marks and grounds

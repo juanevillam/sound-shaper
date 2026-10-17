@@ -30,21 +30,7 @@ import { SnackbarOutlet } from '@/ui';
  * clear the floating player banner, and a sheet covers that banner completely,
  * so a toast in here would otherwise float 76pt above nothing.
  */
-export const SHEET_TOAST_INSET = 16;
-
-/**
- * THE FAMILY'S SHEET GEOMETRY, re-exported so this app's sheets keep importing
- * it from the component they already import — the definitions live in
- * `src/ui`/sheetMetrics`, because `SheetFormIos` is in that
- * package and the editors need the same numbers.
- *
- * `SHEET_BONE_TOP` is the alias for `SHEET_CONTENT_TOP`: where a bone stands
- * and where content starts are one question.
- */
-export {
-  SHEET_CONTENT_TOP as SHEET_BONE_TOP,
-  SHEET_EMPTY_HEADER_SLOT,
-} from '@/ui';
+const SHEET_TOAST_INSET = 16;
 
 export function SheetScreen({
   children,

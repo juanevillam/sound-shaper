@@ -249,7 +249,6 @@ export const translations = {
         summary: 'Account info and trophies',
       },
       manageAccount: {
-        title: 'Manage Account',
         infoTitle: 'Account Information',
         name: 'Name',
         // The Name row's value when there is none — Sign in with Apple
@@ -560,7 +559,6 @@ export const translations = {
         summary: 'Información de la cuenta y trofeos',
       },
       manageAccount: {
-        title: 'Gestionar cuenta',
         infoTitle: 'Información de la cuenta',
         name: 'Nombre',
         addName: 'Añadir nombre',
@@ -863,7 +861,6 @@ export const translations = {
         summary: '账户信息和奖杯',
       },
       manageAccount: {
-        title: '管理账户',
         infoTitle: '账户信息',
         name: '姓名',
         addName: '添加姓名',

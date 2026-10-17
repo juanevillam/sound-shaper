@@ -1,8 +1,7 @@
 /**
- * Design tokens — single source of truth for spacing, radii, opacities,
- * stroke widths, and animation timings across the app. Every layout
- * value should reference one of these constants instead of a raw number,
- * so visual rhythm stays consistent everywhere.
+ * Design tokens — single source of truth for spacing and animation timings
+ * across the app. Every layout value should reference one of these constants
+ * instead of a raw number, so visual rhythm stays consistent everywhere.
  */
 
 // 4-pt base grid. Keep additions aligned to multiples of 4.
@@ -17,34 +16,11 @@ const spacing = {
   xxxl: 48,
 } as const;
 
-// Border radius.
-const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 24,
-  pill: 999,
-} as const;
-
-// Typographic opacity levels — apply via `style={{ opacity: opacity.muted }}`.
-const opacity = {
-  subtle: 0.6,
-  muted: 0.7,
-  soft: 0.8,
-} as const;
-
 // Reanimated timing presets. Use `duration.base` for most fades / transitions.
 const duration = {
   fast: 180,
   base: 220,
   slow: 320,
-} as const;
-
-// Spring presets. Spread into `withSpring(value, springs.snappy)`.
-const springs = {
-  snappy: { damping: 20, mass: 0.4, stiffness: 320 },
-  press: { damping: 22, mass: 0.4, stiffness: 360 },
-  drag: { damping: 18, mass: 0.6, stiffness: 240 },
 } as const;
 
 // Layout constants reused across screens.
@@ -70,15 +46,6 @@ const layout = {
   // `WelcomeScreen.ios`) — the Android welcome sizes its Material buttons
   // itself.
   authButtonHeight: 44,
-  screenPadding: spacing.lg,
-  fabOffset: spacing.lg,
-  fabListBottomPadding: 160,
-  staggerMaxIndex: 5,
-  staggerStepMs: 28,
 } as const;
 
-// Stagger helper — bounded so long lists don't pay an unbounded delay.
-const staggerDelay = (index: number): number =>
-  Math.min(index, layout.staggerMaxIndex) * layout.staggerStepMs;
-
-export { duration, layout, opacity, radius, spacing, springs, staggerDelay };
+export { duration, layout, spacing };

@@ -21,12 +21,10 @@
  * the app-icon heroes in onboarding sheets) run far larger so the glyph inside
  * still reads at symbol scale.
  *
- * So: the SYMBOL size is what a bare hero is drawn at, and the BADGE size is
- * what a container hero is drawn at. Re-measure both marks — not both boxes —
+ * So: a bare hero is drawn at symbol size (64), and a container hero at the
+ * BADGE size below. Re-measure both marks — not both boxes —
  * if either changes.
  */
-export const SHEET_HERO_SYMBOL_SIZE = 64;
-
 /**
  * A painted badge's diameter. Its glyph takes half (below), which lands ~35pt
  * of mark — the closest a contained glyph gets to a bare symbol's 61 without a

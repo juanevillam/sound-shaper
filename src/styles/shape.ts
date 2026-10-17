@@ -7,12 +7,9 @@
 export {
   CARD_RADIUS,
   CONTINUOUS_CURVE,
-  CONTROL_RADIUS,
   HAIRLINE,
   innerRadius,
-  PILL_RADIUS,
   SHAPE_MD,
   SHAPE_SM,
-  SHAPE_XS,
   TILE_RADIUS,
 } from '@/ui';
