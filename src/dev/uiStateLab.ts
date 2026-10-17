@@ -10,7 +10,7 @@ import { STATE_LAB } from '@/dev/flags';
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  *  DEV-ONLY LAB — the state picker's data. The PICKER itself is the package's
- *  (`StateLab` in `@portfolio/mobile-ui`), shared with Topper.
+ *  (`StateLab` in `src/ui`), shared with Topper.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Forces a surface's UI states so they can be SEEN and pixel-measured rather

@@ -1,9 +1,9 @@
 import { Column, Row, Slider, Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 
-import { withAlpha } from '@portfolio/core';
-
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { withAlpha } from '@/core';
+
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 

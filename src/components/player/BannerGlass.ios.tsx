@@ -4,7 +4,8 @@ import { StyleSheet } from 'react-native';
 
 import { HStack } from '@expo/ui/swift-ui';
 import { frame, glassEffect } from '@expo/ui/swift-ui/modifiers';
-import { SwiftUIHost } from '@portfolio/mobile-ui';
+
+import { SwiftUIHost } from '@/ui';
 
 import { type BannerGlassProps } from './BannerGlass';
 

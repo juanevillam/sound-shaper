@@ -1,11 +1,8 @@
 import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
-import {
-  ICON_PRESS_OPACITY,
-  ICON_PRESS_SCALE,
-  usePressSquash,
-} from '@portfolio/mobile-ui';
 import Animated from 'react-native-reanimated';
+
+import { ICON_PRESS_OPACITY, ICON_PRESS_SCALE, usePressSquash } from '@/ui';
 
 /**
  * The transport button — the banner's and the console's, on both platforms.

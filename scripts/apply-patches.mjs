@@ -51,7 +51,9 @@ for (const name of packageNames) {
 
   const manifestPath = join(overlayDir, 'patch.json');
   if (!existsSync(manifestPath)) {
-    console.error(`patches/${pkg.name}: missing patch.json (expected {"version": "..."})`);
+    console.error(
+      `patches/${pkg.name}: missing patch.json (expected {"version": "..."})`,
+    );
     process.exit(1);
   }
   const { version: expected } = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -60,7 +62,9 @@ for (const name of packageNames) {
     console.warn(`patches/${pkg.name}: package not installed, skipping`);
     continue;
   }
-  const installed = JSON.parse(readFileSync(join(installedDir, 'package.json'), 'utf8')).version;
+  const installed = JSON.parse(
+    readFileSync(join(installedDir, 'package.json'), 'utf8'),
+  ).version;
   if (installed !== expected) {
     console.error(
       `patches/${pkg.name}: overlay was written against ${expected} but ${installed} is installed.\n` +
@@ -71,7 +75,9 @@ for (const name of packageNames) {
 
   for (const entry of readdirSync(overlayDir)) {
     if (entry === 'patch.json' || entry === 'README.md') continue;
-    cpSync(join(overlayDir, entry), join(installedDir, entry), { recursive: true });
+    cpSync(join(overlayDir, entry), join(installedDir, entry), {
+      recursive: true,
+    });
   }
   console.log(`patched ${pkg.name}@${installed}`);
 }

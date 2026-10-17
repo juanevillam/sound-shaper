@@ -2,13 +2,6 @@ import { useEffect, useRef } from 'react';
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
-import {
-  AppIcon,
-  FLOATING_RADIUS,
-  MINI_PLAYER_HEIGHT,
-  usePressSquash,
-} from '@portfolio/mobile-ui';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,9 +17,16 @@ import {
 } from '@/components/player/TransportGlyphs';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { withAlpha } from '@/core';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { HAIRLINE } from '@/styles/shape';
+import {
+  AppIcon,
+  FLOATING_RADIUS,
+  MINI_PLAYER_HEIGHT,
+  usePressSquash,
+} from '@/ui';
 
 import {
   PLAYER_SIDE_PADDING,

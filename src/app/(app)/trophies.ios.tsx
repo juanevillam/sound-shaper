@@ -1,20 +1,20 @@
 import { StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
-import { TrophiesScreen, useTrophies } from '@portfolio/trophies';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { withAlpha } from '@/core';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
+import { TrophiesScreen, useTrophies } from '@/trophies';
 
 /**
  * iOS trophies — the same screen the Android route renders (the list itself
- * lives in @portfolio/trophies) except a trophy's detail presents as the
+ * lives in `src/trophies`) except a trophy's detail presents as the
  * trophy-detail form-sheet ROUTE instead of Android's in-place Compose sheet.
  *
  * IT IS A `SheetScreen`, not this app's `Screen`. The latter paints

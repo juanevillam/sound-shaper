@@ -6,7 +6,7 @@
  * around 44pt artwork with a body line over a footnote. It lived in Topper's
  * `PersonListSkeletonIos` while only that app's people and trash rows needed
  * it, and moved here the moment a THIRD surface did — the trophy list, which
- * sits in `@portfolio/trophies` and cannot reach into an app. A shared metric
+ * sits in `src/trophies` and cannot reach into an app. A shared metric
  * that a package cannot import is a metric that gets re-invented, and it was:
  * the trophy row ran a 34pt slot against everyone else's 44, so its titles
  * started at 80.00 where a trash row's start at 89.00 (band-scanned, iPhone 17

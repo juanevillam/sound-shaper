@@ -24,7 +24,7 @@ private enum Grid {
   /// portfolio's term. This target cannot import it across the process
   /// boundary, so it restates the ratio rather than a size.
   static let artworkRatio: CGFloat = 0.15
-  /// `EMPTY_MEDIA_INITIAL_RATIO`, from `@portfolio/mobile-ui/InitialArt`.
+  /// `EMPTY_MEDIA_INITIAL_RATIO`, from `src/ui`/InitialArt`.
   static let initialRatio: CGFloat = 0.42
 
   static func columns(_ family: WidgetFamily) -> Int {

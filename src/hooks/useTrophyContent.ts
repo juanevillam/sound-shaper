@@ -1,12 +1,6 @@
 import { useMemo } from 'react';
 
 import {
-  type TrophyCopy,
-  type TrophyOverlayStrings,
-  type TrophyTier,
-} from '@portfolio/trophies';
-
-import {
   LIBRARY_SOUND_COUNT,
   LISTENING_MINUTES,
   SAVED_CLIP_COUNT,
@@ -15,6 +9,11 @@ import {
   TROPHY_TITLES,
 } from '@/constants/trophies';
 import { type TranslationKey, useI18n } from '@/i18n';
+import {
+  type TrophyCopy,
+  type TrophyOverlayStrings,
+  type TrophyTier,
+} from '@/trophies';
 
 // The count folded into each count-based trophy's copy (single-sourced with the
 // trigger thresholds), so "Keep {count} sounds" can't drift from the objective.

@@ -1,4 +1,4 @@
-import { createI18n, type DotPaths } from '@portfolio/core';
+import { createI18n, type DotPaths } from '@/core';
 
 import { useLayoutStore } from '@/store/layout';
 

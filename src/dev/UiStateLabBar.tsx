@@ -1,5 +1,3 @@
-import { StateLab, type StateLabGroup } from '@portfolio/mobile-ui';
-
 import {
   ACCOUNT_STATES,
   HOME_STATES,
@@ -13,6 +11,7 @@ import {
 } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDevSettingsStore } from '@/store/devSettings';
+import { StateLab, type StateLabGroup } from '@/ui';
 
 /**
  * DEV-ONLY — Sound Shaper's adapter over the shared `StateLab`.
@@ -20,7 +19,7 @@ import { useDevSettingsStore } from '@/store/devSettings';
  * CROSS-PLATFORM, and it used to be `.ios.tsx` beside an Android stub that
  * returned `null` on the reasoning that the lab was "an iOS-only experiment".
  * That was stale: `StateLab` has a cross-platform base in
- * `@portfolio/mobile-ui` and Topper's own adapter went cross-platform when its
+ * `src/ui` and Topper's own adapter went cross-platform when its
  * Android pass needed it. Nothing in here was ever iOS-specific — the picker is
  * plain RN and the groups below are branch names both platforms' screens share.
  *

@@ -8,7 +8,7 @@ import {
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme, withAlpha } from '@portfolio/core';
+import { useAppTheme, withAlpha } from '@/core';
 
 /**
  * A Compose bottom sheet's drag handle, drawn as CONTENT rather than taken from
@@ -39,7 +39,7 @@ import { useAppTheme, withAlpha } from '@portfolio/core';
  * default handle for this one — the pill is 32 x 4 centred in it, which is the
  * spec's geometry. `onSurfaceVariant` is the spec's ROLE and is deliberately not
  * used: One UI collapses it into `onSurface` (see the palette note in
- * `@portfolio/core`), so the alpha is applied to `onSurface` instead.
+ * `src/core`), so the alpha is applied to `onSurface` instead.
  *
  * Usage — the sheet turns the native handle off and stands this first:
  *

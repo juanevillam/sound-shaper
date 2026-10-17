@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Image, type ImageProps } from '@expo/ui/swift-ui';
-import { SwiftUIHost } from '@portfolio/mobile-ui';
+
+import { SwiftUIHost } from '@/ui';
 
 import { TRANSPORT_GLYPH_BOX_RATIO } from './chrome';
 import { type TransportGlyphProps } from './TransportGlyphs';

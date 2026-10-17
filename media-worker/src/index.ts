@@ -39,7 +39,7 @@ interface Env {
   CLOUDINARY_API_SECRET: string;
   /** Firebase project id; the ID-token `aud`/`iss` must match it (a `var`). */
   FIREBASE_PROJECT_ID: string;
-  /** Root of the per-user media prefix, e.g. `topper/items` (a `var`). Keep in
+  /** Root of the per-user media prefix, e.g. `sound-shaper` (a `var`). Keep in
    * sync with the owning app's cloudinary/folders.ts. */
   MEDIA_FOLDER_ROOT: string;
 }

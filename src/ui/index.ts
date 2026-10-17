@@ -4,7 +4,7 @@
  * AnimatedEntrance, SettingsAccountSection, the shared screens' prop types…)
  * are deliberately not exported; re-add one the day something outside imports
  * it. Note when auditing: apps also consume via re-export shims and via deep
- * subpaths (`@portfolio/mobile-ui/sheetMetrics`), so a symbol can be live
+ * subpaths (`src/ui`/sheetMetrics`), so a symbol can be live
  * without appearing in any barrel import.
  */
 export { AppIcon } from './AppIcon';
@@ -27,7 +27,6 @@ export { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 export { artworkRadius } from './artworkRadius';
 export { EmptyState, EMPTY_STATE_STEPS } from './EmptyState';
 export { HeaderIconButton } from './HeaderIconButton';
-export { SearchField } from './SearchField';
 export {
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
@@ -77,7 +76,6 @@ export {
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
 export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
-export { composeLineHeight } from './composeTextLine';
 export { SettingsDialog } from './SettingsDialog';
 export { StateWrap } from './StateWrap';
 export {
@@ -90,10 +88,6 @@ export { iconSource, preloadIcons, type IconName } from './icons';
 export { WelcomeScreen, type AuthAction } from './WelcomeScreen';
 export { ProgressOverlayIos } from './ProgressOverlayIos';
 export { ProgressViewIos } from './ProgressViewIos';
-// The platform pair: `ProgressView` resolves to the Compose spinner on Android
-// and to `ProgressViewIos` on iOS. Existing iOS-only callers keep the `Ios`
-// name; a cross-platform site takes the pair.
-export { ProgressView } from './ProgressView';
 export { Screen } from './Screen';
 export { SheetBar } from './SheetBar';
 export { SheetErrorLine } from './SheetErrorLine';
@@ -153,7 +147,6 @@ export {
   buildAboutSettingsSection,
   buildGeneralSettingsSections,
 } from './settingsContent';
-export { useSheetKeyboardInset } from './useSheetKeyboardInset';
 export { setSplashHidden } from './useSplashHidden';
 export * from './tokens';
 export { useSheetLanded } from './useSheetLanded';

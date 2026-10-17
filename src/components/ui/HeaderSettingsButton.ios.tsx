@@ -1,7 +1,7 @@
-import { HeaderGlyphButtonIos } from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 
 import { useI18n } from '@/i18n';
+import { HeaderGlyphButtonIos } from '@/ui';
 
 // iOS header action that opens Settings. Thin adapter over the shared
 // `HeaderGlyphButtonIos` — the glyph's size and its label colouring belong to

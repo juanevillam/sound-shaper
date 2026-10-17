@@ -6,15 +6,15 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import {
-  emptyMediaColor,
-  useBackdropThumbhash,
-  type MediaContainer,
-} from '@portfolio/mobile-ui';
 import { Image } from 'expo-image';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
+import {
+  emptyMediaColor,
+  useBackdropThumbhash,
+  type MediaContainer,
+} from '@/ui';
 
 type ArtImageProps = {
   /**

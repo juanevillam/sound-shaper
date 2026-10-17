@@ -9,12 +9,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
-import {
-  FLOATING_COPY_GAP,
-  FLOATING_RADIUS,
-  GLASS_FLOOR,
-} from '@portfolio/mobile-ui';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -67,6 +61,7 @@ import {
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
+import { withAlpha } from '@/core';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
@@ -80,6 +75,7 @@ import {
   TILE_RADIUS,
   innerRadius,
 } from '@/styles/shape';
+import { FLOATING_COPY_GAP, FLOATING_RADIUS, GLASS_FLOOR } from '@/ui';
 
 // ---------------------------------------------------------------------------
 // The player interaction: the collapsed banner and the full player are ONE
@@ -250,7 +246,7 @@ const BANNER_GLASS_FADE = 0.12;
  * tonal floor every floating glass surface in every app stands on — the
  * snackbar and the trophy unlock banner take it through `GlassSurfaceIos`, and
  * the measurements that set it (and Apple's own number it is matched to) live
- * with it in `@portfolio/mobile-ui`.
+ * with it in `src/ui`.
  *
  * This banner cannot use that component, and the reason is the expansion:
  * `surfaceStyle` interpolates this exact colour to the opaque player background

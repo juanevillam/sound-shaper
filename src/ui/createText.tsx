@@ -6,7 +6,7 @@ import {
   type TextStyle,
 } from 'react-native';
 
-import { useAppTheme, type Translator } from '@portfolio/core';
+import { useAppTheme, type Translator } from '@/core';
 
 export type TextVariant =
   | 'displayLarge'
@@ -28,7 +28,7 @@ export type TextVariant =
 // So the steps are per-platform. ANDROID TAKES M3'S OWN NUMBERS — and three
 // of them had to be CORRECTED to say so (2026-09-06): `titleMedium`,
 // `bodyLarge` and `labelLarge` carried line heights two under the spec
-// (22/22/18 against M3's 24/24/20), which is what `composeTextLine.ts`
+// (22/22/18 against M3's 24/24/20), which is what a since-deleted line-height probe
 // measured as a 7.11dp-short comment bone against the real Compose row —
 // every RN line at those rungs sat 2dp tighter than the same role drawn by
 // Compose one screen over. iOS maps each step onto the matching Apple text style at

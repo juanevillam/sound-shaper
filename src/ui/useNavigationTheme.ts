@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 
 import { Platform } from 'react-native';
 
-import { useAppTheme } from '@portfolio/core';
 import { DarkTheme, DefaultTheme } from 'expo-router';
+
+import { useAppTheme } from '@/core';
 
 /**
  * The app theme expressed as a React Navigation theme, to be handed to

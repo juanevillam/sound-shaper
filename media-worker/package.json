@@ -3,12 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Single-purpose Cloudflare Worker that deletes the authenticated caller's own Cloudinary assets. Deployed once per app. No other capability.",
+  "description": "Single-purpose Cloudflare Worker that deletes the authenticated caller's own Cloudinary assets. No other capability.",
   "scripts": {
-    "dev": "wrangler dev --env topper",
-    "deploy:topper": "wrangler deploy --env topper",
-    "deploy:sound-shaper": "wrangler deploy --env sound-shaper",
-    "deploy:booker": "wrangler deploy --env booker",
+    "dev": "wrangler dev --env sound-shaper",
+    "deploy": "wrangler deploy --env sound-shaper",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

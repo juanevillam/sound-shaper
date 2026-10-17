@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import {
-  confirmDestructiveIos,
-  ManageAccountScreen,
-  ProgressOverlayIos,
-} from '@portfolio/mobile-ui';
 import { router, useNavigation } from 'expo-router';
 
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
@@ -20,6 +15,11 @@ import { haptics } from '@/lib/haptics';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
+import {
+  confirmDestructiveIos,
+  ManageAccountScreen,
+  ProgressOverlayIos,
+} from '@/ui';
 
 /**
  * Thin adapter over the shared `ManageAccountScreen` (the package resolves its

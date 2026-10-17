@@ -1,8 +1,4 @@
 import {
-  type AwardedTrophy,
-  type TrophyPersistenceAdapter,
-} from '@portfolio/trophies';
-import {
   collection,
   doc,
   getDocs,
@@ -16,6 +12,7 @@ import {
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
+import { type AwardedTrophy, type TrophyPersistenceAdapter } from '@/trophies';
 
 /**
  * Firestore-backed persistence for one user's trophies, stored at

@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 
-import { configureTrophies, resetTrophies } from '@portfolio/trophies';
-
 import { TROPHY_CONFIGS } from '@/constants/trophies';
 import { createTrophyAdapter } from '@/services/firebase/trophies';
 import { useAuthStore } from '@/store/auth';
+import { configureTrophies, resetTrophies } from '@/trophies';
 
 /**
  * Points the trophy engine at the signed-in user and hydrates their awarded

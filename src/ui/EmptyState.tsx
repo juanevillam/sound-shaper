@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 import { AppIcon } from './AppIcon';
 import type { IconName } from './icons';
@@ -79,7 +79,7 @@ type EmptyStateProps = {
  * identical on iOS and 96% on Android before either had been touched twice.
  *
  * It hosts its own Compose embed rather than taking an app's `ThemedHost`, and
- * reads the palette straight from `@portfolio/core` — each app's `useAppTheme`
+ * reads the palette straight from `src/core` — each app's `useAppTheme`
  * is a pure re-export of that hook, so this is the same theme they resolve and
  * not a second one.
  *

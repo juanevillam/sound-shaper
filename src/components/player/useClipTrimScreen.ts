@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { awardTrophy } from '@portfolio/trophies';
-
 import { TROPHY_IDS } from '@/constants/trophies';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
@@ -10,6 +8,7 @@ import { pushTrophyCounters } from '@/lib/trophyCounters';
 import { createClip, updateClip } from '@/services/firebase/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { usePlayerStore } from '@/store/player';
+import { awardTrophy } from '@/trophies';
 
 /**
  * THE CLIP-TRIM SCREEN'S LOGIC, one hook for both platform routes — the

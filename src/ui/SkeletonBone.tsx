@@ -9,7 +9,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { useAppTheme } from '@portfolio/core';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -21,6 +20,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+
+import { useAppTheme } from '@/core';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════

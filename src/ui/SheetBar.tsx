@@ -9,7 +9,7 @@ import {
 } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, height, size } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme, withAlpha } from '@portfolio/core';
+import { useAppTheme, withAlpha } from '@/core';
 
 import { AppIcon } from './AppIcon';
 import { type IconName } from './icons';

@@ -3,7 +3,7 @@ import Foundation
 /// THE READER HALF OF A WIRE FORMAT WRITTEN TWICE ON PURPOSE.
 ///
 /// The writer is `src/hooks/useWidgetSync.ts`, in the app's process — the SHAPE
-/// is this app's, and `@portfolio/widget-bridge` only carries it across.
+/// is this app's, and `modules/widget-bridge` only carries it across.
 /// Two binaries, two sandboxes, no shared module, so these shapes are declared
 /// in both places and **a change to one is a change to both**. Nothing in the
 /// toolchain will say so: a mismatch decodes to `nil` and the widget quietly

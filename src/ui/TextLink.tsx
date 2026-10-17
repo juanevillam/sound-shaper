@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { StyleSheet, Text, type TextStyle } from 'react-native';
 
-import { withAlpha } from '@portfolio/core';
+import { withAlpha } from '@/core';
 
 import { PRESSED_OPACITY } from './SquashPressable';
 

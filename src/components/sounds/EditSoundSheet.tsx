@@ -21,19 +21,7 @@ import {
   fillMaxWidth,
   padding,
 } from '@expo/ui/jetpack-compose/modifiers';
-import {
-  artworkRadius,
-  COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_TO_CONTENT,
-  composeSheetBottomPadding,
-  DestructiveConfirmDialog,
-  emptyMediaColor,
-  groupRowShape,
-  iconSource,
-  menuContainer,
-  sheetContainer,
-  SheetDragHandle,
-} from '@portfolio/mobile-ui';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtImage } from '@/components/ui/ArtImage';
@@ -60,6 +48,19 @@ import { usePlayerStore } from '@/store/player';
 import { nextLeadPosition, useSoundsStore } from '@/store/sounds';
 import { SECTION_GAP } from '@/styles/metrics';
 import { SHAPE_MD } from '@/styles/shape';
+import {
+  artworkRadius,
+  COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
+  composeSheetBottomPadding,
+  DestructiveConfirmDialog,
+  emptyMediaColor,
+  groupRowShape,
+  iconSource,
+  menuContainer,
+  sheetContainer,
+  SheetDragHandle,
+} from '@/ui';
 
 /** The picture fills the slot the package sized and clipped. */
 const MENU_ICON_SIZE = 24;

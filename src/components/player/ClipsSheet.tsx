@@ -21,21 +21,7 @@ import {
   size,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
-import {
-  AppIcon,
-  COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_TO_CONTENT,
-  composeSheetBottomPadding,
-  DestructiveConfirmDialog,
-  EMPTY_STATE_STEPS,
-  GROUP_ROW_GAP,
-  groupRowShape,
-  menuContainer,
-  SheetBar,
-  SheetBarAction,
-  sheetContainer,
-  SheetDragHandle,
-} from '@portfolio/mobile-ui';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
@@ -51,6 +37,21 @@ import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
+import {
+  AppIcon,
+  COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
+  composeSheetBottomPadding,
+  DestructiveConfirmDialog,
+  EMPTY_STATE_STEPS,
+  GROUP_ROW_GAP,
+  groupRowShape,
+  menuContainer,
+  SheetBar,
+  SheetBarAction,
+  sheetContainer,
+  SheetDragHandle,
+} from '@/ui';
 
 // The saved-clips manager (the Shape sheet's sibling): play, re-frame or delete
 // what you've framed, or jump into the dedicated `clip-trim` editor for a new

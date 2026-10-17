@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { useAppTheme, withAlpha } from '@portfolio/core';
+import { useAppTheme, withAlpha } from '@/core';
 
 import { ProgressViewIos } from './ProgressViewIos';
 
@@ -57,7 +57,7 @@ const SCRIM_ALPHA = 0.4;
  * on a grey wash and nearly invisible — checked on device, in both modes,
  * which is how this constant got written rather than assumed.
  *
- * It is NOT in `@portfolio/core` because it would be a theme role with exactly
+ * It is NOT in `src/core` because it would be a theme role with exactly
  * one consumer. The day a second surface needs an ink over a scrim, this moves
  * there beside `shadow` and both callers read it from the theme.
  */

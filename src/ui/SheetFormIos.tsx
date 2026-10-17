@@ -39,7 +39,7 @@ import {
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 // Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
 // the stub on Android (this file is iOS-only by NAME, so it has no `.ios`

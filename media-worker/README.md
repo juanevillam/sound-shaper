@@ -9,19 +9,17 @@ the Blaze plan; this Worker runs on Cloudflare's free tier instead — well
 inside it, since Cloudflare bills neither subrequests (the Cloudinary and
 Google JWK calls) nor duration, and the only CPU spent is one RS256 verify.
 
-## One source, three deployments
+## One environment
 
-Topper, Sound Shaper and Booker sit on **different Firebase projects**, and the ID
-token's `aud`/`iss` are checked against `FIREBASE_PROJECT_ID` — so one instance
-could not verify them all. `wrangler.jsonc` therefore defines one **environment**
-per app off this one codebase rather than forking it: two copies of a token verifier is
-precisely the duplication `scripts/shared-code-audit.mjs` exists to catch.
+The ID token's `aud`/`iss` are checked against `FIREBASE_PROJECT_ID`, so the
+Worker is bound to one Firebase project. It lives in a named **environment**
+(`sound-shaper`) rather than at the top level — the same source once served
+the portfolio's other apps, and keeping the environment keeps the deployed
+Worker's name, URL and secrets exactly as they are.
 
-| env            | Worker                      | Firebase project | media root      |
-| -------------- | --------------------------- | ---------------- | --------------- |
-| `topper`       | `topper-media-worker`       | `topper-da7db`   | `topper/items`  |
-| `sound-shaper` | `sound-shaper-media-worker` | `sound-shaper`   | `sound-shaper`  |
-| `booker`       | `booker-media-worker`       | `booker-3764a`   | `booker/covers` |
+| env            | Worker                      | Firebase project | media root     |
+| -------------- | --------------------------- | ---------------- | -------------- |
+| `sound-shaper` | `sound-shaper-media-worker` | `sound-shaper`   | `sound-shaper` |
 
 `MEDIA_FOLDER_ROOT` **must** equal the owning app's `cloudinary/folders.ts`
 root.
@@ -33,7 +31,7 @@ deletes nothing. That mistake fails CLOSED, on purpose.
 
 ## What it does
 
-Two POST routes, matching each app's `callBackend` wire (`{ data }` in, `200
+Two POST routes, matching the app's `callBackend` wire (`{ data }` in, `200
 { result }` out, `Authorization: Bearer <Firebase ID token>`):
 
 | Route             | Body                         | Action                                                 |
@@ -44,15 +42,12 @@ Two POST routes, matching each app's `callBackend` wire (`{ data }` in, `200
 ### Both resource types, always
 
 Cloudinary keys its Admin API by resource type, and **an mp3 is a `video`**
-there (audio is a video with no picture — see Sound Shaper's
-`cloudinary/upload.ts`). A sweep of `image` alone deletes a library's artwork
+there (audio is a video with no picture — see
+`src/services/cloudinary/upload.ts`). A sweep of `image` alone deletes a library's artwork
 and leaves **every audio file** standing, which is the larger half of the
 storage by far.
 
-`cleanupMyMedia` therefore sweeps `image` and `video` unconditionally. Topper
-holds no audio and pays one extra Admin call that returns nothing; the price of
-that is not having to remember to widen this the day an app gains a new media
-kind.
+`cleanupMyMedia` therefore sweeps `image` and `video` unconditionally.
 
 `destroyMyAsset` takes the type from the caller, because only the caller knows
 what it is about to unlink. That is not an ownership hole: the type merely
@@ -67,7 +62,7 @@ shouldn't.
 - **Auth:** verifies the Firebase ID token (RS256 against Google's public keys,
   checks `aud`/`iss` against the environment's project and `exp`). Bad/expired
   token → 401.
-- **Ownership by path:** every app uploads under a per-user prefix
+- **Ownership by path:** the app uploads under a per-user prefix
   `{root}/{uid}/…`. The Worker only ever deletes inside `{root}/{uid}/` for the
   uid on the verified token — so it never needs Firestore to prove who owns
   what. A user physically cannot delete another user's asset, even by naming its
@@ -75,119 +70,56 @@ shouldn't.
 
 ## Deploy
 
-All the Workers live in one Cloudflare account, on the free plan.
+One Cloudflare account, on the free plan.
 
 ```sh
-cd services/media-worker
+cd media-worker
 npm install
 npx wrangler login
-```
-
-Then, **per environment** (the secrets are per-environment too — setting them
-on one does not set them on another):
-
-```sh
-npx wrangler secret put CLOUDINARY_API_KEY --env topper
-npx wrangler secret put CLOUDINARY_API_SECRET --env topper
-npm run deploy:topper
-```
-
-```sh
 npx wrangler secret put CLOUDINARY_API_KEY --env sound-shaper
 npx wrangler secret put CLOUDINARY_API_SECRET --env sound-shaper
-npm run deploy:sound-shaper
+npm run deploy
 ```
 
-```sh
-npx wrangler secret put CLOUDINARY_API_KEY --env booker
-npx wrangler secret put CLOUDINARY_API_SECRET --env booker
-npm run deploy:booker
-```
+It deploys to `sound-shaper-media-worker.juanesvillamendoza.workers.dev`, which
+is the app's `FUNCTIONS_BASE`. Re-deploying does not change it; renaming the
+Worker or the account's workers.dev subdomain would.
 
-**`booker` is written but NOT DEPLOYED (2026-10-09)** — its secrets and its
-deploy were deferred by Juan. Until they land, Booker's cover deletes fail and
-are swallowed by design, so a replaced or deleted cover orphans.
-
-Each deploy prints its URL, e.g.
-`https://topper-media-worker.<your-subdomain>.workers.dev`.
-
-## Wire the apps to it
-
-Topper and Sound Shaper are wired as of 2026-09-12; Booker's URL is in place
-but its Worker is not deployed (it still answered 404 on 2026-10-14):
-
-| app            | `FUNCTIONS_BASE`                                                        |
-| -------------- | ----------------------------------------------------------------------- |
-| `topper`       | `topper-media-worker.juanesvillamendoza.workers.dev`                    |
-| `sound-shaper` | `sound-shaper-media-worker.juanesvillamendoza.workers.dev`              |
-| `booker`       | `booker-media-worker.juanesvillamendoza.workers.dev` (not yet deployed) |
-
-Re-deploying does not change these; only renaming a Worker or the account's
-workers.dev subdomain would — worth knowing before either ships to a store.
-
-**Before that, both held a `<subdomain>` placeholder, so every call 404'd at
-DNS and died in the best-effort catch** — the apps degraded exactly as designed
-and media orphaned for months while the code read as complete. A backend
-feature is not done when its call site is written.
+**Before 2026-09-12 that URL held a `<subdomain>` placeholder, so every call
+404'd at DNS and died in the best-effort catch** — the app degraded exactly as
+designed and media orphaned while the code read as complete. A backend feature
+is not done when its call site is written.
 
 ## Local dev
 
 ```sh
 cp .dev.vars.example .dev.vars   # fill in the two Cloudinary values
-npm run dev                      # wrangler dev --env topper
+npm run dev                      # wrangler dev --env sound-shaper
 ```
 
-## One-time migration, per app — RUN THIS BEFORE TRUSTING ANY SWEEP
+## The flat-folder migration (done 2026-09-12)
 
-Assets uploaded before per-user namespacing carry no `{uid}` segment, so this
-Worker cannot reach them at all. **Both apps have them**, and neither set is
-disposable test data:
-
-| app            | where they actually are | count                    |
-| -------------- | ----------------------- | ------------------------ |
-| `topper`       | `topper/<id>`           | 23 (the demo-video tops) |
-| `sound-shaper` | `sound-shaper/<id>`     | 40 (a real library)      |
-
-Topper's are the surprise. `useImageUpload` has targeted `topper/items/{uid}`
-since 2026-07-18, but **nothing has been uploaded since** — the newest image
-dates to 2026-07-16 — so they sit at `topper/`, one level ABOVE the root this
-Worker sweeps. Deployed against them it deletes nothing.
-
-`scripts/migrate-media.py` moves both, dry-run by default:
-
-```sh
-python3 scripts/migrate-media.py topper           # DRY RUN
-python3 scripts/migrate-media.py topper --apply
-python3 scripts/migrate-media.py sound-shaper --apply
-```
-
-Read its orphan list — assets no document references are reported and
-deliberately not touched.
+Assets uploaded before per-user namespacing carried no `{uid}` segment, so this
+Worker could not reach them. The 40 of them were moved under
+`sound-shaper/{uid}/` by a one-off script (in the original portfolio repo's
+history), mapping each asset to its owner through Firestore and reporting —
+not touching — anything no document named.
 
 ## The unsigned presets — settled 2026-09-12
 
-The apps upload with an **unsigned** preset, which applies that preset's stored
-settings alongside the `folder` param the app sends. Both are now configured so
-the app's param is the only thing placing assets:
-
-| preset                  | Folder | Transformation                 |
-| ----------------------- | ------ | ------------------------------ |
-| `sound_shaper_unsigned` | none   | none                           |
-| `topper_unsigned`       | none   | `c_limit,w_2048,h_2048,q_auto` |
-
-`topper_unsigned` pinned `topper` until 2026-09-12, which is why all of that
-app's assets sit at `topper/<id>` — the client param never had a chance. It was
-cleared. Sound Shaper's was already empty, and its assets landing at
-`sound-shaper/` is the proof the param works.
+The app uploads with the **unsigned** preset `sound_shaper_unsigned`, which
+pins no folder and no transformation, so the app's `folder` param is the only
+thing placing assets — and its assets landing at `sound-shaper/{uid}/` is the
+proof the param works.
 
 **Don't put an incoming transformation on `sound_shaper_unsigned`.** It is ONE
 preset for both covers (`image`) and mp3s (`video` — audio is a video with no
 picture), an incoming transformation is applied before storing, and `q_auto` on
 a video resource re-encodes. Capping cover art that way would silently transcode
-every sound. Topper's preset is images-only, so it keeps the cap; if Sound
-Shaper ever wants one, it takes a second preset picked by resource type.
+every sound. If a cap is ever wanted, it takes a second preset picked by
+resource type.
 
-## E2E — Sound Shaper PASSED 2026-09-12 (iPhone 17)
+## E2E — PASSED 2026-09-12 (iPhone 17)
 
 | check                                     | result                                 |
 | ----------------------------------------- | -------------------------------------- |
@@ -196,13 +128,13 @@ Shaper ever wants one, it takes a second preset picked by resource type.
 | deleting a sound destroys BOTH its assets | ✅ audio AND artwork 404               |
 | `cleanupMyMedia` sweeps the whole prefix  | ✅ image AND mp3 404, re-run returns 0 |
 
-Topper passed the same first three on 2026-09-12, but only after its
-environment's Cloudinary secrets were re-set: the first run returned
-`cloudinary-delete-failed:401` while the app reported a clean delete.
+And end to end through Delete Account on 2026-10-16 (Release build, a real
+Apple account): every asset of the account answered 404 afterwards.
 
-**Verify each environment with a real destroy.** `sound-shaper` worked from its
-first call against the same Cloudinary account, which is precisely what made
-Topper's bad secret invisible — a working sibling makes credentials look proven.
+**A wrong secret ships looking like success.** Every call from the app is
+best-effort, so a Worker whose Cloudinary credentials are bad returns
+`cloudinary-delete-failed:401` while the app reports a clean delete. Verify
+with a real destroy after setting secrets.
 
 **Diagnosing one of these:** `npx wrangler tail --env <env> --format json`. The
 `wallTime` alone separates the cases — a call rejected before Cloudinary
@@ -223,9 +155,3 @@ the user and turn Anonymous back off.
 **A destructive route can often be proven against a prefix nobody owns.** The
 obvious plan was a device build with a throwaway Google account; a token and
 two uploads gave the same evidence with the real library never in scope.
-
-**Topper's `destroyMyAsset` is verified on device too** (replace and delete),
-and it shares this source, so its `cleanupMyMedia` runs the same code Sound
-Shaper's was measured on. What no test covers yet is the REST of account
-deletion — the Firestore sweep ordering and the Apple `revokeToken` — which
-waits on Gate 0.

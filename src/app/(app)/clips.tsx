@@ -10,14 +10,7 @@ import {
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
 import { foregroundStyle, tint } from '@expo/ui/swift-ui/modifiers';
-import {
-  EmptyState,
-  HeaderGlyphButtonIos,
-  HeaderGlyphGroupIos,
-  ProgressViewIos,
-  SheetFormBodyIos,
-  StateWrap,
-} from '@portfolio/mobile-ui';
+
 import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
@@ -32,6 +25,14 @@ import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
+import {
+  EmptyState,
+  HeaderGlyphButtonIos,
+  HeaderGlyphGroupIos,
+  ProgressViewIos,
+  SheetFormBodyIos,
+  StateWrap,
+} from '@/ui';
 
 const NO_CLIPS: never[] = [];
 

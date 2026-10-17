@@ -8,17 +8,6 @@ import {
   fillMaxWidth,
   padding,
 } from '@expo/ui/jetpack-compose/modifiers';
-import {
-  COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_HEIGHT,
-  COMPOSE_SHEET_HEADER_TO_CONTENT,
-  composeSheetBottomPadding,
-  sheetContainer,
-  SHEET_DRAG_HANDLE,
-  SheetBar,
-  SheetBarAction,
-  SheetDragHandle,
-} from '@portfolio/mobile-ui';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +18,17 @@ import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
+import {
+  COMPOSE_SHEET_GUTTER,
+  COMPOSE_SHEET_HEADER_HEIGHT,
+  COMPOSE_SHEET_HEADER_TO_CONTENT,
+  composeSheetBottomPadding,
+  sheetContainer,
+  SHEET_DRAG_HANDLE,
+  SheetBar,
+  SheetBarAction,
+  SheetDragHandle,
+} from '@/ui';
 
 // ---------------------------------------------------------------------------
 // ANDROID'S CLIP EDITOR IS A SHEET STACKED OVER THE CLIPS LIST — the same

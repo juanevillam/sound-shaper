@@ -2,14 +2,6 @@ import { type ReactNode } from 'react';
 
 import { Platform, StyleSheet, View } from 'react-native';
 
-import {
-  buildAboutSettingsSection,
-  buildGeneralSettingsSections,
-  legalUrl,
-  SettingsScreen,
-  type LegalPage,
-  type SettingsAccountProfile,
-} from '@portfolio/mobile-ui';
 import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -26,6 +18,14 @@ import { useAuthStore } from '@/store/auth';
 import { useDevSettingsStore } from '@/store/devSettings';
 import { useThemeStore } from '@/store/theme';
 import { SUPPORTED_THEMES } from '@/styles/themes';
+import {
+  buildAboutSettingsSection,
+  buildGeneralSettingsSections,
+  legalUrl,
+  SettingsScreen,
+  type LegalPage,
+  type SettingsAccountProfile,
+} from '@/ui';
 
 const APP_NAME = Constants.expoConfig?.name ?? '';
 

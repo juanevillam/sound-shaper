@@ -81,8 +81,8 @@
           }
         }
       ],
-      "../../plugins/with-ios-swiftui-link-fix",
-      "../../plugins/with-ios-scene-lifecycle",
+      "./plugins/with-ios-swiftui-link-fix",
+      "./plugins/with-ios-scene-lifecycle",
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",

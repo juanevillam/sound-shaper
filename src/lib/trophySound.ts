@@ -1,8 +1,8 @@
-import { useTrophyStore } from '@portfolio/trophies';
 import { type AudioBuffer } from 'react-native-audio-api';
 
 import { audioEngine } from '@/lib/audioEngine';
 import { usePlayerStore } from '@/store/player';
+import { useTrophyStore } from '@/trophies';
 
 /**
  * THE TROPHY UNLOCK SOUND — and the song steps aside for it (Juan,

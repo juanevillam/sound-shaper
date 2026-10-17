@@ -8,9 +8,9 @@ import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 
 export default [
   // Global ignores. Flat-config minimatch patterns are relative to this file,
-  // so they must be globstar to also cover apps/* subtrees (CNG prebuild
-  // output, .expo caches, build artifacts). A standalone
-  // `ignores` object applies to every subsequent config block.
+  // so they are globstar to cover nested trees (CNG prebuild output, .expo
+  // caches, build artifacts). A standalone `ignores` object applies to every
+  // subsequent config block.
   {
     ignores: [
       '**/node_modules/**',
@@ -18,17 +18,11 @@ export default [
       '**/ios/**',
       '**/build/**',
       '**/.expo/**',
-      // Astro's generated content/route types — written by `astro check` (which
-      // `npm run typecheck` runs), gitignored, and not ours to lint.
-      '**/.astro/**',
       '**/dist/**',
       '**/expo-env.d.ts',
-      // Backend services (e.g. the Cloudflare Worker) have their own toolchain
-      // and Workers globals — this RN/React lint config doesn't govern them.
-      'services/**',
-      // Standalone game repos (own .git, own toolchain) — see docs/arcade-game.md.
-      'games/**',
-      'github-profile/**',
+      // The Cloudflare Worker has its own toolchain and Workers globals — this
+      // RN/React lint config doesn't govern it.
+      'media-worker/**',
     ],
   },
   {
@@ -108,21 +102,17 @@ export default [
           fixStyle: 'inline-type-imports',
         },
       ],
-      // Guardrails for the monorepo's module boundaries — the tree is clean
-      // today; these keep future sessions from eroding it.
+      // `src/ui`, `src/core` and `src/trophies` are this app's own layers and
+      // are imported from their roots, so a layer's public surface stays the
+      // one place to read.
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@portfolio/*/src/*'],
+              group: ['@/ui/*', '@/core/*', '@/trophies/*'],
               message:
-                'Deep import into a package — import from the package root instead.',
-            },
-            {
-              group: ['**/apps/*/src/*', '../../../*'],
-              message:
-                'Cross-app or deep relative import — move shared code into packages/*.',
+                'Deep import into a layer — import from its root (`@/ui`, `@/core`, `@/trophies`) instead.',
             },
           ],
         },

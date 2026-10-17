@@ -7,7 +7,7 @@ import { IconButton } from '@/components/ui/IconButton';
 // resolve on both platforms.
 //
 // If a screen ever does put an action in a native iOS bar, use
-// `HeaderGlyphButtonIos` / `HeaderGlyphGroupIos` from `@portfolio/mobile-ui` —
+// `HeaderGlyphButtonIos` / `HeaderGlyphGroupIos` from `src/ui` —
 // the shared bar glyph every portfolio app's iOS bars use (label colour, 24pt
 // glyph, and the group's 43pt tap targets). Don't hand-roll a SwiftUI `Image`:
 // that path drifted twice in Topper (an accent-tinted glyph, and ink-sized tap

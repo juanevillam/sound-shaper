@@ -4,7 +4,7 @@ import {
   SHEET_HERO_BADGE_SIZE,
   SHEET_HERO_GLYPH_SIZE,
   TEXT_VARIANTS,
-} from '@portfolio/mobile-ui';
+} from '@/ui';
 
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
@@ -24,7 +24,7 @@ const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
 // Tint strength for the disc behind the trophy glyph.
 const DISC_ALPHA = 0.16;
 
-// Local alpha helper (the package has no dependency on @portfolio/core): the
+// Local alpha helper (the package has no dependency on `src/core`): the
 // tier colors are plain hex, so appending a 0–255 alpha byte is exact.
 const withDiscAlpha = (hex: string) =>
   `${hex}${Math.round(DISC_ALPHA * 255)
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     width: DISC_SIZE,
   },
   // THE SHARED SCALE, not three hand-written pairs. `TEXT_VARIANTS` is
-  // exported from `@portfolio/mobile-ui` for exactly this — "so package-level
+  // exported from `src/ui` for exactly this — "so package-level
   // components still render on the exact same steps as every app screen" — and
   // this file was writing the numbers out instead, which is how it came to
   // render ANDROID's body size on iOS: 14/20 against the 15/20 its sibling

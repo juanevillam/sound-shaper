@@ -16,7 +16,6 @@ import {
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import { SheetFormBodyIos } from '@portfolio/mobile-ui';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
@@ -37,6 +36,7 @@ import {
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
 import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import { SheetFormBodyIos } from '@/ui';
 
 // iOS-only route: every sound-shaping control as a grouped native `Form`
 // (Android presents the Compose `ShaperSheet` in place). iOS vocabulary

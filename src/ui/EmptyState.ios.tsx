@@ -8,8 +8,10 @@ import {
   Host,
   VStack,
 } from '@expo/ui/swift-ui';
-import { useAppTheme } from '@portfolio/core';
+
 import type { SFSymbol } from 'sf-symbols-typescript';
+
+import { useAppTheme } from '@/core';
 
 import { actionButtonModifiersIos } from './SheetFormIos';
 

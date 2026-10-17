@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 
 import { Platform } from 'react-native';
 
-import { makeGlassUnderlay } from '@portfolio/mobile-ui';
-import { TrophyOverlay } from '@portfolio/trophies';
 import { Redirect, Stack } from 'expo-router';
 
 import { router } from 'expo-router';
@@ -24,6 +22,8 @@ import { haptics } from '@/lib/haptics';
 import { IOS_FORM_SHEETS, IOS_SHEET_SCREENS } from '@/lib/sheetRoutes';
 import { playTrophySound, preloadTrophySounds } from '@/lib/trophySound';
 import { useAuthStore } from '@/store/auth';
+import { TrophyOverlay } from '@/trophies';
+import { makeGlassUnderlay } from '@/ui';
 
 // iOS: the banner's surface is the portfolio's one floating-glass surface,
 // the same material Topper's unlock banner and this app's now-playing banner

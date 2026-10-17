@@ -1,5 +1,5 @@
 // The editor sheets' media slot is shared by every portfolio app, so the
-// component lives in `@portfolio/mobile-ui`. Re-exported here to keep this
+// component lives in `src/ui`. Re-exported here to keep this
 // app's import paths stable, the same shim pattern `SquashPressable` uses.
 //
 // This app carried a FORK of it — 72pt and hard-circular, the shape it shipped
@@ -13,4 +13,4 @@ export {
   MediaPickerAvatar,
   MEDIA_PICKER_SIZE,
   type MediaPickerAvatarProps,
-} from '@portfolio/mobile-ui';
+} from '@/ui';

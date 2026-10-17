@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Generate every piece of brand art, for all apps, from one set of marks.
+"""Generate every piece of Sound Shaper's brand art from its one mark.
 
     npm run brand-art          # bootstraps its own venv (shapely + pillow)
 
 ONE generator on purpose: the iOS icon, the splash art and the Android adaptive
 icon are the same mark at three different scales, and while they had separate
-pipelines they drifted. Outputs per app:
+pipelines they drifted. Outputs:
 
     assets/AppIcon.icon/                   the iOS icon — `ios.icon` points here
     assets/images/icon.png                 Android / root fallback
     assets/images/splash-icon{,-dark}.png  splash art, one per appearance
     assets/images/android-icon-*.png       adaptive foreground/monochrome/background
-    media-masters/store-icons/<app>-play-512.png   Play Console listing icon
+    store-icons/play-512.png               Play Console listing icon
 
 Colours come from GROUND_LIGHT / GROUND_DARK below — but the same two values are
-ALSO hard-coded in each `app.json`, in `BrandTile{,.ios}.tsx` and in the web
-favicon. To change one, follow **"Changing a brand colour"** in AGENTS.md; this
+ALSO hard-coded in `app.json` and in `src/ui/BrandTile.tsx`. To change one, follow **"Changing a brand colour"** in AGENTS.md; this
 file alone is not enough.
 
 Two things here are load-bearing and easy to undo by accident:
@@ -31,7 +30,7 @@ The App Store needs no marketing-icon file — Xcode generates the 1024 from the
 `.icon` document. Preview any document without building:
 
     "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" \
-      apps/topper/assets/AppIcon.icon --export-image --output-file /tmp/out.png \
+      assets/AppIcon.icon --export-image --output-file /tmp/out.png \
       --platform iOS --rendition Dark --width 512 --height 512 --scale 1
 """
 import json, os, shutil
@@ -60,7 +59,7 @@ GRIDS = {
 # units wide with square outer corners. Measured with the check below: 800
 # clipped 1.69% of the ink, 760 still 0.10%, 750 clears. Per app, so the other
 # marks keep their size.
-SPLASH_GRID_OVERRIDES = {"booker": 750}
+SPLASH_GRID_OVERRIDES = {}
 
 # THE brand palette. Two neutrals, swapped per appearance. Changing either of
 # these changes only what this script generates — the same values are ALSO
@@ -86,28 +85,9 @@ def quad(p0, c, p1, n=RES):
 
 
 MARKS = {
-    "topper": lambda: [
-        # crown body: closed polyline, stroked
-        LinearRing([(10, 28), (10, 15.5), (18.5, 22.5), (24, 11),
-                    (29.5, 22.5), (38, 15.5), (38, 28)])
-        .buffer(HALF, resolution=RES, join_style=1),
-        stroke_line([(10, 34.5), (38, 34.5)]),
-    ],
     "sound-shaper": lambda: [
         stroke_line([(x, 24 - h / 2), (x, 24 + h / 2)])
         for x, h in [(10, 15), (17, 25), (24, 16), (31, 32), (38, 20)]
-    ],
-    # Booker: an open book, pages dipping into the spine, upright outer
-    # edges, nothing on the pages. Chosen 2026-10-09 over a closed book with
-    # title lines, a bookmark, a pile and a shelf — and over a straight-edged
-    # twin that matched the crown's language more closely: the curve is what
-    # makes it read as paper.
-    "booker": lambda: [
-        LinearRing(page).buffer(HALF, resolution=RES, join_style=1)
-        for page in (
-            quad((24, 14), (16, 9.5), (9, 11)) + quad((9, 34), (16, 32), (24, 37.5)),
-            quad((24, 14), (32, 9.5), (39, 11)) + quad((39, 34), (32, 32), (24, 37.5)),
-        )
     ],
 }
 
@@ -290,9 +270,9 @@ def build(app, out_dir):
 
     # Play Console takes one flat square and applies its own masking — the
     # adaptive layers are not accepted there. Same art as icon.png, its size.
-    store = os.path.join(REPO_ROOT, "media-masters", "store-icons")
+    store = os.path.join(REPO_ROOT, "store-icons")
     os.makedirs(store, exist_ok=True)
-    play = os.path.join(store, f"{app}-play-512.png")
+    play = os.path.join(store, "play-512.png")
     Image.open(os.path.join(images, "icon.png")).resize(
         (PLAY_ICON_SIZE, PLAY_ICON_SIZE), Image.LANCZOS).save(play)
     print("   ", os.path.relpath(play, REPO_ROOT))
@@ -305,4 +285,4 @@ def build(app, out_dir):
 
 if __name__ == "__main__":
     for app in MARKS:
-        build(app, os.path.join(REPO_ROOT, "apps", app, "assets"))
+        build(app, os.path.join(REPO_ROOT, "assets"))

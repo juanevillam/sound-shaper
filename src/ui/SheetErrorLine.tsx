@@ -1,7 +1,7 @@
 import { Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useAppTheme } from '@portfolio/core';
+import { useAppTheme } from '@/core';
 
 /**
  * A FAILURE REPORTED INSIDE A COMPOSE SHEET, BECAUSE THE TOAST CANNOT BE SEEN
@@ -39,7 +39,7 @@ import { useAppTheme } from '@portfolio/core';
  * `SHEET_CONTENT_TOP` and `GROUPED_ROW` both got here too. It was app-local
  * while Sound Shaper was its only caller and the note said exactly that.
  *
- * It reads the palette from `@portfolio/core` rather than taking `colors` as a
+ * It reads the palette from `src/core` rather than taking `colors` as a
  * prop: every app's `useAppTheme` is a pure re-export of that hook, so this is
  * the same theme they resolve and not a second one — the same call `EmptyState`
  * makes one file over.

@@ -3,19 +3,26 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run test/unit"
+    "test:unit": "vitest run test/unit",
+    "brand-art": "python3 -m venv .brand-venv >/dev/null && .brand-venv/bin/pip install --quiet shapely pillow && .brand-venv/bin/python scripts/gen-brand-art.py",
+    "postinstall": "node scripts/apply-patches.mjs",
+    "prepare": "husky"
   },
   "dependencies": {
     "@bacons/apple-targets": "5.0.0",
+    "@expo/material-symbols": "^0.1.1",
     "@expo/ui": "~57.0.7",
-    "@portfolio/core": "*",
-    "@portfolio/mobile-ui": "*",
-    "@portfolio/widget-bridge": "0.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/app": "24.1.1",
     "@react-native-firebase/auth": "24.1.1",
@@ -26,6 +33,7 @@
     "expo": "~57.0.7",
     "expo-apple-authentication": "~57.0.0",
     "expo-application": "~57.0.0",
+    "expo-asset": "~57.0.7",
     "expo-audio": "~57.0.2",
     "expo-build-properties": "~57.0.3",
     "expo-constants": "~57.0.3",
@@ -60,7 +68,29 @@
     "zustand": "5.0.13"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2"
+    "@types/react": "~19.2.2",
+    "@typescript-eslint/eslint-plugin": "8.59.3",
+    "@typescript-eslint/parser": "8.59.3",
+    "eslint": "9.39.4",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-native": "5.0.0",
+    "eslint-plugin-unused-imports": "4.4.1",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.5",
+    "prettier": "3.8.3",
+    "typescript": "~5.9.2",
+    "vitest": "4.1.10"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "expo": {
     "autolinking": {
