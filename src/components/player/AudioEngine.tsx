@@ -7,6 +7,7 @@ import {
 } from 'react-native-audio-api';
 
 import { audioEngine } from '@/lib/audioEngine';
+import { prioritizeMirror } from '@/lib/offlineAudio';
 import { bankSoundDuration } from '@/services/firebase/sounds';
 import { useOfflineStore } from '@/store/offline';
 import { usePlayerStore } from '@/store/player';
@@ -94,6 +95,15 @@ export function AudioEngine() {
   const keepPitch = usePlayerStore(s => s.keepPitch);
   const ref = useRef<AudioTagHandle>(null);
   const sourceUri = usePinnedSource(current?.id, current?.audioUrl, loadNonce);
+
+  // A STREAMED LOAD JUMPS THE MIRROR'S LINE: its bytes are crossing the
+  // network anyway, and its download would otherwise compete with this very
+  // stream whenever grid order reached it.
+  useEffect(() => {
+    if (current && sourceUri && sourceUri === current.audioUrl) {
+      prioritizeMirror(current.id);
+    }
+  }, [current, sourceUri]);
 
   const onLoad = useCallback(() => {
     const tag = ref.current;

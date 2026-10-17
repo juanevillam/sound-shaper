@@ -63,9 +63,72 @@ const ensureDirectory = async (): Promise<void> => {
  * tens of files, and firing them together buys nothing on a phone's connection
  * while making every one of them slower to finish. Serial means the sounds
  * become playable in order rather than all at the end.
+ *
+ * TWO THINGS REORDER OR HOLD THE LINE, and both live here so every caller
+ * gets them:
+ *
+ * - **The sound being STREAMED goes to the front** (`prioritizeMirror`). Its
+ *   bytes are crossing the network anyway, and left in grid order its
+ *   download would land later while competing with the very stream the
+ *   person is listening to.
+ * - **Nothing downloads off Wi-Fi** (`setMirrorAllowed`, Juan, 2026-10-17).
+ *   A first sync is the whole library — 123 MB for 23 sounds, measured — and
+ *   it repeats after every sign-in and reinstall, which is the person's data
+ *   plan to spend, not ours. Jobs wait in the line and resume when Wi-Fi
+ *   comes back; a file already mid-download finishes, since stopping it would
+ *   waste what it has fetched. Streaming is untouched: a sound that is not
+ *   mirrored still plays, as it always did.
  */
+type MirrorJob = {
+  soundId: string;
+  audioUrl: string;
+  resolve: (uri: string | null) => void;
+};
+
 const inFlight = new Map<string, Promise<string | null>>();
-let queue: Promise<unknown> = Promise.resolve();
+const waiting: MirrorJob[] = [];
+let running = false;
+/** Off until the network gate has said otherwise — see the note above. */
+let allowed = false;
+
+const pump = async (): Promise<void> => {
+  if (running) return;
+  running = true;
+  try {
+    while (allowed && waiting.length > 0) {
+      const job = waiting.shift();
+      if (!job) break;
+      const uri = await download(job.soundId, job.audioUrl).catch(() => null);
+      if (!uri) inFlight.delete(job.soundId);
+      job.resolve(uri);
+    }
+  } finally {
+    running = false;
+  }
+};
+
+/** Drop queued jobs (never the one downloading), resolving them as unmirrored. */
+const dropWaiting = (keep: (soundId: string) => boolean): void => {
+  for (let index = waiting.length - 1; index >= 0; index -= 1) {
+    const job = waiting[index];
+    if (keep(job.soundId)) continue;
+    waiting.splice(index, 1);
+    inFlight.delete(job.soundId);
+    job.resolve(null);
+  }
+};
+
+/** The network gate: true on Wi-Fi (or a wired connection), false otherwise. */
+export const setMirrorAllowed = (value: boolean): void => {
+  allowed = value;
+  if (value) void pump();
+};
+
+/** Move a queued sound to the front of the line — it is being streamed now. */
+export const prioritizeMirror = (soundId: string): void => {
+  const index = waiting.findIndex(job => job.soundId === soundId);
+  if (index > 0) waiting.unshift(...waiting.splice(index, 1));
+};
 
 /** The sound ids that already have a whole file on disk. */
 export const listMirrored = async (): Promise<string[]> => {
@@ -80,8 +143,9 @@ export const listMirrored = async (): Promise<string[]> => {
 
 /**
  * Mirror one sound, or hand back the file that is already there. Resolves to
- * the local `file://` uri, or null when there is nothing to fetch (no url) and
- * when the fetch fails — the caller treats both as "still streaming".
+ * the local `file://` uri, or null when there is nothing to fetch (no url),
+ * when the fetch fails and when the job is dropped — the caller treats all
+ * three as "still streaming". Off Wi-Fi it stays pending until the gate opens.
  */
 export const mirrorSound = (
   soundId: string,
@@ -92,17 +156,12 @@ export const mirrorSound = (
   const existing = inFlight.get(soundId);
   if (existing) return existing;
 
-  const promise = queue
-    .catch(() => {})
-    .then(() => download(soundId, audioUrl))
-    .catch(() => null)
-    .then(uri => {
-      if (!uri) inFlight.delete(soundId);
-      return uri;
-    });
+  const promise = new Promise<string | null>(resolve => {
+    waiting.push({ soundId, audioUrl, resolve });
+  });
 
   inFlight.set(soundId, promise);
-  queue = promise;
+  void pump();
 
   return promise;
 };
@@ -140,6 +199,7 @@ const download = async (
  * document with a new id and must never resolve to the deleted one's bytes.
  */
 export const removeMirroredSound = (soundId: string): void => {
+  dropWaiting(id => id !== soundId);
   inFlight.delete(soundId);
   void FileSystem.deleteAsync(offlineAudioPath(soundId), {
     idempotent: true,
@@ -153,6 +213,7 @@ export const removeMirroredSound = (soundId: string): void => {
  * The next session re-mirrors what it finds, which is the correct cost.
  */
 export const clearMirror = async (): Promise<void> => {
+  dropWaiting(() => false);
   inFlight.clear();
   directoryEnsured = false;
   await FileSystem.deleteAsync(directory(), { idempotent: true }).catch(
@@ -162,6 +223,7 @@ export const clearMirror = async (): Promise<void> => {
 
 /** Files under ids the library no longer holds — a sound deleted elsewhere. */
 export const pruneMirror = async (keepIds: Set<string>): Promise<void> => {
+  dropWaiting(soundId => keepIds.has(soundId));
   const mirrored = await listMirrored();
 
   await Promise.all(

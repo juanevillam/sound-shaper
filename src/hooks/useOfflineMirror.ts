@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Dimensions } from 'react-native';
 
 import { Image } from 'expo-image';
+import { NetworkStateType, useNetworkState } from 'expo-network';
 
 import { soundGridCell } from '@/components/sounds/SoundTile';
 import {
@@ -10,6 +11,7 @@ import {
   mirrorSound,
   offlineAudioPath,
   pruneMirror,
+  setMirrorAllowed,
 } from '@/lib/offlineAudio';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { useOfflineStore } from '@/store/offline';
@@ -36,7 +38,18 @@ import { useSoundsStore } from '@/store/sounds';
  * same cache rather than a mirror of our own, because a missing cover is
  * cosmetic (the tile falls back to its initial) and does not deserve storage
  * we have to manage. Fire-and-forget, after the audio, which is the half a
- * trip actually needs.
+ * trip actually needs. It goes to the DISK cache only: a mirror pass touches
+ * every cover in the library, and `memory-disk` decoded all of them into
+ * memory at every launch — evicting the covers the grid is actually showing.
+ *
+ * WI-FI ONLY (Juan, 2026-10-17): the gate is `setMirrorAllowed`, fed from the
+ * network state here; the line itself lives in `offlineAudio`.
+ *
+ * NEVER PRUNE FROM THE CACHE. A cold start's first snapshot can come off
+ * Firestore's disk cache, and an incomplete cache answer would delete
+ * mirrored files exactly when there is no network to fetch them back — the
+ * same rule home's position repair follows. Downloads still run; the prune
+ * waits for a server snapshot.
  */
 /**
  * Covers already asked for this session, by the exact url the grid requests.
@@ -53,6 +66,15 @@ export const forgetPrefetchedArt = (): void => prefetchedArt.clear();
 export const useOfflineMirror = (): void => {
   const sounds = useSoundsStore(s => s.sounds);
   const hasSettled = useSoundsStore(s => s.hasSettled);
+  const fromCache = useSoundsStore(s => s.fromCache);
+  const network = useNetworkState();
+  const onWifi =
+    network.type === NetworkStateType.WIFI ||
+    network.type === NetworkStateType.ETHERNET;
+
+  useEffect(() => {
+    setMirrorAllowed(onWifi);
+  }, [onWifi]);
 
   useEffect(() => {
     if (!hasSettled) return;
@@ -76,8 +98,10 @@ export const useOfflineMirror = (): void => {
           ),
         );
 
-      await pruneMirror(ids);
-      if (cancelled) return;
+      if (!fromCache) {
+        await pruneMirror(ids);
+        if (cancelled) return;
+      }
 
       const present = new Set(mirrored);
       const artWidth = soundGridCell(Dimensions.get('window').width);
@@ -85,17 +109,20 @@ export const useOfflineMirror = (): void => {
       for (const sound of wanted) {
         if (cancelled) return;
 
+        // QUEUED, NOT AWAITED: the whole pass lands in `offlineAudio`'s line
+        // at once, so a sound being streamed can be moved to its front. A
+        // file that lands after this pass was cancelled is still a real file.
         if (!present.has(sound.id)) {
-          const uri = await mirrorSound(sound.id, sound.audioUrl);
-          if (cancelled) return;
-          if (uri) useOfflineStore.getState().setLocal(sound.id, uri);
+          void mirrorSound(sound.id, sound.audioUrl).then(uri => {
+            if (uri) useOfflineStore.getState().setLocal(sound.id, uri);
+          });
         }
 
         if (sound.artUrl) {
           const artUri = thumbUrl(sound.artUrl, artWidth);
           if (!prefetchedArt.has(artUri)) {
             prefetchedArt.add(artUri);
-            void Image.prefetch(artUri, 'memory-disk').catch(() => {
+            void Image.prefetch(artUri, 'disk').catch(() => {
               // Not banked: the next pass tries again.
               prefetchedArt.delete(artUri);
             });
@@ -107,5 +134,5 @@ export const useOfflineMirror = (): void => {
     return () => {
       cancelled = true;
     };
-  }, [hasSettled, sounds]);
+  }, [fromCache, hasSettled, sounds]);
 };
