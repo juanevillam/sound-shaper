@@ -12,6 +12,7 @@ import MusicNote from '@expo/material-symbols/music_note.xml';
 import Person from '@expo/material-symbols/person.xml';
 import Settings from '@expo/material-symbols/settings.xml';
 import Tune from '@expo/material-symbols/tune.xml';
+import Warning from '@expo/material-symbols/warning.xml';
 import { Asset } from 'expo-asset';
 
 /**
@@ -40,6 +41,9 @@ const icons = {
   person: Person,
   settings: Settings,
   tune: Tune,
+  // The error state's mark — Material's twin of iOS's
+  // `exclamationmark.triangle`.
+  warning: Warning,
 } satisfies Record<string, ImageSourcePropType>;
 
 export type IconName = keyof typeof icons;

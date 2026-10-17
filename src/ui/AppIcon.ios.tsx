@@ -37,6 +37,7 @@ const SF_SYMBOLS = {
   person: 'person',
   settings: 'gearshape',
   tune: 'slider.horizontal.3',
+  warning: 'exclamationmark.triangle',
 } satisfies Record<IconName, NonNullable<ImageProps['systemName']>>;
 
 export const AppIcon = ({
