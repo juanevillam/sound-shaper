@@ -181,5 +181,7 @@ the above. There is no analytics SDK and Crashlytics is never given a user id.
   languages: editable name and photo, the uploaded photo on Cloudinary, the
   trophy totals) **but not deployed** — it goes live with the website's next
   push, which has to happen before the app is submitted.
-- Screenshots: after the quality audit, from the TestFlight build — 6.9"
-  iPhone (1320 × 2868) is the one size Apple requires.
+- Screenshots: a first set is generated in `store/screenshots/` (6.9" iPhone,
+  1320 × 2868, the one size Apple requires). Retake the sources after the
+  quality audit, with artwork you have the rights to, and re-run
+  `npm run store-screenshots` — see [`store/README.md`](../store/README.md).
