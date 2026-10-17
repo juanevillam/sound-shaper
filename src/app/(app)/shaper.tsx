@@ -77,6 +77,9 @@ const FOOTER_TO_HEADER_MAKEUP = 10;
 
 const EQ_LABEL_WIDTH = 38;
 
+/** The Presets row's tag for a hand-shaped curve; never a real preset key. */
+const CUSTOM_TAG = 'custom';
+
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 function ShaperSheetScreen() {
@@ -166,8 +169,10 @@ function ShaperSheetScreen() {
         <Section>
           <Picker
             label={t('player.shape.presets')}
-            selection={activePreset}
-            onSelectionChange={key => applyPreset(String(key))}
+            selection={activePreset ?? CUSTOM_TAG}
+            onSelectionChange={key => {
+              if (key !== CUSTOM_TAG) applyPreset(String(key));
+            }}
             modifiers={[pickerStyle('menu')]}
           >
             {EQ_PRESETS.map(preset => (
@@ -178,6 +183,16 @@ function ShaperSheetScreen() {
                 {presetLabel(preset.i18nKey)}
               </SwiftUIText>
             ))}
+            {/* A HAND-SHAPED CURVE IS A VALUE TOO. Dragging a band clears
+                `activePreset`, which matched no tag, so the row's value went
+                blank while the summary under the player said "Custom". The
+                option exists only while it is true — Settings lists no
+                choice you cannot pick. */}
+            {activePreset === null ? (
+              <SwiftUIText modifiers={[tag(CUSTOM_TAG)]}>
+                {t('player.shape.custom')}
+              </SwiftUIText>
+            ) : null}
           </Picker>
         </Section>
 
