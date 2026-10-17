@@ -75,8 +75,8 @@ tap target — WidgetKit ignores `Link` there — so that size opens the library
 
 Now Playing and Clips widgets were both proposed and REJECTED (Juan,
 2026-09-11): see [`docs/rejected-experiments.md`](docs/rejected-experiments.md).
-The shared plumbing and its traps are `@portfolio/widget-bridge` and the root
-`AGENTS.md`.
+The plumbing is `modules/widget-bridge` (see its README), and the traps are in
+[`docs/standards.md`](docs/standards.md) → "iOS Home Screen widgets".
 
 The order is a FRACTIONAL INDEX (`src/lib/gridOrder.ts`, 23 unit tests), and
 the reason is the two-phone case: a move writes ONE document, so two devices
@@ -1368,7 +1368,7 @@ and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
 `src/services/cloudinary/`), under a PER-USER folder `sound-shaper/{uid}/`.
 
 **Deleting from Cloudinary needs the API secret, which cannot ship in an app —
-`services/media-worker` holds it instead** (a Cloudflare Worker on the free
+`media-worker/` holds it instead** (a Cloudflare Worker on the free
 plan, shared with Topper as a second environment). It proves ownership from the
 upload path alone: it only ever deletes inside `{root}/{uid}/` for the uid on a
 verified Firebase ID token, so it needs no database access. That is why the
@@ -1564,8 +1564,8 @@ disagree.
 
 ## Sign in with Apple is ON (Grostify, 2026-10-16)
 
-Sound Shaper signs with Grostify LLC's paid team (`PHLR7X3FGN`, see the root
-`CLAUDE.md`), so the `com.apple.developer.applesignin` entitlement signs and
+Sound Shaper signs with Grostify LLC's paid team (`PHLR7X3FGN`, see "Signing"
+at the top of this file), so the `com.apple.developer.applesignin` entitlement signs and
 the welcome screen offers Apple first, then Google, on iOS — App Store 4.8
 requires Apple wherever Google is offered. The three free-team knobs were
 reverted together: the `APPLE_SIGN_IN_ENABLED` flag is gone,

@@ -1,48 +1,50 @@
 # Widget Bridge
 
-`@portfolio/widget-bridge` — the app half of an **iOS Home Screen widget**: the
+`modules/widget-bridge` — the app half of the **iOS Home Screen widget**: the
 shared App Group container, the media cache inside it, and the WidgetKit reload.
-Sound Shaper's Library grid and Topper's Your Tops both stand on it.
+The Library grid in `targets/widget/` stands on it.
 
-The monorepo's **first package to ship native code**. Expo autolinking resolves
-it through the workspace symlink and CocoaPods takes the pod from
-`packages/widget-bridge/ios`, so an app gains a widget by depending on the
-package rather than by owning a module. Apple-only: `platforms` is `["apple"]`,
-and the JS entry uses `requireOptionalNativeModule`, so Android imports the same
-file and gets `null` instead of a throw at module scope.
+A local Expo module, the app's one piece of native code that is not a patch or
+a config plugin. Expo autolinking finds it under `modules/`, CocoaPods takes the
+pod from `modules/widget-bridge/ios`, and the app imports it as
+`@modules/widget-bridge` (a `tsconfig.json` path). Apple-only: `platforms` is
+`["apple"]`, and the JS entry uses `requireOptionalNativeModule`, so Android
+imports the same file and gets `null` instead of a throw at module scope.
 
-Private and workspace-only, consumed as **TypeScript source** — no build step.
+Consumed as **TypeScript source** — no build step.
 
 ## The split, and why it is where it is
 
 A widget is a **second process with its own sandbox**. It holds no Firebase, no
 session and no translator, so everything it draws has to be written somewhere
-both binaries can reach. This package carries it across; it never interprets it.
+both binaries can reach. This module carries it across; it never interprets it.
 
 - **The snapshot is opaque**: whatever shape the caller hands over is
-  serialised to JSON as-is and written through untouched. The wire format between an app and its widget is
-  that app's own business — a library of sounds and a shelf of tops share
-  nothing — so this package never grows a case per app.
+  serialised to JSON as-is and written through untouched. The wire format is
+  the app's (`src/hooks/useWidgetSync.ts` writes it,
+  `targets/widget/LibrarySnapshot.swift` reads it), so nothing here knows what
+  a sound is.
 - **Media is named by the CALLER.** The widget resolves a file name out of the
   snapshot it reads, and the only way both sides can agree on one is for the side
   that writes the snapshot to choose it. `widgetMediaFile` derives it from the
   asset's URL, which makes it content-addressed for free: a replaced cover is a
   new name, so nothing races a cached file and an unchanged one is never fetched
   twice.
-- **The App Group id is a parameter**, since it is per app.
+- **The App Group id is a parameter** (`group.com.grostify.soundshaper` — see
+  "Signing" in `AGENTS.md` for why it is not the `juanevillam` one).
 
 ## Exports
 
 | Export                  | Purpose                                                                  |
 | ----------------------- | ------------------------------------------------------------------------ |
-| `useWidgetPublisher`    | The publish PROTOCOL, identical in every app — see below                 |
+| `useWidgetPublisher`    | The publish PROTOCOL — see below                                         |
 | `publishWidgetSnapshot` | Write a snapshot plus its media and reload WidgetKit                     |
 | `clearWidgetSnapshot`   | Wipe the container — sign-out and account deletion                       |
 | `widgetMediaFile`       | The file name both processes agree on, from the asset's URL              |
 | `canPublishWidget`      | Whether a widget can be published from this build at all (false off iOS) |
 
-`useWidgetPublisher` exists because both apps had written the same rules out
-separately — 83.7% identical, caught by `scripts/shared-code-audit.mjs`:
+`useWidgetPublisher` holds the rules around a publish, which are independent of
+what the widget draws:
 
 - publish nothing until the first server snapshot has landed, because an empty
   collection and one nobody has asked for yet look identical from here, and the
@@ -55,8 +57,8 @@ separately — 83.7% identical, caught by `scripts/shared-code-audit.mjs`:
   not a stale cache;
 - drop an in-flight build whose inputs have already moved on.
 
-The app supplies only what is genuinely its own: a `signature` that says
-something changed, and a `build` that turns its data into a snapshot.
+The caller supplies only a `signature` that says something changed, and a
+`build` that turns its data into a snapshot.
 
 ## THE CONTAINER IS THE BRIDGE'S, AND IT SWEEPS ITSELF
 
@@ -71,9 +73,10 @@ It is a **whitelist, not a wipe**: iOS keeps its own `Library/` in there — the
 group's `UserDefaults` live in `Library/Preferences` — and the container metadata
 is a dotfile. Both are skipped.
 
-## What an app still owns
+## What the app owns
 
-Its widget target (`apps/<app>/targets/widget`, via `@bacons/apple-targets`), the
-shape of its snapshot, and the reader that decodes it. See each app's `AGENTS.md`
-for the traps that shape costs — above all that **every field a reader declares
-must be one the widget draws**, because a snapshot decodes whole.
+The widget target (`targets/widget/`, via `@bacons/apple-targets`), the shape of
+its snapshot, and the reader that decodes it. The traps that shape costs are in
+[`docs/standards.md`](../../docs/standards.md) → "iOS Home Screen widgets" —
+above all that **every field a reader declares must be one the widget draws**,
+because a snapshot decodes whole.

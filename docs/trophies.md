@@ -1,28 +1,24 @@
 # Trophies
 
-`@portfolio/trophies` — a reusable, PlayStation-style achievements module:
-a config-driven engine plus the UI (unlock popup, trophy screen, tier-tinted
-icon). **Persistence-agnostic** — storage lives behind an injected adapter, so
-any app can back it with Firestore, AsyncStorage, or anything else. Topper was
-the first consumer (7 trophies, Firestore-persisted under
-`users/{uid}/trophies/{id}`); Sound Shaper and Booker use it the same way.
-
-Private and workspace-only. Consumed as **TypeScript source** — `main` / `types`
-point at `src/index.ts`, so there is **no build step**.
+`src/trophies` (imported as `@/trophies`) — PlayStation-style achievements: a
+config-driven engine plus the UI (unlock popup, trophy screen, tier-tinted
+icon). **Persistence-agnostic** — storage lives behind an injected adapter. This
+app backs it with Firestore under `users/{uid}/trophies/{id}`
+(`src/services/firebase/trophies.ts`).
 
 ## How it works
 
 1. **Configure once per session** — `configureTrophies({ configs, adapter })`
-   with the app's `TrophyConfig[]` (id + tier: `bronze` / `silver` / `gold` /
+   with a `TrophyConfig[]` (id + tier: `bronze` / `silver` / `gold` /
    `platinum`) and a `TrophyPersistenceAdapter` (`load()` / `save(id, achievedAt)`).
-2. **Award from app triggers** — `awardTrophy(id)` is **idempotent**: already-won
+2. **Award from triggers** — `awardTrophy(id)` is **idempotent**: already-won
    ids no-op, new ones persist through the adapter, update the zustand cache, and
    queue the popup. Winning every non-platinum trophy auto-awards the platinum
    (self-healing on hydration too).
-3. **Render** — mount `TrophyOverlay` once near the app root (top-anchored
-   animated popup with a queue and platinum flair) and push a screen that renders
+3. **Render** — `TrophyOverlay` is mounted once near the root (top-anchored
+   animated popup with a queue and platinum flair) and a route renders
    `TrophiesScreen` (the PS-style list). Copy (`TrophyCopy` title/description per
-   id) and colors arrive via props, so the package stays i18n- and theme-agnostic.
+   id) and colours arrive via props, so the module stays i18n- and theme-agnostic.
 
 ## Exports
 
@@ -36,13 +32,12 @@ point at `src/index.ts`, so there is **no build step**.
 | `TrophyIcon`, `TIER_COLORS` / `tierColor`                                                                                 | Standalone tier-tinted trophy glyph and the tier palette.                                 |
 | `TrophyConfig`, `TrophyCopy`, `TrophyTier`, `TrophyPersistenceAdapter`, `AwardedTrophy`, `QueuedTrophy`, `ResolvedTrophy` | The types.                                                                                |
 
-## Peer dependencies
+## Where the app wires it
 
-Provided by the host app: `@expo/ui`, `@portfolio/mobile-ui`, `react`, `react-native`, `react-native-gesture-handler`,
-`react-native-reanimated`, `react-native-safe-area-context`, `react-native-svg`,
-`zustand`.
-
-> See Topper for a full integration: configs + thresholds in
-> `apps/topper/src/constants/trophies.ts`, the Firestore adapter and session
-> hydration in `apps/topper/src/hooks/useTrophiesSync.ts`, and award triggers in
-> `useTrophyTriggers.ts`.
+- Configs: `src/constants/trophies.ts`.
+- Adapter and session hydration: `src/hooks/useTrophiesSync.ts` over
+  `src/services/firebase/trophies.ts`.
+- Award triggers: `src/hooks/useTrophyTriggers.ts`. Two of them read counts
+  (`src/store/listening.ts`, `src/store/clipsSaved.ts`) that
+  `src/lib/trophyCounters.ts` keeps in step with the totals on `users/{uid}`.
+- Copy: `src/hooks/useTrophyContent.ts`.
