@@ -60,8 +60,13 @@ enum WidgetSnapshotWriter {
 
       if FileManager.default.fileExists(atPath: destination.path) { continue }
 
+      // 2xx ONLY. `data(from:)` resolves for any HTTP status, so a 404 or an
+      // error page was saved as the cover — and since the file is named after
+      // the URL, the `fileExists` check above kept that broken tile forever.
       guard let url = URL(string: entry.url),
-        let (data, _) = try? await URLSession.shared.data(from: url)
+        let (data, response) = try? await URLSession.shared.data(from: url),
+        let status = (response as? HTTPURLResponse)?.statusCode,
+        (200..<300).contains(status)
       else { continue }
 
       try? data.write(to: destination, options: .atomic)
