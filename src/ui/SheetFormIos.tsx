@@ -33,10 +33,7 @@ import {
 
 import { useAppTheme } from '@/core';
 
-// Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
-// the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
-// suffix of its own to resolve against).
-import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
+import { HeaderGlyphButtonIos } from './HeaderGlyphButtonIos';
 import { mediaPickerSlotHeight } from './MediaPickerAvatar';
 import {
   SHEET_EMPTY_HEADER_SLOT,

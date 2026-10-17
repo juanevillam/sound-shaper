@@ -46,7 +46,7 @@ export {
   HEADER_LONE_TARGET,
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
-} from './HeaderGlyphButton';
+} from './HeaderGlyphButtonIos';
 export {
   FormDisclosureIndicatorIos,
   FormDisclosureRowIos,

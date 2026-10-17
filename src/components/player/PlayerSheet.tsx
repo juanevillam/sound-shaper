@@ -30,7 +30,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { BannerGlass } from '@/components/player/BannerGlass';
+import { BannerGlassIos } from '@/components/player/BannerGlassIos';
 import {
   BANNER_SIDE_INSET,
   bannerBottomOffset,
@@ -1221,7 +1221,7 @@ export function PlayerSheet() {
             style={[styles.bannerGlass, bannerGlassStyle]}
             pointerEvents="none"
           >
-            <BannerGlass
+            <BannerGlassIos
               width={winW - BANNER_SIDE_INSET * 2}
               height={MINI_PLAYER_HEIGHT}
               radius={BANNER_RADIUS}
@@ -1506,7 +1506,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
       ]}
     >
       {BANNER_GLASS ? (
-        <BannerGlass
+        <BannerGlassIos
           width={winW - BANNER_SIDE_INSET * 2}
           height={MINI_PLAYER_HEIGHT}
           radius={BANNER_RADIUS}

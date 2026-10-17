@@ -7,8 +7,6 @@ import { frame, glassEffect } from '@expo/ui/swift-ui/modifiers';
 
 import { SwiftUIHost } from '@/ui';
 
-import { type BannerGlassProps } from './BannerGlass';
-
 // The collapsed banner's fill, as SwiftUI's real Liquid Glass rather than a
 // solid colour — so the library's cover art shows through the thing floating
 // over it instead of being blocked by a slab.
@@ -22,10 +20,20 @@ import { type BannerGlassProps } from './BannerGlass';
 // Purely decorative and explicitly non-interactive: the banner's own row of
 // controls sits above this, and a Host that swallowed touches would eat them.
 //
+// iOS ONLY — `PlayerSheet` mounts it behind `BANNER_GLASS`. Material has no
+// Liquid Glass and wants none: a floating surface there is defined by its
+// tonal fill and its elevation, both of which the banner already has.
+//
 // MEMOIZED for the same reason `GlassSurfaceIos` is: adaptive glass re-picks
 // its treatment when the modifier is re-sent, and the sheet re-renders far
 // more often than this box changes.
-export const BannerGlass = memo(function BannerGlass({
+type BannerGlassProps = {
+  width: number;
+  height: number;
+  radius: number;
+};
+
+export const BannerGlassIos = memo(function BannerGlassIos({
   width,
   height,
   radius,

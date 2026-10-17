@@ -5,16 +5,10 @@ import { Alert, Button, TextField, useNativeState } from '@expo/ui/swift-ui';
 import { type SettingsUsernameEditor } from './SettingsAccountSection';
 
 /**
- * Wraps any Form row so tapping it opens the native "choose a username" alert —
- * the `UIAlertController` idiom, which is the iOS equivalent of the Android
- * text dialog.
- *
- * ONE implementation, two call sites. It used to live inline in
- * `SettingsAccountSection.ios`, wrapped around the identity row; when the
- * username moved out of Settings and into Manage account's read-only Username
- * row, the choice was to copy it or to extract it. Copying is how the two
- * would drift — the alert has non-obvious behaviour (below) that a second copy
- * would not carry.
+ * Wraps any Form row so tapping it opens a native text alert — the
+ * `UIAlertController` idiom, which is the iOS equivalent of the Android text
+ * dialog. Manage Account's Name row is the caller: the alert edits the
+ * person's name, so the value is taken exactly as typed.
  *
  * An iOS alert ALWAYS dismisses when an action is tapped, so a rejected submit
  * cannot hold it open the way Android's dialog does. It is re-presented
@@ -22,7 +16,7 @@ import { type SettingsUsernameEditor } from './SettingsAccountSection';
  * attempted value is still there — the user corrects rather than retypes. The
  * error copy itself surfaces through the app's own channel (snackbar).
  */
-export function UsernameEditRowIos({
+export function TextEditRowIos({
   editor,
   children,
 }: {
@@ -39,7 +33,7 @@ export function UsernameEditRowIos({
 }) {
   const [visible, setVisible] = useState(false);
 
-  const initial = editor.currentValue?.replace(/^@/, '') ?? '';
+  const initial = editor.currentValue ?? '';
   const text = useNativeState(initial);
   const [draft, setDraft] = useState(initial);
 

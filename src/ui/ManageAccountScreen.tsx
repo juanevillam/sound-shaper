@@ -60,7 +60,7 @@ export type ManageAccountInfoRow = {
   value: string;
   /**
    * Makes this read-only fact EDITABLE. On iOS tapping the row opens the
-   * native username alert (`UsernameEditRowIos`); on Android it opens the
+   * native text alert (`TextEditRowIos`); on Android it opens the
    * Material text dialog (`UsernameDialog` — the same one the Settings profile
    * row used to open, before the account entry moved here).
    *

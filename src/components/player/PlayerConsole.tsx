@@ -64,7 +64,7 @@ import {
 //
 // What stays Material: the footer is the collapsed banner's own tonal chrome
 // (surfaceContainer + elevation) rather than Liquid Glass — the
-// same split `BannerGlass` documents — and the transport glyphs are the
+// same split `BannerGlassIos` documents — and the transport glyphs are the
 // hand-drawn Android set.
 //
 // Clip framing is GONE from this console on Android too: a clip is made in

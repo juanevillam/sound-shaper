@@ -46,7 +46,6 @@ export const useOwnProfileEditing = () => {
    * refused by rejecting, which re-presents the alert with the text kept.
    */
   const nameEditor: SettingsUsernameEditor = {
-    addPrompt: t('settings.manageAccount.addName'),
     currentValue: user?.displayName ?? '',
     dialog: {
       title: t('settings.manageAccount.nameDialog.title'),

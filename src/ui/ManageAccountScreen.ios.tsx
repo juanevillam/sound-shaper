@@ -13,7 +13,7 @@ import { FormDisclosureRowIos, FormValueRowIos } from './FormDisclosureRowIos';
 import { type ManageAccountScreenProps } from './ManageAccountScreen';
 import { Screen } from './Screen';
 import { SheetFormMediaIos } from './SheetFormIos';
-import { UsernameEditRowIos } from './UsernameEditRow';
+import { TextEditRowIos } from './TextEditRowIos';
 
 /**
  * iOS counterpart of `ManageAccountScreen` — same prop API, rendered as a
@@ -96,14 +96,14 @@ export const ManageAccountScreen = ({
               // colour, the value's colour and its one-line truncation cannot
               // drift between a fact and a destination sitting in one card.
               row.editor ? (
-                <UsernameEditRowIos key={row.label} editor={row.editor}>
+                <TextEditRowIos key={row.label} editor={row.editor}>
                   <FormDisclosureRowIos
                     label={row.label}
                     value={row.value}
                     loading={info.loading}
                     colors={colors}
                   />
-                </UsernameEditRowIos>
+                </TextEditRowIos>
               ) : (
                 <FormValueRowIos
                   key={row.label}

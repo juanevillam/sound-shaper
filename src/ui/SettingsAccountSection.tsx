@@ -89,7 +89,7 @@ export type SettingsAccountProfile = {
  */
 export type SettingsUsernameEditor = {
   /** Subtitle when there is no username, e.g. "Tap to add your username". */
-  addPrompt: string;
+  addPrompt?: string;
   /** Current value used to pre-fill the dialog field, e.g. "@kim". */
   currentValue?: string;
   dialog: {
