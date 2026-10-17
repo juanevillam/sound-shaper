@@ -1070,6 +1070,23 @@ shared `StateLab`. While it is on, the real account deletion is REFUSED
 (`dev/deleteAccountGuard`) — turn the flag off to delete for real. THERE ARE NO
 FIXTURES and none are to be added.
 
+## Clips can repeat (2026-10-17)
+
+The Clips sheet's first row is **Repeat** — Off, This Clip, This Sound's Clips,
+All Clips (a menu Picker on iOS, Shape's Presets idiom; a row of FilterChips
+on Android, `ChoiceChipGroup`, the Echo and Next Room idiom). Off is the old
+behaviour: a clip plays once and parks on its start. This Clip loops it; This
+Sound's Clips plays the sound's clips in order and wraps; All Clips carries on
+into the clips of the next sounds in library order, skipping sounds with none,
+and wraps at the end of the library. What plays next is one pure function,
+`lib/clipQueue.ts`, unit-tested; the player store runs it at each clip's end.
+All Clips reads the other sounds' clips when a run starts (one read per sound,
+cached in the service until sign-out) and changes sound through the normal
+load path, so the mirrored file is used. A manual action ends a run — a scrub,
+±15, next/previous, picking a sound or another clip — while pause and resume
+keep it; the mode is kept on the device and reset on sign-out. Verified on
+Juan's iPhone (Release build) on the day; Android has not been walked.
+
 ## The data layer — audited 2026-08-28
 
 `/portfolio-data-audit` read every Firestore call site, every image site and
@@ -1357,6 +1374,16 @@ Four things not to re-derive:
   mp3 a second time (`lib/waveform.ts`), which is also what makes the waveform
   reachable offline. A borrowed file is not ours to delete — only a file that
   function fetched is removed afterwards.
+
+**IT FILLS ON WI-FI ONLY, AND IN A LINE** (Juan, 2026-10-17). A first sync is
+the whole library, after every sign-in and reinstall, which is a data plan's
+business rather than ours: `useOfflineMirror` feeds `setMirrorAllowed` from
+`expo-network`, and jobs wait in `offlineAudio`'s queue until Wi-Fi (or a wired
+connection) is back — streaming is untouched. The sound being STREAMED jumps
+to the front (`prioritizeMirror`), a fresh upload is SEEDED from the picker's
+local file instead of being downloaded straight back (`seedMirror`), orphan
+`.part` files are swept on the session's first pass, and the prune never runs
+from a cache snapshot — the same rule home's position repair follows.
 
 Deletion and sign-out both take the mirror with them: `deleteSound` drops the
 one file beside `forgetWaveform`, and `useAuthListener` wipes the directory,
