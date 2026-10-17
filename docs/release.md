@@ -96,3 +96,20 @@ Created 2026-10-16 under Grostify LLC: Apple ID **6823850995**, SKU
 "Sound Shaper" is taken on the App Store; the Home Screen name stays "Sound
 Shaper". "EQ" and "speed" belong in the subtitle and keywords, which carry
 search weight too.
+
+## Versions and tags
+
+One version line for both stores: `expo.version` in `app.json` (`1.0.0` for the
+first submission). The build number (iOS) and `versionCode` (Android) are
+EAS-remote-managed — never edit them.
+
+- **A tag per version, at submit.** When a build goes to review (`eas submit`),
+  tag the exact commit it was built from: `v1.0.0`. TestFlight and internal
+  builds get no tag.
+- **A GitHub Release once a store approves it**, from that tag. Its first line
+  names the store(s) it shipped to (`App Store`, `Google Play`, or both); the
+  notes follow (`/release-notes`; the store's own text from `/store-notes`).
+- **Each store ships the versions it wants and skips the rest.** A fix for one
+  platform is the next version, sent to that store only. Android's first
+  release is NOT a second "1.0.0": it is the next version, sent to both
+  stores. No per-platform tags.
