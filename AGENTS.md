@@ -33,6 +33,8 @@
   [`docs/ios-dev-workflow.md`](docs/ios-dev-workflow.md).
 
 - **What is left before the store** is [`docs/release.md`](docs/release.md).
+- **The five audits** are in `.claude/commands/`; their order and reasoning
+  are [`docs/audit-playbook.md`](docs/audit-playbook.md).
 
 A **PERSONAL** music player + tweaker — zero social
 features, by design (2026-07-18): every upload is for the uploader alone, which
