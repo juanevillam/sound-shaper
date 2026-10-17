@@ -15,17 +15,17 @@ SwiftUI through `@expo/ui` on iOS, Jetpack Compose on Android — on Firebase
 
 ## Layout
 
-| path            | what it is                                                                                            |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| `src/app`       | expo-router routes                                                                                    |
-| `src/ui`        | the UI kit — welcome, settings and account screens, sheets, buttons, skeletons, the snackbar          |
-| `src/core`      | theme, i18n plumbing, the store primitives                                                            |
-| `src/trophies`  | the trophy engine and its banner                                                                      |
-| `modules/`      | `widget-bridge`, a local Expo module that writes the Home Screen widget's snapshot into the App Group |
-| `targets/`      | the iOS widget extension (`@bacons/apple-targets`)                                                    |
-| `patches/`      | source overlays on two dependencies, applied by `postinstall` — see below                             |
-| `plugins/`      | config plugins for the two standing iOS build workarounds                                             |
-| `media-worker/` | the Cloudflare Worker that lets the app delete its own Cloudinary uploads (it holds the API secret)   |
+| path            | what it is                                                                                                                   |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`       | expo-router routes                                                                                                           |
+| `src/ui`        | the UI kit — welcome, settings and account screens, sheets, buttons, skeletons, the snackbar                                 |
+| `src/core`      | theme, i18n plumbing, the store primitives                                                                                   |
+| `src/trophies`  | the trophy engine and its banner                                                                                             |
+| `modules/`      | local Expo modules: `widget-bridge` (the widget's App Group snapshot), `audio-session` (other-audio check, backup exclusion) |
+| `targets/`      | the iOS widget extension (`@bacons/apple-targets`)                                                                           |
+| `patches/`      | source overlays on two dependencies, applied by `postinstall` — see below                                                    |
+| `plugins/`      | config plugins for the iOS build: the SwiftUI link fix and the UIScene lifecycle iOS 26+ requires                            |
+| `media-worker/` | the Cloudflare Worker that lets the app delete its own Cloudinary uploads (it holds the API secret)                          |
 
 `src/ui`, `src/core` and `src/trophies` began life as shared packages in a
 portfolio monorepo and moved here, history included, when Sound Shaper became
@@ -37,6 +37,7 @@ measured against.
 ```sh
 npm install            # postinstall applies patches/
 node scripts/apply-patches.mjs   # …unless npm runs with ignore-scripts
+npx husky              # installs the git hooks, which ignore-scripts also skips
 npx expo run:ios       # or run:android
 ```
 

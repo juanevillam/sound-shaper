@@ -33,7 +33,7 @@ several quick edits, verify a SPECIFIC new string/element actually rendered
 
 - **Reset recipe:** kill everything on the app's port
   (`lsof -tiTCP:<port> | xargs kill -9`; `pkill -9 -f "expo start"`), then
-  `cd apps/<app> && npx expo start --clear`, then Android: `adb reverse
+  `npx expo start --clear`, then Android: `adb reverse
 tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
   relaunch (reaches localhost directly).
 - **Cross-app bundle collision (monorepo-specific):** two apps on one port —
@@ -72,7 +72,7 @@ tcp:8081 tcp:8081` + force-stop + deep-link relaunch; iOS sim: terminate +
 SUCCESSFUL in 7m 17s`, the file still missing before and after.
   - A shell WITHOUT that env var (CI, a bare `sh`, a GUI-launched tool) fails
     with `SDK location not found`. Recreate it there:
-    `echo "sdk.dir=$HOME/Library/Android/sdk" > apps/<app>/android/local.properties`.
+    `echo "sdk.dir=$HOME/Library/Android/sdk" > android/local.properties`.
 
 ## `patches/` — a dependency's source, overlaid on every install
 

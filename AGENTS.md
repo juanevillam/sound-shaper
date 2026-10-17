@@ -14,6 +14,9 @@
   `~/.npmrc` sets `ignore-scripts = true`, so the `postinstall` that applies
   `patches/` never runs there and the app builds without its phase vocoder and
   its now-playing fixes. EAS's builders run it normally.
+- **Run `npx husky` once after cloning on Juan's Mac**, for the same reason:
+  `ignore-scripts` also skips `prepare`, so the pre-commit hook (gitleaks and
+  lint-staged) is never installed and commits go through unchecked.
 - **Signing.** iOS signs with Grostify LLC's team `PHLR7X3FGN`
   (`ios.appleTeamId`), the membership the app is published under. The App
   Group is `group.com.grostify.soundshaper` and the widget extension
@@ -1298,8 +1301,8 @@ by anyone else.** There is no public feed to shield, and no preview clip.
 
 **Built on both platforms; Phase B closed 2026-09-11, and what is left before
 the stores is the release gates in
-[`docs/release.md`](docs/release.md).** Auth (Google;
-Apple is off for now — below), sound upload (document-picker → ID3 parse
+[`docs/release.md`](docs/release.md).** Auth (Sign in
+with Apple and Google — below), sound upload (document-picker → ID3 parse
 `src/lib/id3.ts` → `EditSoundSheet` → **Cloudinary** audio as a `video`
 resource + embedded art → Firestore at `users/{uid}/songs`), the hand-ordered
 home grid, and the expanding PlayerSheet (audio-api playback through the
@@ -1370,11 +1373,14 @@ and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
 
 **Deleting from Cloudinary needs the API secret, which cannot ship in an app —
 `media-worker/` holds it instead** (a Cloudflare Worker on the free
-plan, shared with Topper as a second environment). It proves ownership from the
+plan; its one environment here is `sound-shaper`, and Topper deploys its own
+copy from the portfolio monorepo). It proves ownership from the
 upload path alone: it only ever deletes inside `{root}/{uid}/` for the uid on a
 verified Firebase ID token, so it needs no database access. That is why the
 folder gained its `{uid}` segment on 2026-09-12 — flat, there was nothing to
-delete by. `scripts/migrate-media.py` moved the existing library.
+delete by. A one-off script moved the existing library; it stayed behind in
+the portfolio monorepo (`scripts/migrate-media.py` there) and is not in this
+repo.
 
 **DEPLOYED 2026-09-12** at
 `sound-shaper-media-worker.juanesvillamendoza.workers.dev`, with its Cloudinary
@@ -1385,9 +1391,11 @@ same source. Until that day both `FUNCTIONS_BASE` values carried a
 best-effort catch — the code was right and the media orphaned anyway, which is
 worth remembering before trusting any backend-touching verdict.
 
-Playback runs on **react-native-audio-api** (expo-audio is gone from the
-player): a streaming `<Audio>` element routed through a Web-Audio shaping
-graph — an automatic headroom trim + 5 biquad EQ bands + the Next Room wall
+Playback runs on **react-native-audio-api** (expo-audio left the
+project entirely on 2026-10-17; the microphone purpose string its plugin
+carried is now set by audio-api's own `iosMicrophonePermission`): a streaming
+`<Audio>` element routed through a Web-Audio shaping graph — an automatic
+headroom trim + 5 biquad EQ bands + the Next Room wall
 (`src/lib/audioEngine.ts`,
 `src/lib/eqResponse.ts`,
 `src/components/player/AudioEngine.tsx`, shaper settings in

@@ -19,7 +19,7 @@ import { requireUser } from '@/services/firebase/auth';
  * `getAuth().revokeToken` handles it with no backend of ours.
  */
 // Deployed 2026-09-12 from `media-worker/`
-// (`npm run deploy:sound-shaper`). Re-deploying does not change this URL; only
+// (`npm run deploy`). Re-deploying does not change this URL; only
 // renaming the Worker or the account's workers.dev subdomain would.
 const FUNCTIONS_BASE =
   'https://sound-shaper-media-worker.juanesvillamendoza.workers.dev';

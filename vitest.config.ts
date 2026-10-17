@@ -5,8 +5,8 @@ import { defineConfig } from 'vitest/config';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-// Unit tests only — this app has no Firestore rules suite of its own (its
-// rules live with the shared deployment Topper's `test:rules` covers).
+// Unit tests only. `firestore.rules` has no emulator suite yet: it would need
+// Java and the Firestore emulator, which CI does not install.
 export default defineConfig({
   resolve: {
     // The app's own `@/` alias, so a test can reach anything under `src`
