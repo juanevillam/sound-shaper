@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -9,6 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   type QueryDocumentSnapshot,
   type Timestamp,
@@ -95,6 +95,13 @@ export const subscribeToClips = ({
   });
 };
 
+/**
+ * Write a new clip. THE ID IS MINTED ON THE PHONE (`doc(collection)`), so the
+ * returned promise is only the server's acknowledgement — which, offline, does
+ * not arrive until the network does. The write itself is already in the local
+ * cache, and the clips listener shows it at once; the editor therefore closes
+ * without awaiting this and treats a later rejection as the failure.
+ */
 export const createClip = reported(
   'clips.createClip',
   async ({
@@ -103,14 +110,16 @@ export const createClip = reported(
     soundId,
     startMs,
   }: CreateClipParams): Promise<string> => {
-    const docRef = await addDoc(clipsCollection(soundId), {
+    const ref = doc(clipsCollection(soundId));
+
+    await setDoc(ref, {
       createdAt: serverTimestamp(),
       endMs,
       label,
       startMs,
     });
 
-    return docRef.id;
+    return ref.id;
   },
 );
 

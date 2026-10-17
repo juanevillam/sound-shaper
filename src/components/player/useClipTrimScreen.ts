@@ -96,48 +96,62 @@ export function useClipTrimScreen({
     if (current?.id !== soundIdRef.current) onDoneRef.current();
   }, [current?.id]);
 
+  // One commit per editor. The save no longer holds the surface open, so a
+  // second tap in the frames before it closes would write a second clip.
+  const savingRef = useRef(false);
+
+  /**
+   * LATENCY-COMPENSATED, like the sound editor's metadata save. Firestore
+   * applies the write to its local cache at once and the clips listener shows
+   * it; only the SERVER's acknowledgement waits on the network. Awaiting that
+   * kept the editor spinning until reconnect when saved offline, so the
+   * surface closes now with the success toast, and a write the server later
+   * REJECTS says so then. Both toasts are `scope: 'app'` — fired as part of
+   * (or after) closing this screen, addressed to the Clips list behind it.
+   * See `SnackbarScope`.
+   */
   const onSave = () => {
-    if (!current) return;
+    if (!current || savingRef.current) return;
+    savingRef.current = true;
     haptics.selection();
     setSaving(true);
+    const startMs = Math.round(range.startS * 1000);
+    const endMs = Math.round(range.endS * 1000);
     const commit = editingClipId
       ? // Re-framing moves the RANGE and nothing else — no trophy, no
         // saved-clips count: the same bookmark, not a new one.
         updateClip({
           clipId: editingClipId,
           soundId: current.id,
-          startMs: Math.round(range.startS * 1000),
-          endMs: Math.round(range.endS * 1000),
+          startMs,
+          endMs,
         })
-      : createClip({
-          soundId: current.id,
-          startMs: Math.round(range.startS * 1000),
-          endMs: Math.round(range.endS * 1000),
-          label: '',
-        }).then(() => {
-          // Awarded here rather than from a store — the clips cache only
-          // holds sounds you have opened, so it cannot answer "have you ever
-          // saved one". Same sites the in-player save used.
-          awardTrophy(TROPHY_IDS.firstClip);
-          useClipsSavedStore.getState().saved();
-          // A handful of saves in a lifetime: sent on the spot.
-          pushTrophyCounters();
-        });
-    commit
-      .then(() => {
-        // `scope: 'app'` — fired as part of CLOSING this screen, addressed
-        // to the Clips list behind it. See `SnackbarScope`.
-        showSnackbar(
-          t(editingClipId ? 'snackbar.clip-updated' : 'snackbar.clip-created'),
-          undefined,
-          { scope: 'app' },
-        );
-        onDone();
-      })
-      .catch(() => {
-        setSaving(false);
-        showSnackbar(t('snackbar.clip-save-failed'));
-      });
+      : createClip({ soundId: current.id, startMs, endMs, label: '' });
+
+    if (!editingClipId) {
+      // Awarded here rather than from a store — the clips cache only holds
+      // sounds you have opened, so it cannot answer "have you ever saved one".
+      // All three are local-first (the trophy store and the counter persist on
+      // the phone; the push queues offline), so they fire with the save rather
+      // than waiting on the server's ack.
+      awardTrophy(TROPHY_IDS.firstClip);
+      useClipsSavedStore.getState().saved();
+      // A handful of saves in a lifetime: sent on the spot.
+      pushTrophyCounters();
+    }
+
+    commit.catch(() =>
+      showSnackbar(t('snackbar.clip-save-failed'), undefined, {
+        scope: 'app',
+      }),
+    );
+
+    showSnackbar(
+      t(editingClipId ? 'snackbar.clip-updated' : 'snackbar.clip-created'),
+      undefined,
+      { scope: 'app' },
+    );
+    onDone();
   };
 
   return { current, editingClipId, onSave, range, saving, setRange };
