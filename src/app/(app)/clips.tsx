@@ -69,6 +69,10 @@ function ClipsSheetScreen() {
   const settled = useClipsStore(s =>
     current ? (s.settledBySoundId[current.id] ?? false) : false,
   );
+  const failed = useClipsStore(s =>
+    current ? (s.failedBySoundId[current.id] ?? false) : false,
+  );
+  const retry = useClipsStore(s => s.retry);
   /**
    * A SPINNER, NOT A BONE, and it is the call Explore's search already made.
    * The rule (AGENTS.md → "Waiting has two shapes") sends predictable shapes to
@@ -155,6 +159,15 @@ function ClipsSheetScreen() {
        */}
       {!settled ? (
         <StateWrap>{showSpinner ? <ProgressViewIos /> : null}</StateWrap>
+      ) : failed && clips.length === 0 ? (
+        <StateWrap>
+          <EmptyState
+            systemImage="exclamationmark.triangle"
+            title={t('player.clips.loadError')}
+            subtitle={t('player.clips.loadErrorHint')}
+            action={{ label: t('common.retry'), onPress: retry }}
+          />
+        </StateWrap>
       ) : clips.length === 0 ? (
         <StateWrap>
           <EmptyState

@@ -131,6 +131,13 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const settled = useClipsStore(s =>
     current ? (s.settledBySoundId[current.id] ?? false) : false,
   );
+  // A dead listener says so in the sheet's error line, where a failed delete
+  // already speaks, instead of spinning forever (iOS: an `EmptyState` with
+  // Retry).
+  const failed = useClipsStore(s =>
+    current ? (s.failedBySoundId[current.id] ?? false) : false,
+  );
+  const shownFailure = failure ?? (failed ? t('player.clips.loadError') : null);
   /**
    * A SPINNER, NOT A LINE OF TEXT — the same call iOS made, in Material. The
    * rule (root AGENTS.md → "Waiting has two shapes") sends predictable shapes
@@ -275,14 +282,14 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
               />
             </Column>
 
-            {failure ? (
+            {shownFailure ? (
               <Column
                 modifiers={[
                   fillMaxWidth(),
                   padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                 ]}
               >
-                <SheetErrorLine message={failure} />
+                <SheetErrorLine message={shownFailure} />
               </Column>
             ) : null}
 
@@ -306,7 +313,7 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                   />
                 ) : null}
               </Column>
-            ) : clips.length === 0 ? (
+            ) : failed && clips.length === 0 ? null : clips.length === 0 ? (
               /* A REAL EMPTY STATE, the parts `EmptyState` names — a mark, a
                title, a supporting line — rather than the lone muted sentence
                that used to stand here while iOS drew the full thing.

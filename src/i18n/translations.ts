@@ -132,6 +132,8 @@ export const translations = {
         // retired on-scrubber framing.
         empty: 'Tap + to save your favorite part.',
         none: 'No Clips Yet',
+        loadError: "Couldn't Load Clips",
+        loadErrorHint: 'Check your connection and try again.',
         // THE BAR'S SUMMARY, not the sheet's empty title. `none` above is an
         // empty-STATE title and was being used as a VALUE under the label
         // "Clips", where Apple writes one word — Settings says "Ringtone:
@@ -412,10 +414,10 @@ export const translations = {
     },
     player: {
       title: 'Reproduciendo',
-      empty: 'Aún no hay sonidos',
-      emptyHint: 'Añade un sonido para empezar a escuchar.',
       position: 'Posición de reproducción',
       positionValue: '{elapsed} de {total}',
+      empty: 'Aún no hay sonidos',
+      emptyHint: 'Añade un sonido para empezar a escuchar.',
       play: 'Reproducir',
       pause: 'Pausa',
       next: 'Siguiente sonido',
@@ -468,6 +470,8 @@ export const translations = {
         saveClip: 'Guardar',
         empty: 'Toca + para guardar tu parte favorita.',
         none: 'Aún no hay clips',
+        loadError: 'No se pudieron cargar los clips',
+        loadErrorHint: 'Comprueba tu conexión y vuelve a intentarlo.',
         noneSummary: 'Ninguno',
         count: '{n} guardados',
         playing: 'Reproduciendo',
@@ -717,12 +721,12 @@ export const translations = {
     },
     player: {
       title: '正在播放',
+      position: '播放进度',
+      positionValue: '{elapsed}，共 {total}',
       empty: '还没有音频',
       emptyHint: '添加一个音频即可开始收听。',
       play: '播放',
       pause: '暂停',
-      position: '播放进度',
-      positionValue: '{elapsed}，共 {total}',
       next: '下一个音频',
       previous: '上一个音频',
       speed: '播放速度',
@@ -771,6 +775,8 @@ export const translations = {
         saveClip: '存储',
         empty: '轻点+即可存储你最喜欢的部分。',
         none: '还没有片段',
+        loadError: '无法载入片段',
+        loadErrorHint: '请检查网络连接后重试。',
         noneSummary: '无',
         count: '已存储 {n} 个',
         playing: '正在播放',

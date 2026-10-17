@@ -10,6 +10,8 @@ import { useClipsStore } from '@/store/clips';
  */
 export const useClipsSubscription = (soundId: string | undefined) => {
   const setClips = useClipsStore(s => s.setClips);
+  const setFailed = useClipsStore(s => s.setFailed);
+  const retryNonce = useClipsStore(s => s.retryNonce);
 
   useEffect(() => {
     if (!soundId) return;
@@ -17,7 +19,7 @@ export const useClipsSubscription = (soundId: string | undefined) => {
     return subscribeToClips({
       soundId,
       onNext: clips => setClips(soundId, clips),
-      onError: () => {},
+      onError: () => setFailed(soundId),
     });
-  }, [soundId, setClips]);
+  }, [soundId, setClips, setFailed, retryNonce]);
 };
