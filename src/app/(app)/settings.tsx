@@ -12,6 +12,7 @@ import { useAppTheme, SUPPORTED_THEMES } from '@/core';
 import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
+import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { signOutFromGoogle } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/auth';
 import { useDevSettingsStore } from '@/store/devSettings';
@@ -31,6 +32,9 @@ const APP_NAME = Constants.expoConfig?.name ?? '';
 // In-app browser sheet (SFSafariViewController / Custom Tabs) — reading a policy
 // shouldn't leave the app. utm_medium=settings splits this entry point from the
 // welcome disclaimer in site analytics.
+/** The account banner's art: iOS draws it at 55pt, the largest it appears. */
+const PROFILE_PHOTO_DISPLAY = 55;
+
 const openLegalPage = (page: LegalPage) =>
   WebBrowser.openBrowserAsync(legalUrl(APP_NAME, page, 'settings'));
 
@@ -81,7 +85,11 @@ export default function Settings() {
   const profile: SettingsAccountProfile | undefined = user
     ? {
         displayName: user.displayName ?? t('settings.account.noName'),
-        photoUrl: user.photoUrl,
+        // DISPLAY-SIZED. An uploaded photo is the picker's full file; the
+        // banner draws it at 55pt (Android's row smaller), so fetch that.
+        photoUrl: user.photoUrl
+          ? thumbUrl(user.photoUrl, PROFILE_PHOTO_DISPLAY)
+          : user.photoUrl,
       }
     : undefined;
 

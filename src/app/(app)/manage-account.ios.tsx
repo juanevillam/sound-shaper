@@ -15,6 +15,7 @@ import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useOwnProfileEditing } from '@/hooks/useOwnProfileEditing';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
@@ -76,7 +77,11 @@ export default function ManageAccount() {
   // The person's own name and photo — Sign in with Apple may share neither.
   const { editPhoto, nameEditor, pendingPhoto, photoBusy } =
     useOwnProfileEditing();
-  const photoUri = pendingPhoto ?? user?.photoUrl ?? null;
+  // A fresh pick shows as is; the stored photo comes display-sized, since an
+  // upload is the picker's full file and the slot draws it at 120pt.
+  const photoUri =
+    pendingPhoto ??
+    (user?.photoUrl ? thumbUrl(user.photoUrl, MEDIA_PICKER_SIZE) : null);
 
   /**
    * THE DELETE IS RUNNING, AND THE SHEET IS SEALED WHILE IT IS.
