@@ -27,7 +27,9 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *     Apple escalates a consequential action by asking who you are, not by
  *     making you wait.
  *  2. Destroy every Cloudinary asset under the caller's own folder — audio
- *     and artwork both, via `media-worker/`. Best-effort.
+ *     and artwork both, via `media-worker/`. NOT best-effort: a failure stops
+ *     the run here, with nothing deleted that the person can still see, and
+ *     they try again (see below).
  *  3. Sweep every Firestore trace (`deleteAccountData`).
  *  4. Revoke the provider's grant — best-effort. Apple: its tokens, with the
  *     reauth's authorizationCode (App Store 5.1.1(v)); proven end to end on
@@ -41,6 +43,14 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  * needs a signed call the app didn't have, so the audio and artwork outlived
  * the account while the row's own copy promised otherwise. The worker closes
  * it, and the same one closes the single-sound and cover-replace doors.
+ *
+ * A FAILED MEDIA SWEEP STOPS THE DELETION (2026-10-17). It was best-effort,
+ * caught and reported, so a Worker that was down let the account, the
+ * documents and the Auth user go while the files stayed on Cloudinary with
+ * nothing left that could ever find them — and the privacy policy, the
+ * delete page and the row's own hint all promise the files go too. It runs
+ * before anything else is deleted and the Worker deletes by prefix, so a
+ * retry simply finishes the job.
  *
  * THE TROPHY TOTALS STOP SYNCING BEFORE THE SWEEP. Their push is a `merge`,
  * so one fired by the player stopping mid-deletion would recreate the user
@@ -67,12 +77,15 @@ export const useDeleteAccount = () =>
   useCallback(async () => {
     const { appleAuthorizationCode } = await reauthenticateForDeletion();
 
+    // Nothing is deleted yet, so a failure here leaves the account whole and
+    // the person retries from the snackbar.
+    await step(cleanupAccountMedia(), 'media').catch(error => {
+      recordError(error, 'deleteAccount.cleanupMedia');
+      throw error;
+    });
+
     blockTrophyCounterSync(true);
     try {
-      // Best-effort on its own; the deadline only stops it holding the rest.
-      await step(cleanupAccountMedia(), 'media').catch(error =>
-        recordError(error, 'deleteAccount.cleanupMedia'),
-      );
       await step(deleteAccountData(), 'sweep');
     } catch (error) {
       // A TIMED-OUT sweep is still queued and will land on reconnect, so the

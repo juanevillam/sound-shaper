@@ -14,7 +14,7 @@ import {
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
-import { recordError, reported } from '@/services/firebase/crashlytics';
+import { reported } from '@/services/firebase/crashlytics';
 import { cleanupMyMedia } from '@/services/firebase/functions';
 
 // Account deletion, personal-app scale: a client-side sweep of everything under
@@ -104,18 +104,13 @@ export const deleteAuthAccount = reported(
 
 /**
  * Destroy every Cloudinary asset under the caller's own folder — audio and
- * artwork both. Best-effort: a failure here orphans media exactly as the app
- * did before the worker existed, and must never stop an account deletion the
- * person has already confirmed.
+ * artwork both. It THROWS: an account deletion stops on it rather than leave
+ * files behind that nothing could find again (`useDeleteAccount` has why).
  *
  * Separate from the Firestore sweep because the worker deletes by PREFIX, not
  * by enumerating ids out of the documents — so unlike Topper's, it does not
  * need them to still exist, and the order between the two is a free choice.
  */
 export const cleanupAccountMedia = async (): Promise<void> => {
-  try {
-    await cleanupMyMedia();
-  } catch (error) {
-    recordError(error, 'account.cleanupMyMedia');
-  }
+  await cleanupMyMedia();
 };
