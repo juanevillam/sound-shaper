@@ -38,6 +38,18 @@ import { useSoundsStore } from '@/store/sounds';
  * we have to manage. Fire-and-forget, after the audio, which is the half a
  * trip actually needs.
  */
+/**
+ * Covers already asked for this session, by the exact url the grid requests.
+ * Every snapshot (a rename, a reorder, a banked duration) runs a pass, and
+ * without this each pass re-asked `expo-image` for every cover it had just
+ * cached — a disk lookup per sound per snapshot, for nothing. A cover's url
+ * changes when the cover does, so a new one is still fetched. Cleared on
+ * sign-out with the rest of the mirror's session state.
+ */
+const prefetchedArt = new Set<string>();
+
+export const forgetPrefetchedArt = (): void => prefetchedArt.clear();
+
 export const useOfflineMirror = (): void => {
   const sounds = useSoundsStore(s => s.sounds);
   const hasSettled = useSoundsStore(s => s.hasSettled);
@@ -80,10 +92,14 @@ export const useOfflineMirror = (): void => {
         }
 
         if (sound.artUrl) {
-          void Image.prefetch(
-            thumbUrl(sound.artUrl, artWidth),
-            'memory-disk',
-          ).catch(() => {});
+          const artUri = thumbUrl(sound.artUrl, artWidth);
+          if (!prefetchedArt.has(artUri)) {
+            prefetchedArt.add(artUri);
+            void Image.prefetch(artUri, 'memory-disk').catch(() => {
+              // Not banked: the next pass tries again.
+              prefetchedArt.delete(artUri);
+            });
+          }
         }
       }
     })();

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { forgetPrefetchedArt } from '@/hooks/useOfflineMirror';
 import { clearMirror } from '@/lib/offlineAudio';
 import {
   hydrateTrophyCounters,
@@ -78,6 +79,7 @@ export const useAuthListener = () => {
          * session mirrors what it finds.
          */
         useOfflineStore.getState().clear();
+        forgetPrefetchedArt();
         void clearMirror();
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });
         wasAuthedRef.current = false;
