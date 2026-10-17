@@ -497,25 +497,27 @@ export function PlayerSheet() {
   // off. A long drag hid it (little was left to travel); a short one showed
   // the hitch, and a close showed it most because it re-renders the most.
   // The spring now starts on the UI thread and the React state follows.
-  const settle = (target: 0 | 1, velocity = 0) => {
-    'worklet';
-    progress.value = reduceMotion
-      ? // Reduce Motion takes the destination, not a faster spring: the
-        // setting asks for no movement, not for brisk movement.
-        withTiming(target, { duration: 0 })
-      : withSpring(target, {
-          ...(target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING),
-          velocity,
-        });
-  };
+  const settle = useCallback(
+    (target: 0 | 1, velocity = 0) => {
+      'worklet';
+      progress.value = reduceMotion
+        ? // Reduce Motion takes the destination, not a faster spring: the
+          // setting asks for no movement, not for brisk movement.
+          withTiming(target, { duration: 0 })
+        : withSpring(target, {
+            ...(target === 1 ? EXPAND_SPRING : COLLAPSE_SPRING),
+            velocity,
+          });
+    },
+    [progress, reduceMotion],
+  );
 
   const springTo = useCallback(
     (target: 0 | 1, velocity = 0) => {
       markExpanded(target === 1);
       settle(target, velocity);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [markExpanded, progress, reduceMotion],
+    [markExpanded, settle],
   );
 
   const expand = useCallback(() => springTo(1), [springTo]);
@@ -1505,8 +1507,12 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         style={styles.miniRow}
         onPress={start}
         disabled={!first}
-        accessibilityRole="button"
+        // Empty, the banner is a statement rather than a control: read as
+        // text, with its second line as the hint, instead of as a dimmed
+        // button whose hint VoiceOver never reached.
+        accessibilityRole={first ? 'button' : 'text'}
         accessibilityLabel={first ? first.name : t('player.empty')}
+        accessibilityHint={first ? undefined : t('player.emptyHint')}
       >
         {/* AN EMPTY LIBRARY SHOWS NO ART (Juan, 2026-10-16): with no sound
             to stand for, the placeholder fell back to a "?" — a question the
@@ -1514,7 +1520,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         {first ? (
           <View style={styles.idleArt}>
             <SoundArt
-              artUrl={first?.artUrl || undefined}
+              artUrl={first.artUrl || undefined}
               size={MINI_ART_SIZE}
               // A DISPLAY-SIZED VARIANT, for the same reason the hero above
               // takes one — and this slot is 46pt, so the stored original was
@@ -1522,7 +1528,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
               // a cold start with a library pays for: this banner stands parked
               // on the newest sound before anything has been played.
               displayWidth={MINI_ART_SIZE}
-              title={first?.name}
+              title={first.name}
               // Same corner the loaded banner's thumb renders at.
               style={[styles.artMedia, { borderRadius: MINI_ART_RADIUS }]}
             />
