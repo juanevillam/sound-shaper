@@ -10,7 +10,7 @@ import {
 import { type CloudinaryAsset } from '@/services/cloudinary/upload';
 import { requireUser } from '@/services/firebase/auth';
 import { USERS_COLLECTION } from '@/services/firebase/collections';
-import { reported } from '@/services/firebase/crashlytics';
+import { recordError, reported } from '@/services/firebase/crashlytics';
 import { destroyProfilePhoto } from '@/services/firebase/functions';
 
 /**
@@ -77,7 +77,9 @@ export const setOwnPhoto = reported(
     );
 
     if (previous && previous !== asset?.publicId) {
-      destroyProfilePhoto(previous).catch(() => {});
+      destroyProfilePhoto(previous).catch(error =>
+        recordError(error, 'ownProfile.destroyProfilePhoto'),
+      );
     }
   },
 );

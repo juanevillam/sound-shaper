@@ -39,6 +39,7 @@ const MAX_MEDIA_RETRIES = 3;
 export const useWidgetPublisher = ({
   appGroup,
   build,
+  onError,
   ready,
   settleMs = 500,
   signature,
@@ -47,6 +48,11 @@ export const useWidgetPublisher = ({
   appGroup: string;
   /** Turn the app's current data into what the widget should draw. */
   build: () => Promise<{ media: WidgetMedia[]; snapshot: unknown }>;
+  /**
+   * A publish that threw — the app's crash reporter. This module has no
+   * reporter of its own, and a widget's failure has no visible symptom.
+   */
+  onError?: (error: unknown) => void;
   /** The data has actually arrived, and is not mid-gesture. */
   ready: boolean;
   settleMs?: number;
@@ -59,6 +65,8 @@ export const useWidgetPublisher = ({
   // whether anything needs doing.
   const latestBuild = useRef(build);
   latestBuild.current = build;
+  const latestOnError = useRef(onError);
+  latestOnError.current = onError;
 
   const published = useRef<string | null>(null);
   /**
@@ -126,9 +134,11 @@ export const useWidgetPublisher = ({
           /**
            * A WIDGET FAILS SILENTLY BY NATURE — it just keeps drawing its last
            * snapshot, or its empty state — so a throw swallowed here is a bug
-           * with no symptom to follow. Say it out loud.
+           * with no symptom to follow. Say it out loud: to the app's reporter,
+           * and to the console in development.
            */
-          console.warn('[widget-bridge] publish failed', error);
+          latestOnError.current?.(error);
+          if (__DEV__) console.warn('[widget-bridge] publish failed', error);
         }
       })();
     }, settleMs);

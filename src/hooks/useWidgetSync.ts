@@ -6,6 +6,7 @@ import {
 
 import { useI18n } from '@/i18n';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
+import { recordError } from '@/services/firebase/crashlytics';
 import { useAuthStore } from '@/store/auth';
 import { useSoundsStore } from '@/store/sounds';
 
@@ -44,6 +45,7 @@ export const useWidgetSync = () => {
 
   useWidgetPublisher({
     appGroup: APP_GROUP,
+    onError: error => recordError(error, 'widget.publish'),
     build: async () => {
       const media: WidgetMedia[] = [];
       const items = [];

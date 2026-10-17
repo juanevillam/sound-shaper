@@ -12,6 +12,7 @@ import {
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
 } from '@/services/firebase/collections';
+import { reported } from '@/services/firebase/crashlytics';
 import { type AwardedTrophy, type TrophyPersistenceAdapter } from '@/trophies';
 
 /**
@@ -20,9 +21,15 @@ import { type AwardedTrophy, type TrophyPersistenceAdapter } from '@/trophies';
  * trophies survive a reinstall. Plugged into the app-agnostic engine via
  * `configureTrophies`; the engine's zustand cache fronts these reads/writes, so
  * neither call ever blocks a popup.
+ *
+ * BOTH CALLS ARE REPORTED HERE, because the engine swallows their failures on
+ * purpose (a failed load reads as "nothing earned yet", a failed save leaves
+ * the award in the session's cache only) and, being app-agnostic, cannot reach
+ * Crashlytics itself. Swallowed and unreported, a broken rule or path would
+ * have had no symptom at all.
  */
 export const createTrophyAdapter = (uid: string): TrophyPersistenceAdapter => ({
-  load: async () => {
+  load: reported('trophies.load', async () => {
     const snapshot = await getDocs(
       collection(getFirestore(), USERS_COLLECTION, uid, TROPHIES_SUBCOLLECTION),
     );
@@ -36,11 +43,11 @@ export const createTrophyAdapter = (uid: string): TrophyPersistenceAdapter => ({
     });
 
     return awarded;
-  },
+  }),
 
   // The award time is the server's, not the optimistic client value — so a
   // reload shows the canonical date. `merge` keeps the write idempotent.
-  save: async (trophyId: string) => {
+  save: reported('trophies.save', async (trophyId: string) => {
     await setDoc(
       doc(
         getFirestore(),
@@ -52,5 +59,5 @@ export const createTrophyAdapter = (uid: string): TrophyPersistenceAdapter => ({
       { achievedAt: serverTimestamp() },
       { merge: true },
     );
-  },
+  }),
 });
