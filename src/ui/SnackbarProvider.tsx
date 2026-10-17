@@ -27,11 +27,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/core';
 
-import {
-  FLOATING_EDGE_GAP,
-  FLOATING_RADIUS,
-  GlassSurfaceIos,
-} from './GlassSurfaceIos';
+import { FLOATING_EDGE_GAP, FLOATING_RADIUS } from './floating';
+import { GlassSurfaceIos } from './GlassSurfaceIos';
 import { NOW_PLAYING_BANNER_BOX } from './nowPlayingBanner';
 import {
   SnackbarContext,

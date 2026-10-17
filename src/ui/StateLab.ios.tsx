@@ -31,7 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnUI } from 'react-native-worklets';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { FLOATING_RADIUS } from './GlassSurfaceIos';
+import { FLOATING_RADIUS } from './floating';
 import type { StateLabGroup } from './StateLab';
 
 /**

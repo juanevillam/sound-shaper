@@ -90,6 +90,8 @@ export {
   FLOATING_COPY_GAP,
   FLOATING_EDGE_GAP,
   FLOATING_RADIUS,
+} from './floating';
+export {
   GLASS_FLOOR,
   glassFloorColor,
   GlassSurfaceIos,
