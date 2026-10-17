@@ -1,4 +1,4 @@
-import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
+import { PixelRatio, StyleSheet, Text, View } from 'react-native';
 
 import { TEXT_VARIANTS } from './createText';
 import {
@@ -160,10 +160,12 @@ export function MediaPickerAvatar({
               portfolio draws for an empty slot. An `emoji` fallback prop stood
               here and Sound Shaper's Android editor was its one caller,
               drawing 🎵 where its own iOS twin and every Topper picker draw
-              the plus (Juan, 2026-09-10); the prop went with the drift. */}
+              the plus (Juan, 2026-09-10); the prop went with the drift. The
+              glyph is `EMPTY_MEDIA_PLUS` on both platforms: Android drew the
+              full-width ＋, which `emptyMedia.ts` rules out for its metrics. */}
           {preview ?? (
             <Text style={[styles.plus, { color: contentColor }]}>
-              {Platform.OS === 'ios' ? EMPTY_MEDIA_PLUS : '＋'}
+              {EMPTY_MEDIA_PLUS}
             </Text>
           )}
         </View>
