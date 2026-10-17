@@ -9,7 +9,11 @@ import {
   SwipeActions,
   Text as SwiftUIText,
 } from '@expo/ui/swift-ui';
-import { foregroundStyle, tint } from '@expo/ui/swift-ui/modifiers';
+import {
+  accessibilityLabel,
+  foregroundStyle,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
 import { router, Stack } from 'expo-router';
 
@@ -228,6 +232,11 @@ function ClipsSheetScreen() {
                           systemName="speaker.wave.2.fill"
                           size={15}
                           color={colors.primary}
+                          // The glyph is the indicator that does not rely on
+                          // colour, so VoiceOver has to hear it too.
+                          modifiers={[
+                            accessibilityLabel(t('player.clips.playing')),
+                          ]}
                         />
                       ) : null}
                     </HStack>

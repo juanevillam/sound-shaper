@@ -127,12 +127,16 @@ struct LibraryWidgetView: View {
     if index < items.count {
       let item = items[index]
 
+      // NAMED FOR VOICEOVER. A cover is a picture with no text, so without a
+      // label each tile read as nothing at all.
       if family == .systemSmall {
         cover(item, tile: tile)
+          .accessibilityLabel(Text(item.name))
       } else {
         Link(destination: DeepLink.play(item.id)) {
           cover(item, tile: tile)
         }
+        .accessibilityLabel(Text(item.name))
       }
     } else {
       // A slot rather than nothing: the grid keeps its columns when the

@@ -19,7 +19,7 @@ enum SharedContainer {
 struct SnapshotItem: Decodable {
   let id: String
   let name: String
-  /// File NAME inside `artwork/`. The container resolves to a different
+  /// File NAME inside `media/`. The container resolves to a different
   /// absolute path in each process, so the snapshot never stores one.
   let artwork: String?
 }
