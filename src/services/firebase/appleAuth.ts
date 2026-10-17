@@ -8,6 +8,9 @@ import {
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
+import { setOwnName } from '@/services/firebase/ownProfile';
+import { useAuthStore } from '@/store/auth';
+
 // iOS-only module: imported exclusively from `useAppleSignIn.ios.ts`, so it
 // never enters the Android bundle (expo-apple-authentication has no Android
 // native module).
@@ -56,8 +59,20 @@ export const signInWithApple =
       .filter(Boolean)
       .join(' ');
 
-    if (!result.user.displayName && fullName)
+    // AND SAY SO TO EVERYTHING THAT ALREADY READ THE NAMELESS USER. The auth
+    // listener ran on sign-in, before this, and `onAuthStateChanged` does not
+    // fire again for a profile update — so the session showed the placeholder
+    // name and `users/{uid}` was written without one until the next launch.
+    // The store is patched the way the Account sheet's own name edit patches
+    // it, and the doc is written by `setOwnName` without holding up sign-in
+    // on a server acknowledgement (it reports its own failure).
+    if (!result.user.displayName && fullName) {
       await updateProfile(result.user, { displayName: fullName });
+      void setOwnName(fullName).catch(() => {});
+      const auth = useAuthStore.getState();
+      if (auth.user?.uid === result.user.uid)
+        auth.setUser({ ...auth.user, displayName: fullName });
+    }
 
     return result;
   };
