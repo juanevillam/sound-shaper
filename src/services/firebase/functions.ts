@@ -79,3 +79,8 @@ export const destroySoundAudio = (
 export const destroySoundArt = (
   publicId: string,
 ): Promise<{ destroyed: boolean }> => destroyMyAsset(publicId, 'image');
+
+/** Destroy a profile photo this app uploaded (never a provider's own URL). */
+export const destroyProfilePhoto = (
+  publicId: string,
+): Promise<{ destroyed: boolean }> => destroyMyAsset(publicId, 'image');

@@ -102,6 +102,17 @@ export type ManageAccountScreenProps = {
    */
   seedColor?: string;
   /**
+   * The person's photo slot, ABOVE the facts — Contacts' and the Apple
+   * Account's own arrangement: a disc, and the action that edits it under it.
+   * The app supplies the whole control (it owns the picker and the media);
+   * the screen decides only where it stands.
+   *
+   * iOS-ONLY TODAY, AND THAT IS AN OPEN GAP, not a platform argument: Sound
+   * Shaper added it on 2026-10-16 and the Compose twin has not been built or
+   * walked on a device. Android ignores the prop until it is.
+   */
+  hero?: React.ReactElement;
+  /**
    * The read-only facts block. Optional: an app with no real session has no
    * facts to state and shows only the actions below. expo-ui-starter was that
    * app and was deleted 2026-09-16, so NOTHING EXERCISES THE UNDEFINED BRANCH

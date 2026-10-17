@@ -247,6 +247,23 @@ export const translations = {
         title: 'Manage Account',
         infoTitle: 'Account Information',
         name: 'Name',
+        // The Name row's value when there is none — Sign in with Apple
+        // shares a name only if the person chooses to. A label for the
+        // action the row now offers, not a placeholder identity.
+        addName: 'Add Name',
+        nameDialog: {
+          title: 'Name',
+          fieldLabel: 'Name',
+          confirm: 'Save',
+          cancel: 'Cancel',
+        },
+        // Contacts' own words for a person's photo, as Topper's editors use.
+        photo: {
+          add: 'Add Photo',
+          change: 'Change Photo',
+          remove: 'Remove Photo',
+          cancel: 'Cancel',
+        },
         email: 'Email',
         memberSince: 'Member Since',
         deleteAccount: 'Delete Account',
@@ -323,6 +340,8 @@ export const translations = {
       'clip-deleted': 'Clip deleted',
       'clip-delete-failed': "Couldn't delete the clip. Try again.",
       'delete-account-failed': "Couldn't delete the account. Try again.",
+      'profile-name-failed': "Couldn't save your name. Try again.",
+      'profile-photo-failed': "Couldn't change your photo. Try again.",
       'delete-account-reauth':
         'Sign out, sign in again, and then try deleting.',
     },
@@ -535,6 +554,19 @@ export const translations = {
         title: 'Gestionar cuenta',
         infoTitle: 'Información de la cuenta',
         name: 'Nombre',
+        addName: 'Añadir nombre',
+        nameDialog: {
+          title: 'Nombre',
+          fieldLabel: 'Nombre',
+          confirm: 'Guardar',
+          cancel: 'Cancelar',
+        },
+        photo: {
+          add: 'Añadir foto',
+          change: 'Cambiar foto',
+          remove: 'Quitar foto',
+          cancel: 'Cancelar',
+        },
         email: 'Correo electrónico',
         memberSince: 'Miembro desde',
         deleteAccount: 'Eliminar cuenta',
@@ -611,6 +643,10 @@ export const translations = {
       'clip-delete-failed': 'No se pudo eliminar el clip. Vuelve a intentarlo.',
       'delete-account-failed':
         'No se pudo eliminar la cuenta. Vuelve a intentarlo.',
+      'profile-name-failed':
+        'No se pudo guardar tu nombre. Vuelve a intentarlo.',
+      'profile-photo-failed':
+        'No se pudo cambiar tu foto. Vuelve a intentarlo.',
       'delete-account-reauth':
         'Cierra sesión, vuelve a iniciarla e inténtalo de nuevo.',
     },
@@ -817,6 +853,19 @@ export const translations = {
         title: '管理账户',
         infoTitle: '账户信息',
         name: '姓名',
+        addName: '添加姓名',
+        nameDialog: {
+          title: '姓名',
+          fieldLabel: '姓名',
+          confirm: '存储',
+          cancel: '取消',
+        },
+        photo: {
+          add: '添加照片',
+          change: '更换照片',
+          remove: '移除照片',
+          cancel: '取消',
+        },
         email: '电子邮件',
         memberSince: '注册时间',
         deleteAccount: '删除账户',
@@ -886,6 +935,8 @@ export const translations = {
       'clip-deleted': '片段已删除',
       'clip-delete-failed': '无法删除片段。请再试一次。',
       'delete-account-failed': '无法删除账户。请再试一次。',
+      'profile-name-failed': '无法存储你的姓名。请再试一次。',
+      'profile-photo-failed': '无法更换你的照片。请再试一次。',
       'delete-account-reauth': '请退出登录后重新登录，然后再尝试删除。',
     },
   },

@@ -12,6 +12,7 @@ import {
 import { FormDisclosureRowIos, FormValueRowIos } from './FormDisclosureRowIos';
 import { type ManageAccountScreenProps } from './ManageAccountScreen';
 import { Screen } from './Screen';
+import { SheetFormMediaIos } from './SheetFormIos';
 import { UsernameEditRowIos } from './UsernameEditRow';
 
 /**
@@ -46,6 +47,7 @@ import { UsernameEditRowIos } from './UsernameEditRow';
 export const ManageAccountScreen = ({
   colorScheme,
   colors,
+  hero,
   info,
   sections,
   privacy,
@@ -64,6 +66,13 @@ export const ManageAccountScreen = ({
           holds none, so the tint reached nothing and only stood ready to
           paint the next control added here. */}
       <Form modifiers={[scrollContentBackground('hidden')]}>
+        {hero ? (
+          // The editor sheets' media slot — a transparent, separator-less row
+          // centring the control, so the photo stands free above the cards.
+          <Section>
+            <SheetFormMediaIos>{hero}</SheetFormMediaIos>
+          </Section>
+        ) : null}
         {info ? (
           /**
            * ONLY THE VALUES WAIT. The labels — "Name", "Email" — are static

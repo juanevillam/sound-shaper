@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 
+import { StyleSheet, View } from 'react-native';
+
+import { Image as RemoteImage } from 'expo-image';
 import { router, useNavigation } from 'expo-router';
 
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
@@ -9,6 +12,7 @@ import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
+import { useOwnProfileEditing } from '@/hooks/useOwnProfileEditing';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -17,7 +21,11 @@ import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import {
   confirmDestructiveIos,
+  emptyMediaColor,
+  InitialArt,
   ManageAccountScreen,
+  MEDIA_PICKER_SIZE,
+  MediaPickerAvatar,
   ProgressOverlayIos,
 } from '@/ui';
 
@@ -66,6 +74,10 @@ export default function ManageAccount() {
   const hasSettled = useProfileStore(s => s.hasSettled);
   const navigation = useNavigation();
   const deleteAccount = useDeleteAccount();
+  // The person's own name and photo — Sign in with Apple may share neither.
+  const { editPhoto, nameEditor, pendingPhoto, photoBusy } =
+    useOwnProfileEditing();
+  const photoUri = pendingPhoto ?? user?.photoUrl ?? null;
 
   /**
    * THE DELETE IS RUNNING, AND THE SHEET IS SEALED WHILE IT IS.
@@ -131,7 +143,10 @@ export default function ManageAccount() {
   const infoRows = [
     {
       label: t('settings.manageAccount.name'),
-      value: user?.displayName ?? t('settings.account.noName'),
+      // No name is an invitation now, not a stand-in identity: the row opens
+      // the editor, so its value names what tapping it does.
+      value: user?.displayName || t('settings.manageAccount.addName'),
+      editor: nameEditor,
     },
     { label: t('settings.manageAccount.email'), value: user?.email ?? '—' },
     {
@@ -214,6 +229,53 @@ export default function ManageAccount() {
         // Light/Dark choice rather than the device trait — the same thing
         // Settings passes to its own Host.
         colorScheme={scheme}
+        hero={
+          <View style={styles.photoSlot}>
+            <MediaPickerAvatar
+              onPress={editPhoto}
+              accessibilityLabel={t(
+                photoUri
+                  ? 'settings.manageAccount.photo.change'
+                  : 'settings.manageAccount.photo.add',
+              )}
+              disabled={photoBusy || showDeleting}
+              // A form sheet steps every grouped colour up one in dark, so the
+              // empty disc takes the sheet's step (see `emptyMediaColor`).
+              surfaceColor={emptyMediaColor({
+                colors,
+                container: 'sheet',
+                scheme,
+              })}
+              contentColor={colors.onSurface}
+              // The caption is the ACTION and stays put while an upload runs:
+              // only its ink says it is unavailable (the slot's own contract).
+              caption={t(
+                photoUri
+                  ? 'settings.manageAccount.photo.change'
+                  : 'settings.manageAccount.photo.add',
+              )}
+              captionColor={photoBusy ? colors.onSurfaceMuted : colors.primary}
+              // A person: the default full circle. With no photo, their
+              // initial — the monogram every photo-less person gets here.
+              preview={
+                photoUri ? (
+                  <RemoteImage
+                    source={{ uri: photoUri }}
+                    style={styles.photo}
+                    contentFit="cover"
+                  />
+                ) : user?.displayName ? (
+                  <InitialArt
+                    size={MEDIA_PICKER_SIZE}
+                    style={styles.photo}
+                    title={user.displayName}
+                    container="sheet"
+                  />
+                ) : null
+              }
+            />
+          </View>
+        }
         info={{
           title: t('settings.manageAccount.infoTitle'),
           rows: infoRows,
@@ -253,3 +315,10 @@ export default function ManageAccount() {
     </SheetScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  photo: { height: MEDIA_PICKER_SIZE, width: MEDIA_PICKER_SIZE },
+  // Full-width and centring: `RNHostView` takes no style, so the RN child
+  // carries its own size and centres itself (see `SheetFormMediaIos`).
+  photoSlot: { alignItems: 'center', width: '100%' },
+});
