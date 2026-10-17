@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 import { getAuth } from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import {
   cleanupAccountMedia,
@@ -26,8 +27,12 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *  2. Destroy every Cloudinary asset under the caller's own folder — audio
  *     and artwork both, via `services/media-worker`. Best-effort.
  *  3. Sweep every Firestore trace (`deleteAccountData`).
- *  4. Revoke Apple tokens with the reauth's authorizationCode (App Store
- *     5.1.1(v)) — best-effort, and only when Apple was the provider.
+ *  4. Revoke the provider's grant — best-effort. Apple: its tokens, with the
+ *     reauth's authorizationCode (App Store 5.1.1(v)); proven end to end on
+ *     2026-10-16, the app left Settings → Sign in with Apple. Google: no store
+ *     asks for it, but without `revokeAccess` the app stayed listed under the
+ *     Google Account's third-party access after the account was gone (Juan,
+ *     2026-10-16).
  *  5. Delete the Auth user.
  *
  * THE MEDIA USED TO ORPHAN, and this docblock used to say so: destroying it
@@ -51,6 +56,13 @@ export const useDeleteAccount = () =>
         await getAuth().revokeToken(appleAuthorizationCode);
       } catch (error) {
         recordError(error, 'deleteAccount.revokeAppleTokens');
+      }
+    else
+      try {
+        // The reauth just signed Google in again, so its grant is live here.
+        await GoogleSignin.revokeAccess();
+      } catch (error) {
+        recordError(error, 'deleteAccount.revokeGoogleAccess');
       }
 
     await deleteAuthAccount();
