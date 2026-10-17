@@ -79,15 +79,28 @@ widget extension, against `xcrun dyld_info -exports` of each framework —
 following `[re-export]` entries (ffmpeg's `libavcodec` re-exports
 `libavutil`). Run it on the EAS `.ipa` once one exists.
 
-## 3 — `npm audit` is advisory in CI until this is cleared
+## 3 — `npm audit`: cleared to the floor, blocking at critical (2026-10-17)
 
-`npm audit --omit=dev --audit-level=high` reports high advisories, all
-transitive through Expo, React Native and Firebase (2026-10-16: `@grpc/grpc-js`,
-`node-forge`, `@xmldom/xmldom`, `braces`, `nanoid` and others). The CI step runs
-with `continue-on-error` so the build stays meaningful. Resolve it in the
-quality audit — by Expo/Firebase bumps or `overrides`, re-verifying every
-`patches/` pin and the `ExpoImage` drift check afterwards — then make the step
-blocking again.
+`npm audit --omit=dev` was 1 critical and 39 high, all transitive through
+Expo, React Native and Firebase, and all of it NODE TOOLING — the Expo CLI,
+Metro, config plugins, the Firebase JS SDK's grpc — none compiled into the
+app. `overrides` in `package.json` moved every one that has a fixed release
+within its own major (`shell-quote`, `nanoid`, `js-yaml`, `brace-expansion`,
+`@xmldom/xmldom` 0.8 and 0.9, `@grpc/grpc-js`, `compression`, `postcss`,
+`source-map-js`, `browserslist`) without moving Expo, React Native or Firebase,
+so the `patches/` pins and the `ExpoImage` drift workaround stand; `npm ci`,
+both overlays, typecheck, the tests and a Metro export were re-run after.
+That leaves 0 critical, and highs with NO fix to move to:
+
+- `node-forge` (≤1.4.0, the latest) — `@expo/cli`'s code signing;
+- `braces` (≤3.0.3, the latest) — Metro's file map, through `micromatch`;
+- `image-size` 1.x — Metro 0.84; the fix is 2.x, a major under Metro;
+- `@xmldom/xmldom` 0.7 — `@bacons/xcode`'s plist parser for the widget target,
+  run at prebuild over the project's own files; 0.8 is a major.
+
+CI blocks at `--audit-level=critical` and still prints the full advisory
+report. Re-run this at every Expo SDK bump: drop any override the new SDK
+already satisfies, and raise the gate to `high` the day it can pass.
 
 The lockfile is written by **npm 10 on Linux** (`node:22`, what CI runs).
 npm 11 on macOS leaves out `@emnapi/*`, the peers of the wasm-only

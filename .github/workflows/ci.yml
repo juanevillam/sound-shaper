@@ -23,10 +23,7 @@ jobs:
       # Advisory full report (never fails the build)…
       - run: npm audit --omit=dev
         continue-on-error: true
-      # High/critical advisories in runtime deps. ADVISORY FOR NOW: every one
-      # today is transitive through Expo, React Native or Firebase, and a fix
-      # moves versions the patches/ pins and the SDK-drift workaround depend
-      # on. Clearing them is a quality-audit item in docs/release.md; make this
-      # step blocking again once it passes.
-      - run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
+      # BLOCKING at critical. Every high left is transitive build tooling with
+      # no fixed release to move to (node-forge, braces, image-size, and the
+      # xmldom 0.7 line under @bacons/xcode) — see docs/release.md gate 3.
+      - run: npm audit --omit=dev --audit-level=critical
