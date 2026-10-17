@@ -13,17 +13,20 @@ import { useProfileStore } from '@/store/profile';
  * cannot change. Nobody else writes the doc (`upsertOwnProfile` runs on this
  * device, once per sign-in), so there was never anything to be live ABOUT.
  *
- * The store is still shared, and that is what makes the fetch invisible: the
- * second time the sheet opens, its values are already there and the read below
- * only refreshes them. `clear` on sign-out lives in the auth listener, so the
+ * SINCE 2026-10-16 THE LAUNCH ALREADY READS IT: `upsertOwnProfile` seeds the
+ * store from the one read it makes per launch, so this fetch runs only while
+ * that answer lacks the creation date — a brand-new account, whose upsert
+ * wrote `createdAt` as a server timestamp it cannot read back yet. Re-reading
+ * on every open was one server read per visit for values already in hand. `clear` on sign-out lives in the auth listener, so the
  * next account never sees the previous one's dates.
  */
 export const useOwnProfile = () => {
   const uid = useAuthStore(s => s.user?.uid);
   const setProfile = useProfileStore(s => s.setProfile);
+  const knowsCreatedAt = useProfileStore(s => s.profile?.createdAt != null);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || knowsCreatedAt) return;
 
     let active = true;
 
@@ -38,5 +41,5 @@ export const useOwnProfile = () => {
     return () => {
       active = false;
     };
-  }, [uid, setProfile]);
+  }, [uid, knowsCreatedAt, setProfile]);
 };
