@@ -48,12 +48,15 @@ export type Sound = {
   audioUrl: string;
   createdAt: number | null;
   /**
-   * LEARNED FROM PLAYBACK, NOT FROM UPLOAD. A sound's duration never changes,
-   * but nothing computes it at upload time (that would mean decoding the
-   * audio there); the engine reports it on the first play and
-   * `bankSoundDuration` writes it back once. Until then it is `null` and the
-   * scrubber's total reads `-:--` for the sound's very first load — every
-   * load after that seeds from here, so skipping between known sounds never
+   * WRITTEN AT UPLOAD, CORRECTED BY PLAYBACK. A sound's duration never
+   * changes, and Cloudinary measures it while taking the upload, so
+   * `createSound` writes it inside the document's first write (no decode on
+   * the phone, no extra write). The engine still reports its own figure on
+   * the first play and `bankSoundDuration` re-banks it when the two differ
+   * by more than a second — seed, then override. A sound uploaded before
+   * this, or one Cloudinary returned no duration for, is `null` until that
+   * first play, and the scrubber's total reads `-:--` for that one load;
+   * every load after seeds from here, so skipping between known sounds never
    * flashes a placeholder at all (Juan, 2026-08-27).
    */
   durationMs: number | null;
@@ -305,6 +308,7 @@ export const createSound = reported(
       audioPublicId: audio.publicId,
       audioUrl: audio.url,
       createdAt: serverTimestamp(),
+      ...(audio.durationMs === null ? {} : { durationMs: audio.durationMs }),
       name,
       position,
       ...(releaseYear === undefined ? {} : { releaseYear }),

@@ -80,6 +80,29 @@ export const presetLabel = (
   }
 };
 
+/**
+ * A graded effect's level label (Echo, Next Room) — one map for the Shape
+ * sheet on both platforms, arranged like `presetLabel` for the same reason.
+ */
+export const levelLabel = (
+  t: (key: TranslationKey) => string,
+  level: EffectLevel,
+): string => {
+  switch (level) {
+    case 'low':
+      return t('player.shape.levels.low');
+    case 'medium':
+      return t('player.shape.levels.medium');
+    case 'high':
+      return t('player.shape.levels.high');
+    default:
+      return t('player.shape.levels.off');
+  }
+};
+
+/** A band's gain as the Shape sheet prints it — signed, whole dB. */
+export const dbLabel = (db: number): string => (db > 0 ? `+${db}` : `${db}`);
+
 type ShaperState = {
   gains: number[]; // per-band, dB
   activePreset: string | null; // i18nKey while gains match a preset, else null

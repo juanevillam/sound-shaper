@@ -35,7 +35,13 @@ import {
   stopToRate,
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { EQ_PRESETS, presetLabel, useShaperStore } from '@/store/shaper';
+import {
+  dbLabel,
+  EQ_PRESETS,
+  levelLabel as shaperLevelLabel,
+  presetLabel,
+  useShaperStore,
+} from '@/store/shaper';
 import { SheetFormBodyIos } from '@/ui';
 
 // iOS-only route: every sound-shaping control as a grouped native `Form`
@@ -79,8 +85,6 @@ const EQ_LABEL_WIDTH = 38;
 
 /** The Presets row's tag for a hand-shaped curve; never a real preset key. */
 const CUSTOM_TAG = 'custom';
-
-const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
 /**
  * One graded effect — Echo or Next Room — as a menu `Picker` row in a section
@@ -136,20 +140,7 @@ function ShaperSheetScreen() {
   const echo = useShaperStore(s => s.echo);
   const setEcho = useShaperStore(s => s.setEcho);
 
-  // The typed t() needs literal keys, so map level ids explicitly — the same
-  // arrangement as `presetLabel` in the shaper store.
-  const levelLabel = (level: EffectLevel) => {
-    switch (level) {
-      case 'low':
-        return t('player.shape.levels.low');
-      case 'medium':
-        return t('player.shape.levels.medium');
-      case 'high':
-        return t('player.shape.levels.high');
-      default:
-        return t('player.shape.levels.off');
-    }
-  };
+  const levelLabel = (level: EffectLevel) => shaperLevelLabel(t, level);
 
   // A Picker hands back an unknown; only a known level may reach the engine.
   const asLevel = (key: unknown): EffectLevel =>

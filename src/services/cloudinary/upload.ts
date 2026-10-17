@@ -18,9 +18,16 @@ const UPLOAD_TIMEOUT_MS = 120_000;
 
 export type CloudinaryAsset = { publicId: string; url: string };
 
+/** An uploaded mp3 also carries its length, when Cloudinary measured one. */
+export type CloudinaryAudioAsset = CloudinaryAsset & {
+  durationMs: number | null;
+};
+
 type CloudinaryUploadResponse = {
   public_id: string;
   secure_url: string;
+  /** Seconds, as a float — present on a `video` (i.e. audio) upload. */
+  duration?: number;
 };
 
 type ResourceType = 'image' | 'video';
@@ -41,7 +48,7 @@ const uploadFile = async (
   uri: string,
   resourceType: ResourceType,
   mimeType: string,
-): Promise<CloudinaryAsset> => {
+): Promise<CloudinaryUploadResponse> => {
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
   const folder = userMediaFolder(requireUid());
 
@@ -69,13 +76,38 @@ const uploadFile = async (
       `Cloudinary upload failed: ${response.status} ${response.body}`,
     );
 
-  const parsed = JSON.parse(response.body) as CloudinaryUploadResponse;
-  return { publicId: parsed.public_id, url: parsed.secure_url };
+  return JSON.parse(response.body) as CloudinaryUploadResponse;
 };
 
-/** Upload the picked .mp3; resolves to its Cloudinary asset (url + public id). */
-export const uploadSoundAudio = (uri: string): Promise<CloudinaryAsset> =>
-  uploadFile(uri, 'video', 'audio/mpeg');
+const toAsset = (parsed: CloudinaryUploadResponse): CloudinaryAsset => ({
+  publicId: parsed.public_id,
+  url: parsed.secure_url,
+});
+
+/**
+ * Upload the picked .mp3; resolves to its Cloudinary asset (url + public id)
+ * and its duration.
+ *
+ * THE LENGTH COMES BACK WITH THE UPLOAD. Cloudinary measures every `video`
+ * resource and puts `duration` (seconds) in the response, so a new sound's
+ * document can carry `durationMs` from its first write — it was dropped here,
+ * which left every fresh upload reading `-:--` on its first play and paying a
+ * separate banking write once the engine reported it. Absent or nonsense, it
+ * is `null` and the engine learns it as before.
+ */
+export const uploadSoundAudio = async (
+  uri: string,
+): Promise<CloudinaryAudioAsset> => {
+  const parsed = await uploadFile(uri, 'video', 'audio/mpeg');
+  const seconds = parsed.duration;
+  return {
+    ...toAsset(parsed),
+    durationMs:
+      typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0
+        ? Math.round(seconds * 1000)
+        : null,
+  };
+};
 
 /**
  * Upload a cover picked from the photo library — already a file on disk, so it
@@ -85,7 +117,7 @@ export const uploadSoundAudio = (uri: string): Promise<CloudinaryAsset> =>
 export const uploadCoverImage = (
   uri: string,
   mimeType: string,
-): Promise<CloudinaryAsset> => uploadFile(uri, 'image', mimeType);
+): Promise<CloudinaryAsset> => uploadFile(uri, 'image', mimeType).then(toAsset);
 
 /**
  * Upload the ID3-embedded cover art (base64 bytes). Cloudinary's multipart
@@ -104,7 +136,7 @@ export const uploadSoundArt = async (
   });
 
   try {
-    return await uploadFile(tempPath, 'image', mime);
+    return toAsset(await uploadFile(tempPath, 'image', mime));
   } finally {
     await FileSystem.deleteAsync(tempPath, { idempotent: true });
   }
