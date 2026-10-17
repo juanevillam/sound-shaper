@@ -13,13 +13,16 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2f   | the SDK 57 drift survives a Release build                            | 🟡 local Release proven (`dyld_info`, zero unresolved); EAS `.ipa` next |
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)      |
 | 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation           |
-| 2i   | console hardening before the repo is public                          | ⬜ API-key restrictions, the unsigned preset, secret scanning           |
+| 2i   | console hardening before the repo is public                          | 🟡 preset ✅; API-key restrictions, rules, secret scanning left         |
 | 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                           |
 | 4    | submit                                                               | ⬜                                                                      |
 
 ## 2i — console hardening
 
-- **Cloudinary** `sound_shaper_unsigned`: anyone holding the preset name can
+- ✅ **DONE 2026-10-16** — allowed formats `mp3,jpg,jpeg,png,webp,heic,heif,gif`,
+  Folder empty, no transformation; verified on device by uploading an mp3 with
+  embedded art, replacing its cover from the photo library, and deleting it.
+  **Cloudinary** `sound_shaper_unsigned`: anyone holding the preset name can
   upload into the account. Restrict its allowed formats (mp3 and images) and
   cap the file size. **Leave its Folder EMPTY**: the app sends
   `sound-shaper/{uid}` as the `folder` param, the Worker deletes only inside
