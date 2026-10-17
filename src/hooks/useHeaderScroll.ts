@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useHeaderScroll as useSharedHeaderScroll } from '@/ui';
 
 /**

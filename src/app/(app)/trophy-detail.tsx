@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 import { TrophyDetailContent, useTrophies } from '@/trophies';

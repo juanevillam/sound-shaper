@@ -3,20 +3,23 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
+import { useAppTheme } from '@/core';
 import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
 // DEV LAB — these imports and the picker below go with `src/dev`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
-import { DestructiveConfirmDialog, ManageAccountScreen } from '@/ui';
+import {
+  DestructiveConfirmDialog,
+  ManageAccountScreen,
+  useSnackbar,
+} from '@/ui';
 
 // Thin adapter over the shared `ManageAccountScreen`. This is a PERSONAL app —
 // no social module — so it passes no username row; the shared screen simply

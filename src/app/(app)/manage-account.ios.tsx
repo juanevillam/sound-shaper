@@ -7,13 +7,12 @@ import { router, useNavigation } from 'expo-router';
 
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { useAppTheme } from '@/core';
 import { isGuardedAccountRun } from '@/dev/deleteAccountGuard';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useOwnProfile } from '@/hooks/useOwnProfile';
 import { useOwnProfileEditing } from '@/hooks/useOwnProfileEditing';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { useAuthStore } from '@/store/auth';
@@ -27,6 +26,7 @@ import {
   MEDIA_PICKER_SIZE,
   MediaPickerAvatar,
   ProgressOverlayIos,
+  useSnackbar,
 } from '@/ui';
 
 /**

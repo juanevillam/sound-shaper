@@ -17,15 +17,14 @@ import {
 } from '@/components/player/TransportGlyphs';
 import { Text as AppText } from '@/components/ui/Text';
 import { ThemedHost } from '@/components/ui/ThemedHost';
-import { withAlpha } from '@/core';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
-import { HAIRLINE } from '@/styles/shape';
 import {
   AppIcon,
   FLOATING_RADIUS,
   MINI_PLAYER_HEIGHT,
   usePressSquash,
+  HAIRLINE,
 } from '@/ui';
 
 import {

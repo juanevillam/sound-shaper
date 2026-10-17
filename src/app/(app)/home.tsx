@@ -32,11 +32,10 @@ import { HeaderSettingsButton } from '@/components/ui/HeaderSettingsButton';
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SoundTileSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { useAppTheme, TILE_GAP, SCREEN_PADDING } from '@/core';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import {
   needsPositionRepair,
@@ -57,13 +56,13 @@ import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import { useSoundsStore } from '@/store/sounds';
-import { TILE_GAP, SCREEN_PADDING } from '@/styles/metrics';
 import {
   DRAG_ACTIVE_SCALE,
   StateWrap,
   EmptyState,
   HeaderIconButton,
   useHeaderScroll,
+  useSnackbar,
 } from '@/ui';
 
 /**

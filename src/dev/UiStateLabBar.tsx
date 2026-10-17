@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/core';
 import {
   ACCOUNT_STATES,
   HOME_STATES,
@@ -9,7 +10,6 @@ import {
   type LabScreen,
   type TrophiesState,
 } from '@/dev/uiStateLab';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useDevSettingsStore } from '@/store/devSettings';
 import { StateLab, type StateLabGroup } from '@/ui';
 

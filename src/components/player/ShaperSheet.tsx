@@ -22,10 +22,8 @@ import {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SheetBar } from '@/components/ui/SheetBar';
 import { ThemedHost } from '@/components/ui/ThemedHost';
-import { withAlpha } from '@/core';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
 import {
   EFFECT_LEVELS,
@@ -49,6 +47,7 @@ import {
   composeSheetBottomPadding,
   sheetContainer,
   SheetDragHandle,
+  SheetBar,
 } from '@/ui';
 
 // All the sound-shaping controls in one native bottom sheet (the YT-Music /

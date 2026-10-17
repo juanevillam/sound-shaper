@@ -16,7 +16,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 
 // The immersive top of the expanded player: the sound's own artwork, blown up

@@ -8,7 +8,7 @@ import {
 
 import { Image } from 'expo-image';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import {
   emptyMediaColor,

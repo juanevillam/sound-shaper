@@ -1,11 +1,12 @@
 /**
- * THE PACKAGE'S PUBLIC API — every symbol here has a consumer in an app or a
- * sibling package. Components consumed only INSIDE the package (TextLink,
- * AnimatedEntrance, SettingsAccountSection, the shared screens' prop types…)
- * are deliberately not exported; re-add one the day something outside imports
- * it. Note when auditing: apps also consume via re-export shims and via deep
- * subpaths (`src/ui`/sheetMetrics`), so a symbol can be live
- * without appearing in any barrel import.
+ * THE MODULE'S PUBLIC API — what the rest of the app imports from `@/ui`.
+ * Components consumed only INSIDE `src/ui` (TextLink, AnimatedEntrance,
+ * SettingsAccountSection, the shared screens' prop types…) are deliberately
+ * not exported; re-add one the day something outside imports it. Note when
+ * auditing: a few exports here (the single-source terms such as
+ * `LIST_ROW_ONE_LINE` or `FormDisclosureRowIos`) are today read only inside
+ * `src/ui` through relative imports, so a symbol's barrel line is not proof
+ * it has an outside consumer.
  */
 export { AppIcon } from './AppIcon';
 export {

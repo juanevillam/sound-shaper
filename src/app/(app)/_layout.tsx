@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { NowPlayingBridge } from '@/components/player/NowPlayingBridge';
 import { HeaderCloseButton } from '@/components/ui/HeaderCloseButton';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useListeningTime } from '@/hooks/useListeningTime';
 import { useOfflineMirror } from '@/hooks/useOfflineMirror';

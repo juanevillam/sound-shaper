@@ -1,6 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useAuthStore } from '@/store/auth';
 
 export default function WelcomeLayout() {

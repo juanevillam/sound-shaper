@@ -16,7 +16,7 @@ import { ClipTrimEditor } from '@/components/player/ClipTrimEditor';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
 import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
 import {
   COMPOSE_SHEET_GUTTER,

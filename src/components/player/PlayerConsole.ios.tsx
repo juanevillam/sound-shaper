@@ -15,17 +15,16 @@ import {
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
 import { Text as AppText } from '@/components/ui/Text';
-import { withAlpha } from '@/core';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme, opticalTextInset } from '@/core';
 import { useI18n } from '@/i18n';
-import { opticalTextInset } from '@/styles/metrics';
-import { CONTINUOUS_CURVE, HAIRLINE } from '@/styles/shape';
 import {
   AppIcon,
   FLOATING_RADIUS,
   GlassSurfaceIos,
   SwiftUIHost,
   usePressSquash,
+  CONTINUOUS_CURVE,
+  HAIRLINE,
 } from '@/ui';
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';

@@ -9,7 +9,7 @@ import {
 import { type AnimatedStyle } from 'react-native-reanimated';
 
 import { bannerBottomOffset } from '@/components/player/bannerMetrics';
-import { SCREEN_PADDING } from '@/styles/metrics';
+import { SCREEN_PADDING } from '@/core';
 import { artworkRadius, MINI_PLAYER_HEIGHT, type IconName } from '@/ui';
 
 /** A style produced by `useAnimatedStyle` and handed down to a twin. */

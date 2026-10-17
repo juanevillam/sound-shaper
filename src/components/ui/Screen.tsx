@@ -1,6 +1,6 @@
 import { type ViewProps } from 'react-native';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { Screen as BaseScreen } from '@/ui';
 
 export const Screen = ({ children, ...rest }: ViewProps) => {

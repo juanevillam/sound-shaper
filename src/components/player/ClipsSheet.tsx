@@ -26,10 +26,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
-import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { ThemedHost } from '@/components/ui/ThemedHost';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
@@ -51,6 +50,7 @@ import {
   SheetBarAction,
   sheetContainer,
   SheetDragHandle,
+  SheetErrorLine,
 } from '@/ui';
 
 // The saved-clips manager (the Shape sheet's sibling): play, re-frame or delete

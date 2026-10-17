@@ -10,9 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { withAlpha } from '@/core';
-
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme } from '@/core';
 
 // APPLE'S MEDIA SCRUBBER — a capsule that thickens under the finger, with no
 // knob at all.

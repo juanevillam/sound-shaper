@@ -61,8 +61,7 @@ import {
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { withAlpha } from '@/core';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme } from '@/core';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useI18n } from '@/i18n';
@@ -70,12 +69,14 @@ import { useClipsStore } from '@/store/clips';
 import { RESTART_THRESHOLD_S, usePlayerStore } from '@/store/player';
 import { useSoundsStore } from '@/store/sounds';
 import {
+  FLOATING_COPY_GAP,
+  FLOATING_RADIUS,
+  GLASS_FLOOR,
   CONTINUOUS_CURVE,
   SHAPE_SM,
   TILE_RADIUS,
   innerRadius,
-} from '@/styles/shape';
-import { FLOATING_COPY_GAP, FLOATING_RADIUS, GLASS_FLOOR } from '@/ui';
+} from '@/ui';
 
 // ---------------------------------------------------------------------------
 // The player interaction: the collapsed banner and the full player are ONE

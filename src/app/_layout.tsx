@@ -12,7 +12,7 @@ import {
   initialWindowMetrics,
 } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useWidgetSync } from '@/hooks/useWidgetSync';
 import { useI18n } from '@/i18n';

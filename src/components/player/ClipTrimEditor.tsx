@@ -34,15 +34,19 @@ import {
 } from '@/components/player/TrimGlyphs';
 
 import { Text as AppText } from '@/components/ui/Text';
-import { withAlpha } from '@/core';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { withAlpha, useAppTheme, SCREEN_PADDING } from '@/core';
 import { useWaveform } from '@/hooks/useWaveform';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { SCREEN_PADDING } from '@/styles/metrics';
-import { CARD_RADIUS, CONTINUOUS_CURVE, SHAPE_SM } from '@/styles/shape';
-import { SHEET_CONTENT_TOP, SkeletonBone, useSheetLanded } from '@/ui';
+import {
+  SHEET_CONTENT_TOP,
+  SkeletonBone,
+  useSheetLanded,
+  CARD_RADIUS,
+  CONTINUOUS_CURVE,
+  SHAPE_SM,
+} from '@/ui';
 
 import {
   TRANSPORT_GAP,

@@ -6,11 +6,10 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/ui/Screen';
-import { withAlpha } from '@/core';
+import { withAlpha, useAppTheme } from '@/core';
 // DEV LAB — these imports and the picker below go with `src/dev`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';

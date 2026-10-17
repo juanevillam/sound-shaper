@@ -5,7 +5,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { ClipTrimEditor } from '@/components/player/ClipTrimEditor';
 import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
 import { HeaderGlyphButtonIos, HeaderGlyphGroupIos } from '@/ui';
 

@@ -17,8 +17,7 @@ import { Platform } from 'react-native';
  * copy and they had already drifted: Topper was inseting content 16 where the
  * iOS convention (and its sibling) is 20, had no section-gap token at all, and
  * had settled on a 12pt tile gutter against the sibling's 14. Three constants
- * short, in a file whose whole purpose is to stop exactly that. Apps keep a
- * thin re-export at `src/styles/metrics.ts` so their import paths do not move.
+ * short, in a file whose whole purpose is to stop exactly that.
  */
 
 /**

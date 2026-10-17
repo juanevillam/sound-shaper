@@ -8,16 +8,14 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme, SUPPORTED_THEMES } from '@/core';
 import { useHeaderScroll } from '@/hooks/useHeaderScroll';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { signOutFromGoogle } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/auth';
 import { useDevSettingsStore } from '@/store/devSettings';
 import { useThemeStore } from '@/store/theme';
-import { SUPPORTED_THEMES } from '@/styles/themes';
 import {
   buildAboutSettingsSection,
   buildGeneralSettingsSections,
@@ -25,6 +23,7 @@ import {
   SettingsScreen,
   type LegalPage,
   type SettingsAccountProfile,
+  useSnackbar,
 } from '@/ui';
 
 const APP_NAME = Constants.expoConfig?.name ?? '';

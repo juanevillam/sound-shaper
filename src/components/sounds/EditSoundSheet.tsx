@@ -25,17 +25,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtImage } from '@/components/ui/ArtImage';
-import {
-  MEDIA_PICKER_SIZE,
-  MediaPickerAvatar,
-} from '@/components/ui/MediaPickerAvatar';
-import { SheetBar } from '@/components/ui/SheetBar';
-import { SheetErrorLine } from '@/components/ui/SheetErrorLine';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme, SECTION_GAP } from '@/core';
 import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { type Id3Tags } from '@/lib/id3';
@@ -46,8 +39,6 @@ import {
 } from '@/services/firebase/sounds';
 import { usePlayerStore } from '@/store/player';
 import { nextLeadPosition, useSoundsStore } from '@/store/sounds';
-import { SECTION_GAP } from '@/styles/metrics';
-import { SHAPE_MD } from '@/styles/shape';
 import {
   artworkRadius,
   COMPOSE_SHEET_GUTTER,
@@ -60,6 +51,12 @@ import {
   menuContainer,
   sheetContainer,
   SheetDragHandle,
+  MEDIA_PICKER_SIZE,
+  MediaPickerAvatar,
+  SheetBar,
+  SheetErrorLine,
+  useSnackbar,
+  SHAPE_MD,
 } from '@/ui';
 
 /** The picture fills the slot the package sized and clipped. */

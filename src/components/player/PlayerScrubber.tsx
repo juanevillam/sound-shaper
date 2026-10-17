@@ -2,9 +2,8 @@ import { Column, Row, Slider, Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 
 import { ThemedHost } from '@/components/ui/ThemedHost';
-import { withAlpha } from '@/core';
+import { withAlpha, useAppTheme } from '@/core';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatTime } from '@/lib/player';
 
 import { type PlayerScrubberProps } from './chrome';

@@ -4,10 +4,9 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { withAlpha } from '@/core';
+import { withAlpha, useAppTheme } from '@/core';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 import { TrophiesScreen, useTrophies } from '@/trophies';

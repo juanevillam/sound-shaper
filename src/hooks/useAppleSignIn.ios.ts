@@ -3,8 +3,9 @@ import { useCallback, useState } from 'react';
 import { useI18n } from '@/i18n';
 import { signInWithApple } from '@/services/firebase/appleAuth';
 
+import { useSnackbar } from '@/ui';
+
 import { type UseAppleSignInReturn } from './useAppleSignIn';
-import { useSnackbar } from './useSnackbar';
 
 export const useAppleSignIn = (): UseAppleSignInReturn => {
   const [isSigningIn, setIsSigningIn] = useState(false);

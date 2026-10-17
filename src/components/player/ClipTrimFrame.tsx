@@ -12,9 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { CapChevron } from '@/components/player/TrimGlyphs';
-import { withAlpha } from '@/core';
+import { withAlpha, useAppTheme } from '@/core';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 import { CONTINUOUS_CURVE } from '@/ui';

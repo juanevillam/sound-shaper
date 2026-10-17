@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { useI18n } from '@/i18n';
 import { signInWithGoogle } from '@/services/firebase/auth';
 
-import { useSnackbar } from './useSnackbar';
+import { useSnackbar } from '@/ui';
 
 type UseGoogleSignInReturn = {
   isSigningIn: boolean;

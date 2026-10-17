@@ -6,13 +6,12 @@ import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
 import { BrandMark } from '@/components/ui/BrandMark';
+import { useAppTheme } from '@/core';
 import { useAppleSignIn } from '@/hooks/useAppleSignIn';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useGoogleSignIn } from '@/hooks/useGoogleSignIn';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { useAuthStore } from '@/store/auth';
-import { legalUrl, WelcomeScreen, type AuthAction } from '@/ui';
+import { legalUrl, WelcomeScreen, type AuthAction, useSnackbar } from '@/ui';
 
 const APP_NAME = Constants.expoConfig?.name ?? '';
 

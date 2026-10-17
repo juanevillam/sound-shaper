@@ -10,9 +10,7 @@ import { Platform, StyleSheet, type ViewStyle } from 'react-native';
  * Sound Shaper grew `CONTROL_RADIUS` and `HAIRLINE` that Topper lacked, while
  * the shared constants were byte-identical copies waiting to disagree.
  * Topper's own file said "worth lifting the whole thing into a package rather
- * than porting a constant at a time" — this is that lift (2026-08-27). Each
- * app keeps a thin `styles/shape.ts` re-export so its import paths hold, the
- * same shim pattern `styles/metrics` uses.
+ * than porting a constant at a time" — this is that lift (2026-08-27).
  *
  * `FLOATING_RADIUS` is NOT here and must not migrate back: a floating
  * surface's corner lives with its material (`GlassSurfaceIos`), where the

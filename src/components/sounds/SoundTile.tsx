@@ -2,19 +2,24 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { NowPlayingBars } from '@/components/sounds/NowPlayingBars';
 import { SoundArt } from '@/components/ui/SoundArt';
-import { SquashPressable } from '@/components/ui/SquashPressable';
 import { Text, type TextVariant } from '@/components/ui/Text';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import {
+  useAppTheme,
+  opticalTextInset,
+  SCREEN_PADDING,
+  TILE_GAP,
+} from '@/core';
 import { useI18n } from '@/i18n';
 import { type Sound } from '@/services/firebase/sounds';
-import { opticalTextInset, SCREEN_PADDING, TILE_GAP } from '@/styles/metrics';
-import { CONTINUOUS_CURVE, SHAPE_MD } from '@/styles/shape';
 import {
   artworkRadius,
   emptyMediaColor,
   emptyMediaPlusStyle,
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
+  SquashPressable,
+  CONTINUOUS_CURVE,
+  SHAPE_MD,
 } from '@/ui';
 
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the

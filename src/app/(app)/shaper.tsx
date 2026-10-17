@@ -19,7 +19,7 @@ import {
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
 import {
   EFFECT_LEVELS,

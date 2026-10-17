@@ -1,6 +1,6 @@
 import { Host, type HostProps } from '@expo/ui/jetpack-compose';
 
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 
 // Every Compose embed point goes through here so the whole native side follows
 // the app's resolved light/dark scheme. There is NO brand seed: all portfolio

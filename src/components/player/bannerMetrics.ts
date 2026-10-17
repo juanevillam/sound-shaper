@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { SCREEN_PADDING } from '@/styles/metrics';
+import { SCREEN_PADDING } from '@/core';
 import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@/ui';
 
 /**

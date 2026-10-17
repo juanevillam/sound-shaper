@@ -8,16 +8,11 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { type PickedSoundFile } from '@/components/sounds/EditSoundSheet';
 import { ArtImage } from '@/components/ui/ArtImage';
-import {
-  MEDIA_PICKER_SIZE,
-  MediaPickerAvatar,
-} from '@/components/ui/MediaPickerAvatar';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/core';
 import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import {
@@ -37,6 +32,9 @@ import {
   sheetCommitBarOptionsIos,
   SheetFormBodyIos,
   SheetFormMediaIos,
+  MEDIA_PICKER_SIZE,
+  MediaPickerAvatar,
+  useSnackbar,
 } from '@/ui';
 
 // Strip the extension for the name prefill when the file had no ID3 title.

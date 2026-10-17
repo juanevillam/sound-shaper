@@ -4,14 +4,13 @@ import { ActionSheetIOS } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
 
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { uploadCoverImage } from '@/services/cloudinary/upload';
 import { setOwnName, setOwnPhoto } from '@/services/firebase/ownProfile';
 import { useAuthStore } from '@/store/auth';
 import { useProfileStore } from '@/store/profile';
-import { type SettingsUsernameEditor } from '@/ui';
+import { type SettingsUsernameEditor, useSnackbar } from '@/ui';
 
 /** Topper's and the cover picker's number, so a photo costs the same. */
 const IMAGE_QUALITY = 0.8;
