@@ -19,6 +19,7 @@ import {
   composeSheetBottomPadding,
   SHEET_HERO_BADGE_SIZE,
   SHEET_HERO_GLYPH_SIZE,
+  sheetContainer,
   SheetDragHandle,
 } from '@/ui';
 
@@ -37,6 +38,9 @@ const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
 const DISC_ALPHA = 0.16;
 
 export type TrophyDetailSheetColors = {
+  /** With `surfaceDialog`, the sheet family's one ground — `sheetContainer`. */
+  background: string;
+  surfaceDialog: string;
   onSurface: string;
   onSurfaceMuted: string;
   /** Disc fill behind a LOCKED glyph (unlocked tints from the tier color). */
@@ -88,6 +92,13 @@ export function TrophyDetailSheet({
     <Host matchContents colorScheme={colorScheme}>
       <ModalBottomSheet
         ref={sheetRef}
+        // The family's one ground, stated — unset, Compose picks the OEM
+        // token, and this was the one sheet in the app still drawing it. See
+        // `sheetContainer`.
+        containerColor={sheetContainer(
+          colors,
+          colorScheme === 'dark' ? 'dark' : 'light',
+        )}
         onDismissRequest={onClose}
         skipPartiallyExpanded
         showDragHandle={false}

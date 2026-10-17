@@ -14,6 +14,7 @@ import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 import { TrophiesScreen, TrophyDetailSheet, useTrophies } from '@/trophies';
+import { emptyMediaColor } from '@/ui';
 
 export default function TrophiesRoute() {
   const { colors, scheme } = useAppTheme();
@@ -93,11 +94,18 @@ export default function TrophiesRoute() {
           // `src/trophies` takes the palette and the Host theming as props —
           // the app's ThemedHost is app code (see the sheet's header).
           colors={{
+            background: colors.background,
+            surfaceDialog: colors.surfaceDialog,
             onSurface: colors.onSurface,
             onSurfaceMuted: colors.onSurfaceMuted,
-            // The disc behind a LOCKED glyph — the quiet empty-media step on
-            // Android, distinct from the sheet's own container.
-            lockedDisc: colors.surfaceVariant,
+            // The disc behind a LOCKED glyph — the empty-media material, the
+            // shared term for an art-less box, distinct from the sheet's own
+            // container.
+            lockedDisc: emptyMediaColor({
+              colors,
+              container: 'sheet',
+              scheme,
+            }),
           }}
           colorScheme={scheme}
         />
