@@ -22,6 +22,7 @@ import {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ChoiceChipGroup } from '@/components/player/ChoiceChipGroup';
 import { ThemedHost } from '@/components/ui/ThemedHost';
 import { withAlpha, useAppTheme } from '@/core';
 import { useI18n } from '@/i18n';
@@ -89,11 +90,11 @@ const EQ_ROW_HEIGHT = 34;
 // is derived from, so the two twins cannot disagree about it.
 
 /**
- * ONE GRADED EFFECT — Echo or Next Room: a label, its supporting line, and a
- * FilterChip row of levels. A selected chip is a SELECTION, which is what
- * keeps its accent on this monochrome sheet; iOS draws the same vocabulary as
- * a menu Picker. Both effects take this one anatomy so they read as one list
- * rather than as two designs.
+ * ONE GRADED EFFECT — Echo or Next Room — as the shared `ChoiceChipGroup`. A
+ * selected chip is a SELECTION, which is what keeps its accent on this
+ * monochrome sheet; iOS draws the same vocabulary as a menu Picker. Both
+ * effects take this one anatomy so they read as one list rather than as two
+ * designs.
  */
 function LevelChipGroup({
   label,
@@ -107,51 +108,18 @@ function LevelChipGroup({
   onChange: (level: EffectLevel) => void;
 }) {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
 
   return (
-    <>
-      <Column
-        verticalArrangement={{ spacedBy: 2 }}
-        modifiers={[
-          fillMaxWidth(),
-          padding(COMPOSE_SHEET_GUTTER, 14, COMPOSE_SHEET_GUTTER, 0),
-        ]}
-      >
-        <Text color={colors.onSurface} style={{ typography: 'bodyLarge' }}>
-          {label}
-        </Text>
-        <Text color={colors.onSurfaceMuted} style={{ typography: 'bodySmall' }}>
-          {description}
-        </Text>
-      </Column>
-      {/* Edge-to-edge scroll with content padding, exactly the Presets row's
-          arrangement — and the same drawn-box `offset` correction, so the
-          label→chips gap reads as the sheet's rhythm rather than the 48dp
-          touch box's slack. */}
-      <Row
-        verticalAlignment="center"
-        horizontalArrangement={{ spacedBy: 8 }}
-        modifiers={[
-          fillMaxWidth(),
-          offset(0, -7),
-          horizontalScroll(),
-          padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-        ]}
-      >
-        {EFFECT_LEVELS.map(level => (
-          <FilterChip
-            key={level}
-            selected={value === level}
-            onClick={() => onChange(level)}
-          >
-            <FilterChip.Label>
-              <Text maxLines={1}>{levelLabel(t, level)}</Text>
-            </FilterChip.Label>
-          </FilterChip>
-        ))}
-      </Row>
-    </>
+    <ChoiceChipGroup
+      label={label}
+      description={description}
+      options={EFFECT_LEVELS.map(level => ({
+        value: level,
+        label: levelLabel(t, level),
+      }))}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 
