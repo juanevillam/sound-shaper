@@ -23,6 +23,9 @@ export type GoogleSignInButtonProps = {
   onPress: () => void | Promise<void>;
   /** Picks the spec variant (light → white, dark → dark; both stroked). */
   scheme?: 'light' | 'dark';
+  /** Names the spec row outright, overriding `scheme` — used beside Apple's
+   *  button so the two share a pole (see `WelcomeScreen.ios`). */
+  variant?: keyof typeof GOOGLE_BUTTON_VARIANTS;
   disabled?: boolean;
 };
 
@@ -45,6 +48,7 @@ export const GoogleSignInButton = ({
   label,
   onPress,
   scheme = 'light',
+  variant,
   disabled = false,
 }: GoogleSignInButtonProps) => {
   // Each mode takes the matching row of Google's table, exactly as iOS does —
@@ -52,7 +56,8 @@ export const GoogleSignInButton = ({
   // neutral slab, which on a dark welcome screen was the brightest thing on it
   // (Juan, 2026-09-08, retiring the frozen `neutral` mapping). Both variants
   // carry a stroke, so both render through `OutlinedButton`.
-  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'dark' : 'light'];
+  const spec =
+    GOOGLE_BUTTON_VARIANTS[variant ?? (scheme === 'dark' ? 'dark' : 'light')];
 
   return (
     <Host matchContents={{ vertical: true }} colorScheme={scheme}>
