@@ -13,7 +13,7 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports                              |
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)                       |
 | 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation                            |
-| 2i   | console hardening before the repo is public                          | 🟡 preset ✅; API-key restrictions, rules, secret scanning left                          |
+| 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build                 |
 | 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                                            |
 | 4    | submit                                                               | ⬜                                                                                       |
 
@@ -45,7 +45,14 @@ Apple Developer membership (team `PHLR7X3FGN`).
   source (read back through the Firebase Rules API) is byte-identical to
   `firestore.rules`. Deploy with
   `firebase deploy --only firestore:rules --project sound-shaper`.
-- **GitHub**: secret scanning and push protection on. The local net is the
+- ✅ **GitHub, DONE 2026-10-17** (Juan, by hand): secret scanning and push
+  protection on; Dependabot and malware alerts on, Dependabot security UPDATES
+  off (a bump breaks the `patches/` pins); private vulnerability reporting on;
+  CodeQL default (JS/TS) on; a `main` ruleset blocks deletion and force-pushes
+  and requires signed commits. A full-history gitleaks scan (788 commits) is
+  clean; its one allowlisted hit is the Firebase Android client key in
+  `google-services.json`, public by design and restricted at the first Android
+  build (above). The local net is the
   gitleaks pre-commit hook (`brew install gitleaks`).
 
 ## 2f — CLOSED 2026-10-16 on the EAS build
