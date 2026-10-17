@@ -33,6 +33,26 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
+// UNHANDLED PROMISE REJECTIONS ARE SILENT IN A HERMES RELEASE BUILD. A thrown
+// error crashes and reaches Crashlytics as a `JavascriptException`; a rejected
+// promise nobody awaited goes nowhere at all. Hermes ships a tracker for
+// exactly this — install it once, release only (dev already shows a LogBox).
+type HermesRejectionTracker = {
+  enablePromiseRejectionTracker?: (options: {
+    allRejections: boolean;
+    onUnhandled: (id: number, error: unknown) => void;
+  }) => void;
+};
+
+if (!__DEV__) {
+  (
+    globalThis as { HermesInternal?: HermesRejectionTracker }
+  ).HermesInternal?.enablePromiseRejectionTracker?.({
+    allRejections: true,
+    onUnhandled: (_id, error) => recordError(error, 'UnhandledRejection'),
+  });
+}
+
 // Root fallback for any route that throws during render (expo-router picks this
 // export up and cascades it to child routes without their own).
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
