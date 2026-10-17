@@ -15,7 +15,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
-import { removeMirroredSound } from '@/lib/offlineAudio';
+import { removeMirroredSound, seedMirror } from '@/lib/offlineAudio';
 import { forgetWaveform } from '@/lib/waveform';
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
 import { requireUid } from '@/services/firebase/auth';
@@ -33,6 +33,7 @@ import {
   destroySoundArt,
   destroySoundAudio,
 } from '@/services/firebase/functions';
+import { useOfflineStore } from '@/store/offline';
 
 export type Sound = {
   album: string;
@@ -313,6 +314,13 @@ export const createSound = reported(
       position,
       ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
+    });
+
+    // THE PHONE ALREADY HOLDS THIS FILE — it is what was just uploaded — so
+    // the offline mirror takes it from here rather than downloading it back.
+    // Best-effort: a failed seed leaves the sound to the mirror's normal path.
+    void seedMirror(docRef.id, localAudioUri).then(uri => {
+      if (uri) useOfflineStore.getState().setLocal(docRef.id, uri);
     });
 
     return docRef.id;

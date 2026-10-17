@@ -88,6 +88,8 @@ type MirrorJob = {
 const inFlight = new Map<string, Promise<string | null>>();
 const waiting: MirrorJob[] = [];
 let running = false;
+/** `.part` files something is writing this session — never swept. */
+const activeParts = new Set<string>();
 /** Off until the network gate has said otherwise — see the note above. */
 let allowed = false;
 
@@ -130,11 +132,41 @@ export const prioritizeMirror = (soundId: string): void => {
   if (index > 0) waiting.unshift(...waiting.splice(index, 1));
 };
 
+/**
+ * ORPHAN `.part` FILES ARE SWEPT ONCE PER SESSION, off the first listing.
+ *
+ * A download's `catch` deletes its own `.part`, but a process killed
+ * mid-download never reaches it, and the next attempt at that sound only
+ * overwrites the file if it ever runs — a sound deleted meanwhile leaves its
+ * half-file forever. They sit in `documentDirectory`, which is backed up to
+ * iCloud, so they are not free. The first pass lists the directory before it
+ * queues anything; a `.part` something is writing right now (a seed, or a
+ * download already under way) is in `activeParts` and is never touched.
+ */
+let partsSwept = false;
+
+const sweepOrphanParts = async (names: string[]): Promise<void> => {
+  await Promise.all(
+    names
+      .filter(name => name.endsWith('.part'))
+      .map(name => `${directory()}${name}`)
+      .filter(path => !activeParts.has(path))
+      .map(path =>
+        FileSystem.deleteAsync(path, { idempotent: true }).catch(() => {}),
+      ),
+  );
+};
+
 /** The sound ids that already have a whole file on disk. */
 export const listMirrored = async (): Promise<string[]> => {
   const names = await FileSystem.readDirectoryAsync(directory()).catch(
     () => [] as string[],
   );
+
+  if (!partsSwept) {
+    partsSwept = true;
+    await sweepOrphanParts(names);
+  }
 
   return names
     .filter(name => name.endsWith('.mp3'))
@@ -166,6 +198,77 @@ export const mirrorSound = (
   return promise;
 };
 
+/**
+ * SEED THE MIRROR FROM A FILE ALREADY ON THE PHONE — a fresh upload's own
+ * picked copy. The mirror used to download every new upload straight back
+ * from Cloudinary, bytes the phone had just sent up. Nothing here touches the
+ * network, so it is not held behind the Wi-Fi gate.
+ *
+ * Same atomic landing as a download (`.part`, then moved), and it takes the
+ * sound's place in the line: a queued download of it is resolved by the seed
+ * rather than run, and a seed that fails puts that job back, so the normal
+ * path is what a failure leaves. A download already running for the sound is
+ * left to finish; nothing is seeded under it.
+ */
+export const seedMirror = (
+  soundId: string,
+  localUri: string,
+): Promise<string | null> => {
+  if (!soundId || !localUri) return Promise.resolve(null);
+
+  const previous = inFlight.get(soundId);
+  const index = waiting.findIndex(job => job.soundId === soundId);
+  // Running, or already mirrored this session: nothing to seed.
+  if (previous && index === -1) return previous;
+  const job = index === -1 ? undefined : waiting.splice(index, 1)[0];
+
+  const promise = place(soundId, localUri)
+    .catch(() => null)
+    .then(uri => {
+      if (uri) {
+        job?.resolve(uri);
+      } else if (job && previous) {
+        // Hand the sound back to the download it displaced.
+        waiting.unshift(job);
+        inFlight.set(soundId, previous);
+        void pump();
+      } else {
+        inFlight.delete(soundId);
+      }
+      return uri;
+    });
+
+  inFlight.set(soundId, promise);
+  return promise;
+};
+
+/** Copy a local file into the mirror through its `.part`, atomically. */
+const place = async (
+  soundId: string,
+  localUri: string,
+): Promise<string | null> => {
+  await ensureDirectory();
+
+  const target = offlineAudioPath(soundId);
+  const present = await FileSystem.getInfoAsync(target);
+  if (present.exists && (present.size ?? 0) > 0) return target;
+
+  const part = partPath(soundId);
+  activeParts.add(part);
+  try {
+    await FileSystem.copyAsync({ from: localUri, to: part });
+    const copied = await FileSystem.getInfoAsync(part);
+    if (!copied.exists || (copied.size ?? 0) === 0) throw new Error('empty');
+    await FileSystem.moveAsync({ from: part, to: target });
+    return target;
+  } catch {
+    await FileSystem.deleteAsync(part, { idempotent: true }).catch(() => {});
+    return null;
+  } finally {
+    activeParts.delete(part);
+  }
+};
+
 const download = async (
   soundId: string,
   audioUrl: string,
@@ -177,6 +280,7 @@ const download = async (
   if (present.exists && (present.size ?? 0) > 0) return target;
 
   const part = partPath(soundId);
+  activeParts.add(part);
   try {
     const result = await FileSystem.downloadAsync(audioUrl, part);
     // A 404 or a Cloudinary error page is a successful HTTP round trip and a
@@ -189,6 +293,8 @@ const download = async (
   } catch {
     await FileSystem.deleteAsync(part, { idempotent: true }).catch(() => {});
     return null;
+  } finally {
+    activeParts.delete(part);
   }
 };
 
