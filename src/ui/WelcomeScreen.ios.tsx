@@ -330,6 +330,9 @@ export const WelcomeScreen = ({
           >
             <View style={styles.actions}>
               {authActions.map(action => {
+                const hasApple = authActions.some(
+                  other => other.provider === 'apple',
+                );
                 const label =
                   action.isLoading && action.loadingLabel
                     ? action.loadingLabel
@@ -339,21 +342,30 @@ export const WelcomeScreen = ({
 
                 // Google's branding rules pin this button's colors, logo, and
                 // type, so it renders RN-side with spec colors instead of the
-                // system tint.
+                // system tint. BESIDE APPLE'S the two share one pole and one
+                // mold — see `authButtonIos` (Juan, 2026-10-16: the pair read
+                // as two products).
                 if (action.provider === 'google') {
                   return (
                     <GoogleSignInButton
                       key={action.label}
                       label={label}
                       scheme={colorScheme}
+                      variant={
+                        hasApple
+                          ? colorScheme === 'dark'
+                            ? 'light'
+                            : 'dark'
+                          : undefined
+                      }
                       disabled={isDisabled || Boolean(action.isLoading)}
                       onPress={action.onPress}
                     />
                   );
                 }
 
-                // Apple's branding rules likewise pin this button's black/white
-                // variants and logo, so it renders RN-side with spec colors.
+                // Drawn from the same mold as Google's — see
+                // `AppleSignInButton` and `authButtonIos`.
                 if (action.provider === 'apple') {
                   return (
                     <AppleSignInButton

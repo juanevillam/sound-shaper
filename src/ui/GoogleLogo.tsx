@@ -14,6 +14,8 @@ import Svg, { Path } from 'react-native-svg';
  * own decision, made in its button:
  *
  *   iOS      light → `light`   dark → `dark`
+ *            BESIDE APPLE'S BUTTON it flips to the pair's pole instead —
+ *            light → `dark`, dark → `light` — see `authButtonIos`.
  *   Android  light → `light`   dark → `dark`
  *            Each mode takes the matching row, so the button sits IN the UI
  *            rather than glowing on top of it. Android held the `neutral`

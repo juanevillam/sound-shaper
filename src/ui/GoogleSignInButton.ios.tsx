@@ -1,7 +1,11 @@
 import React from 'react';
 
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import {
+  AUTH_BUTTON_IOS,
+  authButtonIosStyles as styles,
+} from './authButtonIos';
 import {
   GOOGLE_BUTTON_VARIANTS,
   GOOGLE_DISABLED_OPACITY,
@@ -9,33 +13,6 @@ import {
 } from './GoogleLogo';
 import { type GoogleSignInButtonProps } from './GoogleSignInButton';
 import { BRAND_PRESSED_OPACITY } from './SquashPressable';
-import { layout } from './tokens';
-
-const BUTTON_HEIGHT = layout.authButtonHeight;
-const LOGO_SIZE = 20;
-
-const styles = StyleSheet.create({
-  button: {
-    alignItems: 'center',
-    borderRadius: BUTTON_HEIGHT / 2,
-    flexDirection: 'row',
-    // Google's branding guidelines give iOS its own padding figures (Android
-    // and web use 12 / 10 / 12): "16px left padding before the Google logo,
-    // 12px right padding after the Google logo and 16px right padding after
-    // the Sign in with Google text".
-    gap: 12,
-    height: BUTTON_HEIGHT,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  label: {
-    fontSize: 14,
-    lineHeight: 20,
-    // Spec wants Roboto Medium; iOS substitutes the system font at the same
-    // weight (Google's own iOS guidance allows the platform font).
-    fontWeight: '500',
-  },
-});
 
 /**
  * iOS counterpart of `GoogleSignInButton` — same scheme-adaptive spec variants
@@ -47,13 +24,17 @@ export const GoogleSignInButton = ({
   label,
   onPress,
   scheme = 'light',
+  variant,
   disabled = false,
 }: GoogleSignInButtonProps) => {
-  // iOS takes the matching row of Google's table in each mode — the dark
-  // variant is a dark button (#131314 + #8E918F stroke), not the light-gray
-  // neutral slab, so it reads as a control on a dark screen instead of the
-  // brightest thing on it. Android maps the same way since 2026-09-08.
-  const spec = GOOGLE_BUTTON_VARIANTS[scheme === 'dark' ? 'dark' : 'light'];
+  // ALONE, iOS takes the matching row of Google's table in each mode — the
+  // dark variant is a dark button (#131314 + #8E918F stroke), not the
+  // light-gray neutral slab, so it reads as a control on a dark screen
+  // instead of the brightest thing on it. Android maps the same way since
+  // 2026-09-08. BESIDE APPLE the caller names the row (`variant`) so the two
+  // buttons share a pole — see `WelcomeScreen.ios`.
+  const spec =
+    GOOGLE_BUTTON_VARIANTS[variant ?? (scheme === 'dark' ? 'dark' : 'light')];
 
   return (
     <Pressable
@@ -65,8 +46,7 @@ export const GoogleSignInButton = ({
         styles.button,
         {
           backgroundColor: spec.fill,
-          borderColor: spec.stroke,
-          borderWidth: spec.stroke ? 1 : 0,
+          borderColor: spec.stroke ?? spec.fill,
           opacity: disabled
             ? GOOGLE_DISABLED_OPACITY
             : pressed
@@ -75,7 +55,9 @@ export const GoogleSignInButton = ({
         },
       ]}
     >
-      <GoogleGLogo size={LOGO_SIZE} />
+      <View style={styles.logo}>
+        <GoogleGLogo size={AUTH_BUTTON_IOS.logoSize} />
+      </View>
       <Text style={[styles.label, { color: spec.label }]}>{label}</Text>
     </Pressable>
   );
