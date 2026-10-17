@@ -8,6 +8,7 @@ import Animated, {
   Easing,
   FadeIn,
   FadeOut,
+  LayoutAnimationConfig,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -379,10 +380,11 @@ export function ClipTrimEditor({
   const storeDuration = usePlayerStore(s => s.duration);
   const durationS = Math.max(1, Math.floor(storeDuration));
 
-  const { status: waveStatus, waveform } = useWaveform(
-    current?.id,
-    current?.audioUrl,
-  );
+  const {
+    status: waveStatus,
+    waveform,
+    cached: waveCached,
+  } = useWaveform(current?.id, current?.audioUrl);
 
   /**
    * THE WAVE CARD IS INSET AND ROUNDED (Juan, 2026-08-26) — Voice Memos runs
@@ -866,92 +868,104 @@ export function ClipTrimEditor({
     // "meaningful" for holding its space, and this surface now does the
     // same: band, overview, timecode, transport and the Shape entry share
     // the column, with the slack distributed as air between them.
-    <View style={styles.screen}>
-      {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
-      <GestureDetector gesture={scrubPan}>
-        {/* The WRAPPER is unclipped — it exists so the playhead's dots can
+    //
+    // A WAVEFORM ALREADY IN HAND DOES NOT FADE IN. The bars' crossfade is the
+    // decode ARRIVING; on a reopen nothing arrived, so the tiles and the
+    // overview that mount with this editor skip it. Read once, at mount —
+    // a tile mounted later by a pan still takes its fade, as it always has.
+    <LayoutAnimationConfig skipEntering={waveCached}>
+      <View style={styles.screen}>
+        {/* THE ZOOMED VIEW — full-bleed, like Voice Memos. */}
+        <GestureDetector gesture={scrubPan}>
+          {/* The WRAPPER is unclipped — it exists so the playhead's dots can
             protrude past the card's edge the way Voice Memos' do; inside it
             the CARD clips its content to the rounded corner. The band's
             ground is `surfaceContainer`, the house's one art-less-box
             material, and inside a rounded card it runs behind the ruler too —
             one card, one interior. */}
-        <View style={[styles.zoomWrap, { width: cardWidth }]}>
-          <View style={styles.zoomCard}>
-            <Animated.View
-              style={[styles.strip, { width: trackWidth }, stripStyle]}
-            >
-              {/* The panel rides INSIDE the strip, so it spans exactly the
+          <View style={[styles.zoomWrap, { width: cardWidth }]}>
+            <View style={styles.zoomCard}>
+              <Animated.View
+                style={[styles.strip, { width: trackWidth }, stripStyle]}
+              >
+                {/* The panel rides INSIDE the strip, so it spans exactly the
                   track's extent — before 0:00 and past the end the page
                   colour shows, which is what Voice Memos draws there. A
                   plain background at this width is a single solid CALayer,
                   not a rasterised bitmap, so the size costs nothing. */}
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.waveBand,
-                  { backgroundColor: colors.surfaceContainer },
-                ]}
-              />
-              {tiles.map(index => (
-                <WaveTile
-                  key={index}
-                  index={index}
-                  buckets={waveform?.buckets ?? null}
-                  bucketMs={waveform?.bucketMs ?? 50}
-                  durationS={durationS}
-                  barColor={withAlpha(colors.onSurface, WAVE_BAR_ALPHA)}
-                  mutedColor={colors.onSurfaceMuted}
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.waveBand,
+                    { backgroundColor: colors.surfaceContainer },
+                  ]}
                 />
-              ))}
-              {/* THE WAIT'S OWN INK — one bone across the track's whole
+                {tiles.map(index => (
+                  <WaveTile
+                    key={index}
+                    index={index}
+                    buckets={waveform?.buckets ?? null}
+                    bucketMs={waveform?.bucketMs ?? 50}
+                    durationS={durationS}
+                    barColor={withAlpha(colors.onSurface, WAVE_BAR_ALPHA)}
+                    mutedColor={colors.onSurfaceMuted}
+                  />
+                ))}
+                {/* THE WAIT'S OWN INK — one bone across the track's whole
                   extent, inside the strip so it spans exactly what the band
                   spans and pans with it. It fades out as the bars fade in
                   (see `WaveTile`), and a failed decode drops it rather than
                   sweeping forever: what the band can't draw, the caption
                   below says in words. */}
-              {waveStatus === 'loading' ? (
+                {waveStatus === 'loading' ? (
+                  <Animated.View
+                    pointerEvents="none"
+                    exiting={FadeOut.duration(180)}
+                    style={styles.bandBone}
+                  >
+                    <SkeletonBone height={BAND_BONE_HEIGHT} />
+                  </Animated.View>
+                ) : null}
+                {/* Selection wash + edges ride the strip. */}
                 <Animated.View
                   pointerEvents="none"
-                  exiting={FadeOut.duration(180)}
-                  style={styles.bandBone}
-                >
-                  <SkeletonBone height={BAND_BONE_HEIGHT} />
-                </Animated.View>
-              ) : null}
-              {/* Selection wash + edges ride the strip. */}
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.wash,
-                  {
-                    backgroundColor: withAlpha(frameAccent, RANGE_FILL_ALPHA),
-                  },
-                  washStyle,
-                ]}
-              />
-              {/* The edges are plain full-height lines — their Voice Memos
+                  style={[
+                    styles.wash,
+                    {
+                      backgroundColor: withAlpha(frameAccent, RANGE_FILL_ALPHA),
+                    },
+                    washStyle,
+                  ]}
+                />
+                {/* The edges are plain full-height lines — their Voice Memos
                 dots went with the rounded card (they would clip against it),
                 and the loss is a gain: only the PLAYHEAD is a lollipop now,
                 so the two can never be read as one another even in a
                 one-accent palette. */}
-              <GestureDetector gesture={startEdgePan}>
-                <Animated.View style={[styles.edgeTouch, startEdgeStyle]}>
-                  <View
-                    style={[styles.edgeLine, { backgroundColor: frameAccent }]}
-                  />
-                </Animated.View>
-              </GestureDetector>
-              <GestureDetector gesture={endEdgePan}>
-                <Animated.View style={[styles.edgeTouch, endEdgeStyle]}>
-                  <View
-                    style={[styles.edgeLine, { backgroundColor: frameAccent }]}
-                  />
-                </Animated.View>
-              </GestureDetector>
-            </Animated.View>
-          </View>
+                <GestureDetector gesture={startEdgePan}>
+                  <Animated.View style={[styles.edgeTouch, startEdgeStyle]}>
+                    <View
+                      style={[
+                        styles.edgeLine,
+                        { backgroundColor: frameAccent },
+                      ]}
+                    />
+                  </Animated.View>
+                </GestureDetector>
+                <GestureDetector gesture={endEdgePan}>
+                  <Animated.View style={[styles.edgeTouch, endEdgeStyle]}>
+                    <View
+                      style={[
+                        styles.edgeLine,
+                        { backgroundColor: frameAccent },
+                      ]}
+                    />
+                  </Animated.View>
+                </GestureDetector>
+              </Animated.View>
+            </View>
 
-          {/* THE PLAYHEAD IS ITS OWN COLOUR, DISTINCT FROM THE SELECTION'S
+            {/* THE PLAYHEAD IS ITS OWN COLOUR, DISTINCT FROM THE SELECTION'S
               EDGES TOO (Juan, 2026-08-26) — Voice Memos can split cursor
               from selection by hue because it owns two colours, and one
               accent cannot say both. The cursor takes the audio tool's own
@@ -961,11 +975,11 @@ export function ClipTrimEditor({
               Distinct from the bars, both grounds, and the accent edges, in
               both appearances. The dots protrude past the band, exactly as
               Voice Memos' do. */}
-          <View
-            pointerEvents="none"
-            style={[styles.playheadWrap, { left: centerX - 1.25 }]}
-          >
-            {/* THE HALO — a stripe of the band's own ground behind the red
+            <View
+              pointerEvents="none"
+              style={[styles.playheadWrap, { left: centerX - 1.25 }]}
+            >
+              {/* THE HALO — a stripe of the band's own ground behind the red
                 line, so the cursor never sits directly against a passing
                 bar: its immediate neighbours are constant whatever slides
                 underneath, which is the other half of killing the grating
@@ -973,32 +987,35 @@ export function ClipTrimEditor({
                 playhead, in this band's own colour). Invisible over the
                 unwashed band by construction; a quiet carved slot over the
                 wash. */}
-            <View
-              style={[
-                styles.playheadHalo,
-                { backgroundColor: colors.surfaceContainer },
-              ]}
-            />
-            <View
-              style={[styles.playheadLine, { backgroundColor: colors.danger }]}
-            />
-            <View
-              style={[
-                styles.edgeDot,
-                styles.playheadDotTop,
-                { backgroundColor: colors.danger },
-              ]}
-            />
-            <View
-              style={[
-                styles.edgeDot,
-                styles.playheadDotBottom,
-                { backgroundColor: colors.danger },
-              ]}
-            />
-          </View>
+              <View
+                style={[
+                  styles.playheadHalo,
+                  { backgroundColor: colors.surfaceContainer },
+                ]}
+              />
+              <View
+                style={[
+                  styles.playheadLine,
+                  { backgroundColor: colors.danger },
+                ]}
+              />
+              <View
+                style={[
+                  styles.edgeDot,
+                  styles.playheadDotTop,
+                  { backgroundColor: colors.danger },
+                ]}
+              />
+              <View
+                style={[
+                  styles.edgeDot,
+                  styles.playheadDotBottom,
+                  { backgroundColor: colors.danger },
+                ]}
+              />
+            </View>
 
-          {/* A FAILED DECODE SAYS SO, ONCE, IN THE MIDDLE OF THE CARD.
+            {/* A FAILED DECODE SAYS SO, ONCE, IN THE MIDDLE OF THE CARD.
               Everything else still works — the ruler, the playhead, the
               transport and both sets of handles are duration-derived, so a
               clip can be trimmed and saved with no waveform at all, which is
@@ -1013,77 +1030,77 @@ export function ClipTrimEditor({
               band's own ground for the same reason the playhead's halo is
               that colour — the line passes behind the words instead of
               through them. */}
-          {waveStatus === 'failed' ? (
-            <View pointerEvents="none" style={styles.waveNotice}>
-              <AppText
-                text="player.clips.waveformUnavailable"
-                style={[
-                  styles.waveNoticePill,
-                  styles.waveNoticeText,
-                  { backgroundColor: colors.surfaceContainer },
-                  { color: colors.onSurfaceMuted },
-                ]}
-              />
-            </View>
-          ) : null}
-        </View>
-      </GestureDetector>
+            {waveStatus === 'failed' ? (
+              <View pointerEvents="none" style={styles.waveNotice}>
+                <AppText
+                  text="player.clips.waveformUnavailable"
+                  style={[
+                    styles.waveNoticePill,
+                    styles.waveNoticeText,
+                    { backgroundColor: colors.surfaceContainer },
+                    { color: colors.onSurfaceMuted },
+                  ]}
+                />
+              </View>
+            ) : null}
+          </View>
+        </GestureDetector>
 
-      {/* Tight to the band: the overview is the band's MAP — one wave
+        {/* Tight to the band: the overview is the band's MAP — one wave
           group, two scales. */}
-      <View style={styles.waveGroupGap} />
+        <View style={styles.waveGroupGap} />
 
-      {/* THE OVERVIEW — the whole track, carrying the selection frame, and
+        {/* THE OVERVIEW — the whole track, carrying the selection frame, and
           a full-track scrubber on its bare regions. */}
-      <GestureDetector gesture={overviewScrub}>
-        <View style={[styles.overview, { width: overviewWidth }]}>
-          {/* THE MAP WAITS ON THE SAME DECODE, so it takes a bone of its own
+        <GestureDetector gesture={overviewScrub}>
+          <View style={[styles.overview, { width: overviewWidth }]}>
+            {/* THE MAP WAITS ON THE SAME DECODE, so it takes a bone of its own
               — the strip standing empty beside a boned band would read as
               half-broken, and the doc's count-of-bones is not a smell. Its
               footprint is the overview's own ratio, not the zoomed band's. */}
-          {waveStatus === 'loading' ? (
+            {waveStatus === 'loading' ? (
+              <Animated.View
+                pointerEvents="none"
+                exiting={FadeOut.duration(180)}
+                style={styles.overviewBone}
+              >
+                <SkeletonBone height={OVERVIEW_BONE_HEIGHT} />
+              </Animated.View>
+            ) : null}
+            <Animated.View
+              // Same crossfade the zoomed bars take, for the same reason.
+              entering={overviewPath ? FadeIn.duration(220) : undefined}
+              key={overviewPath ? 'wave' : 'bone'}
+            >
+              <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
+                {/* The rest of the track, in the house's muted ink — the frame's
+                wash is what marks the selection over it. */}
+                <Path d={overviewPath} fill={colors.onSurfaceMuted} />
+              </Svg>
+            </Animated.View>
             <Animated.View
               pointerEvents="none"
-              exiting={FadeOut.duration(180)}
-              style={styles.overviewBone}
-            >
-              <SkeletonBone height={OVERVIEW_BONE_HEIGHT} />
-            </Animated.View>
-          ) : null}
-          <Animated.View
-            // Same crossfade the zoomed bars take, for the same reason.
-            entering={overviewPath ? FadeIn.duration(220) : undefined}
-            key={overviewPath ? 'wave' : 'bone'}
-          >
-            <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
-              {/* The rest of the track, in the house's muted ink — the frame's
-                wash is what marks the selection over it. */}
-              <Path d={overviewPath} fill={colors.onSurfaceMuted} />
-            </Svg>
-          </Animated.View>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.overviewPlayhead,
-              { backgroundColor: colors.danger },
-              overviewPlayheadStyle,
-            ]}
-          />
-          <View style={styles.overviewFrame} pointerEvents="box-none">
-            <ClipTrimFrame
-              durationS={durationS}
-              startS={range.startS}
-              endS={range.endS}
-              startSv={startSv}
-              endSv={endSv}
-              onChange={onRangeChange}
-              onBandTouch={onBandTouch}
+              style={[
+                styles.overviewPlayhead,
+                { backgroundColor: colors.danger },
+                overviewPlayheadStyle,
+              ]}
             />
+            <View style={styles.overviewFrame} pointerEvents="box-none">
+              <ClipTrimFrame
+                durationS={durationS}
+                startS={range.startS}
+                endS={range.endS}
+                startSv={startSv}
+                endSv={endSv}
+                onChange={onRangeChange}
+                onBandTouch={onBandTouch}
+              />
+            </View>
           </View>
-        </View>
-      </GestureDetector>
+        </GestureDetector>
 
-      {/* THE SELECTION'S OWN CAPTION — start on the left corner, length in
+        {/* THE SELECTION'S OWN CAPTION — start on the left corner, length in
           the middle, end on the right: the exact label row the player's
           scrubber stands under its slider, on the object those numbers
           describe. It used to be one centred line under the timecode
@@ -1092,57 +1109,57 @@ export function ClipTrimEditor({
           middle of the column. Split to the overview's corners the same
           facts read as the strip's own furniture, and the big timecode
           stands alone, which is Voice Memos' arrangement exactly. */}
-      <ClipRangeCaption
-        startSv={startSv}
-        endSv={endSv}
-        width={overviewWidth}
-        color={colors.onSurfaceMuted}
-      />
+        <ClipRangeCaption
+          startSv={startSv}
+          endSv={endSv}
+          width={overviewWidth}
+          color={colors.onSurfaceMuted}
+        />
 
-      {/* The one LARGE air on the sheet — it separates the wave group from
+        {/* The one LARGE air on the sheet — it separates the wave group from
           the control group, which is what makes each read as a group at
           all. Even spacers everywhere was tried and read as
           justifyContent: space-between (Juan, 2026-08-26): rhythm is
           clustering plus chosen slack, not equidistance. */}
-      <View style={styles.airEven} />
+        <View style={styles.airEven} />
 
-      {/* THE TIMECODE — Voice Memos' centrepiece, standing alone. */}
-      <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
+        {/* THE TIMECODE — Voice Memos' centrepiece, standing alone. */}
+        <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
 
-      {/* THE TRANSPORT — ±15 and play, the editor's own loop. FIXED gap to
+        {/* THE TRANSPORT — ±15 and play, the editor's own loop. FIXED gap to
           the readout above: the timecode is this transport's own caption
           (read where you are, act on it), so the two are one control
           group. */}
-      <View style={styles.airEven} />
+        <View style={styles.airEven} />
 
-      <View style={styles.transport}>
-        <GlyphButton
-          onPress={() => onSkip(-SKIP_S)}
-          hitSlop={12}
-          accessibilityLabel={t('player.clips.skipBack').replace(
-            '{s}',
-            String(SKIP_SECONDS),
-          )}
-        >
-          {/* The platform's own skip badge at the transport's skip size, so
+        <View style={styles.transport}>
+          <GlyphButton
+            onPress={() => onSkip(-SKIP_S)}
+            hitSlop={12}
+            accessibilityLabel={t('player.clips.skipBack').replace(
+              '{s}',
+              String(SKIP_SECONDS),
+            )}
+          >
+            {/* The platform's own skip badge at the transport's skip size, so
               this row and the console's read as one app's controls — SF's
               ±15 on iOS, Material's ±10 on Android (`TrimGlyphs` has the
               split's argument). The slot keeps the transport's stated box. */}
-          <View style={styles.skipHost}>
-            <SkipBackGlyph
-              color={colors.onSurface}
-              size={TRANSPORT_SKIP_SIZE}
-            />
-          </View>
-        </GlyphButton>
-        <GlyphButton
-          onPress={onTogglePlay}
-          hitSlop={12}
-          accessibilityLabel={t(
-            playing ? 'player.pause' : 'player.clips.preview',
-          )}
-        >
-          {/* STATED BOX, exactly as the skips beside it take one. A drawn
+            <View style={styles.skipHost}>
+              <SkipBackGlyph
+                color={colors.onSurface}
+                size={TRANSPORT_SKIP_SIZE}
+              />
+            </View>
+          </GlyphButton>
+          <GlyphButton
+            onPress={onTogglePlay}
+            hitSlop={12}
+            accessibilityLabel={t(
+              playing ? 'player.pause' : 'player.clips.preview',
+            )}
+          >
+            {/* STATED BOX, exactly as the skips beside it take one. A drawn
               pause is WIDER than a drawn play — two bars against a triangle —
               so an unboxed middle item re-measures on every toggle and the
               centred row slides sideways under the finger (Juan, 2026-09-10).
@@ -1152,32 +1169,38 @@ export function ClipTrimEditor({
               `TRANSPORT_ROW_HEIGHT` IS the play glyph's box — the row's
               height is defined as exactly that — so the square is the term
               rather than a second derivation of it. */}
-          <View style={styles.playHost}>
-            {playing ? (
-              <PauseGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
-            ) : (
-              <PlayGlyph color={colors.onSurface} size={TRANSPORT_PLAY_SIZE} />
+            <View style={styles.playHost}>
+              {playing ? (
+                <PauseGlyph
+                  color={colors.onSurface}
+                  size={TRANSPORT_PLAY_SIZE}
+                />
+              ) : (
+                <PlayGlyph
+                  color={colors.onSurface}
+                  size={TRANSPORT_PLAY_SIZE}
+                />
+              )}
+            </View>
+          </GlyphButton>
+          <GlyphButton
+            onPress={() => onSkip(SKIP_S)}
+            hitSlop={12}
+            accessibilityLabel={t('player.clips.skipForward').replace(
+              '{s}',
+              String(SKIP_SECONDS),
             )}
-          </View>
-        </GlyphButton>
-        <GlyphButton
-          onPress={() => onSkip(SKIP_S)}
-          hitSlop={12}
-          accessibilityLabel={t('player.clips.skipForward').replace(
-            '{s}',
-            String(SKIP_SECONDS),
-          )}
-        >
-          <View style={styles.skipHost}>
-            <SkipForwardGlyph
-              color={colors.onSurface}
-              size={TRANSPORT_SKIP_SIZE}
-            />
-          </View>
-        </GlyphButton>
-      </View>
+          >
+            <View style={styles.skipHost}>
+              <SkipForwardGlyph
+                color={colors.onSurface}
+                size={TRANSPORT_SKIP_SIZE}
+              />
+            </View>
+          </GlyphButton>
+        </View>
 
-      {/* THE TAIL IS THE ANCHOR'S — a fixed spacer that puts the play/pause
+        {/* THE TAIL IS THE ANCHOR'S — a fixed spacer that puts the play/pause
           on the console's own measured spot (see `anchorBottomPad` above),
           with all remaining slack absorbed by the one flexible air higher up.
           The sheet's ACTIONS live in the bar: Shape and Save share the
@@ -1188,15 +1211,16 @@ export function ClipTrimEditor({
           air the fallback keeps is what this replaced: two rounds of "higher,
           for the thumb" (1 → 1.5 → 3.2) were converging by feel on the spot
           the player's transport already occupied. */}
-      {anchorBottomPad == null ? (
-        <>
-          <View style={styles.airSmall} />
-          <View style={{ height: insets.bottom + 8 }} />
-        </>
-      ) : (
-        <View style={{ height: anchorBottomPad }} />
-      )}
-    </View>
+        {anchorBottomPad == null ? (
+          <>
+            <View style={styles.airSmall} />
+            <View style={{ height: insets.bottom + 8 }} />
+          </>
+        ) : (
+          <View style={{ height: anchorBottomPad }} />
+        )}
+      </View>
+    </LayoutAnimationConfig>
   );
 }
 

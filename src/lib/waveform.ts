@@ -26,6 +26,13 @@ import { offlineAudioPath } from './offlineAudio';
 // A resolved failure is EVICTED from the in-flight map so the next clip-mode
 // entry retries (offline once ≠ offline forever); a success stays for the
 // session and the JSON on disk covers the sessions after it.
+//
+// A SUCCESS IS ALSO KEPT RESOLVED, beside the promise, so a caller can read it
+// SYNCHRONOUSLY (`peekWaveform`). A promise that has already settled still
+// hands its value over a microtask later, which is a whole render: reopening
+// the clip editor on a sound it had already decoded stood the bone for one
+// frame and then faded the bars in over it, as if the decode had just landed.
+// Only successes go in — a failure is never cached, here or in the promise map.
 
 export type Waveform = {
   /** RMS per bucket, normalized so the loudest bucket is 1. */
@@ -47,6 +54,7 @@ const BUCKET_MS_MIN = 50;
 const BUCKET_COUNT_MAX = 12000;
 
 const memory = new Map<string, Promise<Waveform | null>>();
+const resolved = new Map<string, Waveform>();
 
 const cacheDir = () => `${FileSystem.cacheDirectory}waveforms/`;
 const bucketsPath = (soundId: string) =>
@@ -101,9 +109,19 @@ const pruneStaleVersions = async (): Promise<void> => {
  */
 export function forgetWaveform(soundId: string): void {
   memory.delete(soundId);
+  resolved.delete(soundId);
   FileSystem.deleteAsync(bucketsPath(soundId), { idempotent: true }).catch(
     () => {},
   );
+}
+
+/**
+ * The buckets this session already decoded (or read from disk) for a sound,
+ * or `undefined` — synchronous, so a surface can stand on its first frame what
+ * it already has. It never starts work and never reports a failure.
+ */
+export function peekWaveform(soundId: string): Waveform | undefined {
+  return resolved.get(soundId);
 }
 
 export function getWaveform(
@@ -121,7 +139,10 @@ export function getWaveform(
   const promise = compute(soundId, audioUrl)
     .catch(() => null)
     .then(waveform => {
+      // Checked against the map so a `forgetWaveform` that landed while this
+      // was in flight is not undone by its late resolution.
       if (!waveform) memory.delete(soundId);
+      else if (memory.get(soundId) === promise) resolved.set(soundId, waveform);
       return waveform;
     });
   memory.set(soundId, promise);
@@ -137,15 +158,8 @@ async function compute(
   }).catch(() => {});
 
   const jsonPath = bucketsPath(soundId);
-  const cached = await FileSystem.getInfoAsync(jsonPath);
-  if (cached.exists) {
-    const parsed = JSON.parse(
-      await FileSystem.readAsStringAsync(jsonPath),
-    ) as Waveform;
-    if (Array.isArray(parsed.buckets) && parsed.buckets.length > 0) {
-      return parsed;
-    }
-  }
+  const cached = await readCached(jsonPath);
+  if (cached) return cached;
 
   /**
    * THE OFFLINE MIRROR ALREADY HAS THE FILE, USUALLY — every sound in the
@@ -170,12 +184,44 @@ async function compute(
       buffer.duration,
     );
     if (!waveform) return null;
-    await FileSystem.writeAsStringAsync(jsonPath, JSON.stringify(waveform));
+    // WRITTEN BESIDE, THEN MOVED INTO PLACE — the offline mirror's own rule. A
+    // process killed mid-write used to leave a truncated JSON under the real
+    // name, and `readCached` is what now survives one; this stops making them.
+    const tempPath = `${jsonPath}.tmp`;
+    await FileSystem.writeAsStringAsync(tempPath, JSON.stringify(waveform));
+    await FileSystem.deleteAsync(jsonPath, { idempotent: true });
+    await FileSystem.moveAsync({ from: tempPath, to: jsonPath });
     return waveform;
   } finally {
     if (!borrowed)
       FileSystem.deleteAsync(mp3Path, { idempotent: true }).catch(() => {});
   }
+}
+
+/**
+ * The buckets on disk, or `null` when there are none worth trusting.
+ *
+ * A FILE THAT DOES NOT PARSE IS DELETED, so the caller decodes again. It used
+ * to throw out of `compute`, which `getWaveform` turned into a failure — and
+ * since the file was still there next time, that sound's waveform failed for
+ * good. A corrupt cache entry is a miss, never a verdict.
+ */
+async function readCached(jsonPath: string): Promise<Waveform | null> {
+  const info = await FileSystem.getInfoAsync(jsonPath);
+  if (!info.exists) return null;
+  try {
+    const parsed = JSON.parse(
+      await FileSystem.readAsStringAsync(jsonPath),
+    ) as Waveform;
+    if (Array.isArray(parsed.buckets) && parsed.buckets.length > 0) {
+      return parsed;
+    }
+  } catch {
+    await FileSystem.deleteAsync(jsonPath, { idempotent: true }).catch(
+      () => {},
+    );
+  }
+  return null;
 }
 
 function bucketize(
