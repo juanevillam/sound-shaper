@@ -159,11 +159,6 @@ const HIGHLIGHT = '#FFFFFF';
 const HIGHLIGHT_ALPHA = { light: 0.6, dark: 0.09 } as const;
 
 type SkeletonBoneProps = {
-  /**
-   * Square/ratio sizing from `width` — omits the fixed `height`, for bones the
-   * real component sizes by aspect ratio rather than by a number.
-   */
-  aspectRatio?: number;
   height?: number;
   radius?: number;
   style?: StyleProp<ViewStyle>;
@@ -179,7 +174,6 @@ type SkeletonBoneProps = {
  * renderer.
  */
 export function SkeletonBone({
-  aspectRatio,
   height = 14,
   radius = 8,
   style,
@@ -243,7 +237,7 @@ export function SkeletonBone({
       style={[
         // The fill no longer animates — see the note on the pulse above.
         { backgroundColor: colors.surfaceVariant, borderRadius: radius },
-        aspectRatio ? { aspectRatio, width } : { height, width },
+        { height, width },
         // Clips the band to the bone's own shape, corners included.
         styles.bone,
         style,

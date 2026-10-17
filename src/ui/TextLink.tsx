@@ -56,16 +56,9 @@ export type TextLinkProps = {
    * Defaults to regular, which is what the rest of this family renders.
    */
   weight?: TextStyle['fontWeight'];
-  style?: TextStyle;
 };
 
-export function TextLink({
-  label,
-  color,
-  onPress,
-  weight,
-  style,
-}: TextLinkProps) {
+export function TextLink({ label, color, onPress, weight }: TextLinkProps) {
   const [pressed, setPressed] = useState(false);
 
   return (
@@ -74,7 +67,6 @@ export function TextLink({
       style={[
         styles.link,
         weight ? { fontWeight: weight } : null,
-        style,
         { color: color && pressed ? withAlpha(color, PRESSED_OPACITY) : color },
       ]}
       onPress={onPress}

@@ -76,7 +76,7 @@ export const GLASS_FLOOR = 0.25;
  * not a reason. The measured decision wins.
  *
  * The snackbar then clears the app's own bottom chrome by this same gap rather
- * than by a number per app — see `iosBottomInset` on `SnackbarProvider`.
+ * than by a number per app — see `SNACKBAR_BOTTOM_CLEARANCE`.
  *
  * ANDROID KEEPS ITS OWN SPACING, and the reason is Material rather than the
  * schedule. This used to read "both apps are frozen there" — a statement about

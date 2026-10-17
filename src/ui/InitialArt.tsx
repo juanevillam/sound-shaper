@@ -89,17 +89,6 @@ export const emptyMediaColor = ({
   }) as string;
 
 type InitialArtProps = {
-  /** Defaults to the platform's EMPTY-MEDIA material — on iOS
-   *  `surfaceContainer` (the systemGray5 pair), the same material the create
-   *  tiles use, so every art-less box and every create affordance read as one
-   *  thing; on Android `surfaceVariant`.
-   *
-   *  SOLID on purpose, not the translucent `fill` this briefly was: over a
-   *  dark page background the fill composites to #1D1D1F, one hex step from
-   *  the card surface (#1C1C1E) — a rail of art-less tiles read as a wall of
-   *  CARDS. systemGray5 separates from both the background and the cards in
-   *  both modes (#E5E5EA vs white / #2C2C2E vs #1C1C1E, measured). */
-  backgroundColor?: string;
   /**
    * WHERE THE BOX SITS, so the material can step with its container — see
    * `emptyMediaColor`. A box on a form-sheet ROW must say `sheet` or it lands
@@ -115,13 +104,7 @@ type InitialArtProps = {
   title?: string | null;
 };
 
-export function InitialArt({
-  backgroundColor,
-  container,
-  size,
-  style,
-  title,
-}: InitialArtProps) {
+export function InitialArt({ container, size, style, title }: InitialArtProps) {
   const { colors, scheme } = useAppTheme();
 
   // "?" only for the genuinely nameless — a title is required everywhere this
@@ -132,10 +115,17 @@ export function InitialArt({
     <View
       style={[
         styles.box,
-        {
-          backgroundColor:
-            backgroundColor ?? emptyMediaColor({ colors, container, scheme }),
-        },
+        // The platform's EMPTY-MEDIA material — on iOS `surfaceContainer`
+        // (the systemGray5 pair), the same material the create tiles use, so
+        // every art-less box and every create affordance read as one thing; on
+        // Android `surfaceVariant`.
+        //
+        // SOLID on purpose, not the translucent `fill` this briefly was: over a
+        // dark page background the fill composites to #1D1D1F, one hex step
+        // from the card surface (#1C1C1E) — a rail of art-less tiles read as a
+        // wall of CARDS. systemGray5 separates from both the background and the
+        // cards in both modes (#E5E5EA vs white / #2C2C2E vs #1C1C1E, measured).
+        { backgroundColor: emptyMediaColor({ colors, container, scheme }) },
         style,
       ]}
     >

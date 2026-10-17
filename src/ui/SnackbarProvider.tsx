@@ -53,14 +53,6 @@ type SnackbarProviderProps = {
    * renders in the slot and dismisses on tap).
    */
   dismissLabel?: string;
-  /**
-   * iOS clearance between the toast and the bottom safe-area edge.
-   *
-   * ONLY A PRESENTED SURFACE PASSES THIS — see `SnackbarOutlet`, where a sheet
-   * states its own. A screen does not: the toast stands in the same place on
-   * every screen, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
-   */
-  iosBottomInset?: number;
 };
 
 /**
@@ -108,13 +100,13 @@ const SWIPE_ACTIVATION_OFFSET = 8;
 /**
  * The one snackbar: a Material 3 bar on Android and a Liquid Glass capsule
  * toast on iOS (which has no snackbar idiom). A presented surface differs only
- * by `iosBottomInset` (through `SnackbarOutlet`) — never fork this to restyle
- * one screen.
+ * by the `iosBottomInset` its `SnackbarOutlet` states — never fork this to
+ * restyle one screen. A screen states nothing: the toast stands in the same
+ * place on every screen, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
  */
 const SnackbarProvider = ({
   children,
   dismissLabel = 'OK',
-  iosBottomInset = SNACKBAR_BOTTOM_CLEARANCE,
 }: SnackbarProviderProps) => {
   const [message, setMessage] = useState<string | null>(null);
   const [action, setAction] = useState<SnackbarAction | null>(null);
@@ -269,7 +261,7 @@ const SnackbarProvider = ({
   const bottomClearance =
     boundOutlet !== null && boundInset !== undefined
       ? boundInset
-      : iosBottomInset;
+      : SNACKBAR_BOTTOM_CLEARANCE;
 
   const showSnackbar = useCallback(
     (next: string, nextAction?: SnackbarAction, options?: SnackbarOptions) => {
@@ -515,8 +507,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     paddingHorizontal: 16,
-    // Android sits above the opaque nav bar; iOS overrides this with the
-    // app's `iosBottomInset`.
+    // Android sits above the opaque nav bar; iOS overrides this with
+    // `SNACKBAR_BOTTOM_CLEARANCE`, or the bound outlet's own inset.
     paddingBottom: 16,
     position: 'absolute',
     right: 0,

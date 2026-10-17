@@ -1,9 +1,4 @@
-import {
-  Pressable,
-  type PressableProps,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
 import Animated, {
   useAnimatedStyle,
@@ -131,8 +126,6 @@ type SquashPressableProps = {
   onPress: () => void;
   /** Long-press handler, e.g. to open a card's context menu. */
   onLongPress?: () => void;
-  /** Expand the touch area past the visual bounds (44pt/48dp minimums). */
-  hitSlop?: PressableProps['hitSlop'];
   style?: StyleProp<ViewStyle>;
   /**
    * Screen-reader label. Optional because most cards carry readable Text
@@ -140,8 +133,6 @@ type SquashPressableProps = {
    * reads as nothing.
    */
   accessibilityLabel?: string;
-  /** e.g. `{ selected: true }` for toggled pills. */
-  accessibilityState?: PressableProps['accessibilityState'];
 };
 
 /**
@@ -153,10 +144,8 @@ export function SquashPressable({
   children,
   onPress,
   onLongPress,
-  hitSlop,
   style,
   accessibilityLabel,
-  accessibilityState,
 }: SquashPressableProps) {
   const squash = usePressSquash();
 
@@ -164,10 +153,8 @@ export function SquashPressable({
     <Animated.View style={[squash.style, style]}>
       <Pressable
         unstable_pressDelay={PRESS_IN_DELAY_MS}
-        hitSlop={hitSlop}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityState={accessibilityState}
         onPress={onPress}
         onLongPress={onLongPress}
         onPressIn={squash.onPressIn}
