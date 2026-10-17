@@ -24,10 +24,16 @@ import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 // inset-grouped-list radius.
 const IOS_GROUP_RADIUS = 26;
 
+// M3 shape-scale steps — the Android radius of a surface nested inside a
+// CARD_RADIUS / TILE_RADIUS container (M3 has no concentric-corner rule; it
+// keys nested radii to this fixed scale instead).
+export const SHAPE_SM = 8;
+export const SHAPE_MD = 12;
+
 /** Standard card/row container (M3 12 / iOS grouped 26). */
 export const CARD_RADIUS = Platform.select({
   ios: IOS_GROUP_RADIUS,
-  default: 12,
+  default: SHAPE_MD,
 }) as number;
 
 /** Larger tile container (M3 16 / iOS grouped 26). */
@@ -47,12 +53,6 @@ export const TILE_RADIUS = Platform.select({
 export const CONTINUOUS_CURVE: { borderCurve: ViewStyle['borderCurve'] } = {
   borderCurve: Platform.OS === 'ios' ? 'continuous' : 'circular',
 };
-
-// M3 shape-scale steps — the Android radius of a surface nested inside a
-// CARD_RADIUS / TILE_RADIUS container (M3 has no concentric-corner rule; it
-// keys nested radii to this fixed scale instead).
-export const SHAPE_SM = 8;
-export const SHAPE_MD = 12;
 
 /**
  * CONTAINERS DO NOT SCALE THEIR RADIUS WITH SIZE, and that is correct: Apple's

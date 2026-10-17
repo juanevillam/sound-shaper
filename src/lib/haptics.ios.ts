@@ -37,7 +37,8 @@ export const haptics = {
    * you are there to judge.
    */
   selection: () => fire(() => Haptics.selectionAsync()),
-  /** A committed action: deleting a sound or a clip. */
+  /** A committed action: deleting a sound, a clip or the account, and a
+   *  non-platinum trophy unlock. */
   medium: () =>
     fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
   /** Drag picked up — a firm "grabbed it". */

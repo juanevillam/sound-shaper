@@ -18,7 +18,7 @@ import { Vibration } from 'react-native';
 // twin documented the opposite; a decision that lives on one twin only is a
 // decision the next session re-derives.
 const SELECTION_MS = 8; // a saved clip, a trimmed clip's handles
-const MEDIUM_MS = 12; // a committed action — deleting a sound
+const MEDIUM_MS = 12; // a committed action — see `medium` below
 
 // Reorder (drag) feedback is a touch firmer than the UI ticks above so a drag
 // feels tactile from start to finish — a grab when you pick a sound up, a tick
@@ -31,7 +31,8 @@ export const haptics = {
   /** Light tick for a discrete choice: a saved clip, a trimmed clip's handles.
    *  Not an EQ preset — see above. */
   selection: () => Vibration.vibrate(SELECTION_MS),
-  /** A committed action: deleting a sound. */
+  /** A committed action: deleting a sound, a clip or the account, and a
+   *  non-platinum trophy unlock. */
   medium: () => Vibration.vibrate(MEDIUM_MS),
   /** Drag picked up — a firm "grabbed it". */
   dragPickup: () => Vibration.vibrate(DRAG_PICKUP_MS),

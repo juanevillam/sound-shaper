@@ -3,9 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
+import type { SFSymbol } from 'sf-symbols-typescript';
+
 import { useAppTheme } from '@/core';
 
 import { AppIcon } from './AppIcon';
+
 import type { IconName } from './icons';
 
 /**
@@ -39,7 +42,7 @@ export const EMPTY_STATE_STEPS = {
   subtitle: 'bodyMedium',
 } as const;
 
-type EmptyStateProps = {
+export type EmptyStateProps = {
   /**
    * The Material Symbol drawn where iOS draws its `systemImage` — large and
    * muted, the same statement `ContentUnavailableView` opens with.
@@ -47,9 +50,10 @@ type EmptyStateProps = {
   icon?: IconName;
   /**
    * iOS only — the SF Symbol its `ContentUnavailableView` draws. Accepted and
-   * IGNORED here; this side names its Material twin via `icon`.
+   * IGNORED here; this side names its Material twin via `icon`. Typed as the
+   * iOS twin needs it, since that file takes this type rather than restating it.
    */
-  systemImage?: string;
+  systemImage?: SFSymbol;
   title: string;
   subtitle?: string;
   /**

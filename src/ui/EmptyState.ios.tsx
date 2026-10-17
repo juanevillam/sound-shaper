@@ -7,10 +7,9 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 
-import type { SFSymbol } from 'sf-symbols-typescript';
-
 import { useAppTheme } from '@/core';
 
+import { type EmptyStateProps } from './EmptyState';
 import { actionButtonModifiersIos } from './SheetFormIos';
 
 /**
@@ -39,18 +38,6 @@ import { actionButtonModifiersIos } from './SheetFormIos';
  * goes away.
  */
 const CTA_SPACING = 0;
-
-type EmptyStateProps = {
-  /** Android only — the Material Symbol its variant draws where this one
-   *  draws `systemImage`. Accepted and ignored here. */
-  icon?: string;
-  /** iOS only. SF Symbol for the native `ContentUnavailableView`. */
-  systemImage?: SFSymbol;
-  title: string;
-  subtitle?: string;
-  /** Standard call-to-action below the text (see the Android variant). */
-  action?: { label: string; onPress: () => void };
-};
 
 /**
  * iOS empty / error state — SwiftUI's own `ContentUnavailableView`, which is
