@@ -1,6 +1,7 @@
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
 type NativeAudioSession = {
+  excludeFromBackup: (path: string) => void;
   isOtherAudioPlaying: () => boolean;
 };
 
@@ -17,3 +18,13 @@ const native = requireOptionalNativeModule<NativeAudioSession>('AudioSession');
  */
 export const isOtherAudioPlaying = (): boolean =>
   native ? native.isOtherAudioPlaying() : true;
+
+/**
+ * Keep a directory — and everything in it — out of the iCloud / Finder
+ * backup. iOS only; a no-op on Android and without the native module (an
+ * un-rebuilt dev client). Throws if iOS refused the attribute, so a caller
+ * that treats it as best-effort catches.
+ */
+export const excludeFromBackup = (path: string): void => {
+  native?.excludeFromBackup?.(path);
+};

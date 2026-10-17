@@ -17,5 +17,9 @@ class AudioSessionModule : Module() {
         ?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
       audio?.isMusicActive ?: false
     }
+
+    // iOS-only concern. Android's Auto Backup is governed by the manifest's
+    // backup rules, not by a per-file attribute, so this returns normally.
+    Function("excludeFromBackup") { _: String -> }
   }
 }

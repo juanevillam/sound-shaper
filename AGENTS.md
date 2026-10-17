@@ -1330,10 +1330,11 @@ Four things not to re-derive:
 - **It is in `documentDirectory`, not the cache.** `cacheDirectory` is
   OS-purgeable, which is the one thing a flight cannot rely on; the waveform
   buckets live there because they self-heal in seconds and these do not. Apple
-  asks that re-downloadable content be excluded from backup instead and
-  `expo-file-system` exposes no flag for it in either API, so the mirror is
-  backed up. Revisit if a large library ever makes an iCloud backup
-  conspicuous.
+  asks that re-downloadable content kept there be excluded from backup, and
+  `expo-file-system` exposes no flag for it in either API, so
+  `modules/audio-session`'s `excludeFromBackup` sets `isExcludedFromBackup` on
+  the directory as it is ensured (2026-10-17, gate 3). Native: it needs a
+  rebuild, and an older build simply keeps backing the mirror up.
 - **A download lands atomically** — written to `<id>.part`, then moved. A
   connection that dies mid-file must never leave a truncated mp3 where a whole
   one is expected, which would play as a sound that stops early: worse than not

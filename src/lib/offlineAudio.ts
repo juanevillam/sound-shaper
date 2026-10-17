@@ -1,4 +1,7 @@
+import { excludeFromBackup } from '@modules/audio-session';
 import * as FileSystem from 'expo-file-system/legacy';
+
+import { recordError } from '@/services/firebase/crashlytics';
 
 // ---------------------------------------------------------------------------
 // THE OFFLINE MIRROR — every sound in the library, on the phone.
@@ -21,11 +24,13 @@ import * as FileSystem from 'expo-file-system/legacy';
 // IT LIVES IN `documentDirectory`, NOT IN THE CACHE. `cacheDirectory` is
 // OS-purgeable, which is precisely the thing a flight cannot rely on — the
 // waveform buckets live there because they self-heal in seconds and these do
-// not. Apple's data-storage guidance asks that re-downloadable content be
-// marked excluded from backup instead, and `expo-file-system` exposes no flag
-// for it (neither API has one), so the mirror is backed up. Worth revisiting
-// if a large library ever makes an iCloud backup conspicuous; not worth a
-// native module today.
+// not. Apple's data-storage guidance asks that re-downloadable content kept
+// there be EXCLUDED FROM BACKUP, and it is: `expo-file-system` exposes no flag
+// for it (neither API has one), so `modules/audio-session` sets
+// `isExcludedFromBackup` on the directory, once per session, as it is ensured.
+// Everything here is a copy of a Cloudinary asset the library re-downloads on
+// its own, so an iCloud backup carrying a whole library of mp3s would be
+// storage spent on nothing — the restore would download them anyway.
 //
 // A DOWNLOAD LANDS ATOMICALLY. It is written to a `.part` file and moved into
 // place, so a connection that dies mid-file can never leave a truncated mp3
@@ -48,6 +53,14 @@ const ensureDirectory = async (): Promise<void> => {
   await FileSystem.makeDirectoryAsync(directory(), {
     intermediates: true,
   }).catch(() => {});
+  // Best-effort: a failure leaves the mirror in the backup, which is where it
+  // always was. The attribute sits on the DIRECTORY, so `clearMirror` deleting
+  // it is why that resets `directoryEnsured` — a recreated one is re-marked.
+  try {
+    excludeFromBackup(directory());
+  } catch (error) {
+    recordError(error, 'offlineAudio.excludeFromBackup');
+  }
   directoryEnsured = true;
 };
 
@@ -138,8 +151,8 @@ export const prioritizeMirror = (soundId: string): void => {
  * A download's `catch` deletes its own `.part`, but a process killed
  * mid-download never reaches it, and the next attempt at that sound only
  * overwrites the file if it ever runs — a sound deleted meanwhile leaves its
- * half-file forever. They sit in `documentDirectory`, which is backed up to
- * iCloud, so they are not free. The first pass lists the directory before it
+ * half-file forever. They sit in `documentDirectory`, which is permanent
+ * storage, so they are not free. The first pass lists the directory before it
  * queues anything; a `.part` something is writing right now (a seed, or a
  * download already under way) is in `activeParts` and is never touched.
  */
