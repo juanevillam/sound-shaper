@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   canPublishWidget,
@@ -27,6 +27,15 @@ import {
  * The app supplies only what is genuinely its own: the signature that says
  * something changed, and a `build` that turns its data into a snapshot.
  */
+/**
+ * How a publish with missing covers is retried: after 30s, then 60s, then 90s,
+ * and then left to the next signature change or launch — a cover that fails
+ * three times running is not coming back on its own this minute, and the
+ * widget is drawing an art-less tile meanwhile, not an error.
+ */
+const MEDIA_RETRY_MS = 30_000;
+const MAX_MEDIA_RETRIES = 3;
+
 export const useWidgetPublisher = ({
   appGroup,
   build,
@@ -52,6 +61,19 @@ export const useWidgetPublisher = ({
   latestBuild.current = build;
 
   const published = useRef<string | null>(null);
+  /**
+   * A PUBLISH WITH A COVER MISSING IS NOT DONE. The writer reports how many
+   * referenced files it could not fetch; while that is above zero the
+   * signature is left unmarked, so the next pass for it publishes again, and
+   * a bounded retry makes that next pass happen even when nothing else
+   * changes. It used to be marked published regardless — a cover whose fetch
+   * failed stayed missing until the next launch or the next edit.
+   */
+  const [retryTick, setRetryTick] = useState(0);
+  const retries = useRef<{ signature: string; count: number }>({
+    signature: '',
+    count: 0,
+  });
 
   useEffect(() => {
     if (!canPublishWidget) return;
@@ -66,6 +88,7 @@ export const useWidgetPublisher = ({
     if (!ready || published.current === signature) return;
 
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     const timer = setTimeout(() => {
       void (async () => {
@@ -74,12 +97,31 @@ export const useWidgetPublisher = ({
 
           if (cancelled) return;
 
-          await publishWidgetSnapshot({ appGroup, media, snapshot });
+          const missing = await publishWidgetSnapshot({
+            appGroup,
+            media,
+            snapshot,
+          });
 
-          // Marked published only once it actually is. Marking before the await
-          // would make a failed publish look done, and the signature would have
-          // to change before anything tried again.
-          published.current = signature;
+          if (cancelled) return;
+
+          // Marked published only once it actually is — every cover included.
+          // Marking before the await would make a failed publish look done,
+          // and the signature would have to change before anything tried again.
+          if (missing === 0) {
+            published.current = signature;
+            return;
+          }
+
+          if (retries.current.signature !== signature)
+            retries.current = { signature, count: 0 };
+          if (retries.current.count < MAX_MEDIA_RETRIES) {
+            retries.current.count += 1;
+            retryTimer = setTimeout(
+              () => setRetryTick(tick => tick + 1),
+              MEDIA_RETRY_MS * retries.current.count,
+            );
+          }
         } catch (error) {
           /**
            * A WIDGET FAILS SILENTLY BY NATURE — it just keeps drawing its last
@@ -94,6 +136,7 @@ export const useWidgetPublisher = ({
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(retryTimer);
     };
-  }, [appGroup, ready, settleMs, signature, signedIn]);
+  }, [appGroup, ready, retryTick, settleMs, signature, signedIn]);
 };

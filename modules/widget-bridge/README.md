@@ -35,13 +35,13 @@ both binaries can reach. This module carries it across; it never interprets it.
 
 ## Exports
 
-| Export                  | Purpose                                                                  |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `useWidgetPublisher`    | The publish PROTOCOL — see below                                         |
-| `publishWidgetSnapshot` | Write a snapshot plus its media and reload WidgetKit                     |
-| `clearWidgetSnapshot`   | Wipe the container — sign-out and account deletion                       |
-| `widgetMediaFile`       | The file name both processes agree on, from the asset's URL              |
-| `canPublishWidget`      | Whether a widget can be published from this build at all (false off iOS) |
+| Export                  | Purpose                                                                   |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `useWidgetPublisher`    | The publish PROTOCOL — see below                                          |
+| `publishWidgetSnapshot` | Write a snapshot plus its media, reload WidgetKit; resolves missing count |
+| `clearWidgetSnapshot`   | Wipe the container — sign-out and account deletion                        |
+| `widgetMediaFile`       | The file name both processes agree on, from the asset's URL               |
+| `canPublishWidget`      | Whether a widget can be published from this build at all (false off iOS)  |
 
 `useWidgetPublisher` holds the rules around a publish, which are independent of
 what the widget draws:
@@ -55,7 +55,11 @@ what the widget draws:
 - **clear on sign-out** — a widget keeps drawing its last snapshot until something
   replaces it, so somebody else's content left on a Home Screen is a privacy bug,
   not a stale cache;
-- drop an in-flight build whose inputs have already moved on.
+- drop an in-flight build whose inputs have already moved on;
+- **a publish with a cover missing is not done** — `publishWidgetSnapshot`
+  resolves to how many referenced files could not be fetched, and while that is
+  above zero the signature stays unmarked and the publish is retried (30s, 60s,
+  90s), then left to the next change or launch.
 
 The caller supplies only a `signature` that says something changed, and a
 `build` that turns its data into a snapshot.

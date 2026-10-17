@@ -13,11 +13,12 @@ export type WidgetMedia = {
 
 type NativeWidgetBridge = {
   clear: (appGroup: string) => Promise<void>;
+  /** Resolves to how many referenced media files are still missing. */
   publish: (
     appGroup: string,
     snapshot: string,
     media: WidgetMedia[],
-  ) => Promise<void>;
+  ) => Promise<number>;
 };
 
 /**
@@ -54,7 +55,9 @@ export const widgetMediaFile = async (url: string): Promise<string> => {
  * format belongs to the app and its widget, not to this module — plus the
  * media it references, and reload the widget.
  *
- * A no-op off iOS.
+ * Resolves to how many referenced media files could not be fetched: the
+ * snapshot is written regardless, but a non-zero count means the publish is
+ * not complete and is worth retrying. A no-op off iOS, which resolves 0.
  */
 export const publishWidgetSnapshot = async ({
   appGroup,
@@ -64,8 +67,13 @@ export const publishWidgetSnapshot = async ({
   appGroup: string;
   media: WidgetMedia[];
   snapshot: unknown;
-}): Promise<void> => {
-  await native?.publish(appGroup, JSON.stringify(snapshot), media);
+}): Promise<number> => {
+  const missing = await native?.publish(
+    appGroup,
+    JSON.stringify(snapshot),
+    media,
+  );
+  return typeof missing === 'number' ? missing : 0;
 };
 
 /** Wipe the shared container — sign-out and account deletion. */

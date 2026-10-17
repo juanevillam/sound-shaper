@@ -12,7 +12,7 @@ public class WidgetBridgeModule: Module {
     Name("WidgetBridge")
 
     AsyncFunction("publish") {
-      (appGroup: String, snapshot: String, media: [MediaRecord]) async throws in
+      (appGroup: String, snapshot: String, media: [MediaRecord]) async throws -> Int in
       try await WidgetSnapshotWriter.publish(
         appGroup: appGroup, snapshot: snapshot, media: media)
     }

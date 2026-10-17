@@ -45,16 +45,24 @@ enum WidgetSnapshotWriter {
   /// cached one, and an unchanged image is never downloaded twice. Anything no
   /// longer referenced is pruned in the same pass: the container is not the
   /// app's cache and nothing else ever cleans it.
-  static func publish(appGroup: String, snapshot: String, media: [MediaRecord]) async throws {
+  ///
+  /// RETURNS HOW MANY REFERENCED FILES ARE STILL MISSING after the pass — a
+  /// fetch that failed. The snapshot is written anyway (the widget draws an
+  /// art-less tile for a missing file), and the caller uses the count to know
+  /// the publish is not finished, so it does not mark it done.
+  @discardableResult
+  static func publish(appGroup: String, snapshot: String, media: [MediaRecord]) async throws -> Int {
     let root = try containerURL(appGroup)
     let mediaRoot = root.appendingPathComponent(mediaDirectory, isDirectory: true)
 
     try FileManager.default.createDirectory(at: mediaRoot, withIntermediateDirectories: true)
 
     var referenced = Set<String>()
+    var missing = 0
 
     for entry in media where !entry.file.isEmpty && !entry.url.isEmpty {
-      referenced.insert(entry.file)
+      // A file named twice is fetched once, and counted once.
+      guard referenced.insert(entry.file).inserted else { continue }
 
       let destination = mediaRoot.appendingPathComponent(entry.file)
 
@@ -67,9 +75,16 @@ enum WidgetSnapshotWriter {
         let (data, response) = try? await URLSession.shared.data(from: url),
         let status = (response as? HTTPURLResponse)?.statusCode,
         (200..<300).contains(status)
-      else { continue }
+      else {
+        missing += 1
+        continue
+      }
 
-      try? data.write(to: destination, options: .atomic)
+      do {
+        try data.write(to: destination, options: .atomic)
+      } catch {
+        missing += 1
+      }
     }
 
     prune(mediaRoot, keeping: referenced)
@@ -79,6 +94,8 @@ enum WidgetSnapshotWriter {
       to: root.appendingPathComponent(snapshotFile), options: .atomic)
 
     WidgetCenter.shared.reloadAllTimelines()
+
+    return missing
   }
 
   /// Sign-out and account deletion. A widget keeps drawing its last snapshot
