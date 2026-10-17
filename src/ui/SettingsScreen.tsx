@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet } from 'react-native';
 import {
   Column,
   Host,
-  Icon,
   ListItem,
   RadioButton,
   Row,
@@ -25,7 +24,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
-import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
 import {
   SettingsAccountSection,
@@ -48,8 +46,6 @@ export type SettingsOption = { value: string; label: string };
 /** A single-choice preference, e.g. language or theme. */
 export type SettingsRadioSection = {
   title: string;
-  /** Leading icon for the preference row. */
-  icon?: IconName;
   options: SettingsOption[];
   selected: string;
   onSelect: (value: string) => void;
@@ -180,20 +176,17 @@ const styles = StyleSheet.create({
 
 /**
  * The tappable row alone, memoized so dialog open/close state changes in
- * `RadioPreference` never re-render it — re-sending props to the native
- * `Icon` makes it re-resolve its drawable async, which reads as a flicker.
+ * `RadioPreference` never re-render it.
  */
 const PreferenceRow = memo(
   ({
     title,
-    icon,
     selectedLabel,
     shape,
     colors,
     onOpen,
   }: {
     title: string;
-    icon?: IconName;
     selectedLabel?: string;
     shape: ReturnType<typeof groupRowShape>;
     colors: SettingsScreenColors;
@@ -223,15 +216,6 @@ const PreferenceRow = memo(
       }}
       modifiers={[fillMaxWidth(), clip(shape), clickable(() => onOpen(title))]}
     >
-      {icon ? (
-        <ListItem.LeadingContent>
-          <Icon
-            source={iconSource(icon)}
-            size={24}
-            tint={colors.onSurfaceMuted}
-          />
-        </ListItem.LeadingContent>
-      ) : null}
       <ListItem.HeadlineContent>
         <Text>{title}</Text>
       </ListItem.HeadlineContent>
@@ -548,7 +532,6 @@ export const SettingsScreen = ({
                   <PreferenceRow
                     key={section.title}
                     title={section.title}
-                    icon={section.icon}
                     selectedLabel={
                       section.options.find(
                         option => option.value === section.selected,
