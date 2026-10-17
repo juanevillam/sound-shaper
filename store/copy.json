@@ -1,0 +1,49 @@
+{
+  "_comment": "One entry per App Store screenshot, in store order. A \\n in a title is a deliberate line break; the subtitle must fit one line (the generator fails if it wraps). `source` names a file in store/source/ (a locale folder there, e.g. store/source/es-MX/, overrides it for that locale). Headlines follow docs/standards.md -> Voice: title case in English, sentence case in Spanish, no exclamation marks.",
+  "screens": [
+    {
+      "source": "player.png",
+      "en-US": {
+        "title": "Your Music,\nShaped Your Way",
+        "subtitle": "Your own MP3s, tuned the way you like."
+      },
+      "es-MX": {
+        "title": "Tu música,\na tu manera",
+        "subtitle": "Tus propios MP3, como más te gusten."
+      }
+    },
+    {
+      "source": "shape.png",
+      "en-US": {
+        "title": "Shape\nEvery Sound",
+        "subtitle": "Equalizer, speed and natural pitch."
+      },
+      "es-MX": {
+        "title": "Dale forma\nal sonido",
+        "subtitle": "Ecualizador, velocidad y tono natural."
+      }
+    },
+    {
+      "source": "clip.png",
+      "en-US": {
+        "title": "Save the\nBest Parts",
+        "subtitle": "Frame a passage and jump back to it."
+      },
+      "es-MX": {
+        "title": "Guarda las\nmejores partes",
+        "subtitle": "Enmarca un pasaje y vuelve a él."
+      }
+    },
+    {
+      "source": "home.png",
+      "en-US": {
+        "title": "A Library\nThat’s Yours",
+        "subtitle": "Arranged by hand. Plays offline."
+      },
+      "es-MX": {
+        "title": "Una biblioteca\nque es tuya",
+        "subtitle": "Ordenada a mano. Suena sin conexión."
+      }
+    }
+  ]
+}

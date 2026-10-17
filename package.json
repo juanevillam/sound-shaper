@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run test/unit",
     "brand-art": "python3 -m venv .brand-venv >/dev/null && .brand-venv/bin/pip install --quiet shapely pillow && .brand-venv/bin/python scripts/gen-brand-art.py",
+    "store-screenshots": "python3 -m venv .brand-venv >/dev/null && .brand-venv/bin/pip install --quiet pillow && .brand-venv/bin/python store/generate.py",
     "postinstall": "node scripts/apply-patches.mjs",
     "prepare": "husky"
   },
