@@ -3,19 +3,19 @@
 Sound Shaper ships first on iOS, then Android, published under Grostify LLC's
 Apple Developer membership (team `PHLR7X3FGN`).
 
-| gate | what                                                                 | state                                                                   |
-| ---- | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1    | privacy policy, support and account-deletion pages                   | ✅ live on juanevillam.com                                              |
-| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                       |
-| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                      |
-| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                    |
-| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                     |
-| 2f   | the SDK 57 drift survives a Release build                            | 🟡 local Release proven (`dyld_info`, zero unresolved); EAS `.ipa` next |
-| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)      |
-| 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation           |
-| 2i   | console hardening before the repo is public                          | 🟡 preset ✅; API-key restrictions, rules, secret scanning left         |
-| 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                           |
-| 4    | submit                                                               | ⬜                                                                      |
+| gate | what                                                                 | state                                                              |
+| ---- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 1    | privacy policy, support and account-deletion pages                   | ✅ live on juanevillam.com                                         |
+| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                  |
+| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                 |
+| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                               |
+| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                |
+| 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports        |
+| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue) |
+| 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation      |
+| 2i   | console hardening before the repo is public                          | 🟡 preset ✅; API-key restrictions, rules, secret scanning left    |
+| 3    | the engineering quality audit                                        | ⬜ after 2e and 2f, incl. `npm audit` (below)                      |
+| 4    | submit                                                               | ⬜                                                                 |
 
 ## 2i — console hardening
 
@@ -47,6 +47,19 @@ Apple Developer membership (team `PHLR7X3FGN`).
   `firebase deploy --only firestore:rules --project sound-shaper`.
 - **GitHub**: secret scanning and push protection on. The local net is the
   gitleaks pre-commit hook (`brew install gitleaks`).
+
+## 2f — CLOSED 2026-10-16 on the EAS build
+
+The first EAS production build (id `556ed58c…`, build number 2, commit
+`bb18f4e`) passed the same check on the real `.ipa`: 14 binaries (the app,
+12 frameworks, the widget), **zero unresolved imports**. Also verified on
+that artifact: signed `iPhone Distribution: Grostify LLC (PHLR7X3FGN)` with
+App Store profiles for the app and the widget, entitlements carrying Sign in
+with Apple and `group.com.grostify.soundshaper`, `get-task-allow` false — and
+the build log shows `apply-patches` running on EAS's `npm ci` (`patched
+@expo/ui@57.0.7`, `patched react-native-audio-api@0.13.2`), so the phase
+vocoder and the now-playing fixes ship. EAS logs are brotli-compressed:
+`zlib.brotliDecompressSync` in Node reads them.
 
 ## 2f — how the drift was checked
 

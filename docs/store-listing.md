@@ -177,9 +177,9 @@ the above. There is no analytics SDK and Crashlytics is never given a user id.
 
 ## Before submitting — still open
 
-- **The privacy policy must say people can now set their own name and photo,
-  and that listening time and clips saved are stored for trophies.** The page
-  lives in the website's repository (`apps/web`, `privacy-policy.astro`) and
-  says the name and photo come from the sign-in provider only.
+- **The privacy policy is updated** (portfolio commit `d065f345`, all three
+  languages: editable name and photo, the uploaded photo on Cloudinary, the
+  trophy totals) **but not deployed** — it goes live with the website's next
+  push, which has to happen before the app is submitted.
 - Screenshots: after the quality audit, from the TestFlight build — 6.9"
   iPhone (1320 × 2868) is the one size Apple requires.
