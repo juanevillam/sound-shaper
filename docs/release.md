@@ -9,7 +9,7 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                       |
 | 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                      |
 | 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                    |
-| 2e   | iOS submit profile in `eas.json`                                     | 🟡 `appleTeamId` set; `ascAppId` waits on the App Store Connect record  |
+| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                     |
 | 2f   | the SDK 57 drift survives a Release build                            | 🟡 local Release proven (`dyld_info`, zero unresolved); EAS `.ipa` next |
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)      |
 | 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation           |
@@ -74,3 +74,12 @@ npm 11 on macOS leaves out `@emnapi/*`, the peers of the wasm-only
 `@napi-rs/wasm-runtime`, and `npm ci` on Linux then refuses the lock. After a
 dependency change, regenerate it in a `node:22` container with
 `npm install --package-lock-only`.
+
+## App Store Connect
+
+Created 2026-10-16 under Grostify LLC: Apple ID **6823850995**, SKU
+`sound-shaper-ios`, bundle `com.juanevillam.soundshaper`. The store NAME is
+**Sound Shaper: Shape Your Music** (30 characters, the limit) because plain
+"Sound Shaper" is taken on the App Store; the Home Screen name stays "Sound
+Shaper". "EQ" and "speed" belong in the subtitle and keywords, which carry
+search weight too.
