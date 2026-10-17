@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react';
 
 import { ActionSheetIOS } from 'react-native';
 
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 
 import { IMAGE_QUALITY } from '@/hooks/useCoverPicker';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { profilePhotoDisplayUrls } from '@/lib/profilePhoto';
 import { uploadCoverImage } from '@/services/cloudinary/upload';
 import { setOwnName, setOwnPhoto } from '@/services/firebase/ownProfile';
 import { useAuthStore } from '@/store/auth';
@@ -71,6 +73,17 @@ export const useOwnProfileEditing = () => {
       try {
         const asset = uri ? await uploadCoverImage(uri, mimeType) : null;
         await setOwnPhoto(asset);
+        // WARM BOTH AVATARS BEFORE THE LOCAL FILE GOES. The pending photo is
+        // what both slots show while this runs; clearing it hands them the new
+        // display-sized urls, which used to be fetched cold — so the face
+        // blinked out and back in. Awaited so the swap lands on a warm cache;
+        // a failed prefetch only means the old cold fetch.
+        if (asset) {
+          await Image.prefetch(
+            profilePhotoDisplayUrls(asset.url),
+            'memory-disk',
+          ).catch(() => false);
+        }
         patchStores({ photoUrl: asset?.url ?? null });
       } catch {
         showSnackbar(t('snackbar.profile-photo-failed'));
