@@ -25,6 +25,9 @@
       "android": {
         "serviceAccountKeyPath": "../../play-service-account.json",
         "track": "internal"
+      },
+      "ios": {
+        "appleTeamId": "PHLR7X3FGN"
       }
     }
   }
