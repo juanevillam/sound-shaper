@@ -429,6 +429,6 @@ const styles = StyleSheet.create({
   // Full width so the disc centres in the form row; RNHostView measures the
   // RN child and gives it no size of its own.
   mediaSlot: { alignItems: 'center', width: '100%' },
-  // The picture fills the slot the package sized and clipped.
+  // The picture fills the slot `MediaPickerAvatar` sized and clipped.
   mediaPreview: { height: '100%', width: '100%' },
 });

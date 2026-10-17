@@ -8,12 +8,9 @@ import {
 } from './index';
 
 /**
- * THE PUBLISH PROTOCOL, WHICH IS THE SAME IN EVERY APP.
- *
- * What an app puts on the Home Screen differs completely — a library of
- * sounds, a shelf of tops — but the rules around it never do, and both apps had
- * written them out separately (83.7% identical, caught by
- * `scripts/shared-code-audit.mjs`):
+ * THE PUBLISH PROTOCOL — the rules around a publish, which do not depend on
+ * what the widget draws. (In the portfolio this module came from, two apps had
+ * written them out separately, 83.7% identical, before they were lifted here.)
  *
  *   · publish nothing until the first server snapshot has landed, because an
  *     empty collection and one nobody has asked for yet look identical from

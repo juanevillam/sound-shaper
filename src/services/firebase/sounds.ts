@@ -41,7 +41,7 @@ export type Sound = {
   // file carried none (SoundArt then shows the music glyph). `artPublicId` is
   // what `destroySoundArt` names when the cover is replaced or the sound is
   // deleted — the signed delete this comment used to call a known gap, live
-  // since 2026-09-12 (services/media-worker).
+  // since 2026-09-12 (`media-worker/`).
   artPublicId: string;
   artUrl: string;
   audioPublicId: string;
@@ -121,10 +121,10 @@ type UpdateSoundParams = {
    * off; `null` is that channel. `SoundArt` already draws an art-less sound
    * everywhere it renders, so a cleared cover needs nothing downstream.
    *
-   * The old Cloudinary asset ORPHANS when a cover is replaced or cleared. That
-   * is the same accepted gap deleting a sound has: removing an asset needs a
-   * signed backend call this app does not have (no Blaze plan, no Functions).
-   * Recorded rather than hidden — see the app's AGENTS.md.
+   * The old Cloudinary asset is DESTROYED when a cover is replaced or cleared
+   * (`updateSound`, through the media Worker — best-effort, since 2026-09-12).
+   * Until the Worker was deployed it orphaned, the same gap deleting a sound
+   * had.
    */
   cover?: { publicId: string; url: string } | null;
 };
@@ -446,7 +446,7 @@ export const renormalizeSoundPositions = reported(
  *
  * THE CLOUDINARY ASSETS GO TOO, which they did not until 2026-09-12: this
  * deleted the document and left the audio and the artwork standing forever,
- * with nothing left that could ever name them again. `services/media-worker`
+ * with nothing left that could ever name them again. `media-worker/`
  * is the signed call this app's docblocks used to say it deliberately didn't
  * have. Best-effort — an orphan is the old status quo, a delete that refuses
  * to finish is a new defect.

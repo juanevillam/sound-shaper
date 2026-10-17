@@ -26,7 +26,7 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *     Apple escalates a consequential action by asking who you are, not by
  *     making you wait.
  *  2. Destroy every Cloudinary asset under the caller's own folder — audio
- *     and artwork both, via `services/media-worker`. Best-effort.
+ *     and artwork both, via `media-worker/`. Best-effort.
  *  3. Sweep every Firestore trace (`deleteAccountData`).
  *  4. Revoke the provider's grant — best-effort. Apple: its tokens, with the
  *     reauth's authorizationCode (App Store 5.1.1(v)); proven end to end on

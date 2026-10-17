@@ -30,8 +30,8 @@ const APP_GROUP = 'group.com.grostify.soundshaper';
  * The widget is a second process with its own sandbox: it holds no Firebase, no
  * session, and no copy. What it draws — the order, the artwork, the words — is
  * shaped HERE, because the wire format belongs to this app and its widget; the
- * rules around publishing are `useWidgetPublisher`'s, because those are the
- * same in every app.
+ * rules around publishing are `useWidgetPublisher`'s (`modules/widget-bridge`),
+ * because they do not depend on what the widget draws.
  */
 export const useWidgetSync = () => {
   const { locale, t } = useI18n();

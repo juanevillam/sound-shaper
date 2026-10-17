@@ -28,8 +28,7 @@ import {
   useNavigationTheme,
 } from '@/ui';
 
-// No brand seed: like every portfolio app, Sound Shaper rides the platform
-// default palette — wallpaper-derived Material You on Android, Apple system
+// No brand seed: Sound Shaper rides the platform default palette — wallpaper-derived Material You on Android, Apple system
 // colors on iOS.
 
 SplashScreen.preventAutoHideAsync();
@@ -127,7 +126,7 @@ export default function RootLayout() {
   // theme change. Fixing it, and controlling the light bar at all, means
   // `setNavigationBarContrastEnforced` / `isAppearanceLightNavigationBars` —
   // native levers that need `expo-navigation-bar`, which is deliberately not a
-  // dependency, plus a prebuild and a rebuild of all three apps.
+  // dependency, plus a prebuild and a native rebuild.
   //
   // One measurement worth not re-deriving: a mid-grey (#919192) light bar can
   // be produced by cold-starting in dark and then flipping to light, because
@@ -151,7 +150,7 @@ export default function RootLayout() {
         <ThemeProvider value={navigationTheme}>
           <KeyboardProvider>
             {/* `dismissLabel` is Android's action-less dismiss slot — it
-                shipped as a hardcoded English 'OK' inside the package's
+                shipped as a hardcoded English 'OK' inside the provider's
                 default, the one user-facing string outside translations.ts.
                 Walked on the A54 2026-08-28: a clip-saved toast renders "Clip
                 saved" with an "OK" dismiss. Topper carries the identical

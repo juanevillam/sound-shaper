@@ -51,7 +51,7 @@ export const widgetMediaFile = async (url: string): Promise<string> => {
 
 /**
  * Publish an app's own snapshot — any JSON-serialisable shape, because the wire
- * format belongs to the app and its widget, not to this package — plus the
+ * format belongs to the app and its widget, not to this module — plus the
  * media it references, and reload the widget.
  *
  * A no-op off iOS.

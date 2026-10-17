@@ -11,7 +11,7 @@ import Foundation
 /// silent one.
 enum SharedContainer {
   static let appGroup = "group.com.grostify.soundshaper"
-  // Both names are the package's — see `WidgetSnapshotWriter`.
+  // Both names are the bridge module's — see `WidgetSnapshotWriter`.
   static let snapshotFile = "snapshot.json"
   static let mediaDirectory = "media"
 }

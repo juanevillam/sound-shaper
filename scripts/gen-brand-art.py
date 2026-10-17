@@ -14,8 +14,9 @@ pipelines they drifted. Outputs:
     store-icons/play-512.png               Play Console listing icon
 
 Colours come from GROUND_LIGHT / GROUND_DARK below — but the same two values are
-ALSO hard-coded in `app.json` and in `src/ui/BrandTile.tsx`. To change one, follow **"Changing a brand colour"** in AGENTS.md; this
-file alone is not enough.
+ALSO hard-coded in `app.json` and in `src/ui/BrandTile.tsx`. To change one,
+follow **"Changing a brand colour"** in `docs/standards.md`; this file alone is
+not enough.
 
 Two things here are load-bearing and easy to undo by accident:
 
@@ -57,14 +58,16 @@ GRIDS = {
 # A mark whose corners reach further from centre than the others' needs a
 # smaller splash grid to clear Android 12's circle — Booker's open book is 30
 # units wide with square outer corners. Measured with the check below: 800
-# clipped 1.69% of the ink, 760 still 0.10%, 750 clears. Per app, so the other
-# marks keep their size.
+# clipped 1.69% of the ink, 760 still 0.10%, 750 clears. Keyed per mark, so the
+# others keep their size; empty here, because the equalizer clears the
+# standard grid.
 SPLASH_GRID_OVERRIDES = {}
 
 # THE brand palette. Two neutrals, swapped per appearance. Changing either of
 # these changes only what this script generates — the same values are ALSO
-# hard-coded in app.json, BrandTile and the favicon, so follow the runbook in
-# AGENTS.md ("Changing a brand colour") or the surfaces will disagree.
+# hard-coded in app.json and BrandTile (and juanevillam.com's favicon, in the
+# site's own repo), so follow the runbook in docs/standards.md ("Changing a
+# brand colour") or the surfaces will disagree.
 GROUND_LIGHT = "#F5F5F5"  # light-appearance ground; mark is GROUND_DARK on it
 GROUND_DARK = "#222222"  # dark-appearance ground; mark is GROUND_LIGHT on it
 

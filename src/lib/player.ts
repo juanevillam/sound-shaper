@@ -63,8 +63,8 @@ export const snapRate = (value: number): number => {
 
 /**
  * THE iOS SLIDER RUNS ON STOP INDICES, NOT ON RATES (2026-10-10). SwiftUI's
- * `Slider` draws its tick marks natively when given a `step` — Booker's Text
- * Size shows them — but at 0.75…1.25 by 0.05 the span is not a whole number
+ * `Slider` draws its tick marks natively when given a `step` (a sibling app's
+ * Text Size slider shows them) — but at 0.75…1.25 by 0.05 the span is not a whole number
  * of steps in floating point (0.5 / 0.05 is 9.999…), and this slider drew
  * none. Index 0…`RATE_LAST_STOP` by 1 is exact; the rate is derived from it.
  */

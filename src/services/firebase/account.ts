@@ -20,7 +20,7 @@ import { cleanupMyMedia } from '@/services/firebase/functions';
 // Account deletion, personal-app scale: a client-side sweep of everything under
 // users/{uid} (each sound's clips, the sounds, the saved shapes, the trophies,
 // the profile doc), then the Auth user itself — plus the Cloudinary media,
-// which `services/media-worker` destroys by the caller's own folder prefix.
+// which `media-worker/` destroys by the caller's own folder prefix.
 // That media used to orphan for want of a signed backend call, while the row's
 // copy promised the library was deleted permanently.
 //

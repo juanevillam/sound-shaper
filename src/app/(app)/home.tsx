@@ -109,8 +109,9 @@ const APP_BAR_HEIGHT = 64;
  * match it — Topper reaches its figure by accident (list padding plus the
  * header text's own leading) — and it DRIFTS when Topper's home is reworked:
  * this was 29.5 against a measured 31.6 until the 2026-09-04 rail-tile rework
- * moved Topper's first ink, found 3.9dp adrift on 2026-09-08. A retune
- * re-measures Topper first.
+ * moved Topper's first ink, found 3.9dp adrift on 2026-09-08. Topper lives in
+ * its own repository now, so the figure below is this screen's own; a retune
+ * measures it here rather than chasing Topper's.
  *
  * 21.6, since the 2026-09-08 screen-top halving that followed the on-scroll
  * bar (Topper's list top went 12 → 8, so its "Your Tops" ink gap went
@@ -183,12 +184,12 @@ const toGridCells = (
   return [...cells.slice(0, slot), addTile, ...cells.slice(slot)];
 };
 
-// The whole library on one screen: the app's header (one Settings gear — the
-// same bar every app in the portfolio opens on) over a 2-column grid of sound
-// tiles — YT Music's album-tile
-// language, one sound per tile. No playlists: you upload one and it's there.
-// Tap = play (and the player opens); long-press = edit/delete; the add tile
-// closes the grid.
+// The whole library on one screen: the app's header (one Settings gear — see
+// `docs/standards.md` → "Every home bar carries one glyph") over a 2-column
+// grid of sound tiles — YT Music's album-tile language, one sound per tile. No
+// playlists: you upload one and it's there. Tap = play (and the player opens);
+// hold and move = reorder; hold and release = edit; the add tile is a cell in
+// the same hand order.
 export default function HomeScreen() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -529,7 +530,7 @@ export default function HomeScreen() {
     <Screen>
       {/* iOS: the SYSTEM LARGE TITLE — the 34pt heading in the content that
           settles into the 17pt inline bar as you scroll, with the trailing
-          glyphs staying put in the bar the whole way. Same bar Topper's iOS
+          gear staying put in the bar the whole way. Same bar Topper's iOS
           home runs, which is what makes the two read as one family; it
           replaced a hand-built Reanimated collapse (`CollapsingHeaderBar` +
           `CollapsingHeaderTitle` — deleted from `src/ui`
@@ -557,7 +558,8 @@ export default function HomeScreen() {
           it already paints nothing, so an empty title and no glyphs leave
           literally nothing on screen, and eight consecutive frames measure
           flush to y=0. The empty bar does not swallow touches either — the
-          player's own ⋯ and collapse chevron sit inside its band and both were
+          player's own ⋯ and collapse chevron sat inside its band when this was
+          measured (that bar row has since been removed) and both were
           verified working.
 
           `headerLargeTitle` stays TRUE throughout rather than following
@@ -587,9 +589,9 @@ export default function HomeScreen() {
       />
 
       <SafeAreaView style={styles.safeArea} edges={[]}>
-        {/* Android only: M3's small top app bar, drawn as content. Same tonal
-            container, same 64dp, same 22sp title on the grid margin, and the
-            gear is still a real Compose action — the only thing that changed is
+        {/* Android only: M3's small top app bar, drawn as content. Same 64dp,
+            the navigator's own title type on the grid margin (see `title`
+            below), and the gear is still a real Compose action — the only thing that changed is
             who owns the view, which is what lets the player cover it. iOS takes
             the navigator's own bar instead (see the Stack.Screen above). */}
         {IS_IOS ? null : (
@@ -755,8 +757,8 @@ const styles = StyleSheet.create({
   // The navigator's own Android header type, which Topper gets
   // for free by using its header — 20sp medium, NOT the M3 titleLarge token
   // (22sp regular). Drawing this bar ourselves means matching it by hand, and
-  // matching the other two apps beats being closer to the spec on this one
-  // screen: measured side by side, 22/400 read 9% larger AND lighter.
+  // matching every other app bar (and, at the time, the portfolio's other two
+  // apps) beats being closer to the spec on this one screen: measured side by side, 22/400 read 9% larger AND lighter.
   //
   // ALL THREE VALUES ARE STATED HERE, and the `Text` takes no `variant`. It
   // used to pass `titleLarge` and then override two of its three properties in

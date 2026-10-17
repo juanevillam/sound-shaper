@@ -1,10 +1,10 @@
 import { requireUser } from '@/services/firebase/auth';
 
 /**
- * Thin fetch-based client for the portfolio's media-cleanup Worker (POST
- * {data} + the caller's Firebase ID token; 200 {result} back). The Worker
- * deletes only the caller's own Cloudinary assets and does nothing else — see
- * services/media-worker (the `sound-shaper` environment).
+ * Thin fetch-based client for the media-cleanup Worker (POST {data} + the
+ * caller's Firebase ID token; 200 {result} back). The Worker deletes only the
+ * caller's own Cloudinary assets and does nothing else — see `media-worker/`
+ * (the `sound-shaper` environment).
  *
  * IT IS THE BACKEND THIS APP'S DOCBLOCKS SAID IT "DELIBERATELY DOESN'T HAVE".
  * That was true, and it cost three orphans: a deleted sound kept its audio and
@@ -18,7 +18,7 @@ import { requireUser } from '@/services/firebase/auth';
  * flow. Apple token revocation is NOT here — Firebase's managed
  * `getAuth().revokeToken` handles it with no backend of ours.
  */
-// Deployed 2026-09-12 from services/media-worker
+// Deployed 2026-09-12 from `media-worker/`
 // (`npm run deploy:sound-shaper`). Re-deploying does not change this URL; only
 // renaming the Worker or the account's workers.dev subdomain would.
 const FUNCTIONS_BASE =

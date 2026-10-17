@@ -148,9 +148,8 @@ export default function AppLayout() {
         {/* Settings and everything it drills into. On iOS these are STACKED
             SHEETS (Settings opens from the home bar, Account presents over
             Settings from its identity banner, Trophies over Account, each
-            dismissing back to the one below) — the
-            portfolio-wide placement, matching Topper and Booker, with
-            the children stacked rather than pushed because RNScreens gives a
+            dismissing back to the one below) — the placement the portfolio's
+            apps shared, with the children stacked rather than pushed because RNScreens gives a
             screen pushed on a `formSheet` root no back button at all. The
             reasoning lives in `IOS_SHEET_SCREENS`. On Android these stay
             ordinary pushed screens with their Material app bars — the `title`
@@ -166,8 +165,8 @@ export default function AppLayout() {
           />
         ))}
         {/* Native form sheets on iOS. Android presents every one of these
-            surfaces in place — Compose ModalBottomSheets, or an RN sheet over
-            the player for the clip editor — and navigates to NONE of them;
+            surfaces in place — Compose ModalBottomSheets, the clip editor's
+            stacked over the Clips sheet — and navigates to NONE of them;
             each route's base file is an `iosOnlyRoute` stub that exists to
             guard the external deep link.
 

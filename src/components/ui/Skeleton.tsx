@@ -22,8 +22,7 @@ export const SKELETON_DELAY_MS = 400;
  *
  * LINE BOXES, NOT BAR HEIGHTS. A bar is drawn thinner than the text it stands
  * for, so what has to be RESERVED is the real `lineHeight` and the bar sits
- * inside it. Topper's rail carries the same rule after the same bug — see its
- * `Skeleton.tsx`.
+ * inside it. Topper's rail carries the same rule after the same bug.
  */
 export function SoundTileSkeleton() {
   // THE SAME CALL THE TILE MAKES, not a copy of its answer — the cell is

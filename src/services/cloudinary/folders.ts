@@ -2,7 +2,7 @@
  * Cloudinary folder layout for Sound Shaper.
  *
  * EVERY ASSET LIVES UNDER A PER-USER PREFIX so the media worker
- * (services/media-worker, the `sound-shaper` environment) can prove ownership
+ * (`media-worker/`, the `sound-shaper` environment) can prove ownership
  * by path alone — it deletes only within `sound-shaper/{uid}/`, and so needs
  * no database access. Keep MEDIA_ROOT in sync with that environment's
  * `MEDIA_FOLDER_ROOT` var.

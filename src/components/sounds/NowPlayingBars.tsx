@@ -26,8 +26,9 @@ const BAR_HEIGHT = 11;
 const BAR_GAP = 3;
 const DISC_SIZE = 26;
 // Prime-ish and staggered so the bars never march in lockstep. These are the
-// 1x durations; the real ones divide by the playback rate, so the bars visibly
-// speed up at 2x and drag at 0.5x — the mark keeps time with the music.
+// 1x durations; the real ones divide by the playback rate, so the bars speed
+// up at 1.25x and drag at 0.75x (`RATE_MAX` / `RATE_MIN`) — the mark keeps
+// time with the music.
 const BAR_DURATIONS = [560, 700, 620];
 const BAR_DELAYS = [0, 160, 320];
 // A shallow range: the bars breathe rather than jump.

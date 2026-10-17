@@ -33,9 +33,10 @@ export const IMAGE_QUALITY = 0.8;
  *
  * TWO STEPS, DEFERRED — Topper's `useImageUpload` shape, and for its reason:
  * picking is cheap and reversible (a repick just replaces the local file), so
- * the upload waits for save. Uploading on pick orphans a Cloudinary asset every
- * time someone changes their mind or cancels, and this app has no signed
- * backend call to delete one with.
+ * the upload waits for save. Uploading on pick would orphan a Cloudinary asset
+ * every time someone changes their mind or cancels; the media Worker
+ * (`media-worker/`, deployed 2026-09-12) could delete it, but a best-effort
+ * delete for an asset nobody kept is a cost the deferral simply never pays.
  */
 export const useCoverPicker = (): UseCoverPickerReturn => {
   const pickCover = useCallback(async (): Promise<PickedCover | null> => {

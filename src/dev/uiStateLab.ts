@@ -9,8 +9,8 @@ import { STATE_LAB } from '@/dev/flags';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  DEV-ONLY LAB — the state picker's data. The PICKER itself is the package's
- *  (`StateLab` in `src/ui`), shared with Topper.
+ *  DEV-ONLY LAB — the state picker's data. The PICKER itself is `StateLab`, in
+ *  `src/ui`.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Forces a surface's UI states so they can be SEEN and pixel-measured rather
@@ -71,7 +71,7 @@ export type HomeState = 'live' | 'skeleton' | 'error';
  * WHAT IT PINS DIFFERS BY PLATFORM, because the blocking does: iOS's
  * `UIAlertController` cannot go busy, so the scrim and spinner live on the
  * SHEET, while Android's confirm dialog is Compose and holds its own busy
- * state. Same job, each in its own language (AGENTS.md) — so the note below
+ * state. Same job, each in its own language (`docs/standards.md`) — so the note below
  * names the shared promise rather than either one's furniture.
  */
 export type AccountState = 'live' | 'skeleton' | 'deleting';

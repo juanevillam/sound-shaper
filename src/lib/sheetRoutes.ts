@@ -37,7 +37,8 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   titleKey?: string;
 }> = [
   /**
-   * CONTENT-SIZED, the way Topper's two editors are — measured, not defaulted.
+   * CONTENT-SIZED — measured, not defaulted (Topper's two editors set the
+   * standard).
    *
    * A native SwiftUI `Form` is a scroll container with no intrinsic height, so
    * `fitToContents` hugs the header and renders the form 0pt tall; a fractional
@@ -66,8 +67,8 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    * keeping as a worked example: at a flat 0.9 the sheet spanned 164 → 874 with
    * the last ink at 730.
    *
-   * KNOWN, ACCEPTED TRADE — the fractional-detent DIMMING, exactly as Topper's
-   * table records it: below the large detent iOS keeps the presenting window
+   * KNOWN, ACCEPTED TRADE — the fractional-detent DIMMING: below the large
+   * detent iOS keeps the presenting window
    * primary and renders the sheet's SwiftUI in the inactive appearance. The
    * shaper is at [1] BECAUSE it is a primary surface; an editor is not.
    */
@@ -79,12 +80,13 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
   },
   /**
    * FULL HEIGHT, like Settings and Account — this is a PRIMARY surface, not a
-   * quick edit. It holds a preset picker, five EQ sliders, a speed slider and a
-   * pitch toggle, each with its own footnote; it scrolled at 0.9 and it will
-   * scroll at anything less than the screen.
+   * quick edit. It holds a preset picker, five EQ sliders, a speed slider, a
+   * pitch toggle and the Echo and Next Room level pickers, most with their own
+   * footnote; it scrolled at 0.9 and it will scroll at anything less than the
+   * screen.
    *
-   * A fractional detent also costs it the OS's sheet dimming (see Topper's
-   * table): below the large detent iOS keeps the presenting window primary and
+   * A fractional detent also costs it the OS's sheet dimming (see `edit-sound`
+   * above): below the large detent iOS keeps the presenting window primary and
    * renders the sheet's SwiftUI in the inactive appearance, so the picker's
    * value greys and the grouped fills desaturate. That is an acceptable trade
    * for a small content-sized editor. It is the wrong trade for the surface a
@@ -97,9 +99,9 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
     titleKey: 'player.shape.title',
   },
   /**
-   * FULL HEIGHT, because it is a LIST — and every list sheet in the portfolio
-   * is [1]: Topper's follow-list, people, trash and blocked-users all are, and
-   * blocked-users stands empty more often than this one does.
+   * FULL HEIGHT, because it is a LIST — and list sheets are [1]: Topper's
+   * follow-list, people, trash and blocked-users all were, and blocked-users
+   * stood empty more often than this one does.
    *
    * It sat at 0.6, which was sized to nothing in particular. Band-scanned on
    * iPhone 17 / iOS 26.5 with an empty list: the sheet spanned 389 → 874 and
@@ -107,9 +109,9 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    * was empty. A size chosen to fit an empty list is wrong the moment the list
    * fills, and a clips list grows without a bound anyone can predict.
    *
-   * The cost is honest: with no clips it is a full screen holding one line. The
-   * portfolio already accepted that for blocked-users, and it buys a sheet that
-   * is still right at ten clips. It also drops the fractional-detent dimming,
+   * The cost is honest: with no clips it is a full screen holding an empty
+   * state. Topper already accepted that for blocked-users, and it buys a sheet
+   * that is still right at ten clips. It also drops the fractional-detent dimming,
    * so the rows render in the active appearance.
    */
   {
@@ -124,8 +126,9 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
    * way trophies stacks over account. A zoomed waveform, an overview strip
    * and a transport are a primary editing surface, not a quick form; and the
    * fractional-detent dimming would grey the very waveform being aimed.
-   * The commit-modal bar (✕ / title / ✓) is stated by the screen through
-   * `sheetCommitBarOptionsIos`, so `titled` supplies only the fallback.
+   * The bar (✕ leading; Shape and ✓ as one `HeaderGlyphGroupIos` trailing) is
+   * built by the screen's own `Stack.Screen`, so `titled` supplies only the
+   * fallback.
    */
   {
     name: 'clip-trim',
@@ -149,8 +152,7 @@ export const IOS_FORM_SHEETS: ReadonlyArray<{
  * root — no chevron and no edge-swipe, so the reader is trapped one level in.
  * Stacking each child as its own sheet keeps every level dismissible and
  * returns you to the sheet below on swipe-down or close. Topper hit this first
- * and made the same call; see its `IOS_SHEET_SCREENS` for the rejected
- * alternative.
+ * and made the same call.
  *
  * All full height: each one scrolls, and a `fitToContents` sheet over a native
  * SwiftUI `Form` renders 0pt tall (the Form is a scroll container with no
@@ -168,8 +170,8 @@ export const IOS_SHEET_SCREENS: ReadonlyArray<{
     // everything account-shaped lives on it, and it is reached by tapping the
     // person themselves on Settings' identity banner, so a title telling them
     // they are about to "manage" something is the longer word for where they
-    // already are. Android keeps the longer title, because there it really is
-    // one row labelled "Manage Account" inside Settings.
+    // already are. Android reaches it the same way (the identity banner, since
+    // 2026-09-08) and takes the same title.
     detents: [1],
     titleKey: 'settings.account.sheetTitle',
   },

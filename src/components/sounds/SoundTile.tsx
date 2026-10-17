@@ -59,8 +59,8 @@ import {
  * THE OTHER HALF IS CORRECTNESS, and it is the part that is not a micro-win: a
  * window width is available synchronously, so there is nothing to wait for.
  * This is the shape `chrome.ts` already uses for the player's artwork
- * (`playerArtSize(winW)`), and the root AGENTS.md's rule that a measurement
- * must never sit on the layout path of its own first frame. It reproduces the
+ * (`playerArtSize(winW)`), and the standing rule (`docs/standards.md`) that a
+ * measurement must never sit on the layout path of its own first frame. It reproduces the
  * old 178.0 exactly at 402pt and is simply correct on every other width, where
  * the frozen 178 had the cover, its corner and its bone all disagreeing with
  * the box they were in.
@@ -225,7 +225,7 @@ export const useSoundTileMetrics = (): SoundTileMetrics =>
 
 type SoundTileProps = {
   sound: Sound;
-  /** Tinted primary while this sound is the loaded one. */
+  /** The loaded sound — marked by the now-playing bars, never by a tint. */
   isCurrent: boolean;
   /** Drives the now-playing bars: animating while playing, frozen paused. */
   isPlaying: boolean;
@@ -292,7 +292,7 @@ export function SoundTile({
   );
 }
 
-/** The trailing "add a sound" cell — a dashed square with a plus. */
+/** The "add a sound" cell — a filled square with a plus. */
 export function AddSoundTile({ onPress }: { onPress: () => void }) {
   const { colors, scheme } = useAppTheme();
   const { t } = useI18n();

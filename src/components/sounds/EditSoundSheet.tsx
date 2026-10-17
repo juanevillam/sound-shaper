@@ -59,7 +59,7 @@ import {
   SHAPE_MD,
 } from '@/ui';
 
-/** The picture fills the slot the package sized and clipped. */
+/** The picture fills the slot `MediaPickerAvatar` sized and clipped. */
 const MENU_ICON_SIZE = 24;
 const MEDIA_PREVIEW_FILL = { height: '100%', width: '100%' } as const;
 

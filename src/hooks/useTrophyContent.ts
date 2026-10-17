@@ -52,9 +52,9 @@ type TrophyContent = {
 };
 
 /**
- * Builds every localized trophy string from the app's i18n (the package itself
+ * Builds every localized trophy string from the app's i18n (`src/trophies`
  * stays content-free — copy is injected, exactly like `SettingsScreen`). Counts
- * are substituted here so the package never sees a template. Recomputes on
+ * are substituted here so the module never sees a template. Recomputes on
  * locale change.
  */
 export const useTrophyContent = (): TrophyContent => {

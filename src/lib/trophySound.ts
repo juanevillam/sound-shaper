@@ -13,7 +13,7 @@ import { useTrophyStore } from '@/trophies';
  * the chime plays, and the song picks up where it was.
  *
  * IT PLAYS THROUGH THE ENGINE'S OWN AudioContext, never expo-audio. Topper's
- * chime (`apps/topper/src/lib/trophySound.ts`) switches the session to
+ * chime (its own `trophySound.ts`, in that app's repo) switches the session to
  * `.ambient` so it can mix over other apps' music; here that would pull the
  * session out of the `playback` category the player lives on — background
  * audio, the Lock Screen player — so the chime shares the player's session

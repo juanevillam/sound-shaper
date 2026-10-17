@@ -11,8 +11,8 @@ import { TrophyDetailContent, useTrophies } from '@/trophies';
 
 // iOS-only route: one trophy's detail as a content-hugging native form sheet
 // (Android presents the Compose `TrophyDetailSheet` in place). The sheet's
-// CONTENT lives in `src/trophies` (`TrophyDetailContent`) so this surface
-// is pixel-identical across the portfolio — this route only resolves the
+// CONTENT lives in `src/trophies` (`TrophyDetailContent`), written once so it
+// cannot drift — this route only resolves the
 // trophy, localizes the caption, and passes the platform palette through.
 function TrophyDetailSheetScreen() {
   const { trophyId } = useLocalSearchParams<{ trophyId: string }>();

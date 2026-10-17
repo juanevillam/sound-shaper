@@ -58,7 +58,7 @@ export default function TrophiesRoute() {
           total={total}
           // Before the store hydrates every trophy reads locked, so the summary
           // states a confident "0 of 7" at 0% — a wrong answer, not a pending
-          // one. The package's own placeholder says so instead.
+          // one. `TrophiesScreen`'s own placeholder says so instead.
           loading={loading}
           colors={{
             background: colors.background,

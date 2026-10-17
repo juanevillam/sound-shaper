@@ -15,7 +15,7 @@ import { SnackbarOutlet } from '@/ui';
  * `colors.background`. Inside a form sheet that is the wrong colour: the sheet
  * is already painted by `sheetOptions`' `contentStyle` (`colors.sheet`), and
  * covering it makes those sheets read DARKER than every other one in dark mode.
- * The shared `SettingsScreen.ios` is the reference — it wraps in the package's
+ * The shared `SettingsScreen.ios` is the reference — it wraps in `src/ui`'s
  * `Screen` with NO backgroundColor for exactly this reason, letting the sheet's
  * own colour through.
  *

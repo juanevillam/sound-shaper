@@ -20,11 +20,11 @@ import WidgetKit
 /// box so a row can never overflow it.
 private enum Grid {
   static let gap: CGFloat = 8
-  /// A picture's corner is a ratio of the picture — `artworkRadius`, the
-  /// portfolio's term. This target cannot import it across the process
+  /// A picture's corner is a ratio of the picture — `artworkRadius`, in
+  /// `src/ui`. This target cannot import it across the process
   /// boundary, so it restates the ratio rather than a size.
   static let artworkRatio: CGFloat = 0.15
-  /// `EMPTY_MEDIA_INITIAL_RATIO`, from `src/ui`/InitialArt`.
+  /// `EMPTY_MEDIA_INITIAL_RATIO`, from `src/ui/InitialArt`.
   static let initialRatio: CGFloat = 0.42
 
   static func columns(_ family: WidgetFamily) -> Int {

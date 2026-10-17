@@ -25,11 +25,11 @@ import { StateLab, type StateLabGroup } from '@/ui';
  *
  * What the stub actually cost was the Android craft audit: Home's `skeleton`
  * and `error` could not be pinned on the device the whole Phase-B workstream
- * runs on, using the tool the root AGENTS.md names as THE way to judge UI
+ * runs on, using the tool `docs/dev-workflow.md` names as THE way to judge UI
  * states. Chasing them by hand is exactly what the lab exists to stop.
  *
- * The PICKER is the package's, so every app steps its states with the same
- * control at the same size. This file supplies only what is this app's: which
+ * The PICKER is `src/ui`'s `StateLab`, so every surface steps its states with
+ * the same control at the same size. This file supplies only the app's part: which
  * group belongs to which surface, and where its value lives. Same split the
  * shared screens use — the component is shared, the adapter is the app's.
  *
