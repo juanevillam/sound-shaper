@@ -50,9 +50,16 @@ const TAIL_MS = 250;
 const buffers: Partial<Record<Variant, Promise<AudioBuffer>>> = {};
 
 const bufferFor = (variant: Variant): Promise<AudioBuffer> => {
-  buffers[variant] ??= audioEngine
-    .getContext()
-    .decodeAudioData(SOURCES[variant]);
+  if (!buffers[variant]) {
+    const decoding = audioEngine.getContext().decodeAudioData(SOURCES[variant]);
+    buffers[variant] = decoding;
+    // A FAILED DECODE IS NOT KEPT. Memoized as it was, one rejection stayed
+    // the answer for the whole session and every later unlock was silent; it
+    // is evicted so the next chime decodes again. Callers still see it reject.
+    decoding.catch(() => {
+      if (buffers[variant] === decoding) delete buffers[variant];
+    });
+  }
   return buffers[variant];
 };
 
