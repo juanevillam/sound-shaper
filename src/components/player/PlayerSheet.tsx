@@ -1461,6 +1461,8 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   const { colors } = useAppTheme();
   const { width: winW } = useWindowDimensions();
   const sounds = useSoundsStore(s => s.sounds);
+  const hasSettled = useSoundsStore(s => s.hasSettled);
+  const loadFailed = useSoundsStore(s => s.error !== null);
   const playSound = usePlayerStore(s => s.playSound);
   const requestExpand = usePlayerStore(s => s.requestExpand);
 
@@ -1468,6 +1470,17 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
   // like it means.
   const ordered = sounds;
   const first = ordered[0] ?? null;
+  /**
+   * "NO SOUNDS YET" IS AN ANSWER, so it waits for the question to be answered
+   * (2026-10-16). Before the library's first snapshot — a cold start while
+   * Firestore's cache replays — and after a failed load, an empty `sounds`
+   * says nothing about the library, and the banner used to say it was empty
+   * anyway. It stands as its bare glass box instead: no art, no words, no
+   * control. Not a bone, because the box's contents differ by answer (art
+   * and two lines, or two lines alone) and a bone promises a shape. Home's
+   * grid already waits on `hasSettled`; this was the one surface that didn't.
+   */
+  const isEmpty = !first && hasSettled && !loadFailed;
 
   // Parked on the first sound, so skipping behaves exactly as it would once
   // something is loaded: next steps forward, previous wraps to the last.
@@ -1509,10 +1522,14 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         disabled={!first}
         // Empty, the banner is a statement rather than a control: read as
         // text, with its second line as the hint, instead of as a dimmed
-        // button whose hint VoiceOver never reached.
+        // button whose hint VoiceOver never reached. Unanswered, it says
+        // nothing at all, to VoiceOver either.
+        accessible={Boolean(first) || isEmpty}
         accessibilityRole={first ? 'button' : 'text'}
-        accessibilityLabel={first ? first.name : t('player.empty')}
-        accessibilityHint={first ? undefined : t('player.emptyHint')}
+        accessibilityLabel={
+          first ? first.name : isEmpty ? t('player.empty') : undefined
+        }
+        accessibilityHint={isEmpty ? t('player.emptyHint') : undefined}
       >
         {/* AN EMPTY LIBRARY SHOWS NO ART (Juan, 2026-10-16): with no sound
             to stand for, the placeholder fell back to a "?" — a question the
@@ -1557,7 +1574,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
                 numberOfLines={1}
               />
             </>
-          ) : (
+          ) : isEmpty ? (
             // The loaded banner's two lines, so the parked pill keeps its
             // typesetting: the state as the title, what to do under it.
             <>
@@ -1576,7 +1593,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
                 numberOfLines={1}
               />
             </>
-          )}
+          ) : null}
         </View>
         {first ? (
           <>
