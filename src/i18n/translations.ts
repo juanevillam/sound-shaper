@@ -111,7 +111,7 @@ export const translations = {
       },
       eq: {
         title: 'Equalizer',
-        hint: 'Bass on the left, treble on the right',
+        hint: 'Bass on the left, treble on the right.',
         presets: {
           flat: 'Flat',
           bass: 'Bass',
@@ -155,14 +155,14 @@ export const translations = {
         // sheet over.
         deleteConfirm: {
           title: 'Delete This Clip?',
-          message: 'The clip will be deleted. This can’t be undone.',
+          message: "The clip will be deleted. This can't be undone.",
           confirm: 'Delete',
           cancel: 'Cancel',
         },
         // VoiceOver only — the trim frame's three adjustable elements.
         selection: 'Clip',
-        startHandle: 'Clip start',
-        endHandle: 'Clip end',
+        startHandle: 'Clip Start',
+        endHandle: 'Clip End',
         skipBack: 'Skip back {s} seconds',
         skipForward: 'Skip forward {s} seconds',
         // THE BAND WITH NO WAVE IN IT — shown only when the decode failed,
@@ -171,7 +171,7 @@ export const translations = {
         // is nothing for anyone to do: the ruler, the handles and the
         // transport are all duration-derived, so the clip can still be
         // trimmed and saved, and reopening the editor retries the decode.
-        waveformUnavailable: 'Couldn’t load the waveform.',
+        waveformUnavailable: "Couldn't load the waveform.",
       },
     },
     soundEdit: {
@@ -196,7 +196,7 @@ export const translations = {
       deleteConfirm: {
         title: 'Delete This Sound?',
         message:
-          'The sound and its file will be deleted. This can’t be undone.',
+          "The sound and its file will be deleted. This can't be undone.",
         confirm: 'Delete',
         cancel: 'Cancel',
       },
@@ -276,7 +276,7 @@ export const translations = {
         deleteDialog: {
           title: 'Delete This Account?',
           message:
-            'All of your sounds and clips will be deleted permanently. This can’t be undone.',
+            "All of your sounds and clips will be deleted permanently. This can't be undone.",
           confirm: 'Delete',
           cancel: 'Cancel',
           confirmTitle: 'Delete Account Permanently?',
@@ -451,7 +451,7 @@ export const translations = {
       },
       eq: {
         title: 'Ecualizador',
-        hint: 'Graves a la izquierda, agudos a la derecha',
+        hint: 'Graves a la izquierda, agudos a la derecha.',
         presets: {
           flat: 'Plano',
           bass: 'Graves',
@@ -756,7 +756,7 @@ export const translations = {
       },
       eq: {
         title: '均衡器',
-        hint: '左侧低音，右侧高音',
+        hint: '左侧低音，右侧高音。',
         presets: {
           flat: '平坦',
           bass: '低音',
