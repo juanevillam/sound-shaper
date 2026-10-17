@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Image as RemoteImage } from 'expo-image';
 import { router, useNavigation } from 'expo-router';
@@ -257,8 +257,19 @@ export default function ManageAccount() {
               captionColor={photoBusy ? colors.onSurfaceMuted : colors.primary}
               // A person: the default full circle. With no photo, their
               // initial — the monogram every photo-less person gets here.
+              // WORK THE PERSON STARTED TAKES THE SLOT'S OWN SPINNER. This sheet
+              // has no commit glyph to spin, so without it an upload ran
+              // behind nothing but a muted caption. It replaces the picture
+              // on the slot's own disc — nothing moves, the box keeps its
+              // size. `ActivityIndicator` IS UIKit's spinner; `ProgressViewIos`
+              // would need a SwiftUI host inside this row's bridged RN view,
+              // the nesting the one-host-per-row ceiling rules out.
               preview={
-                photoUri ? (
+                photoBusy ? (
+                  <View style={[styles.photo, styles.busy]}>
+                    <ActivityIndicator color={colors.onSurfaceMuted} />
+                  </View>
+                ) : photoUri ? (
                   <RemoteImage
                     source={{ uri: photoUri }}
                     style={styles.photo}
@@ -318,6 +329,7 @@ export default function ManageAccount() {
 
 const styles = StyleSheet.create({
   photo: { height: MEDIA_PICKER_SIZE, width: MEDIA_PICKER_SIZE },
+  busy: { alignItems: 'center', justifyContent: 'center' },
   // Full-width and centring: `RNHostView` takes no style, so the RN child
   // carries its own size and centres itself (see `SheetFormMediaIos`).
   photoSlot: { alignItems: 'center', width: '100%' },
