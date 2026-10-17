@@ -4,6 +4,7 @@ import { getAuth } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import { blockTrophyCounterSync } from '@/lib/trophyCounters';
+import { TimeoutError, withTimeout } from '@/lib/withTimeout';
 import {
   cleanupAccountMedia,
   deleteAccountData,
@@ -48,33 +49,60 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  *
  * Throws on any non-best-effort failure so the sheet can surface it; a partial
  * run is safe to retry, since every step no-ops on what is already gone.
+ *
+ * EVERY NETWORK STEP AFTER THE RE-AUTH HAS A DEADLINE (`STEP_TIMEOUT_MS`).
+ * A Firestore delete resolves only on the server's acknowledgement, so with
+ * the connection gone after the re-auth the sweep never settled and the
+ * blocking overlay stayed up forever, with no way out of it. A timed-out step
+ * throws like any other failure — the overlay lifts on the "couldn't delete"
+ * snackbar and the person can retry. The deletes it already issued stay
+ * queued and land on reconnect, which a retry tolerates by construction.
  */
+const STEP_TIMEOUT_MS = 30_000;
+
+const step = <T>(promise: Promise<T>, name: string): Promise<T> =>
+  withTimeout(promise, STEP_TIMEOUT_MS, `deleteAccount: ${name} timed out`);
+
 export const useDeleteAccount = () =>
   useCallback(async () => {
     const { appleAuthorizationCode } = await reauthenticateForDeletion();
 
     blockTrophyCounterSync(true);
     try {
-      await cleanupAccountMedia();
-      await deleteAccountData();
+      // Best-effort on its own; the deadline only stops it holding the rest.
+      await step(cleanupAccountMedia(), 'media').catch(error =>
+        recordError(error, 'deleteAccount.cleanupMedia'),
+      );
+      await step(deleteAccountData(), 'sweep');
     } catch (error) {
-      blockTrophyCounterSync(false);
+      // A TIMED-OUT sweep is still queued and will land on reconnect, so the
+      // totals stay blocked — a `merge` behind it would recreate the user doc.
+      // Any other failure wrote nothing more, and they sync again.
+      // (A deadline is reported here: `reported` inside the sweep never sees
+      // it, since the work it wraps has not failed — it just has not finished.)
+      if (error instanceof TimeoutError)
+        recordError(error, 'deleteAccount.sweep');
+      else blockTrophyCounterSync(false);
       throw error;
     }
 
     if (appleAuthorizationCode)
       try {
-        await getAuth().revokeToken(appleAuthorizationCode);
+        await step(getAuth().revokeToken(appleAuthorizationCode), 'revoke');
       } catch (error) {
         recordError(error, 'deleteAccount.revokeAppleTokens');
       }
     else
       try {
         // The reauth just signed Google in again, so its grant is live here.
-        await GoogleSignin.revokeAccess();
+        await step(GoogleSignin.revokeAccess(), 'revoke');
       } catch (error) {
         recordError(error, 'deleteAccount.revokeGoogleAccess');
       }
 
-    await deleteAuthAccount();
+    await step(deleteAuthAccount(), 'auth').catch(error => {
+      if (error instanceof TimeoutError)
+        recordError(error, 'deleteAccount.auth');
+      throw error;
+    });
   }, []);
