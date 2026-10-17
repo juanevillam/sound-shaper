@@ -94,7 +94,8 @@ landed on `main`. What they left, deliberately:
   preset and "Resource list" restricted in Cloudinary; Anonymous and
   Email/Password sign-in off in Firebase Auth; App Privacy in App Store
   Connect filled from `docs/store-listing.md`; deploy the Worker change
-  (memoised signing keys) with `npm run deploy` in `media-worker/`.
+  (memoised signing keys, and since 2026-10-17 the CDN purge on every
+  delete) with `npm run deploy` in `media-worker/`.
 - **Android, at its own release:** a device walk of every Android change since
   2026-09-11 (none has run on the A54 since the extraction), the Android API
   key restriction, and the Play Data safety form.

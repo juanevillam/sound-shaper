@@ -1294,8 +1294,14 @@ anchor re-measuring per expand (equality-guarded, and insets move).
 retired 2026-09-12, its phases all shipped
 (`git log --follow -- docs/sound-shaper-plan.md` for the history). Its copyright
 rule survives in the only form that outlived the 2026-07-18 zero-social pivot:
-**every upload is strictly personal, and nothing a person uploads is reachable
-by anyone else.** There is no public feed to shield, and no preview clip.
+**every upload is strictly personal, and nothing in the app shares, lists or
+shows it to anyone else.** There is no public feed to shield, and no preview
+clip. The files themselves sit at Cloudinary delivery URLs that are public IF
+KNOWN — unlisted, never shown, held only in owner-only Firestore documents —
+so every piece of copy says "never shared or shown", never "no one can reach
+it" (2026-10-17, the compliance pass). Authenticated delivery is the change
+that would make the stronger claim true, and it was declined in the gate-3
+audit.
 
 ## Status
 

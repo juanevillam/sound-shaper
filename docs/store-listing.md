@@ -57,7 +57,7 @@ A LIBRARY THAT IS YOURS
 • Playback continues in the background, with the Lock Screen and Control Center controls you already know.
 
 PRIVATE BY DESIGN
-There is no social side to Sound Shaper. Nothing you upload is ever visible to anyone else, and you can delete your account — with every song, clip and image in it — from inside the app.
+There is no social side to Sound Shaper. Nothing you upload is shared with or shown to anyone else, and you can delete your account — with every song, clip and image in it — from inside the app.
 
 Earn trophies as you listen, shape and clip along the way.
 
@@ -115,7 +115,7 @@ UNA BIBLIOTECA QUE ES TUYA
 • La reproducción sigue en segundo plano, con los controles de la pantalla bloqueada y del centro de control que ya conoces.
 
 PRIVADO POR DISEÑO
-Sound Shaper no tiene parte social. Nada de lo que subes lo puede ver nadie más, y puedes eliminar tu cuenta —con cada canción, clip e imagen— desde la propia app.
+Sound Shaper no tiene parte social. Nada de lo que subes se comparte ni se muestra a nadie más, y puedes eliminar tu cuenta —con cada canción, clip e imagen— desde la propia app.
 
 Gana trofeos mientras escuchas, ajustas y guardas clips.
 
@@ -139,8 +139,8 @@ La primera versión de Sound Shaper.
 All "None" (violence, sexual content, profanity, drugs, horror, gambling,
 contests, medical) and **No** to: unrestricted web access, user-generated
 content shared with others, messaging or chat, location sharing. The library
-is user content, but it is never visible to anyone else, so the UGC question
-is No. Result: **4+**.
+is user content, but it is never shared with or shown to anyone else, so the
+UGC question is No. Result: **4+**.
 
 ## App Privacy — what to declare
 
@@ -173,10 +173,22 @@ to one is a change to the other.
 - **Sign-in required:** yes, Sign in with Apple or Google. **No demo account
   is provided:** a reviewer signs in with Sign in with Apple, which needs only
   the device's own Apple Account, and starts with an empty library.
+- **Contact:** Juan (`juanesvillamendoza@gmail.com`) — the operator, who can
+  answer for the app; Grostify only publishes it.
+- **Attachment:** one short MP3 Juan owns outright (made by him, or CC0 with
+  its source noted), so the reviewer has something to add. A review device
+  has no music in Files, and "pick any MP3" with nothing to pick is how a
+  personal locker gets rejected under 2.1 for "unable to test".
 - **Notes for the reviewer:**
 
   ```
-  Sound Shaper is a personal music player. Sign in with Apple to start; the library begins empty. To try it, tap Add Sound and pick any MP3 from Files — the app reads its title and artwork, then plays it through the shaping graph (Equalizer, Playback Speed, Next Room, Echo under Shape; Clips from the player). Nothing a person uploads is visible to anyone else; there are no social features. Account deletion: Settings → your name → Delete Account, which removes the account, its data and its files, and revokes the Sign in with Apple token.
+  Sound Shaper is a personal music player for MP3 files the person already has. Sign in with Apple to start; the library begins empty. To try it, tap Add Sound and choose the attached MP3 (save it to Files first) — the app reads its title and artwork, then plays it through the shaping graph (Equalizer, Playback Speed, Next Room, Echo under Shape; Clips from the player).
+
+  Content: the app only imports files the person picks from their own device. It does not download, stream or convert media from any third-party service or URL, and has no catalogue. Everything a person adds stays in their own account: there is no sharing, no feed, no discovery and no way to see another person's library, so no one else ever sees it. The terms require people to own or have the right to keep what they add, and give a copyright complaint procedure.
+
+  Account deletion: Settings → your name → Delete Account. It removes the person's files, data and account, and revokes the Sign in with Apple token.
+
+  Sound Shaper is built and operated by Juan Esteban Villa Mendoza and published on the App Store by Grostify LLC.
   ```
 
 - **Export compliance:** `ITSAppUsesNonExemptEncryption` is `false` in
@@ -184,11 +196,15 @@ to one is a change to the other.
 
 ## Before submitting — still open
 
-- **The privacy policy is updated** (portfolio commit `d065f345`, all three
-  languages: editable name and photo, the uploaded photo on Cloudinary, the
-  trophy totals) **but not deployed** — it goes live with the website's next
-  push, which has to happen before the app is submitted.
+- **The legal pages were rewritten 2026-10-17** (website repo, all three
+  languages: the publisher line, unlisted-not-private wording, retention,
+  children, copyright complaints, Apple's EULA) **but are not deployed** —
+  they go live with juanevillam.com's first deploy, which has to happen
+  before the app is submitted.
 - Screenshots: a first set is generated in `store/screenshots/` (6.9" iPhone,
-  1320 × 2868, the one size Apple requires). Retake the sources after the
-  quality audit, with artwork you have the rights to, and re-run
-  `npm run store-screenshots` — see [`store/README.md`](../store/README.md).
+  1320 × 2868, the one size Apple requires). **It shows commercial album
+  covers (Bad Bunny's DÁKITI with its Parental Advisory label among them) and
+  cannot be submitted** — retake the sources with artwork you have the
+  rights to, and re-run `npm run store-screenshots` — see
+  [`store/README.md`](../store/README.md).
+- The reviewer attachment (above) is not made yet.
