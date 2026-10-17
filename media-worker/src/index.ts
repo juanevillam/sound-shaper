@@ -45,10 +45,13 @@ interface Env {
 }
 
 // Google's public keys for Firebase ID tokens, in JWK form (easiest to import
-// with Web Crypto). Rotated periodically; we cache per the response's own
-// Cache-Control via the Workers Cache API.
+// with Web Crypto). Rotated periodically; cached for the response's own
+// Cache-Control max-age — see `fetchGoogleKeys`.
 const GOOGLE_JWK_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
+// When Google's response carries no usable max-age.
+const DEFAULT_KEYS_TTL_MS = 60 * 60 * 1000;
 
 // Clock-skew tolerance (seconds) for iat/auth_time being slightly ahead.
 const SKEW_SECONDS = 300;
@@ -67,14 +70,40 @@ const base64UrlToBytes = (input: string): Uint8Array => {
 const base64UrlToString = (input: string): string =>
   new TextDecoder().decode(base64UrlToBytes(input));
 
-/** Fetch Google's signing keys (kid → JWK), cached at the edge. */
+type GoogleKeys = Record<string, JsonWebKey & { kid: string }>;
+
+/** `max-age` from a Cache-Control header, in ms — or the fallback. */
+const maxAgeMs = (cacheControl: string | null): number => {
+  const match = cacheControl?.match(/max-age=(\d+)/);
+  const seconds = match ? Number(match[1]) : NaN;
+
+  return Number.isFinite(seconds) && seconds > 0
+    ? seconds * 1000
+    : DEFAULT_KEYS_TTL_MS;
+};
+
+/**
+ * THE KEYS ARE MEMOISED IN THE ISOLATE, NOT ONLY AT THE EDGE. `caches.default`
+ * is a no-op on a `*.workers.dev` hostname — the Cache API only stores on a
+ * zone the account owns — so on this deployment every request re-fetched
+ * Google's keys before it could verify anything. A module-scope memo lives as
+ * long as the isolate does (many requests) and expires on Google's own
+ * max-age. `caches.default` stays as the second tier, for a deployment on a
+ * custom domain where it does work.
+ */
+let memo: { expiresAt: number; keys: GoogleKeys } | null = null;
+
+/** Fetch Google's signing keys (kid → JWK). `force` skips both caches. */
 const fetchGoogleKeys = async (
   ctx: ExecutionContext,
-): Promise<Record<string, JsonWebKey & { kid: string }>> => {
+  { force = false }: { force?: boolean } = {},
+): Promise<GoogleKeys> => {
+  if (!force && memo && memo.expiresAt > Date.now()) return memo.keys;
+
   const cache = caches.default;
   const cacheKey = new Request(GOOGLE_JWK_URL);
 
-  let response = await cache.match(cacheKey);
+  let response = force ? undefined : await cache.match(cacheKey);
 
   if (!response) {
     response = await fetch(GOOGLE_JWK_URL);
@@ -88,9 +117,14 @@ const fetchGoogleKeys = async (
   const { keys } = (await response.json()) as {
     keys: Array<JsonWebKey & { kid: string }>;
   };
-  const byKid: Record<string, JsonWebKey & { kid: string }> = {};
+  const byKid: GoogleKeys = {};
 
   for (const key of keys) byKid[key.kid] = key;
+
+  memo = {
+    expiresAt: Date.now() + maxAgeMs(response.headers.get('Cache-Control')),
+    keys: byKid,
+  };
 
   return byKid;
 };
@@ -116,7 +150,11 @@ const verifyFirebaseToken = async (
 
   if (header.alg !== 'RS256') throw new Error('bad-alg');
 
-  const jwk = (await fetchGoogleKeys(ctx))[header.kid];
+  // An unknown kid on a memoised set may be a rotation the memo has not seen
+  // yet: refetch once before refusing the token.
+  const jwk =
+    (await fetchGoogleKeys(ctx))[header.kid] ??
+    (await fetchGoogleKeys(ctx, { force: true }))[header.kid];
 
   if (!jwk) throw new Error('unknown-kid');
 
