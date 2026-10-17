@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 
+import { AppState } from 'react-native';
+
+import { pushTrophyCounters } from '@/lib/trophyCounters';
 import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 
@@ -68,14 +71,31 @@ export const useListeningTime = () => {
     useListeningStore.getState().add(pending);
   }, []);
 
-  useEffect(() => {
+  // A BOUNDARY also sends the total to Firestore (`lib/trophyCounters`); a
+  // 5-second block only reaches the disk. That split is the whole cost model:
+  // a few writes per listening session, not 720 an hour.
+  const flushAndSync = useCallback(() => {
     flush();
+    pushTrophyCounters();
+  }, [flush]);
+
+  useEffect(() => {
+    flushAndSync();
     lastRef.current = null;
-  }, [currentId, flush]);
+  }, [currentId, flushAndSync]);
+
+  // Background is a boundary too: playback may carry on there, but the
+  // process may also be killed there without another word.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'background') flushAndSync();
+    });
+    return () => subscription.remove();
+  }, [flushAndSync]);
 
   useEffect(() => {
     if (!playing) {
-      flush();
+      flushAndSync();
       lastRef.current = null;
       return;
     }
@@ -90,7 +110,7 @@ export const useListeningTime = () => {
 
     pendingRef.current += delta;
     if (pendingRef.current >= COMMIT_THRESHOLD_S) flush();
-  }, [flush, playing, position]);
+  }, [flush, flushAndSync, playing, position]);
 
   // Sign-out and teardown: bank the last partial block rather than dropping it.
   useEffect(() => () => flush(), [flush]);

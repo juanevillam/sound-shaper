@@ -2,6 +2,10 @@ import { useEffect, useRef } from 'react';
 
 import { clearMirror } from '@/lib/offlineAudio';
 import {
+  hydrateTrophyCounters,
+  resetTrophyCounterSync,
+} from '@/lib/trophyCounters';
+import {
   configureGoogleSignIn,
   consumeManualSignOutFlag,
   subscribeToAuthChanges,
@@ -55,6 +59,7 @@ export const useAuthListener = () => {
          */
         useListeningStore.getState().reset();
         useClipsSavedStore.getState().reset();
+        resetTrophyCounterSync();
         /**
          * AND THE CURVE, which is the third store feeding the same trophy and
          * the one this list missed twice. `useTrophyTriggers` reads
@@ -88,14 +93,22 @@ export const useAuthListener = () => {
       });
 
       // Fire-and-forget: the service layer records the failure as a Crashlytics
-      // non-fatal; the warn is dev-only visibility.
+      // non-fatal; the warn is dev-only visibility. The profile it read seeds
+      // the store — the launch's one read of that doc (see the service) — and
+      // the trophy totals take the server's figures from it.
       upsertOwnProfile({
         displayName: user.displayName,
         photoUrl: user.photoURL,
         uid: user.uid,
-      }).catch((error: unknown) => {
-        if (__DEV__) console.warn('upsertOwnProfile failed:', error);
-      });
+      })
+        .then(profile => {
+          if (useAuthStore.getState().user?.uid !== user.uid) return;
+          useProfileStore.getState().setProfile(profile);
+          void hydrateTrophyCounters(profile);
+        })
+        .catch((error: unknown) => {
+          if (__DEV__) console.warn('upsertOwnProfile failed:', error);
+        });
     });
   }, [setUser, clearUser]);
 };

@@ -6,6 +6,7 @@ import { TROPHY_IDS } from '@/constants/trophies';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { pushTrophyCounters } from '@/lib/trophyCounters';
 import { createClip, updateClip } from '@/services/firebase/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
 import { usePlayerStore } from '@/store/player';
@@ -118,6 +119,8 @@ export function useClipTrimScreen({
           // saved one". Same sites the in-player save used.
           awardTrophy(TROPHY_IDS.firstClip);
           useClipsSavedStore.getState().saved();
+          // A handful of saves in a lifetime: sent on the spot.
+          pushTrophyCounters();
         });
     commit
       .then(() => {

@@ -8,6 +8,8 @@ import {
 } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
+import { pushTrophyCounters } from '@/lib/trophyCounters';
+
 // The Firebase project's Web OAuth client (the `client_type: 3` entry in
 // google-services.json / the Web client auto-created when Google sign-in was
 // enabled). Used on BOTH platforms by GoogleSignin.
@@ -72,6 +74,9 @@ export const consumeManualSignOutFlag = (): boolean => {
 };
 
 export const signOutFromGoogle = async (): Promise<void> => {
+  // The trophy totals' buffer goes out while there is still a user to write
+  // it as; after this the sign-out reset clears it (`lib/trophyCounters`).
+  pushTrophyCounters();
   manualSignOut = true;
   await GoogleSignin.signOut();
   await signOut(getAuth());

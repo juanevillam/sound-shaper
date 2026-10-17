@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { getAuth } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
+import { blockTrophyCounterSync } from '@/lib/trophyCounters';
 import {
   cleanupAccountMedia,
   deleteAccountData,
@@ -40,6 +41,11 @@ import { reauthenticateForDeletion } from '@/services/firebase/reauthForDeletion
  * the account while the row's own copy promised otherwise. The worker closes
  * it, and the same one closes the single-sound and cover-replace doors.
  *
+ * THE TROPHY TOTALS STOP SYNCING BEFORE THE SWEEP. Their push is a `merge`,
+ * so one fired by the player stopping mid-deletion would recreate the user
+ * doc the sweep just removed (`lib/trophyCounters`). A failed run lets them
+ * sync again; a finished one ends in the sign-out reset.
+ *
  * Throws on any non-best-effort failure so the sheet can surface it; a partial
  * run is safe to retry, since every step no-ops on what is already gone.
  */
@@ -47,9 +53,14 @@ export const useDeleteAccount = () =>
   useCallback(async () => {
     const { appleAuthorizationCode } = await reauthenticateForDeletion();
 
-    await cleanupAccountMedia();
-
-    await deleteAccountData();
+    blockTrophyCounterSync(true);
+    try {
+      await cleanupAccountMedia();
+      await deleteAccountData();
+    } catch (error) {
+      blockTrophyCounterSync(false);
+      throw error;
+    }
 
     if (appleAuthorizationCode)
       try {

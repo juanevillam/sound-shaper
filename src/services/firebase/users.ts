@@ -2,6 +2,7 @@ import {
   doc,
   getDoc,
   getFirestore,
+  increment,
   serverTimestamp,
   setDoc,
   type QueryDocumentSnapshot,
@@ -25,12 +26,24 @@ export type UserProfile = {
    * app's whole life before this.
    */
   addTilePosition: number | null;
+  /**
+   * HOW MANY CLIPS THE PERSON HAS EVER SAVED, server-side — the `saved-clips`
+   * trophy's count. Only ever moved by `increment`; see `lib/trophyCounters`.
+   * `null` means this account has never synced one.
+   */
+  clipsSaved: number | null;
   createdAt: number | null;
   displayName: string | null;
+  /** Seconds listened, lifetime — the `listening` trophy's total. Same rules
+   *  as `clipsSaved`. */
+  listenedSeconds: number | null;
   photoUrl: string | null;
   uid: string;
   updatedAt: number | null;
 };
+
+const finiteOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
 
 type UpsertOwnProfileParams = {
   displayName: string | null;
@@ -38,35 +51,62 @@ type UpsertOwnProfileParams = {
   uid: string;
 };
 
-const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile => {
-  const data = snapshot.data();
+const dataToModel = (
+  uid: string,
+  data: Record<string, unknown>,
+): UserProfile => {
   const createdAt = data.createdAt as Timestamp | undefined;
   const updatedAt = data.updatedAt as Timestamp | undefined;
 
   return {
-    addTilePosition:
-      typeof data.addTilePosition === 'number' &&
-      Number.isFinite(data.addTilePosition)
-        ? data.addTilePosition
-        : null,
+    addTilePosition: finiteOrNull(data.addTilePosition),
+    clipsSaved: finiteOrNull(data.clipsSaved),
     createdAt: createdAt ? createdAt.toMillis() : null,
     displayName: (data.displayName as string) ?? null,
+    listenedSeconds: finiteOrNull(data.listenedSeconds),
     photoUrl: (data.photoURL as string) ?? null,
-    uid: snapshot.id,
+    uid,
     updatedAt: updatedAt ? updatedAt.toMillis() : null,
   };
 };
 
-/** Create or refresh the signed-in user's profile doc after auth resolves. */
+const profileToModel = (snapshot: QueryDocumentSnapshot): UserProfile =>
+  dataToModel(snapshot.id, snapshot.data());
+
+/**
+ * Create or refresh the signed-in user's profile doc after auth resolves, and
+ * hand back the profile it read.
+ *
+ * THE READ IS THE LAUNCH'S ONLY READ OF THIS DOC. `upsertOwnProfile` has to
+ * read it anyway (Firestore has no set-if-absent for `createdAt`), and the
+ * grid needs `addTilePosition` from it at launch — so the caller seeds the
+ * profile store from what comes back instead of a second `getDoc` from the
+ * layout reading the same document a moment later.
+ *
+ * THE WRITE ONLY HAPPENS WHEN THE IDENTITY CHANGED. It ran on every cold
+ * start, because `onAuthStateChanged` fires for a persisted session too, and
+ * bumped `updatedAt` each time — a field meant to say when the identity
+ * snapshot last changed, reporting when the app was last opened.
+ */
 export const upsertOwnProfile = reported(
   'users.upsertOwnProfile',
   async ({
     displayName,
     photoUrl,
     uid,
-  }: UpsertOwnProfileParams): Promise<void> => {
+  }: UpsertOwnProfileParams): Promise<UserProfile> => {
     const ref = doc(getFirestore(), USERS_COLLECTION, uid);
     const existing = await getDoc(ref);
+    const data = (existing.exists() ? existing.data() : undefined) ?? {};
+    const hasCreatedAt = data.createdAt !== undefined;
+
+    if (
+      hasCreatedAt &&
+      data.displayName === displayName &&
+      data.photoURL === photoUrl
+    ) {
+      return dataToModel(uid, data);
+    }
 
     await setDoc(
       ref,
@@ -74,12 +114,14 @@ export const upsertOwnProfile = reported(
         displayName,
         photoURL: photoUrl,
         updatedAt: serverTimestamp(),
-        ...(existing.exists() && existing.get('createdAt') !== undefined
-          ? null
-          : { createdAt: serverTimestamp() }),
+        ...(hasCreatedAt ? null : { createdAt: serverTimestamp() }),
       },
       { merge: true },
     );
+
+    // The dates the write just stamped are server-side and land with the next
+    // read; the model carries what was there (or nothing, for a new account).
+    return dataToModel(uid, { ...data, displayName, photoURL: photoUrl });
   },
 );
 
@@ -130,6 +172,40 @@ export const setAddTilePosition = reported(
     await setDoc(
       doc(getFirestore(), USERS_COLLECTION, uid),
       { addTilePosition: position },
+      { merge: true },
+    );
+  },
+);
+
+/**
+ * Add to the person's two trophy totals — BY `increment`, never by writing a
+ * total. Two phones each writing "their" total wholesale would be
+ * last-writer-wins, and the other phone's listening would be erased: the exact
+ * loss keeping these server-side exists to stop. An increment from each
+ * merges.
+ *
+ * `merge` rather than `updateDoc`, for `setAddTilePosition`'s reason: the doc
+ * may not exist yet in the first moments of a new account.
+ */
+export const incrementTrophyCounters = reported(
+  'users.incrementTrophyCounters',
+  async ({
+    clipsSaved,
+    listenedSeconds,
+    uid,
+  }: {
+    clipsSaved: number;
+    listenedSeconds: number;
+    uid: string;
+  }): Promise<void> => {
+    await setDoc(
+      doc(getFirestore(), USERS_COLLECTION, uid),
+      {
+        ...(listenedSeconds > 0
+          ? { listenedSeconds: increment(listenedSeconds) }
+          : null),
+        ...(clipsSaved > 0 ? { clipsSaved: increment(clipsSaved) } : null),
+      },
       { merge: true },
     );
   },
