@@ -31,9 +31,18 @@ Apple Developer membership (team `PHLR7X3FGN`).
   configuration proven end to end. Never add an incoming transformation
   either: the preset carries audio too, and `q_auto` on a `video` resource
   re-encodes it.
-- **Firebase API keys**: restrict the iOS key by bundle id and the Android key
-  by package + the EAS release keystore's SHA-1, to the Firebase APIs only.
-- **`firestore.rules`**: deploy and confirm the live rules equal the repo's.
+- ✅ **Firebase API keys, DONE 2026-10-16 for iOS and the browser key.** The
+  iOS key is restricted to the bundle `com.juanevillam.soundshaper` (sign-in,
+  upload and playback verified on device after it took effect); the browser
+  key, which neither app ships, to `sound-shaper.firebaseapp.com/*` and
+  `sound-shaper.web.app/*`, Firebase's own domains. Both keep the API list
+  Firebase set. **Left: the Android key**, by package plus the SHA-1 of the EAS
+  release keystore (and the debug one while the A54 runs dev builds) — at the
+  first Android build, not before, or the Android app stops signing in.
+- **`firestore.rules`**: `users/{uid}` is owner-only since 2026-10-16 (it was
+  readable by any signed-in account). Deploy with
+  `firebase deploy --only firestore:rules --project sound-shaper` and confirm
+  the live rules equal the repo's.
 - **GitHub**: secret scanning and push protection on. The local net is the
   gitleaks pre-commit hook (`brew install gitleaks`).
 

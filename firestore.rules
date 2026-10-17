@@ -15,11 +15,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    // A signed-in user reads any profile but writes only their own — the doc
-    // `upsertOwnProfile` creates on sign-in.
+    // The profile — name, photo, where the add tile sits, the trophy totals —
+    // is the owner's alone, like everything under it. It was readable by any
+    // signed-in account, a leftover from when the portfolio's apps shared a
+    // social model; nothing in this app ever reads another person's doc.
     match /users/{uid} {
-      allow read: if isSignedIn();
-      allow write: if isUser(uid);
+      allow read, write: if isUser(uid);
 
       // The personal library: owner-only, the path IS the ownership.
       match /songs/{songId} {
