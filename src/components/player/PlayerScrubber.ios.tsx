@@ -2,9 +2,11 @@ import { StyleSheet, View } from 'react-native';
 
 import { MediaScrubberIos } from '@/components/player/MediaScrubberIos';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 
 import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
+import { SKIP_SECONDS } from './TrimGlyphs';
 
 // The Host gets a FIXED height rather than matchContents: an auto-sized Host
 // inside the player's absolutely-positioned console mis-measures on first
@@ -48,6 +50,8 @@ export function PlayerScrubber({
   onDrag,
   onDragEnd,
 }: PlayerScrubberProps) {
+  const { t } = useI18n();
+
   return (
     <View style={styles.block}>
       {/* APPLE'S MEDIA SCRUBBER, not a thumb slider — see
@@ -59,6 +63,15 @@ export function PlayerScrubber({
         <MediaScrubberIos
           position={position}
           duration={duration}
+          accessibilityLabel={t('player.position')}
+          accessibilityValueText={
+            totalDuration > 0
+              ? t('player.positionValue')
+                  .replace('{elapsed}', formatTime(position))
+                  .replace('{total}', formatTime(totalDuration))
+              : formatTime(position)
+          }
+          accessibilityStep={SKIP_SECONDS}
           onDrag={onDrag}
           onDragEnd={onDragEnd}
         />

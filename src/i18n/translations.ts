@@ -68,6 +68,9 @@ export const translations = {
     },
     player: {
       title: 'Now Playing',
+      // The scrubber's VoiceOver label; its value is the elapsed time.
+      position: 'Playback Position',
+      positionValue: '{elapsed} of {total}',
       empty: 'No Sounds Yet',
       emptyHint: 'Add a sound to start listening.',
       play: 'Play',
@@ -411,6 +414,8 @@ export const translations = {
       title: 'Reproduciendo',
       empty: 'Aún no hay sonidos',
       emptyHint: 'Añade un sonido para empezar a escuchar.',
+      position: 'Posición de reproducción',
+      positionValue: '{elapsed} de {total}',
       play: 'Reproducir',
       pause: 'Pausa',
       next: 'Siguiente sonido',
@@ -716,6 +721,8 @@ export const translations = {
       emptyHint: '添加一个音频即可开始收听。',
       play: '播放',
       pause: '暂停',
+      position: '播放进度',
+      positionValue: '{elapsed}，共 {total}',
       next: '下一个音频',
       previous: '上一个音频',
       speed: '播放速度',

@@ -137,7 +137,12 @@ export type PlayerScrubberProps = {
   /** The real track length, for the right-hand label. */
   totalDuration: number;
   onDrag: (value: number) => void;
-  onDragEnd: () => void;
+  /**
+   * `moved: false` is a touch that never travelled, which commits nothing
+   * (iOS's media scrubber). Compose's slider only finishes a real drag, so
+   * Android calls it bare.
+   */
+  onDragEnd: (moved?: boolean) => void;
 };
 
 export type PlayerCard = {

@@ -52,8 +52,8 @@ export function PlayerScrubberLive({
         lastDragRef.current = value;
         setDragValue(value);
       }}
-      onDragEnd={() => {
-        onSeek(lastDragRef.current);
+      onDragEnd={moved => {
+        if (moved !== false) onSeek(lastDragRef.current);
         setDragValue(null);
       }}
     />

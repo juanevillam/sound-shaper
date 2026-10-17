@@ -45,8 +45,17 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 // framing (`disabled`); since 2026-08-25 it stays live instead — scrubbing
 // while framing is how a clip's end is found by ear — and the caps win their
 // touches by GEOMETRY (transparent touch wrappers, resolved by hit-testing)
-// rather than by this control's silence. `disabled` remains for any caller
-// that genuinely needs a dead scrubber.
+// rather than by this control's silence.
+//
+// A TAP IS NOT A SEEK. Apple's scrubber moves relative to the finger, so a
+// touch that lands and lifts without travelling leaves the playhead where it
+// was. With `minDistance(0)` the pan BEGINS on a tap, and the end used to
+// commit whatever value the last drag left behind — 0:00 on the first tap of
+// a session, the previous scrub's point after that.
+//
+// VOICEOVER CANNOT DRAG, so the bar is ADJUSTABLE — the trait the SwiftUI
+// `Slider` it replaced carried for free — and swipe up/down skips by the same
+// step as the transport's skip buttons.
 
 /** Apple's, measured. The bar grows about its centre, so the box is stable. */
 const TRACK_HEIGHT = 8;
@@ -74,16 +83,23 @@ type MediaScrubberIosProps = {
   position: number;
   /** Always > 0, so the track is never degenerate. */
   duration: number;
-  /** Stand down while the trim frame is up — see the header. */
-  disabled?: boolean;
+  /** Spoken as the bar's name; its value is the elapsed time. */
+  accessibilityLabel: string;
+  /** Spoken as the bar's value. */
+  accessibilityValueText: string;
+  /** Seconds a VoiceOver swipe moves the playhead. */
+  accessibilityStep: number;
   onDrag: (value: number) => void;
-  onDragEnd: () => void;
+  /** `moved` is false for a touch that never travelled — commit nothing. */
+  onDragEnd: (moved: boolean) => void;
 };
 
 export function MediaScrubberIos({
   position,
   duration,
-  disabled = false,
+  accessibilityLabel,
+  accessibilityValueText,
+  accessibilityStep,
   onDrag,
   onDragEnd,
 }: MediaScrubberIosProps) {
@@ -92,6 +108,7 @@ export function MediaScrubberIos({
   const widthSv = useSharedValue(0);
   const valueSv = useSharedValue(0);
   const activeSv = useSharedValue(0);
+  const movedSv = useSharedValue(false);
   const draggingRef = useRef(false);
 
   // FOLLOW THE TRANSPORT ONLY WHEN THE FINGER DOES NOT OWN THE VALUE, and do
@@ -109,14 +126,15 @@ export function MediaScrubberIos({
   };
 
   const scrub = Gesture.Pan()
-    .enabled(!disabled)
     .minDistance(0)
     .onBegin(() => {
       runOnJS(setDragging)(true);
       activeSv.value = 1;
+      movedSv.value = false;
     })
     .onChange(event => {
       if (widthSv.value <= 0) return;
+      movedSv.value = true;
       const next = valueSv.value + (event.changeX / widthSv.value) * duration;
       valueSv.value = Math.min(Math.max(next, 0), duration);
       runOnJS(onDrag)(valueSv.value);
@@ -124,7 +142,7 @@ export function MediaScrubberIos({
     .onFinalize(() => {
       activeSv.value = 0;
       runOnJS(setDragging)(false);
-      runOnJS(onDragEnd)();
+      runOnJS(onDragEnd)(movedSv.value);
     });
 
   const barStyle = useAnimatedStyle(() => ({
@@ -147,6 +165,22 @@ export function MediaScrubberIos({
   return (
     <GestureDetector gesture={scrub}>
       <View
+        accessible
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="adjustable"
+        accessibilityValue={{ text: accessibilityValueText }}
+        onAccessibilityAction={event => {
+          const direction =
+            event.nativeEvent.actionName === 'increment' ? 1 : -1;
+          const next = Math.min(
+            Math.max(valueSv.value + direction * accessibilityStep, 0),
+            duration,
+          );
+          valueSv.value = next;
+          onDrag(next);
+          onDragEnd(true);
+        }}
         style={styles.hit}
         onLayout={event => {
           widthSv.value = event.nativeEvent.layout.width;
