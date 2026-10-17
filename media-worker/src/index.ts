@@ -25,6 +25,11 @@
  * `Authorization: Bearer <Firebase ID token>` header, 200 `{ result }` on
  * success. Callers treat every call as best-effort.
  *
+ * EVERY DELETE ALSO PURGES THE CDN (`invalidate`, 2026-10-17). Without it a
+ * deleted file stayed reachable at its delivery URL from Cloudinary's edge
+ * cache until that copy expired — a privacy policy that says the files go
+ * when the account goes has to mean the copies too.
+ *
  * Routes (POST only):
  *   /cleanupMyMedia   → delete every asset under the caller's prefix
  *   /destroyMyAsset   → { data: { publicId, resourceType } } delete one owned asset
@@ -229,6 +234,7 @@ const destroyOne = async (
 ): Promise<boolean> => {
   const url = new URL(cloudinaryResourcesUrl(env, resourceType));
   url.searchParams.append('public_ids[]', publicId);
+  url.searchParams.set('invalidate', 'true');
 
   const response = await fetch(url, {
     method: 'DELETE',
@@ -262,6 +268,7 @@ const destroyByPrefix = async (
     for (let i = 0; i < 50; i += 1) {
       const url = new URL(cloudinaryResourcesUrl(env, resourceType));
       url.searchParams.set('prefix', prefix);
+      url.searchParams.set('invalidate', 'true');
 
       const response = await fetch(url, {
         method: 'DELETE',
