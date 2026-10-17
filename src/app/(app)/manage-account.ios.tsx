@@ -201,8 +201,12 @@ export default function ManageAccount() {
     }
   };
 
-  // Same escalation order as Android: the full-consequences dialog first, then
-  // the "last chance" confirm actually runs the delete.
+  // TWO confirmations here: the full-consequences alert first, then a "last
+  // chance" alert whose confirm actually runs the delete. ANDROID ASKS ONCE —
+  // one `DestructiveConfirmDialog` with the full-consequences copy, whose
+  // confirm runs the delete and holds its own busy state. That is a known
+  // one-sided difference rather than a platform idiom, and whether the two
+  // should agree is Juan's call; do not "fix" either side on its own.
   const confirmDelete = () => {
     if (deleting) return;
 
