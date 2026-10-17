@@ -12,19 +12,18 @@ import {
   initialWindowMetrics,
 } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '@/core';
+import { useAppTheme, useThemeStore } from '@/core';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useWidgetSync } from '@/hooks/useWidgetSync';
 import { useI18n } from '@/i18n';
-import { SnackbarProvider } from '@/providers/SnackbarProvider';
 import { recordError } from '@/services/firebase/crashlytics';
 import { useAuthStore } from '@/store/auth';
 import { useLayoutStore } from '@/store/layout';
-import { useThemeStore } from '@/store/theme';
 import {
   ErrorScreen,
   preloadIcons,
   setSplashHidden,
+  SnackbarProvider,
   useNavigationTheme,
 } from '@/ui';
 

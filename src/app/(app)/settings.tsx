@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { useAppTheme, SUPPORTED_THEMES } from '@/core';
+import { useAppTheme, SUPPORTED_THEMES, useThemeStore } from '@/core';
 import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
@@ -17,7 +17,6 @@ import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { signOutFromGoogle } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/auth';
 import { useDevSettingsStore } from '@/store/devSettings';
-import { useThemeStore } from '@/store/theme';
 import {
   buildAboutSettingsSection,
   buildGeneralSettingsSections,
