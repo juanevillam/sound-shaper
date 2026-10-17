@@ -39,10 +39,12 @@ Apple Developer membership (team `PHLR7X3FGN`).
   Firebase set. **Left: the Android key**, by package plus the SHA-1 of the EAS
   release keystore (and the debug one while the A54 runs dev builds) — at the
   first Android build, not before, or the Android app stops signing in.
-- **`firestore.rules`**: `users/{uid}` is owner-only since 2026-10-16 (it was
-  readable by any signed-in account). Deploy with
-  `firebase deploy --only firestore:rules --project sound-shaper` and confirm
-  the live rules equal the repo's.
+- ✅ **`firestore.rules`, DEPLOYED 2026-10-16**: `users/{uid}` is owner-only
+  (it was readable by any signed-in account). Before the deploy the live
+  ruleset differed from the repo by one comment only; after it, the live
+  source (read back through the Firebase Rules API) is byte-identical to
+  `firestore.rules`. Deploy with
+  `firebase deploy --only firestore:rules --project sound-shaper`.
 - **GitHub**: secret scanning and push protection on. The local net is the
   gitleaks pre-commit hook (`brew install gitleaks`).
 
