@@ -148,7 +148,7 @@ export function StateLab({
   onSelectGroup?: (key: string) => void;
 }) {
   const { bottom } = useSafeAreaInsets();
-  const { scheme, seedColor } = useAppTheme();
+  const { scheme } = useAppTheme();
   const [activeKey, setActiveKey] = useState(groups[0]?.key);
 
   /**
@@ -212,7 +212,6 @@ export function StateLab({
         <View style={styles.groups}>
           <Host
             colorScheme={scheme}
-            seedColor={seedColor}
             matchContents={{ vertical: true }}
             style={styles.groupsHost}
           >

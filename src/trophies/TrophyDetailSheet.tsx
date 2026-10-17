@@ -62,7 +62,6 @@ export type TrophyDetailSheetProps = {
   /** The app's RESOLVED scheme, for the sheet's own Host (each app's
    *  `ThemedHost` is app code; the Host props are what it forwards). */
   colorScheme?: ColorSchemeName;
-  seedColor?: string;
 };
 
 // ANDROID-ONLY: the native Compose bottom sheet for one trophy — iOS presents
@@ -85,7 +84,6 @@ export function TrophyDetailSheet({
   onClose,
   colors,
   colorScheme,
-  seedColor,
 }: TrophyDetailSheetProps) {
   const sheetRef = useRef<ModalBottomSheetRef>(null);
   const insets = useSafeAreaInsets();
@@ -102,7 +100,7 @@ export function TrophyDetailSheet({
     : colors.onSurfaceMuted;
 
   return (
-    <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+    <Host matchContents colorScheme={colorScheme}>
       <ModalBottomSheet
         ref={sheetRef}
         onDismissRequest={onClose}

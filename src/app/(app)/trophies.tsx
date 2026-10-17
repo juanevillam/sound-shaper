@@ -17,7 +17,7 @@ import { useI18n } from '@/i18n';
 import { TrophiesScreen, TrophyDetailSheet, useTrophies } from '@/trophies';
 
 export default function TrophiesRoute() {
-  const { colors, scheme, seedColor } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { locale } = useI18n();
   const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total, hydrated } = useTrophies(copy);
@@ -108,7 +108,6 @@ export default function TrophiesRoute() {
             lockedDisc: colors.surfaceVariant,
           }}
           colorScheme={scheme}
-          seedColor={seedColor}
         />
       ) : null}
     </Screen>

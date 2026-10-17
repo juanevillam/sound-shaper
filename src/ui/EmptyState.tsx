@@ -96,7 +96,7 @@ export function EmptyState({
   action,
   children,
 }: EmptyStateProps) {
-  const { colors, scheme, seedColor } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
 
   return (
     <View style={styles.centered}>
@@ -107,7 +107,6 @@ export function EmptyState({
           one ever returns. */}
       <Host
         colorScheme={scheme}
-        seedColor={seedColor}
         style={styles.host}
         matchContents={{ vertical: true }}
       >

@@ -18,7 +18,7 @@ const APP_NAME = Constants.expoConfig?.name ?? '';
 
 export default function Welcome() {
   const { t } = useI18n();
-  const { colors, scheme, seedColor } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { isSigningIn, signIn } = useGoogleSignIn();
   const { isSigningIn: isAppleSigningIn, signIn: signInWithApple } =
     useAppleSignIn();
@@ -89,7 +89,6 @@ export default function Welcome() {
       ]}
       authActions={authActions}
       colorScheme={scheme}
-      seedColor={seedColor}
       // Sign-in doubles as sign-up (no separate register), so consent to the
       // legal pages rides on the auth buttons. In-app browser sheet
       // (SFSafariViewController / Custom Tabs) so reading a policy never leaves

@@ -68,7 +68,7 @@ export default function Settings() {
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme);
   const user = useAuthStore(s => s.user);
-  const { colors, scheme, seedColor } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const devStateLabBar = useDevSettingsStore(s => s.stateLabBar);
   const setDevStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
@@ -188,7 +188,6 @@ export default function Settings() {
           ],
         }}
         colorScheme={scheme}
-        seedColor={seedColor}
         colors={colors}
         scrollProps={scrollProps}
       />

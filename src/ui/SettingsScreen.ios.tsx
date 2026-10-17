@@ -112,8 +112,7 @@ const InfoRow = ({
  * The `Form` scrolls and insets itself natively, so the RN
  * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.
  * `cancelLabel` and per-section `icon` are unused here — the native menu
- * dismisses itself. `seedColor` is likewise Android-only (Compose theming);
- * this variant tints from `colors.primary`. `scrollProps` is Android-only
+ * dismisses itself; this variant tints from `colors.primary`. `scrollProps` is Android-only
  * too, deliberately: it exists to drive the M3 on-scroll app bar, and iOS
  * never paints `headerStyle` — doing so would opt the bar out of the Liquid
  * Glass scroll-edge effect (the same rule Sound Shaper's adapter records).

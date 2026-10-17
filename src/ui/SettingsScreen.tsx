@@ -154,14 +154,6 @@ export type SettingsScreenProps = {
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
   /**
-   * App brand seed forwarded to the internal `<Host>` so the native Compose
-   * components (radio buttons, dialogs, text buttons) theme from the brand
-   * palette instead of the wallpaper-derived one. Omit to keep dynamic
-   * Material colors. Android-only — the iOS variant tints from
-   * `colors.primary`.
-   */
-  seedColor?: string;
-  /**
    * Scroll handlers from the host app's app-bar hook, spread onto this
    * screen's scroller. OPTIONAL: an app that does not lift its bar on scroll
    * (or a platform with no such idiom) passes nothing and nothing changes.
@@ -495,7 +487,6 @@ export const SettingsScreen = ({
   devToggles,
   colors,
   colorScheme,
-  seedColor,
   scrollProps,
 }: SettingsScreenProps) => {
   const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
@@ -558,7 +549,6 @@ export const SettingsScreen = ({
           <Host
             matchContents={{ vertical: true }}
             colorScheme={colorScheme}
-            seedColor={seedColor}
             style={styles.host}
           >
             <Column
@@ -696,7 +686,7 @@ export const SettingsScreen = ({
             Host corrupts the sibling rows' clip shapes on unmount and
             flickers their icons. */}
         {openSection ? (
-          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+          <Host matchContents colorScheme={colorScheme}>
             <RadioOptionsDialog
               section={openSection}
               cancelLabel={cancelLabel}
@@ -707,7 +697,7 @@ export const SettingsScreen = ({
         ) : null}
 
         {accountDialog === 'username' && account?.usernameEditor ? (
-          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+          <Host matchContents colorScheme={colorScheme}>
             <UsernameDialog
               editor={account.usernameEditor}
               colors={colors}
@@ -717,7 +707,7 @@ export const SettingsScreen = ({
         ) : null}
 
         {accountDialog === 'signOut' && account ? (
-          <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+          <Host matchContents colorScheme={colorScheme}>
             <DestructiveConfirmDialog
               dialog={account.signOutDialog}
               colors={colors}

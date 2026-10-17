@@ -96,12 +96,6 @@ export type ManageAccountScreenProps = {
    */
   colorScheme?: 'light' | 'dark';
   /**
-   * App brand seed forwarded to the Compose `Host`s so the native components
-   * (the username dialog's field and buttons) theme from the same palette
-   * `SettingsScreen` uses. Android-only, exactly as there.
-   */
-  seedColor?: string;
-  /**
    * The person's photo slot, ABOVE the facts — Contacts' and the Apple
    * Account's own arrangement: a disc, and the action that edits it under it.
    * The app supplies the whole control (it owns the picker and the media);
@@ -198,7 +192,6 @@ export type ManageAccountScreenProps = {
 export const ManageAccountScreen = ({
   colors,
   colorScheme,
-  seedColor,
   info,
   sections,
   privacy,
@@ -296,7 +289,6 @@ export const ManageAccountScreen = ({
           <Host
             matchContents={{ vertical: true }}
             colorScheme={colorScheme}
-            seedColor={seedColor}
             style={styles.host}
           >
             <Column
@@ -496,7 +488,7 @@ export const ManageAccountScreen = ({
       {/* Own Host — a dialog mounted inside the rows' Host corrupts their
           clip shapes on unmount (the same rule SettingsScreen documents). */}
       {usernameDialogVisible && editor ? (
-        <Host matchContents colorScheme={colorScheme} seedColor={seedColor}>
+        <Host matchContents colorScheme={colorScheme}>
           <UsernameDialog
             editor={editor}
             colors={colors}

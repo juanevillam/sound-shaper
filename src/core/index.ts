@@ -6,12 +6,6 @@ export {
   withAlpha,
 } from './theme/colors';
 export {
-  configureAppTheme,
-  getAppThemeConfig,
-  type AppThemeConfig,
-} from './theme/appTheme';
-export {
-  CARD_GAP,
   opticalTextInset,
   ROW_INSET,
   ROW_MIN_HEIGHT,

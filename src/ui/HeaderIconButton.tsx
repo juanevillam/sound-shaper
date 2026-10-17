@@ -95,12 +95,11 @@ export function HeaderIconButton({
   accessibilityLabel,
   leading = false,
 }: HeaderIconButtonProps) {
-  const { colors, scheme, seedColor } = useAppTheme();
+  const { colors, scheme } = useAppTheme();
 
   return (
     <Host
       colorScheme={scheme}
-      seedColor={seedColor}
       matchContents
       style={leading ? { marginStart: -LEADING_PULL } : undefined}
     >

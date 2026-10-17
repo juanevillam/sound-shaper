@@ -86,26 +86,7 @@ export type AppColors = {
    * same value on iOS and on any palette whose accent needs no repair.
    */
   accentFill: string;
-  primaryMuted: string;
-  // Full M3 accent roles beyond primary — distinct, harmonious hues the dynamic
-  // palette derives from the same source color. Surfaced so showcase demos can
-  // prove components accept any themed accent (not just primary), while staying
-  // 100% OS-derived (no hardcoded colors).
-  secondary: string;
-  onSecondary: string;
-  tertiary: string;
-  onTertiary: string;
   danger: string;
-  /**
-   * THE INK ON `danger`, and the reason it exists is that nothing else is
-   * correct there. M3 pairs `error` with `onError` and the pairing is not
-   * cosmetic: in a DARK scheme `error` is a pale pink, so its ink is a dark
-   * maroon — the inverse of what every other "on" role does. Reaching for
-   * `onPrimary` instead put #FCFCFF on #E9BAB7 in expo-ui-starter's Badge
-   * showcase, measured 1.68:1 against the 7.69:1 the same badge scores one
-   * route away where Compose supplies the pair itself (Galaxy A54, dark).
-   */
-  onError: string;
   /**
    * A SWITCH'S ON STATE, and it is a PLATFORM SEMANTIC rather than the accent.
    *
@@ -126,18 +107,8 @@ export type AppColors = {
    * hardcoded green would be a lie about what that platform shows.
    */
   switchOn: string;
-  // M3 container / on-container pairs — the decorative palette used by
-  // showcase demos (colored boxes, carousel pages, list rows).
   primaryContainer: string;
   onPrimaryContainer: string;
-  secondaryContainer: string;
-  onSecondaryContainer: string;
-  tertiaryContainer: string;
-  onTertiaryContainer: string;
-  errorContainer: string;
-  onErrorContainer: string;
-  infoContainer: string;
-  onInfoContainer: string;
 };
 
 /**
@@ -605,27 +576,11 @@ export function materialToAppColors(m: MaterialColors): AppColors {
     // The SOURCE accent, not the ink repair — see `accentFill`.
     accentFill: m.primary,
     onPrimary: m.onPrimary,
-    primaryMuted: m.primaryContainer,
-    secondary: m.secondary,
-    onSecondary: m.onSecondary,
-    tertiary: m.tertiary,
-    onTertiary: m.onTertiary,
     danger: m.error,
-    onError: m.onError,
     // A Compose `Switch` draws itself from the scheme — see the token's note.
     switchOn: m.primary,
     primaryContainer: m.primaryContainer,
     onPrimaryContainer: m.onPrimaryContainer,
-    secondaryContainer: m.secondaryContainer,
-    onSecondaryContainer: m.onSecondaryContainer,
-    tertiaryContainer: m.tertiaryContainer,
-    onTertiaryContainer: m.onTertiaryContainer,
-    errorContainer: m.errorContainer,
-    onErrorContainer: m.onErrorContainer,
-    // M3 has no dedicated "info" role; use the highest surface container as a
-    // neutral fifth decorative swatch.
-    infoContainer: m.surfaceContainerHighest,
-    onInfoContainer: m.onSurface,
   };
 }
 
@@ -676,24 +631,10 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#007AFF',
     accentFill: '#007AFF',
     onPrimary: '#FFFFFF',
-    primaryMuted: '#CCE4FF',
-    secondary: '#5856D6',
-    onSecondary: '#FFFFFF',
-    tertiary: '#AF52DE',
-    onTertiary: '#FFFFFF',
     danger: '#FF3B30',
-    onError: '#FFFFFF',
     switchOn: '#34C759', // systemGreen, light
     primaryContainer: '#CCE4FF',
     onPrimaryContainer: '#00428C',
-    secondaryContainer: '#E5E5EA',
-    onSecondaryContainer: '#3C3C43',
-    tertiaryContainer: '#FFD6DD',
-    onTertiaryContainer: '#8A0E28',
-    errorContainer: '#FFD8D6',
-    onErrorContainer: '#99231C',
-    infoContainer: '#D6F1F7',
-    onInfoContainer: '#0F535F',
   },
   dark: {
     background: '#000000',
@@ -712,24 +653,10 @@ export const IOS_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#0A84FF',
     accentFill: '#0A84FF',
     onPrimary: '#FFFFFF',
-    primaryMuted: '#0D3A66',
-    secondary: '#5E5CE6',
-    onSecondary: '#FFFFFF',
-    tertiary: '#BF5AF2',
-    onTertiary: '#FFFFFF',
     danger: '#FF453A',
-    onError: '#FFFFFF',
     switchOn: '#30D158', // systemGreen, dark
     primaryContainer: '#0D3A66',
     onPrimaryContainer: '#A8CFFF',
-    secondaryContainer: '#2C2C2E',
-    onSecondaryContainer: '#EBEBF5',
-    tertiaryContainer: '#451423',
-    onTertiaryContainer: '#FF9FB5',
-    errorContainer: '#491511',
-    onErrorContainer: '#FFB4AD',
-    infoContainer: '#0E3A42',
-    onInfoContainer: '#9BE5F2',
   },
 };
 
@@ -751,25 +678,11 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#6750A4',
     accentFill: '#6750A4',
     onPrimary: '#FFFFFF',
-    primaryMuted: '#EADDFF',
-    secondary: '#625B71',
-    onSecondary: '#FFFFFF',
-    tertiary: '#7D5260',
-    onTertiary: '#FFFFFF',
     danger: '#B3261E',
-    onError: '#FFFFFF',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#6750A4',
     primaryContainer: '#EADDFF',
     onPrimaryContainer: '#21005D',
-    secondaryContainer: '#E8DEF8',
-    onSecondaryContainer: '#1D192B',
-    tertiaryContainer: '#FFD8E4',
-    onTertiaryContainer: '#31111D',
-    errorContainer: '#F9DEDC',
-    onErrorContainer: '#410E0B',
-    infoContainer: '#E6E0E9',
-    onInfoContainer: '#1D1B20',
   },
   dark: {
     background: '#141218',
@@ -788,24 +701,10 @@ export const FALLBACK_COLORS: Record<'light' | 'dark', AppColors> = {
     primary: '#D0BCFF',
     accentFill: '#D0BCFF',
     onPrimary: '#381E72',
-    primaryMuted: '#4F378B',
-    secondary: '#CCC2DC',
-    onSecondary: '#332D41',
-    tertiary: '#EFB8C8',
-    onTertiary: '#492532',
     danger: '#F2B8B5',
-    onError: '#601410',
     // A Compose `Switch` draws itself from the scheme — see the token.
     switchOn: '#D0BCFF',
     primaryContainer: '#4F378B',
     onPrimaryContainer: '#EADDFF',
-    secondaryContainer: '#4A4458',
-    onSecondaryContainer: '#E8DEF8',
-    tertiaryContainer: '#633B48',
-    onTertiaryContainer: '#FFD8E4',
-    errorContainer: '#8C1D18',
-    onErrorContainer: '#F9DEDC',
-    infoContainer: '#36343B',
-    onInfoContainer: '#E6E0E9',
   },
 };

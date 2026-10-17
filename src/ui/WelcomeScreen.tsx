@@ -170,12 +170,6 @@ export type WelcomeScreenProps = {
     onPrimaryContainer?: string;
   };
   colorScheme?: 'light' | 'dark';
-  /**
-   * App brand seed forwarded to the internal `<Host>`s so the native Compose
-   * components (buttons) theme from the brand palette instead of the
-   * wallpaper-derived one. Omit to keep dynamic Material colors.
-   */
-  seedColor?: string;
   /** Optional legal disclaimer rendered under the auth buttons. Apps that
    *  handle user data pass it; expo-ui-starter was the one that omitted it and
    *  was deleted 2026-09-16, so every remaining app passes it today. Keep it
@@ -219,7 +213,6 @@ export const WelcomeScreen = ({
   authActions,
   colors,
   colorScheme,
-  seedColor,
   legal,
   logo,
 }: WelcomeScreenProps) => {
@@ -282,11 +275,7 @@ export const WelcomeScreen = ({
               </RNText>
             </View>
           )}
-          <Host
-            matchContents={{ vertical: true }}
-            colorScheme={colorScheme}
-            seedColor={seedColor}
-          >
+          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
             <Column modifiers={[fillMaxWidth()]}>
               <Text
                 color={colors?.onSurface}
@@ -312,11 +301,7 @@ export const WelcomeScreen = ({
             />
           </RNText>
 
-          <Host
-            matchContents={{ vertical: true }}
-            colorScheme={colorScheme}
-            seedColor={seedColor}
-          >
+          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
             <Column modifiers={[fillMaxWidth()]}>
               {/* Plain rows instead of ListItem (its leading slot floats on
                   two-line items). Top alignment lines the 24dp icon up with
@@ -412,7 +397,6 @@ export const WelcomeScreen = ({
                   key={action.label}
                   matchContents={{ vertical: true }}
                   colorScheme={colorScheme}
-                  seedColor={seedColor}
                 >
                   <ButtonComponent
                     onClick={action.onPress}
