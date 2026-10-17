@@ -12,8 +12,6 @@ import {
   Form,
   HStack,
   Host,
-  Image,
-  ProgressView,
   RNHostView,
   Spacer,
   Text as SwiftUIText,
@@ -22,20 +20,16 @@ import {
   useNativeState,
 } from '@expo/ui/swift-ui';
 import {
-  accessibilityLabel,
   buttonStyle,
-  contentShape,
   controlSize,
   disabled as disabledModifier,
   font,
-  frame,
   foregroundStyle,
   keyboardType as keyboardTypeModifier,
   lineLimit,
   listRowBackground,
   listSectionMargins,
   listRowSeparator,
-  shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -44,12 +38,11 @@ import { useAppTheme } from '@/core';
 // Base specifier, not `.ios`: the bundler resolves the real glyph on iOS and
 // the stub on Android (this file is iOS-only by NAME, so it has no `.ios`
 // suffix of its own to resolve against).
-import { HEADER_LONE_TARGET, HeaderGlyphButtonIos } from './HeaderGlyphButton';
+import { HeaderGlyphButtonIos } from './HeaderGlyphButton';
 import {
   SHEET_EMPTY_HEADER_SLOT,
   SHEET_FIRST_CARD_MARGIN,
 } from './sheetMetrics';
-import { SwiftUIHost } from './SwiftUIHost';
 import { spacing } from './tokens';
 
 /**
@@ -616,29 +609,22 @@ export function SheetCommitGlyphIos({
 }: SheetCommitGlyphProps) {
   const { colors } = useAppTheme();
 
+  // THE BAR GLYPH, NOT A SECOND ONE. This was a bare `Image` with `onPress`,
+  // a hand-painted muted ink while it could not commit, and `disabled(true)`
+  // on top — the exact arrangement `HeaderGlyphButton.ios` records as the bug:
+  // SwiftUI's disabled treatment reaches CONTROLS, so on a bare Image it
+  // dimmed nothing and the colour was doing the platform's job. Routed through
+  // `HeaderGlyphButtonIos`, the ✓ is a real `Button`, disabled the way every
+  // other control is, with the busy spinner in its own slot.
   return (
-    // `ignoreSafeArea`: same keyboard-shift bug the ✕ had — see
-    // `HeaderGlyphButton.ios`. A bar item never wants safe-area framing.
-    <SwiftUIHost matchContents ignoreSafeArea="all">
-      {busy ? (
-        <ProgressView />
-      ) : (
-        <Image
-          systemName="checkmark"
-          size={COMMIT_INK}
-          color={enabled ? colors.primary : colors.onSurfaceMuted}
-          onPress={onPress}
-          modifiers={[
-            // The ✕'s target, for the ✓ beside it — the glass capsule animates
-            // on a touch anywhere inside it, so the button has to fire there
-            // too (see `HEADER_LONE_TARGET`).
-            frame({ width: HEADER_LONE_TARGET, height: HEADER_LONE_TARGET }),
-            contentShape(shapes.rectangle()),
-            ...(enabled ? [] : [disabledModifier(true)]),
-            accessibilityLabel(label),
-          ]}
-        />
-      )}
-    </SwiftUIHost>
+    <HeaderGlyphButtonIos
+      systemName="checkmark"
+      label={label}
+      onPress={onPress}
+      size={COMMIT_INK}
+      tint={colors.primary}
+      disabled={!enabled}
+      busy={busy}
+    />
   );
 }

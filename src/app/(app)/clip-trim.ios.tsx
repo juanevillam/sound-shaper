@@ -72,7 +72,9 @@ export default function ClipTrimScreen() {
                   systemName: 'checkmark',
                   label: t('player.clips.saveClip'),
                   onPress: onSave,
-                  disabled: saving,
+                  // The save's spinner takes the ✓'s own slot, as on every
+                  // editor sheet (`SheetCommitGlyphIos`).
+                  busy: saving,
                   // The commit ✓ is tinted exactly as `SheetCommitGlyphIos`
                   // tints it on every editor sheet — the accent that says
                   // "this one acts" (Juan, 2026-08-26: same ✓, same blue,

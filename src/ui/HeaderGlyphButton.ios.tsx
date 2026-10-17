@@ -1,6 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Image, type ImageProps } from '@expo/ui/swift-ui';
+import {
+  Button,
+  Image,
+  type ImageProps,
+  ProgressView,
+} from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   buttonStyle,
@@ -135,6 +140,13 @@ export type HeaderGlyphButtonProps = {
    * takes the default `onSurface` label ink.
    */
   tint?: string;
+  /**
+   * WORK THE PERSON STARTED, IN THE GLYPH'S OWN SLOT — the system spinner
+   * stands in the same target box, so the capsule keeps its size and the bar
+   * does not re-flow (the "Waiting has two shapes" rule). The press is
+   * dropped while busy.
+   */
+  busy?: boolean;
 };
 
 export function HeaderGlyphButtonIos({
@@ -144,10 +156,11 @@ export function HeaderGlyphButtonIos({
   size = HEADER_GLYPH_SIZE,
   disabled,
   tint,
+  busy,
 }: HeaderGlyphButtonProps) {
   return (
     <HeaderGlyphGroupIos
-      glyphs={[{ systemName, label, onPress, size, disabled, tint }]}
+      glyphs={[{ systemName, label, onPress, size, disabled, tint, busy }]}
     />
   );
 }
@@ -226,20 +239,26 @@ export function HeaderGlyphGroupIos({
 
   return (
     <View style={styles.row}>
-      {glyphs.map(({ systemName, label, onPress, size, disabled, tint }) => (
-        <SwiftUIHost
-          key={systemName}
-          matchContents
-          /**
-           * A bar glyph must NOT observe the safe area: a `Host` applies it as
-           * FRAME padding, and the KEYBOARD grows it — so with a keyboard up,
-           * the glyph slid upward and clipped against the bar capsule (a
-           * half-rendered ✕ read as ⌃; caught on device in the editors).
-           */
-          ignoreSafeArea="all"
-          style={expand ? styles.slot : undefined}
-        >
-          {/* A `Button` (`plain`, so it draws no chrome of its own) rather
+      {glyphs.map(
+        ({ systemName, label, onPress, size, disabled, tint, busy }) => {
+          const box = {
+            width: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
+            height: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
+          };
+          return (
+            <SwiftUIHost
+              key={systemName}
+              matchContents
+              /**
+               * A bar glyph must NOT observe the safe area: a `Host` applies it as
+               * FRAME padding, and the KEYBOARD grows it — so with a keyboard up,
+               * the glyph slid upward and clipped against the bar capsule (a
+               * half-rendered ✕ read as ⌃; caught on device in the editors).
+               */
+              ignoreSafeArea="all"
+              style={expand ? styles.slot : undefined}
+            >
+              {/* A `Button` (`plain`, so it draws no chrome of its own) rather
               than a bare `Image` with `onPress`, and that is what `disabled`
               needs: SwiftUI's disabled treatment applies to CONTROLS, so on the
               bare Image the modifier left the glyph at a full (0,0,0) and this
@@ -248,35 +267,40 @@ export function HeaderGlyphGroupIos({
               (`SheetFormIos` ×5, the comments send button, `ReactionRow`) just
               passes `disabled(true)` and lets the platform dim it. Now this one
               does too, and there is no colour to keep in step. */}
-          <Button
-            onPress={onPress}
-            modifiers={[
-              buttonStyle('plain'),
-              ...(disabled ? [disabledModifier(true)] : []),
-            ]}
-          >
-            <Image
-              systemName={systemName}
-              size={size ?? HEADER_GLYPH_SIZE}
-              color={tint ?? colors.onSurface}
-              modifiers={[
-                // The glyph keeps its own size; the BOX around it is the target
-                // — the group's 43, or a lone glyph's 36 (see
-                // `HEADER_LONE_TARGET`), never the bare ink.
-                frame({
-                  width: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
-                  height: expand ? HEADER_TAP_TARGET : HEADER_LONE_TARGET,
-                }),
-                // Without this the enlarged frame is not tappable — an `Image`
-                // hit-tests its drawn content, so the padding would fall
-                // through.
-                contentShape(shapes.rectangle()),
-                accessibilityLabel(label),
-              ]}
-            />
-          </Button>
-        </SwiftUIHost>
-      ))}
+              {busy ? (
+                <ProgressView
+                  modifiers={[frame(box), accessibilityLabel(label)]}
+                />
+              ) : (
+                <Button
+                  onPress={onPress}
+                  modifiers={[
+                    buttonStyle('plain'),
+                    ...(disabled ? [disabledModifier(true)] : []),
+                  ]}
+                >
+                  <Image
+                    systemName={systemName}
+                    size={size ?? HEADER_GLYPH_SIZE}
+                    color={tint ?? colors.onSurface}
+                    modifiers={[
+                      // The glyph keeps its own size; the BOX around it is the target
+                      // — the group's 43, or a lone glyph's 36 (see
+                      // `HEADER_LONE_TARGET`), never the bare ink.
+                      frame(box),
+                      // Without this the enlarged frame is not tappable — an `Image`
+                      // hit-tests its drawn content, so the padding would fall
+                      // through.
+                      contentShape(shapes.rectangle()),
+                      accessibilityLabel(label),
+                    ]}
+                  />
+                </Button>
+              )}
+            </SwiftUIHost>
+          );
+        },
+      )}
     </View>
   );
 }
