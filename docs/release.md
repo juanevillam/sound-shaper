@@ -133,6 +133,15 @@ npm 11 on macOS leaves out `@emnapi/*`, the peers of the wasm-only
 dependency change, regenerate it in a `node:22` container with
 `npm install --package-lock-only`.
 
+## Grostify's role
+
+Agreed between Juan and Grostify (Abraham), verbally, 2026-10-17: the app is
+Juan's; Grostify LLC only publishes it on its Apple membership, sees no data
+and is paid nothing; Juan answers every complaint and every contact; Grostify
+transfers the app (App Store "App Transfer") whenever Juan asks. The legal
+pages say the same in public — Grostify named as the publisher that only
+distributes the app — and that line must stay on every page.
+
 ## App Store Connect
 
 Created 2026-10-16 under Grostify LLC: Apple ID **6823850995**, SKU
