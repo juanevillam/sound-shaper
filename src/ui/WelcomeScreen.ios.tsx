@@ -35,6 +35,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedEntrance } from './AnimatedEntrance';
 import { AppIcon } from './AppIcon';
 import { AppleSignInButton } from './AppleSignInButton';
+import { authButtonPoleKey } from './AuthButtonIos';
 import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
 import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
@@ -151,6 +152,7 @@ export const WelcomeScreen = ({
   const scheme = (colorScheme ?? deviceScheme) === 'dark' ? 'dark' : 'light';
 
   const someLoading = anyLoading(authActions);
+  const hasApple = authActions.some(action => action.provider === 'apple');
 
   return (
     <Screen backgroundColor={colors?.background}>
@@ -330,9 +332,6 @@ export const WelcomeScreen = ({
           >
             <View style={styles.actions}>
               {authActions.map(action => {
-                const hasApple = authActions.some(
-                  other => other.provider === 'apple',
-                );
                 const label =
                   action.isLoading && action.loadingLabel
                     ? action.loadingLabel
@@ -343,21 +342,15 @@ export const WelcomeScreen = ({
                 // Google's branding rules pin this button's colors, logo, and
                 // type, so it renders RN-side with spec colors instead of the
                 // system tint. BESIDE APPLE'S the two share one pole and one
-                // mold — see `authButtonIos` (Juan, 2026-10-16: the pair read
+                // mold — see `AuthButtonIos` (Juan, 2026-10-16: the pair read
                 // as two products).
                 if (action.provider === 'google') {
                   return (
                     <GoogleSignInButton
                       key={action.label}
                       label={label}
-                      scheme={colorScheme}
-                      variant={
-                        hasApple
-                          ? colorScheme === 'dark'
-                            ? 'light'
-                            : 'dark'
-                          : undefined
-                      }
+                      scheme={scheme}
+                      variant={hasApple ? authButtonPoleKey(scheme) : undefined}
                       disabled={isDisabled || Boolean(action.isLoading)}
                       onPress={action.onPress}
                     />
@@ -365,13 +358,13 @@ export const WelcomeScreen = ({
                 }
 
                 // Drawn from the same mold as Google's — see
-                // `AppleSignInButton` and `authButtonIos`.
+                // `AppleSignInButton` and `AuthButtonIos`.
                 if (action.provider === 'apple') {
                   return (
                     <AppleSignInButton
                       key={action.label}
                       label={label}
-                      scheme={colorScheme}
+                      scheme={scheme}
                       disabled={isDisabled || Boolean(action.isLoading)}
                       onPress={action.onPress}
                     />

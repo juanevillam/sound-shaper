@@ -3,7 +3,7 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
 /**
- * Google's THREE published "Sign in with Google" button variants, transcribed
+ * Google's published "Sign in with Google" button variants, transcribed
  * verbatim from https://developers.google.com/identity/branding-guidelines —
  * the one sanctioned exception to the no-color-literals rule, because Google
  * mandates these exact values and they must NOT follow the app theme. Strokes
@@ -15,7 +15,7 @@ import Svg, { Path } from 'react-native-svg';
  *
  *   iOS      light → `light`   dark → `dark`
  *            BESIDE APPLE'S BUTTON it flips to the pair's pole instead —
- *            light → `dark`, dark → `light` — see `authButtonIos`.
+ *            light → `dark`, dark → `light` — see `AuthButtonIos`.
  *   Android  light → `light`   dark → `dark`
  *            Each mode takes the matching row, so the button sits IN the UI
  *            rather than glowing on top of it. Android held the `neutral`
@@ -26,8 +26,9 @@ import Svg, { Path } from 'react-native-svg';
 export const GOOGLE_BUTTON_VARIANTS = {
   light: { fill: '#FFFFFF', stroke: '#747775', label: '#1F1F1F' },
   dark: { fill: '#131314', stroke: '#8E918F', label: '#E3E3E3' },
-  neutral: { fill: '#F2F2F2', stroke: undefined, label: '#1F1F1F' },
 } as const;
+// Google's third row, `neutral` (#F2F2F2, no stroke), is deliberately absent:
+// neither platform has shown it since 2026-09-08.
 
 export const GOOGLE_DISABLED_OPACITY = 0.38;
 

@@ -1,16 +1,12 @@
 import React from 'react';
 
-import { Pressable, Text, View } from 'react-native';
-
 import Svg, { Path } from 'react-native-svg';
 
 import {
   AUTH_BUTTON_IOS,
-  authButtonIosStyles as styles,
+  AuthButtonIos,
   authButtonPole,
-} from './authButtonIos';
-import { GOOGLE_DISABLED_OPACITY } from './GoogleLogo';
-import { BRAND_PRESSED_OPACITY } from './SquashPressable';
+} from './AuthButtonIos';
 
 // Apple's logo, its published proportions (814 × 1000). Drawn as a path so it
 // can stand in the same 20pt box as Google's "G" — the system-font glyph
@@ -26,16 +22,15 @@ export type AppleSignInButtonProps = {
   /** Per the spec: "Sign in with Apple" / "Continue with Apple", localized. */
   label: string;
   onPress: () => void | Promise<void>;
-  /** Picks the pair's pole — see `authButtonIos`. */
+  /** Picks the pair's pole — see `AuthButtonIos`. */
   scheme?: 'light' | 'dark';
   disabled?: boolean;
 };
 
 /**
  * "Continue with Apple" — a custom button within Apple's guidelines (system
- * font, black or white, Apple's logo), drawn from the same mold as
- * `GoogleSignInButton.ios` so the pair reads as one family. The mold, and why
- * it is shaped the way it is, lives in `authButtonIos`.
+ * font, black or white, Apple's logo), the same `AuthButtonIos` as
+ * `GoogleSignInButton.ios` so the pair reads as one family.
  */
 export const AppleSignInButton = ({
   label,
@@ -46,25 +41,12 @@ export const AppleSignInButton = ({
   const spec = authButtonPole(scheme);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
+    <AuthButtonIos
+      label={label}
+      spec={spec}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: spec.fill,
-          borderColor: spec.stroke,
-          opacity: disabled
-            ? GOOGLE_DISABLED_OPACITY
-            : pressed
-              ? BRAND_PRESSED_OPACITY
-              : 1,
-        },
-      ]}
-    >
-      <View style={styles.logo}>
+      logo={
         <Svg
           width={(APPLE_LOGO_HEIGHT * 814) / 1000}
           height={APPLE_LOGO_HEIGHT}
@@ -72,8 +54,7 @@ export const AppleSignInButton = ({
         >
           <Path d={APPLE_LOGO_PATH} fill={spec.label} />
         </Svg>
-      </View>
-      <Text style={[styles.label, { color: spec.label }]}>{label}</Text>
-    </Pressable>
+      }
+    />
   );
 };
