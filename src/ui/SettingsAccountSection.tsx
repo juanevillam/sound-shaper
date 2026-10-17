@@ -135,6 +135,15 @@ export type SettingsAccountSectionProps = {
    * link, no banner.
    */
   profileLink?: SettingsAccountLink;
+  colors: SettingsAccountColors;
+};
+
+/**
+ * What the trailing sign-out card reads (`SettingsSignOutSection`). Kept off
+ * the section's own props: the identity banner never signs anyone out. The
+ * screen's account config carries both (`SettingsAccountConfig`).
+ */
+export type SettingsSignOutProps = {
   signOutLabel: string;
   signOutDialog: {
     title: string;
@@ -143,7 +152,6 @@ export type SettingsAccountSectionProps = {
     cancel: string;
   };
   onSignOut: () => void;
-  colors: SettingsAccountColors;
 };
 
 /**
@@ -438,10 +446,7 @@ export const SettingsSignOutSection = ({
   onSignOut,
   colors,
   onOpenSignOutConfirm,
-}: Pick<
-  SettingsAccountSectionProps,
-  'signOutLabel' | 'signOutDialog' | 'onSignOut'
-> & {
+}: SettingsSignOutProps & {
   colors?: SettingsAccountColors;
   onOpenSignOutConfirm?: () => void;
 }) => {

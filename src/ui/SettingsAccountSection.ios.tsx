@@ -20,7 +20,10 @@ import { Image as RemoteImage } from 'expo-image';
 import { confirmDestructiveIos } from './confirmDestructiveIos';
 import { FormDisclosureIndicatorIos } from './FormDisclosureRowIos';
 import { InitialArt } from './InitialArt';
-import { type SettingsAccountSectionProps } from './SettingsAccountSection';
+import {
+  type SettingsAccountSectionProps,
+  type SettingsSignOutProps,
+} from './SettingsAccountSection';
 import { SHEET_FIRST_CARD_MARGIN } from './sheetMetrics';
 
 /**
@@ -37,10 +40,6 @@ export const SettingsAccountSection = ({
   profile,
   profileLink,
   colors,
-  // `signOutLabel` / `signOutDialog` / `onSignOut` are deliberately NOT read
-  // here: sign-out is its own trailing card (`SettingsSignOutSection`) on
-  // both platforms. They stay on the shared prop type because the account
-  // config the screen takes carries them to that card.
 }: SettingsAccountSectionProps) => {
   // No session, no identity to show — render no card at all.
   if (!profile || !profileLink) return null;
@@ -180,10 +179,7 @@ export const SettingsSignOutSection = ({
   signOutLabel,
   signOutDialog,
   onSignOut,
-}: Pick<
-  SettingsAccountSectionProps,
-  'signOutLabel' | 'signOutDialog' | 'onSignOut'
->) => (
+}: SettingsSignOutProps) => (
   <Section>
     <Button
       label={signOutLabel}

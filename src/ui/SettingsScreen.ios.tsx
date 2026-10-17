@@ -128,7 +128,11 @@ export const SettingsScreen = ({
             entry is on its Profile tab) and the deleted expo-ui-starter's;
             this app always passes one. */}
         {account ? (
-          <SettingsAccountSection {...account} colors={colors} />
+          <SettingsAccountSection
+            profile={account.profile}
+            profileLink={account.profileLink}
+            colors={colors}
+          />
         ) : null}
 
         <Section title={sectionsTitle}>

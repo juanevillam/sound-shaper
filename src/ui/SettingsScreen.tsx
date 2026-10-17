@@ -32,6 +32,7 @@ import {
   SettingsSignOutSection,
   type SettingsAccountColors,
   type SettingsAccountSectionProps,
+  type SettingsSignOutProps,
 } from './SettingsAccountSection';
 import { SettingsDialog } from './SettingsDialog';
 import {
@@ -54,8 +55,15 @@ export type SettingsRadioSection = {
   onSelect: (value: string) => void;
 };
 
-/** Account block config — the section's props minus the shared colors. */
-export type SettingsAccountConfig = Omit<SettingsAccountSectionProps, 'colors'>;
+/**
+ * Account block config — the identity banner's props (minus the shared
+ * colors) plus what the trailing sign-out card reads.
+ */
+export type SettingsAccountConfig = Omit<
+  SettingsAccountSectionProps,
+  'colors'
+> &
+  SettingsSignOutProps;
 
 /** A read-only label/value row, e.g. the app version. */
 export type SettingsInfoRow = {
@@ -500,7 +508,11 @@ export const SettingsScreen = ({
                   Settings opens on its account banner above every group. No
                   header, as on iOS — the avatar and the name say what it is. */}
               {account ? (
-                <SettingsAccountSection {...account} colors={colors} />
+                <SettingsAccountSection
+                  profile={account.profile}
+                  profileLink={account.profileLink}
+                  colors={colors}
+                />
               ) : null}
 
               {/* A GROUP HEADER IS A LABEL, SO IT TAKES THE INK.
