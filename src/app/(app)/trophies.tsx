@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/ui/Screen';
@@ -70,16 +69,7 @@ export default function TrophiesRoute() {
           strings={{ percent, ...screenStrings }}
           formatDate={formatDate}
           scrollProps={scrollProps}
-          onTrophyPress={trophyId =>
-            // iOS presents the detail as a native form-sheet ROUTE; Android
-            // mounts the Compose sheet in place.
-            Platform.OS === 'ios'
-              ? router.push({
-                  pathname: '/trophy-detail',
-                  params: { trophyId },
-                })
-              : setSelectedId(trophyId)
-          }
+          onTrophyPress={setSelectedId}
         />
       </SafeAreaView>
 
