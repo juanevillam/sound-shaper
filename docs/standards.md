@@ -838,35 +838,35 @@ the audit did. So when a term moves into a package, GREP ITS OLD CALLERS —
 adding the export is half the job, and the half that gets skipped is the one
 that matters:
 
-| term                                          | lives in                            | governs                                                              |
-| --------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
-| `SkeletonBone`                                | `@portfolio/mobile-ui`              | every loading placeholder, in every app                              |
-| `ProgressViewIos`                             | `@portfolio/mobile-ui`              | the indeterminate spinner — the OTHER half of waiting                |
-| `ProgressOverlayIos`                          | `@portfolio/mobile-ui`              | the scrim over work that must not be interrupted                     |
-| `confirmDestructiveIos`                       | `@portfolio/mobile-ui`              | EVERY iOS yes/no confirmation — never a `ConfirmationDialog`         |
-| `emptyMediaColor`                             | `@portfolio/mobile-ui/InitialArt`   | the material behind ANY art-less box, stepped by container           |
-| `LIST_ROW_ONE_LINE` / `_TWO_LINES`            | `@portfolio/mobile-ui/listRowText`  | how any native list row shortens text                                |
-| `FormDisclosureRowIos` / `FormValueRowIos`    | `@portfolio/mobile-ui`              | a grouped-form fact and destination row, chevron included            |
-| `PRESSED_OPACITY` / `SquashPressable`         | `@portfolio/mobile-ui`              | press feedback, split by container (see above)                       |
-| `HeaderGlyphButtonIos` / `…GroupIos`          | `@portfolio/mobile-ui`              | every iOS bar glyph, its 43pt target and its disabled state          |
-| `ActionButtonIos`                             | `@portfolio/mobile-ui`              | the one button                                                       |
-| `disabled(true)`                              | `@expo/ui`                          | EVERY disabled control — never hand-paint a dimmed colour            |
-| `switchOn`                                    | `@portfolio/core`                   | a switch's ON state — a platform semantic, never `primary`           |
-| `labelColor`                                  | `@portfolio/mobile-ui`              | a FILLED control's label, which SwiftUI will not invert              |
-| `SHEET_CONTENT_TOP` (84)                      | `@portfolio/mobile-ui/sheetMetrics` | where ANY sheet's first content starts, below its OWN top            |
-| `SHEET_FIRST_CARD_MARGIN` (18)                | `@portfolio/mobile-ui/sheetMetrics` | how a titled sheet removes its empty header slot — never `marginTop` |
-| `GROUPED_ROW` / `GROUPED_ROW_PITCH`           | `@portfolio/mobile-ui/groupedRow`   | a native grouped row's measured geometry                             |
-| `DisclosureChevron`                           | `@portfolio/mobile-ui`              | the RN chevron, for rows outside a native list                       |
-| `innerRadius`                                 | `@portfolio/mobile-ui/shape`        | a rounded child's corner inside a rounded container                  |
-| `artworkRadius`                               | `@portfolio/mobile-ui`              | a PICTURE's corner — a ratio of the picture, not a constant          |
-| `GlassSurfaceIos` / `GLASS_FLOOR`             | `@portfolio/mobile-ui`              | the material under EVERY floating glass surface                      |
-| `FLOATING_RADIUS` / `_EDGE_GAP` / `_COPY_GAP` | `@portfolio/mobile-ui`              | a floating surface's corner, its 12pt gap, its copy step             |
-| `SNACKBAR_BOTTOM_CLEARANCE`                   | `@portfolio/mobile-ui`              | where the toast stands — one place in EVERY app                      |
-| `opticalTextInset`                            | `@portfolio/core`                   | the nudge TEXT takes under a rounded shape; shapes do not            |
-| `MediaPickerAvatar` / `MEDIA_PICKER_SIZE`     | `@portfolio/mobile-ui`              | an editor sheet's media slot — the box, not the picture              |
-| `MINI_PLAYER_HEIGHT` / `NOW_PLAYING_*`        | `@portfolio/mobile-ui`              | the now-playing banner's box, which the toast stands on              |
-| `SearchField`                                 | `@portfolio/mobile-ui`              | the Android search pill — a `TextField`, never a `SearchBar`         |
-| `DRAG_ACTIVE_SCALE`                           | `@portfolio/mobile-ui`              | how far a dragged tile lifts — pair it with `useReducedMotion()`     |
+| term                                          | lives in                            | governs                                                                                         |
+| --------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `SkeletonBone`                                | `@portfolio/mobile-ui`              | every loading placeholder, in every app                                                         |
+| `ProgressViewIos`                             | `@portfolio/mobile-ui`              | the indeterminate spinner — the OTHER half of waiting                                           |
+| `ProgressOverlayIos`                          | `@portfolio/mobile-ui`              | the scrim over work that must not be interrupted                                                |
+| `confirmDestructiveIos`                       | `@portfolio/mobile-ui`              | EVERY iOS yes/no confirmation — never a `ConfirmationDialog`                                    |
+| `emptyMediaColor`                             | `@portfolio/mobile-ui/InitialArt`   | the material behind ANY art-less box, stepped by container                                      |
+| `LIST_ROW_ONE_LINE` / `_TWO_LINES`            | `@portfolio/mobile-ui/listRowText`  | how any native list row shortens text (`_TWO_LINES`: not in this app — portfolio term)          |
+| `FormDisclosureRowIos` / `FormValueRowIos`    | `@portfolio/mobile-ui`              | a grouped-form fact and destination row, chevron included                                       |
+| `PRESSED_OPACITY` / `SquashPressable`         | `@portfolio/mobile-ui`              | press feedback, split by container (see above)                                                  |
+| `HeaderGlyphButtonIos` / `…GroupIos`          | `@portfolio/mobile-ui`              | every iOS bar glyph, its 43pt target and its disabled state                                     |
+| `ActionButtonIos`                             | `@portfolio/mobile-ui`              | the one button (not in this app — portfolio term)                                               |
+| `disabled(true)`                              | `@expo/ui`                          | EVERY disabled control — never hand-paint a dimmed colour                                       |
+| `switchOn`                                    | `@portfolio/core`                   | a switch's ON state — a platform semantic, never `primary`                                      |
+| `labelColor`                                  | `@portfolio/mobile-ui`              | a FILLED control's label, which SwiftUI will not invert                                         |
+| `SHEET_CONTENT_TOP` (84)                      | `@portfolio/mobile-ui/sheetMetrics` | where ANY sheet's first content starts, below its OWN top                                       |
+| `SHEET_FIRST_CARD_MARGIN` (18)                | `@portfolio/mobile-ui/sheetMetrics` | how a titled sheet removes its empty header slot — never `marginTop`                            |
+| `GROUPED_ROW` / `GROUPED_ROW_PITCH`           | `@portfolio/mobile-ui/groupedRow`   | a native grouped row's measured geometry                                                        |
+| `DisclosureChevron`                           | `@portfolio/mobile-ui`              | the RN chevron, for rows outside a native list                                                  |
+| `innerRadius`                                 | `@portfolio/mobile-ui/shape`        | a rounded child's corner inside a rounded container                                             |
+| `artworkRadius`                               | `@portfolio/mobile-ui`              | a PICTURE's corner — a ratio of the picture, not a constant                                     |
+| `GlassSurfaceIos` / `GLASS_FLOOR`             | `@portfolio/mobile-ui`              | the material under EVERY floating glass surface                                                 |
+| `FLOATING_RADIUS` / `_EDGE_GAP` / `_COPY_GAP` | `@portfolio/mobile-ui`              | a floating surface's corner, its 12pt gap, its copy step                                        |
+| `SNACKBAR_BOTTOM_CLEARANCE`                   | `@portfolio/mobile-ui`              | where the toast stands — one place in EVERY app                                                 |
+| `opticalTextInset`                            | `@portfolio/core`                   | the nudge TEXT takes under a rounded shape; shapes do not                                       |
+| `MediaPickerAvatar` / `MEDIA_PICKER_SIZE`     | `@portfolio/mobile-ui`              | an editor sheet's media slot — the box, not the picture                                         |
+| `MINI_PLAYER_HEIGHT` / `NOW_PLAYING_*`        | `@portfolio/mobile-ui`              | the now-playing banner's box, which the toast stands on                                         |
+| `SearchField`                                 | `@portfolio/mobile-ui`              | the Android search pill — a `TextField`, never a `SearchBar` (not in this app — portfolio term) |
+| `DRAG_ACTIVE_SCALE`                           | `@portfolio/mobile-ui`              | how far a dragged tile lifts — pair it with `useReducedMotion()`                                |
 
 Two of those rows used to name a Topper file. Both terms MOVED into the package
 the day a third surface needed them — `SHEET_CONTENT_TOP` because `SheetFormIos`
