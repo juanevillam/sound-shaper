@@ -95,8 +95,8 @@ landed on `main`. What they left, deliberately:
   Fetched URL and Sprite). A preset has NO max-file-size setting, so the
   only size cap is the free plan's own — 10 MB per image, 100 MB per
   video/audio file — which is what bounds an abuser of the unsigned preset.
-- **Juan, outside the code:** Anonymous and
-  Email/Password sign-in off in Firebase Auth; App Privacy in App Store
+- **Firebase Auth: only Apple and Google are enabled** (Juan, 2026-10-17).
+- **Juan, outside the code:** App Privacy in App Store
   Connect filled from `docs/store-listing.md`. (The Worker change — memoised
   signing keys and the CDN purge on every delete — was DEPLOYED 2026-10-17,
   version `eb189dc8`, and probed failing closed: 405 / 401 / 401 / 404.)
