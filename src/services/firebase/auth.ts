@@ -9,6 +9,7 @@ import {
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import { pushTrophyCounters } from '@/lib/trophyCounters';
+import { reported } from '@/services/firebase/crashlytics';
 
 // The Firebase project's Web OAuth client (the `client_type: 3` entry in
 // google-services.json / the Web client auto-created when Google sign-in was
@@ -45,8 +46,13 @@ export const configureGoogleSignIn = () => {
   GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
 };
 
-/** Resolves null when the user dismisses the Google account sheet. */
-export const signInWithGoogle =
+/**
+ * Resolves null when the user dismisses the Google account sheet — a
+ * dismissal is a `cancelled` response, not a throw, so `reported` never counts
+ * it. Every real failure reaches Crashlytics before the caller's snackbar.
+ */
+export const signInWithGoogle = reported(
+  'auth.signInWithGoogle',
   async (): Promise<FirebaseAuthTypes.UserCredential | null> => {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
@@ -61,7 +67,8 @@ export const signInWithGoogle =
     const credential = GoogleAuthProvider.credential(idToken);
 
     return signInWithCredential(getAuth(), credential);
-  };
+  },
+);
 
 // Distinguishes a user-initiated sign-out from a revoked/expired session so the
 // auth listener only shows the "session expired" snackbar for the latter.

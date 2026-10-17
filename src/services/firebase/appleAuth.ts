@@ -8,6 +8,7 @@ import {
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
+import { reported } from '@/services/firebase/crashlytics';
 import { setOwnName } from '@/services/firebase/ownProfile';
 import { useAuthStore } from '@/store/auth';
 
@@ -15,8 +16,13 @@ import { useAuthStore } from '@/store/auth';
 // never enters the Android bundle (expo-apple-authentication has no Android
 // native module).
 
-/** Resolves null when the user dismisses the Apple sign-in sheet. */
-export const signInWithApple =
+/**
+ * Resolves null when the user dismisses the Apple sign-in sheet — the
+ * cancellation is caught below and never reaches `reported`, so only real
+ * failures are counted in Crashlytics.
+ */
+export const signInWithApple = reported(
+  'appleAuth.signInWithApple',
   async (): Promise<FirebaseAuthTypes.UserCredential | null> => {
     // Firebase requires the nonce round-trip: Apple gets the SHA-256 digest,
     // the raw value goes into the Firebase credential for verification.
@@ -75,4 +81,5 @@ export const signInWithApple =
     }
 
     return result;
-  };
+  },
+);
