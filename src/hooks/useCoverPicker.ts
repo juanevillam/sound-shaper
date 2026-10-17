@@ -18,8 +18,9 @@ type UseCoverPickerReturn = {
   }>;
 };
 
-/** Topper's number, so a cover costs the same wherever it is picked. */
-const IMAGE_QUALITY = 0.8;
+/** Topper's number, so a picture costs the same wherever it is picked — a
+ *  cover here, a person's photo in `useOwnProfileEditing`. */
+export const IMAGE_QUALITY = 0.8;
 
 /**
  * COVER ART IS THE PERSON'S TO CHOOSE — the picker this app was missing.

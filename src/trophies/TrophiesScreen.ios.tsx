@@ -216,6 +216,56 @@ const SUMMARY_TO_LIST_GAP = 0;
  */
 const SUMMARY_TOP_MARGIN = 14;
 
+/**
+ * One supporting figure beside the ring — a count over its label, or, while
+ * the counts are not yet true, the same two lines as bones in one bridged
+ * host. Earned and Available are this, twice.
+ */
+const SummaryFigure = ({
+  loading,
+  value,
+  label,
+  colors,
+}: {
+  loading: boolean;
+  value: string;
+  label: string;
+  colors: TrophiesScreenColors;
+}) =>
+  loading ? (
+    <VStack modifiers={[frame({ width: FIGURE_WIDTH, height: RING_SIZE })]}>
+      <RNHostView>
+        <View style={styles.figureBone}>
+          <SkeletonBone width={26} height={24} />
+          <SkeletonBone
+            width={FIGURE_BONE_LABEL}
+            height={12}
+            style={styles.figureBoneLabel}
+          />
+        </View>
+      </RNHostView>
+    </VStack>
+  ) : (
+    <VStack spacing={2} modifiers={[frame({ width: FIGURE_WIDTH })]}>
+      <Text
+        modifiers={[
+          font({ textStyle: 'title2', weight: 'semibold' }),
+          foregroundStyle(colors.onSurface),
+        ]}
+      >
+        {value}
+      </Text>
+      <Text
+        modifiers={[
+          font({ textStyle: 'footnote' }),
+          foregroundStyle(colors.onSurfaceMuted),
+        ]}
+      >
+        {label}
+      </Text>
+    </VStack>
+  );
+
 const TrophyRow = ({
   trophy,
   colors,
@@ -438,46 +488,12 @@ export const TrophiesScreen = ({
               modifiers={[frame({ height: RING_SIZE })]}
             >
               <Spacer />
-              {loading ? (
-                <VStack
-                  modifiers={[
-                    frame({ width: FIGURE_WIDTH, height: RING_SIZE }),
-                  ]}
-                >
-                  <RNHostView>
-                    <View style={styles.figureBone}>
-                      <SkeletonBone width={26} height={24} />
-                      <SkeletonBone
-                        width={FIGURE_BONE_LABEL}
-                        height={12}
-                        style={styles.figureBoneLabel}
-                      />
-                    </View>
-                  </RNHostView>
-                </VStack>
-              ) : (
-                <VStack
-                  spacing={2}
-                  modifiers={[frame({ width: FIGURE_WIDTH })]}
-                >
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'title2', weight: 'semibold' }),
-                      foregroundStyle(colors.onSurface),
-                    ]}
-                  >
-                    {String(earned)}
-                  </Text>
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'footnote' }),
-                      foregroundStyle(colors.onSurfaceMuted),
-                    ]}
-                  >
-                    {strings.earnedLabel}
-                  </Text>
-                </VStack>
-              )}
+              <SummaryFigure
+                loading={loading}
+                value={String(earned)}
+                label={strings.earnedLabel}
+                colors={colors}
+              />
 
               {/* THE RING IS BONED TOO, not drawn empty. An empty track is a
                   real gauge reading zero, and it read as disabled rather than
@@ -532,46 +548,12 @@ export const TrophiesScreen = ({
                 />
               )}
 
-              {loading ? (
-                <VStack
-                  modifiers={[
-                    frame({ width: FIGURE_WIDTH, height: RING_SIZE }),
-                  ]}
-                >
-                  <RNHostView>
-                    <View style={styles.figureBone}>
-                      <SkeletonBone width={26} height={24} />
-                      <SkeletonBone
-                        width={FIGURE_BONE_LABEL}
-                        height={12}
-                        style={styles.figureBoneLabel}
-                      />
-                    </View>
-                  </RNHostView>
-                </VStack>
-              ) : (
-                <VStack
-                  spacing={2}
-                  modifiers={[frame({ width: FIGURE_WIDTH })]}
-                >
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'title2', weight: 'semibold' }),
-                      foregroundStyle(colors.onSurface),
-                    ]}
-                  >
-                    {String(total)}
-                  </Text>
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'footnote' }),
-                      foregroundStyle(colors.onSurfaceMuted),
-                    ]}
-                  >
-                    {strings.availableLabel}
-                  </Text>
-                </VStack>
-              )}
+              <SummaryFigure
+                loading={loading}
+                value={String(total)}
+                label={strings.availableLabel}
+                colors={colors}
+              />
               <Spacer />
             </HStack>
           </VStack>

@@ -19,8 +19,6 @@ import Svg, { Path, Text as SvgText } from 'react-native-svg';
  * navigation-return blink `TransportGlyphs` documents, and inside a
  * gesture-animated trim cap a bridged host has no business at all.
  */
-export const SKIP_SECONDS = 15;
-
 /**
  * Material's `replay_10` / `forward_10` ARROW RINGS, digits stripped — the
  * badge says 15 here (below), matching iOS's ±15 (Juan, 2026-09-08: one

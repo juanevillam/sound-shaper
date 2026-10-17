@@ -61,7 +61,7 @@ import {
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { withAlpha, useAppTheme } from '@/core';
+import { useAppTheme } from '@/core';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useI18n } from '@/i18n';
@@ -71,7 +71,7 @@ import { useSoundsStore } from '@/store/sounds';
 import {
   FLOATING_COPY_GAP,
   FLOATING_RADIUS,
-  GLASS_FLOOR,
+  glassFloorColor,
   CONTINUOUS_CURVE,
   SHAPE_SM,
   TILE_RADIUS,
@@ -252,10 +252,10 @@ const BANNER_GLASS_FADE = 0.12;
  * This banner cannot use that component, and the reason is the expansion:
  * `surfaceStyle` interpolates this exact colour to the opaque player background
  * as the banner grows into a screen, so the floor here is an animated layer
- * rather than a static one. It shares the TERM instead — which is the point,
- * since the number is what a person sees.
+ * rather than a static one. It shares the TERM instead, through
+ * `glassFloorColor` — which is the point, since the number is what a person
+ * sees.
  */
-const BANNER_GLASS_FLOOR = GLASS_FLOOR;
 
 /**
  * NO OUTLINE ON EITHER PLATFORM (Juan, 2026-09-08 — "it shouldn't have border
@@ -940,9 +940,9 @@ export function PlayerSheet() {
     transform: [{ translateY: (1 - progress.value) * travel }],
   }));
 
-  // Computed here, not in the worklet: `withAlpha` is plain JS and cannot be
-  // called on the UI runtime.
-  const glassFillStart = withAlpha(colors.surfaceContainer, BANNER_GLASS_FLOOR);
+  // Computed here, not in the worklet: `glassFloorColor` is plain JS and
+  // cannot be called on the UI runtime.
+  const glassFillStart = glassFloorColor(colors.surfaceContainer);
 
   // THE detach: the painted surface is a layer inside the container, not the
   // container's own background, so it can be a pill at one end and the whole
@@ -1241,59 +1241,17 @@ export function PlayerSheet() {
               accessibilityLabel={t('player.title')}
             >
               <View style={styles.miniInfo}>
-                <AppText
-                  doNotTranslate
-                  text={current.name}
-                  variant="bodyLarge"
-                  numberOfLines={1}
-                  style={styles.miniTitle}
-                />
-                {/* SUBHEADLINE, not Footnote. The same two facts — a sound's
-                    name and its artist — are typeset three times in this app,
-                    and this was the only one that stepped down two rungs: the
-                    home tile pairs Body with Subheadline (17/15) and so does
-                    the EXPANDED console a few hundred lines below, while the
-                    banner paired Body with Footnote (17/13). Apple pairs Body
-                    with Subheadline; the odd one out was here. */}
-                <AppText
-                  doNotTranslate
-                  muted
-                  text={subtitle}
-                  variant="bodyMedium"
-                  numberOfLines={1}
-                />
+                <BannerCopy title={current.name} subtitle={subtitle} />
               </View>
             </Pressable>
             {/* Skipping wraps, so previous always leads somewhere — the
                 banner never drops a control depending on queue position. */}
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={onPrevious}
-              style={styles.miniButton}
-              accessibilityLabel={t('player.previous')}
-            >
-              <PreviousGlyph color={colors.onSurface} />
-            </GlyphButton>
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={onToggle}
-              style={styles.miniButton}
-              accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
-            >
-              {playing ? (
-                <PauseGlyph color={colors.onSurface} />
-              ) : (
-                <PlayGlyph color={colors.onSurface} />
-              )}
-            </GlyphButton>
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={onNext}
-              style={styles.miniButton}
-              accessibilityLabel={t('player.next')}
-            >
-              <NextGlyph color={colors.onSurface} />
-            </GlyphButton>
+            <BannerTransport
+              playing={playing}
+              onPrevious={onPrevious}
+              onToggle={onToggle}
+              onNext={onNext}
+            />
           </Animated.View>
         </GestureDetector>
 
@@ -1497,7 +1455,7 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           // for it — the parked banner is the same object as the loaded one
           // and must not be the one solid slab on the screen.
           backgroundColor: BANNER_GLASS
-            ? withAlpha(colors.surfaceContainer, BANNER_GLASS_FLOOR)
+            ? glassFloorColor(colors.surfaceContainer)
             : colors.surfaceContainer,
           // The same floating island the loaded banner resolves to — parked,
           // so it needs none of the animation, only the shape.
@@ -1549,78 +1507,108 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
         ) : null}
         <View style={[styles.idleInfo, !first && styles.idleInfoEmpty]}>
           {first ? (
-            <>
-              <AppText
-                doNotTranslate
-                text={first.name}
-                variant="bodyLarge"
-                numberOfLines={1}
-                style={styles.miniTitle}
-              />
-              {/* SUBHEADLINE, like the loaded banner — the idle banner IS
-                  that banner, parked, so the two cannot typeset one sound's
-                  name and artist differently. It paired Body with Footnote
-                  (17/13) and was left behind when the loaded row was stepped
-                  to 17/15 for being the app's one odd pair. */}
-              <AppText
-                doNotTranslate
-                muted
-                text={first.artist || ' '}
-                variant="bodyMedium"
-                numberOfLines={1}
-              />
-            </>
+            <BannerCopy title={first.name} subtitle={first.artist || ' '} />
           ) : isEmpty ? (
             // The loaded banner's two lines, so the parked pill keeps its
             // typesetting: the state as the title, what to do under it.
-            <>
-              <AppText
-                doNotTranslate
-                text={t('player.empty')}
-                variant="bodyLarge"
-                numberOfLines={1}
-                style={styles.miniTitle}
-              />
-              <AppText
-                doNotTranslate
-                muted
-                text={t('player.emptyHint')}
-                variant="bodyMedium"
-                numberOfLines={1}
-              />
-            </>
+            <BannerCopy
+              title={t('player.empty')}
+              subtitle={t('player.emptyHint')}
+            />
           ) : null}
         </View>
         {first ? (
-          <>
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={() => startAt(ordered[ordered.length - 1])}
-              style={styles.miniButton}
-              accessibilityLabel={t('player.previous')}
-            >
-              <PreviousGlyph color={colors.onSurface} />
-            </GlyphButton>
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={start}
-              style={styles.miniButton}
-              accessibilityLabel={t('player.play')}
-            >
-              <PlayGlyph color={colors.onSurface} />
-            </GlyphButton>
-            <GlyphButton
-              hitSlop={MINI_BUTTON_HIT_SLOP}
-              onPress={() => startAt(ordered[1] ?? first)}
-              style={styles.miniButton}
-              accessibilityLabel={t('player.next')}
-            >
-              <NextGlyph color={colors.onSurface} />
-            </GlyphButton>
-          </>
+          <BannerTransport
+            playing={false}
+            onPrevious={() => startAt(ordered[ordered.length - 1])}
+            onToggle={start}
+            onNext={() => startAt(ordered[1] ?? first)}
+          />
         ) : null}
       </Pressable>
     </View>
+  );
+}
+
+/**
+ * THE BANNER'S TWO LINES — a sound's name over its subtitle, or a state over
+ * what to do about it. ONE typesetting for the loaded banner and the parked
+ * one, because the parked banner IS that banner and the two cannot typeset one
+ * sound differently.
+ *
+ * SUBHEADLINE, not Footnote. The same two facts — a sound's name and its
+ * artist — are typeset three times in this app, and the banner was the only
+ * one that stepped down two rungs: the home tile pairs Body with Subheadline
+ * (17/15) and so does the EXPANDED console, while the banner paired Body with
+ * Footnote (17/13). Apple pairs Body with Subheadline.
+ */
+function BannerCopy({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <>
+      <AppText
+        doNotTranslate
+        text={title}
+        variant="bodyLarge"
+        numberOfLines={1}
+        style={styles.miniTitle}
+      />
+      <AppText
+        doNotTranslate
+        muted
+        text={subtitle}
+        variant="bodyMedium"
+        numberOfLines={1}
+      />
+    </>
+  );
+}
+
+/** The banner's previous / play-pause / next — loaded and parked alike. */
+function BannerTransport({
+  playing,
+  onPrevious,
+  onToggle,
+  onNext,
+}: {
+  playing: boolean;
+  onPrevious: () => void;
+  onToggle: () => void;
+  onNext: () => void;
+}) {
+  const { colors } = useAppTheme();
+  const { t } = useI18n();
+
+  return (
+    <>
+      <GlyphButton
+        hitSlop={MINI_BUTTON_HIT_SLOP}
+        onPress={onPrevious}
+        style={styles.miniButton}
+        accessibilityLabel={t('player.previous')}
+      >
+        <PreviousGlyph color={colors.onSurface} />
+      </GlyphButton>
+      <GlyphButton
+        hitSlop={MINI_BUTTON_HIT_SLOP}
+        onPress={onToggle}
+        style={styles.miniButton}
+        accessibilityLabel={t(playing ? 'player.pause' : 'player.play')}
+      >
+        {playing ? (
+          <PauseGlyph color={colors.onSurface} />
+        ) : (
+          <PlayGlyph color={colors.onSurface} />
+        )}
+      </GlyphButton>
+      <GlyphButton
+        hitSlop={MINI_BUTTON_HIT_SLOP}
+        onPress={onNext}
+        style={styles.miniButton}
+        accessibilityLabel={t('player.next')}
+      >
+        <NextGlyph color={colors.onSurface} />
+      </GlyphButton>
+    </>
   );
 }
 

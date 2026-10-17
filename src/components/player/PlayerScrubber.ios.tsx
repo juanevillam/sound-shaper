@@ -5,8 +5,11 @@ import { Text } from '@/components/ui/Text';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/lib/player';
 
-import { IOS_SLIDER_HOST_HEIGHT, type PlayerScrubberProps } from './chrome';
-import { SKIP_SECONDS } from './TrimGlyphs';
+import {
+  IOS_SLIDER_HOST_HEIGHT,
+  SKIP_SECONDS,
+  type PlayerScrubberProps,
+} from './chrome';
 
 // The Host gets a FIXED height rather than matchContents: an auto-sized Host
 // inside the player's absolutely-positioned console mis-measures on first

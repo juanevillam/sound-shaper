@@ -7,7 +7,7 @@ import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { withAlpha, useAppTheme } from '@/core';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
-import { useTrophyContent } from '@/hooks/useTrophyContent';
+import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 import { TrophiesScreen, useTrophies } from '@/trophies';
 
@@ -43,11 +43,7 @@ export default function TrophiesRoute() {
   );
 
   const formatDate = (achievedAt: number) =>
-    new Intl.DateTimeFormat(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(new Date(achievedAt));
+    formatAchievedDate(locale, achievedAt);
 
   return (
     <SheetScreen screen="trophies">

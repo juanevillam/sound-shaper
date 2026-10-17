@@ -145,18 +145,8 @@ export const CAPTION_VARIANTS = {
   subtitle: 'bodyMedium' as TextVariant,
 };
 
-/**
- * THE TILE'S GEOMETRY, EXPORTED FOR ITS SKELETON — style objects, not a copy of
- * their numbers.
- *
- * `SoundTileSkeleton` stood a hand-copied set that had rotted: a 26 radius
- * against this file's 27, and a caption block of 16 + 6 + 12 = 34pt against the
- * real 22 + 1 + 20 = 43. Nine points of jump per row on settle, invisible in
- * the skeleton itself. Topper's rail hit the identical bug (its labels traced
- * 15/13 against 20/18 line boxes and left the rail 10pt short) and its
- * `Skeleton.tsx` records the rule this now follows: reserve the LINE BOX, draw
- * the bar thinner inside it.
- */
+/** What `soundTileMetrics` derives — the tile's geometry, shared with its
+ *  skeleton. See that function's note. */
 export type SoundTileMetrics = {
   /** The cell's side — the artwork is square and fills it. */
   cell: number;
@@ -255,7 +245,7 @@ export function SoundTile({
 }: SoundTileProps) {
   // Derived, never measured — the first frame must already know this, or the
   // cover is fetched at its stored size. See `soundGridCell`.
-  const { artRadius, captionInset, cell } = useSoundTileMetrics();
+  const { artRadius, captionInset, cell, titleGap } = useSoundTileMetrics();
 
   return (
     <SquashPressable onPress={onPress} onLongPress={onLongPress}>
@@ -288,7 +278,7 @@ export function SoundTile({
         text={sound.name}
         variant={CAPTION_VARIANTS.title}
         numberOfLines={1}
-        style={[styles.name, { paddingLeft: captionInset }]}
+        style={{ marginBottom: titleGap, paddingLeft: captionInset }}
       />
       <Text
         doNotTranslate
@@ -306,7 +296,7 @@ export function SoundTile({
 export function AddSoundTile({ onPress }: { onPress: () => void }) {
   const { colors, scheme } = useAppTheme();
   const { t } = useI18n();
-  const { artRadius, captionInset, cell } = useSoundTileMetrics();
+  const { artRadius, captionInset, cell, titleGap } = useSoundTileMetrics();
 
   return (
     <SquashPressable onPress={onPress} accessibilityLabel={t('home.addSound')}>
@@ -360,7 +350,7 @@ export function AddSoundTile({ onPress }: { onPress: () => void }) {
       <Text
         text="home.addSound"
         variant={CAPTION_VARIANTS.title}
-        style={[styles.name, { paddingLeft: captionInset }]}
+        style={{ marginBottom: titleGap, paddingLeft: captionInset }}
       />
       <Text
         muted
@@ -384,12 +374,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...CONTINUOUS_CURVE,
   },
-  // Both captions' sizes come entirely from CAPTION_VARIANTS — no style
-  // override, so the skeleton's ghost line stands the identical box.
-  // The optical nudge stays iOS-only: the caption sits under the artwork's
-  // rounded bottom corners, which curve the edge inward right where the text
-  // starts, so flush to the true edge it reads as hanging past the cover.
-  // Android's corner is the flat M3 step rather than a continuous curve, so
-  // there is far less edge to compensate for and it keeps the flush edge.
-  name: { marginBottom: 1 },
 });

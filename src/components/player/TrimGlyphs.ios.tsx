@@ -14,16 +14,14 @@ import { type TrimGlyphProps } from './TrimGlyphs';
  * ±10, on the grounds that ±15 is Voice Memos' number and SF ships the badge
  * for it while Material does not. That shipped for a day and was reversed
  * (Juan, 2026-09-08): one number matters more than a stock badge, so Android
- * sets the digits as type over Google's own ring geometry. Both twins export
- * the same `SKIP_SECONDS` and the a11y copy takes it as a parameter, so
+ * sets the digits as type over Google's own ring geometry. Both twins draw
+ * `chrome.ts`'s `SKIP_SECONDS` and the a11y copy takes it as a parameter, so
  * neither platform's label can lie about its glyph.
  *
  * Each glyph hosts itself so the shared editor stays host-free; the host
  * states its box from the given size (never `matchContents` — the layout-path
  * rule), and the caller's slot sizes around it exactly as before the split.
  */
-export const SKIP_SECONDS = 15;
-
 const hostStyle = (size: number) => ({ height: size, width: size });
 
 export const SkipBackGlyph = ({ color, size }: TrimGlyphProps) => (

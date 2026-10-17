@@ -25,6 +25,15 @@ const TROPHY_COUNTS: Record<string, number> = {
 
 const TIERS: TrophyTier[] = ['bronze', 'silver', 'gold', 'platinum'];
 
+/** When a trophy was earned, in the reader's locale — every trophy surface's
+ *  one date format. */
+export const formatAchievedDate = (locale: string, achievedAt: number) =>
+  new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(achievedAt));
+
 /** Strings for the trophies screen, minus the runtime `progress` count line. */
 export type TrophyScreenStringsBase = {
   lockedLabel: string;

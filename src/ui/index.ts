@@ -91,6 +91,7 @@ export {
   FLOATING_EDGE_GAP,
   FLOATING_RADIUS,
   GLASS_FLOOR,
+  glassFloorColor,
   GlassSurfaceIos,
   makeGlassUnderlay,
 } from './GlassSurfaceIos';

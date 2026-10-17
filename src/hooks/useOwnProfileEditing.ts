@@ -4,6 +4,7 @@ import { ActionSheetIOS } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
 
+import { IMAGE_QUALITY } from '@/hooks/useCoverPicker';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { uploadCoverImage } from '@/services/cloudinary/upload';
@@ -11,9 +12,6 @@ import { setOwnName, setOwnPhoto } from '@/services/firebase/ownProfile';
 import { useAuthStore } from '@/store/auth';
 import { useProfileStore } from '@/store/profile';
 import { type SettingsUsernameEditor, useSnackbar } from '@/ui';
-
-/** Topper's and the cover picker's number, so a photo costs the same. */
-const IMAGE_QUALITY = 0.8;
 
 /**
  * Edit the signed-in person's name and photo from the Account sheet.

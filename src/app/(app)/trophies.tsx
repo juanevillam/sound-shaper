@@ -11,7 +11,7 @@ import { withAlpha, useAppTheme } from '@/core';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useHeaderScroll } from '@/hooks/useHeaderScroll';
-import { useTrophyContent } from '@/hooks/useTrophyContent';
+import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
 import { TrophiesScreen, TrophyDetailSheet, useTrophies } from '@/trophies';
 
@@ -44,11 +44,7 @@ export default function TrophiesRoute() {
   );
 
   const formatDate = (achievedAt: number) =>
-    new Intl.DateTimeFormat(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(new Date(achievedAt));
+    formatAchievedDate(locale, achievedAt);
 
   return (
     <Screen>

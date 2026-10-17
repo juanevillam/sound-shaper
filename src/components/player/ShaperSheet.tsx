@@ -40,7 +40,7 @@ import {
   snapRate,
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import { EQ_PRESETS, presetLabel, useShaperStore } from '@/store/shaper';
 import {
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
@@ -128,7 +128,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const setEcho = useShaperStore(s => s.setEcho);
 
   // The typed t() needs literal keys, so map level ids explicitly — the same
-  // arrangement as `presetLabel` below.
+  // arrangement as `presetLabel` in the shaper store.
   const levelLabel = (level: EffectLevel) => {
     switch (level) {
       case 'low':
@@ -142,23 +142,8 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
     }
   };
 
-  // The typed t() needs literal keys, so map preset ids explicitly.
-  const presetLabel = (key: string) => {
-    switch (key) {
-      case 'bass':
-        return t('player.eq.presets.bass');
-      case 'vocal':
-        return t('player.eq.presets.vocal');
-      case 'treble':
-        return t('player.eq.presets.treble');
-      case 'warm':
-        return t('player.eq.presets.warm');
-      case 'bright':
-        return t('player.eq.presets.bright');
-      default:
-        return t('player.eq.presets.flat');
-    }
-  };
+  const labelFor = (key: string) =>
+    presetLabel(t, key) ?? t('player.eq.presets.flat');
 
   return (
     <ThemedHost matchContents>
@@ -269,7 +254,7 @@ export function ShaperSheet({ onClose }: ShaperSheetProps) {
                 onClick={() => applyPreset(preset.i18nKey)}
               >
                 <FilterChip.Label>
-                  <Text maxLines={1}>{presetLabel(preset.i18nKey)}</Text>
+                  <Text maxLines={1}>{labelFor(preset.i18nKey)}</Text>
                 </FilterChip.Label>
               </FilterChip>
             ))}

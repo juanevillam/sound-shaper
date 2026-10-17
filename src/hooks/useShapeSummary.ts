@@ -1,7 +1,7 @@
 import { useI18n } from '@/i18n';
 import { rateLabel } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { useShaperStore } from '@/store/shaper';
+import { presetLabel, useShaperStore } from '@/store/shaper';
 
 /**
  * THE SHAPE CARD'S SUMMARY — one hook, two surfaces (the console's glass bar
@@ -44,24 +44,8 @@ export function useShapeSummary(): string {
   const nextRoom = useShaperStore(s => s.nextRoom);
   const echo = useShaperStore(s => s.echo);
 
-  const presetSummary = (() => {
-    switch (activePreset) {
-      case 'flat':
-        return t('player.eq.presets.flat');
-      case 'bass':
-        return t('player.eq.presets.bass');
-      case 'vocal':
-        return t('player.eq.presets.vocal');
-      case 'treble':
-        return t('player.eq.presets.treble');
-      case 'warm':
-        return t('player.eq.presets.warm');
-      case 'bright':
-        return t('player.eq.presets.bright');
-      default:
-        return t('player.shape.custom');
-    }
-  })();
+  const presetSummary =
+    presetLabel(t, activePreset) ?? t('player.shape.custom');
 
   return (
     [

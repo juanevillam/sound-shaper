@@ -28,7 +28,6 @@ import {
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PauseGlyph, PlayGlyph } from '@/components/player/TransportGlyphs';
 import {
-  SKIP_SECONDS,
   SkipBackGlyph,
   SkipForwardGlyph,
 } from '@/components/player/TrimGlyphs';
@@ -49,6 +48,7 @@ import {
 } from '@/ui';
 
 import {
+  SKIP_SECONDS,
   TRANSPORT_GAP,
   TRANSPORT_GLYPH_BOX_RATIO,
   TRANSPORT_PLAY_SIZE,

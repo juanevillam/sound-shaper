@@ -373,3 +373,7 @@ export const playerConsoleTop = (artTop: number, artSize: number): number =>
  */
 export const playerArtRadius = (artSize: number, androidStep: number): number =>
   artworkRadius(artSize, androidStep);
+
+/** How far a skip button moves the playhead — the clip editor's ±15 and the
+ *  scrubber's VoiceOver step. Both `TrimGlyphs` twins draw this number. */
+export const SKIP_SECONDS = 15;

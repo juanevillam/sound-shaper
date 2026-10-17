@@ -35,7 +35,7 @@ import {
   stopToRate,
 } from '@/lib/player';
 import { usePlayerStore } from '@/store/player';
-import { EQ_PRESETS, useShaperStore } from '@/store/shaper';
+import { EQ_PRESETS, presetLabel, useShaperStore } from '@/store/shaper';
 import { SheetFormBodyIos } from '@/ui';
 
 // iOS-only route: every sound-shaping control as a grouped native `Form`
@@ -82,6 +82,42 @@ const CUSTOM_TAG = 'custom';
 
 const dbLabel = (db: number) => (db > 0 ? `+${db}` : `${db}`);
 
+/**
+ * One graded effect — Echo or Next Room — as a menu `Picker` row in a section
+ * of its own, its explanation in the section's footer. The two were written
+ * out twice, identically but for their copy and their store field.
+ */
+function LevelPickerSection({
+  label,
+  footer,
+  value,
+  onChange,
+  levelLabel,
+}: {
+  label: string;
+  footer: string;
+  value: EffectLevel;
+  onChange: (key: unknown) => void;
+  levelLabel: (level: EffectLevel) => string;
+}) {
+  return (
+    <Section footer={<SwiftUIText>{footer}</SwiftUIText>}>
+      <Picker
+        label={label}
+        selection={value}
+        onSelectionChange={onChange}
+        modifiers={[pickerStyle('menu')]}
+      >
+        {EFFECT_LEVELS.map(level => (
+          <SwiftUIText key={level} modifiers={[tag(level)]}>
+            {levelLabel(level)}
+          </SwiftUIText>
+        ))}
+      </Picker>
+    </Section>
+  );
+}
+
 function ShaperSheetScreen() {
   const { t, locale } = useI18n();
   const { colors } = useAppTheme();
@@ -101,7 +137,7 @@ function ShaperSheetScreen() {
   const setEcho = useShaperStore(s => s.setEcho);
 
   // The typed t() needs literal keys, so map level ids explicitly — the same
-  // arrangement as `presetLabel` below.
+  // arrangement as `presetLabel` in the shaper store.
   const levelLabel = (level: EffectLevel) => {
     switch (level) {
       case 'low':
@@ -121,23 +157,8 @@ function ShaperSheetScreen() {
       ? (String(key) as EffectLevel)
       : 'off';
 
-  // The typed t() needs literal keys, so map preset ids explicitly.
-  const presetLabel = (key: string) => {
-    switch (key) {
-      case 'bass':
-        return t('player.eq.presets.bass');
-      case 'vocal':
-        return t('player.eq.presets.vocal');
-      case 'treble':
-        return t('player.eq.presets.treble');
-      case 'warm':
-        return t('player.eq.presets.warm');
-      case 'bright':
-        return t('player.eq.presets.bright');
-      default:
-        return t('player.eq.presets.flat');
-    }
-  };
+  const labelFor = (key: string) =>
+    presetLabel(t, key) ?? t('player.eq.presets.flat');
 
   const mutedText = [
     font({ textStyle: 'footnote' }),
@@ -180,7 +201,7 @@ function ShaperSheetScreen() {
                 key={preset.i18nKey}
                 modifiers={[tag(preset.i18nKey)]}
               >
-                {presetLabel(preset.i18nKey)}
+                {labelFor(preset.i18nKey)}
               </SwiftUIText>
             ))}
             {/* A HAND-SHAPED CURVE IS A VALUE TOO. Dragging a band clears
@@ -302,22 +323,13 @@ function ShaperSheetScreen() {
           surviving spacing — see `ECHO_LEVELS` in `shapeDsp.ts`. It is
           deliberately INDEPENDENT of Next Room — see the note on `echo` in
           `store/shaper.ts`. */}
-        <Section
-          footer={<SwiftUIText>{t('player.echoDescription')}</SwiftUIText>}
-        >
-          <Picker
-            label={t('player.echo')}
-            selection={echo}
-            onSelectionChange={key => setEcho(asLevel(key))}
-            modifiers={[pickerStyle('menu')]}
-          >
-            {EFFECT_LEVELS.map(level => (
-              <SwiftUIText key={level} modifiers={[tag(level)]}>
-                {levelLabel(level)}
-              </SwiftUIText>
-            ))}
-          </Picker>
-        </Section>
+        <LevelPickerSection
+          label={t('player.echo')}
+          footer={t('player.echoDescription')}
+          value={echo}
+          onChange={key => setEcho(asLevel(key))}
+          levelLabel={levelLabel}
+        />
 
         {/* Next Room gets its OWN section rather than joining Preserve Pitch's.
           A grouped section is a statement that its rows belong together, and
@@ -325,22 +337,13 @@ function ShaperSheetScreen() {
           above it, the other is a place. Sharing a card would also leave one
           footer explaining two rows. Levels, like Echo above: the wall's
           DEPTH — see `NEXT_ROOM_LEVELS`. */}
-        <Section
-          footer={<SwiftUIText>{t('player.nextRoomDescription')}</SwiftUIText>}
-        >
-          <Picker
-            label={t('player.nextRoom')}
-            selection={nextRoom}
-            onSelectionChange={key => setNextRoom(asLevel(key))}
-            modifiers={[pickerStyle('menu')]}
-          >
-            {EFFECT_LEVELS.map(level => (
-              <SwiftUIText key={level} modifiers={[tag(level)]}>
-                {levelLabel(level)}
-              </SwiftUIText>
-            ))}
-          </Picker>
-        </Section>
+        <LevelPickerSection
+          label={t('player.nextRoom')}
+          footer={t('player.nextRoomDescription')}
+          value={nextRoom}
+          onChange={key => setNextRoom(asLevel(key))}
+          levelLabel={levelLabel}
+        />
       </SheetFormBodyIos>
     </SheetScreen>
   );

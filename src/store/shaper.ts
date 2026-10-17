@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { type TranslationKey } from '@/i18n';
 import { EQ_BANDS, audioEngine, type EffectLevel } from '@/lib/audioEngine';
 
 // The user's sound-shaping settings — the UI's source of truth. Every setter
@@ -51,6 +52,33 @@ export const EQ_PRESETS: { i18nKey: string; gains: number[] }[] = [
   { i18nKey: 'warm', gains: [2, 2, -1, -3, -5] },
   { i18nKey: 'bright', gains: [-3, -2, 2, 4, 2] },
 ];
+
+/**
+ * A preset's label — ONE map from id to copy for the Shape sheet on both
+ * platforms and the shape summary. The typed `t()` needs literal keys, so the
+ * ids are mapped explicitly; `null` for anything that is not a preset id.
+ */
+export const presetLabel = (
+  t: (key: TranslationKey) => string,
+  key: string | null,
+): string | null => {
+  switch (key) {
+    case 'flat':
+      return t('player.eq.presets.flat');
+    case 'bass':
+      return t('player.eq.presets.bass');
+    case 'vocal':
+      return t('player.eq.presets.vocal');
+    case 'treble':
+      return t('player.eq.presets.treble');
+    case 'warm':
+      return t('player.eq.presets.warm');
+    case 'bright':
+      return t('player.eq.presets.bright');
+    default:
+      return null;
+  }
+};
 
 type ShaperState = {
   gains: number[]; // per-band, dB
