@@ -148,16 +148,14 @@ export const WelcomeScreen = ({
           >
             {/* Brand mark on a themed tile — the app's vector glyph via
               `logo`. */}
-            {logo ? (
-              <View style={styles.logoSlot}>
-                <BrandTile
-                  size={LOGO_SIZE}
-                  glyphSize={LOGO_GLYPH_SIZE}
-                  scheme={scheme}
-                  logo={logo}
-                />
-              </View>
-            ) : null}
+            <View style={styles.logoSlot}>
+              <BrandTile
+                size={LOGO_SIZE}
+                glyphSize={LOGO_GLYPH_SIZE}
+                scheme={scheme}
+                logo={logo}
+              />
+            </View>
             <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
               {/* Leading, not centred: Apple centres the app icon and then runs
                 the title, the rows and the CTA off one shared left edge. The
@@ -217,18 +215,16 @@ export const WelcomeScreen = ({
                       alignment="top"
                       spacing={FEATURE_ICON_GAP}
                     >
-                      {feature.systemImage ? (
-                        <Image
-                          systemName={
-                            feature.systemImage as NonNullable<
-                              ImageProps['systemName']
-                            >
-                          }
-                          size={FEATURE_ICON_SIZE}
-                          color={colors?.primary}
-                          modifiers={[frame({ width: FEATURE_ICON_SLOT })]}
-                        />
-                      ) : null}
+                      <Image
+                        systemName={
+                          feature.systemImage as NonNullable<
+                            ImageProps['systemName']
+                          >
+                        }
+                        size={FEATURE_ICON_SIZE}
+                        color={colors?.primary}
+                        modifiers={[frame({ width: FEATURE_ICON_SLOT })]}
+                      />
                       <VStack alignment="leading" spacing={FEATURE_TEXT_GAP}>
                         <Text
                           modifiers={[

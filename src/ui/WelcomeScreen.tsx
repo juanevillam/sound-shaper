@@ -9,15 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Button,
-  Column,
-  Host,
-  OutlinedButton,
-  Row,
-  Spacer,
-  Text,
-} from '@expo/ui/jetpack-compose';
+import { Column, Host, Row, Spacer, Text } from '@expo/ui/jetpack-compose';
 import {
   fillMaxWidth,
   weight,
@@ -38,8 +30,6 @@ import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 
 const LOGO_SIZE = 96;
-const LOGO_RADIUS = 24;
-const LOGO_LETTER_SIZE = 56;
 /** Glyph box for the brand mark inside the hero tile — sized so the mark reads
  *  like the app icon (mirrors its foreground proportions). */
 const LOGO_GLYPH_SIZE = 90;
@@ -131,28 +121,26 @@ const HERO_ENTRY_DURATION = duration.slow;
 const FOOTER_ENTRY_DELAY = 120;
 
 export type WelcomeFeatureItem = {
-  emoji: string;
-  /** Optional Material icon rendered instead of the emoji on Android. */
-  icon?: IconName;
-  /** Optional SF Symbol name rendered instead of the emoji on iOS. */
-  systemImage?: string;
+  /** The Material Symbol the Android row leads with. */
+  icon: IconName;
+  /** The SF Symbol the iOS row leads with. */
+  systemImage: string;
   title: string;
   subtitle: string;
 };
 
-/** `apple` renders the branded Apple button only in the iOS variant — the
- *  Android screen has no Apple sign-in and falls through to a plain button,
- *  so don't pass it there. */
-export type AuthActionProvider = 'google' | 'apple' | 'custom';
+/**
+ * The two sign-in buttons, each drawn to its brand's own spec. `apple` exists
+ * only in the iOS variant — the Android screen has no Apple sign-in and draws
+ * nothing for it, so don't pass it there.
+ */
+export type AuthActionProvider = 'google' | 'apple';
 
 export type AuthAction = {
-  provider?: AuthActionProvider;
+  provider: AuthActionProvider;
   label: string;
   loadingLabel?: string;
   isLoading?: boolean;
-  variant?: 'filled' | 'outlined';
-  /** Optional leading icon, rendered before the label. */
-  icon?: IconName;
   onPress: () => void | Promise<void>;
 };
 
@@ -166,8 +154,6 @@ export type WelcomeScreenProps = {
     onSurface?: string;
     onSurfaceMuted?: string;
     primary?: string;
-    primaryContainer?: string;
-    onPrimaryContainer?: string;
   };
   colorScheme?: 'light' | 'dark';
   /** Optional legal disclaimer rendered under the auth buttons. Apps that
@@ -177,22 +163,12 @@ export type WelcomeScreenProps = {
    *  handle, and the branch is cheap. */
   legal?: WelcomeLegal;
   /** App brand mark rendered in the hero tile. Receives the tile's glyph size
-   *  and the themed foreground color; falls back to the app's initial when
-   *  omitted. Keep the mark themed (Material You), never a fixed brand color —
-   *  the brand tile lives at the app's edges (icon/splash), not in-app. */
-  logo?: (opts: { size: number; color?: string }) => React.ReactNode;
+   *  and the tile's ink colour. */
+  logo: (opts: { size: number; color?: string }) => React.ReactNode;
 };
 
 const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
-  logo: {
-    height: LOGO_SIZE,
-    width: LOGO_SIZE,
-    marginBottom: spacing.lg,
-    borderRadius: LOGO_RADIUS,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   logoSlot: { marginBottom: LOGO_TITLE_GAP, alignSelf: 'center' },
   credit: {
     fontSize: CREDIT_FONT_SIZE,
@@ -200,7 +176,6 @@ const styles = StyleSheet.create({
     marginTop: CREDIT_TOP_GAP,
     marginBottom: CREDIT_BOTTOM_GAP,
   },
-  logoLetter: { fontSize: LOGO_LETTER_SIZE, fontWeight: '700' },
   scroll: { flexGrow: 1, justifyContent: 'space-between' },
 });
 
@@ -247,34 +222,15 @@ export const WelcomeScreen = ({
           duration={HERO_ENTRY_DURATION}
           isVisible={isSplashHidden}
         >
-          {/* Brand mark on a themed tile. Apps pass their vector glyph via
-              `logo`; the letter is the fallback when they don't. */}
-          {logo ? (
-            <View style={styles.logoSlot}>
-              <BrandTile
-                size={LOGO_SIZE}
-                glyphSize={LOGO_GLYPH_SIZE}
-                scheme={scheme}
-                logo={logo}
-              />
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.logo,
-                { backgroundColor: colors?.primaryContainer },
-              ]}
-            >
-              <RNText
-                style={[
-                  styles.logoLetter,
-                  { color: colors?.onPrimaryContainer },
-                ]}
-              >
-                {appName.charAt(0).toUpperCase()}
-              </RNText>
-            </View>
-          )}
+          {/* Brand mark on its tile — the app's vector glyph via `logo`. */}
+          <View style={styles.logoSlot}>
+            <BrandTile
+              size={LOGO_SIZE}
+              glyphSize={LOGO_GLYPH_SIZE}
+              scheme={scheme}
+              logo={logo}
+            />
+          </View>
           <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
             <Column modifiers={[fillMaxWidth()]}>
               <Text
@@ -316,24 +272,18 @@ export const WelcomeScreen = ({
                     verticalAlignment="top"
                     modifiers={[fillMaxWidth()]}
                   >
-                    {feature.icon ? (
-                      // The glyph is TOP-aligned with the title's line box and
-                      // then nudged, because the title's ink sits low in that
-                      // box (ascent gap). The nudge is a function of the icon's
-                      // size — a taller box already reaches further down — so
-                      // it went to 0 when the glyph grew to 36. Measured on a
-                      // Galaxy A54: icon centre 320.7 against the title ink's
-                      // 318.9, where 2dp of padding put it at 321.8.
-                      <AppIcon
-                        name={feature.icon}
-                        size={FEATURE_ICON_SIZE}
-                        tint={colors?.primary}
-                      />
-                    ) : (
-                      <Text style={{ fontSize: 24, lineHeight: 24 }}>
-                        {feature.emoji}
-                      </Text>
-                    )}
+                    {/* The glyph is TOP-aligned with the title's line box and
+                       then nudged, because the title's ink sits low in that
+                       box (ascent gap). The nudge is a function of the icon's
+                       size — a taller box already reaches further down — so
+                       it went to 0 when the glyph grew to 36. Measured on a
+                       Galaxy A54: icon centre 320.7 against the title ink's
+                       318.9, where 2dp of padding put it at 321.8. */}
+                    <AppIcon
+                      name={feature.icon}
+                      size={FEATURE_ICON_SIZE}
+                      tint={colors?.primary}
+                    />
                     <Spacer modifiers={[width(FEATURE_ICON_GAP)]} />
                     <Column modifiers={[weight(1)]}>
                       <Text
@@ -389,64 +339,8 @@ export const WelcomeScreen = ({
                 );
               }
 
-              const isOutlined = action.variant === 'outlined';
-              const ButtonComponent = isOutlined ? OutlinedButton : Button;
-
-              return (
-                <Host
-                  key={action.label}
-                  matchContents={{ vertical: true }}
-                  colorScheme={colorScheme}
-                >
-                  <ButtonComponent
-                    onClick={action.onPress}
-                    enabled={!isDisabled && !action.isLoading}
-                    modifiers={[fillMaxWidth()]}
-                    // MONOCHROME, and it is the FILLED variant only — the same
-                    // split the iOS twin makes, site for site. Monochrome is a
-                    // BRAND rule rather than a platform one, so it crosses to
-                    // Android; what does NOT cross is the decision about which
-                    // controls it claims, and the three buckets already settled
-                    // that. A filled CTA's colour is inherited (Material fills
-                    // it with the accent because that is the default), so it
-                    // takes the ink. An OUTLINED button derives both its wash
-                    // and its label from the tint, and the monochrome version
-                    // reads as disabled — so it keeps the accent, exactly as
-                    // `actionButtonModifiersIos` does.
-                    //
-                    // Unlike SwiftUI, Material DOES invert a filled button's
-                    // label for you — `contentColor` is a real role on the
-                    // container, so there is no `labelColor` trap here. The
-                    // disabled pair is deliberately left to Material.
-                    colors={
-                      isOutlined
-                        ? undefined
-                        : {
-                            containerColor: colors?.onSurface,
-                            contentColor: colors?.background,
-                          }
-                    }
-                  >
-                    {action.icon ? (
-                      <>
-                        <AppIcon
-                          name={action.icon}
-                          size={18}
-                          // A bare `AppIcon` does not inherit the button's
-                          // content colour the way `Text` does (see the icon
-                          // theming notes), so it is mapped explicitly to
-                          // whatever the container's label is.
-                          tint={
-                            isOutlined ? colors?.primary : colors?.background
-                          }
-                        />
-                        <Spacer modifiers={[width(spacing.sm)]} />
-                      </>
-                    ) : null}
-                    <Text>{label}</Text>
-                  </ButtonComponent>
-                </Host>
-              );
+              // No Apple sign-in on Android: the screen draws nothing else.
+              return null;
             })}
           </View>
           {legal ? <LegalFooter legal={legal} colors={colors} /> : null}
