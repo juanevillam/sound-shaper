@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import { StyleSheet, View } from 'react-native';
 
 import {
@@ -43,8 +41,6 @@ import { actionButtonModifiersIos } from './SheetFormIos';
 const CTA_SPACING = 0;
 
 type EmptyStateProps = {
-  /** Android only — the iOS variant draws `systemImage` instead. */
-  emoji?: string;
   /** Android only — the Material Symbol its variant draws where this one
    *  draws `systemImage`. Accepted and ignored here. */
   icon?: string;
@@ -54,8 +50,6 @@ type EmptyStateProps = {
   subtitle?: string;
   /** Standard call-to-action below the text (see the Android variant). */
   action?: { label: string; onPress: () => void };
-  /** Extra RN content below the text (the Android variant takes Compose). */
-  children?: ReactNode;
 };
 
 /**
@@ -79,14 +73,13 @@ type EmptyStateProps = {
  * symbol that carries the same meaning. The one that looked like a real loss —
  * an empty top showing the top's OWN emoji — is not: that emoji is already in
  * the nav-bar title right above it ("🎮 Games"), so it was decoration there,
- * not information. Android keeps every emoji, unchanged.
+ * not information. Android names a Material Symbol (`icon`) the same way.
  */
 export function EmptyState({
   systemImage,
   title,
   subtitle,
   action,
-  children,
 }: EmptyStateProps) {
   const { colors } = useAppTheme();
 
@@ -117,7 +110,6 @@ export function EmptyState({
           ) : null}
         </VStack>
       </Host>
-      {children}
     </View>
   );
 }

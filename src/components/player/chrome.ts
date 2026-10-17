@@ -133,7 +133,12 @@ export function usePlayerTransportAnchor(): number | null {
 }
 
 export type PlayerScrubberProps = {
-  /** Optical nudge for the elapsed/total TEXT; the track keeps the real edge. */
+  /**
+   * Optical nudge for the elapsed/total TEXT; the track keeps the real edge.
+   * iOS ONLY: it pairs the labels with the copy that sits under the iOS
+   * console's rounded cover (`opticalTextInset`). The Compose scrubber reads
+   * no such prop and no Android caller passes it.
+   */
   copyInset?: number;
   /** Displayed playhead — the drag-local value while the thumb is held. */
   position: number;

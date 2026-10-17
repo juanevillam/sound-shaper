@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
@@ -23,9 +21,6 @@ import type { IconName } from './icons';
  * that is the point: the steps are stated here, and the copy is gone.
  */
 export const EMPTY_STATE_STEPS = {
-  emojiSize: 48,
-  /** The Material symbol renders at the emoji's own box, so an emoji state
-   *  and an icon state stand the same geometry. */
   iconSize: 48,
   /** The mark-to-title and title-to-subtitle gap. */
   gap: 8,
@@ -45,12 +40,9 @@ export const EMPTY_STATE_STEPS = {
 } as const;
 
 type EmptyStateProps = {
-  emoji?: string;
   /**
    * The Material Symbol drawn where iOS draws its `systemImage` — large and
-   * muted, the same statement `ContentUnavailableView` opens with. Optional
-   * because an emoji state keeps its emoji; a state that names BOTH draws the
-   * icon (they occupy the same slot).
+   * muted, the same statement `ContentUnavailableView` opens with.
    */
   icon?: IconName;
   /**
@@ -63,11 +55,9 @@ type EmptyStateProps = {
   /**
    * Standard call-to-action below the text — the single affordance used for
    * "Try again" on error states and primary CTAs on empty states, so every
-   * screen surfaces it identically. For bespoke content use `children`.
+   * screen surfaces it identically.
    */
   action?: { label: string; onPress: () => void };
-  /** Extra Compose content below the text, e.g. a custom CTA Button. */
-  children?: ReactNode;
 };
 
 /**
@@ -88,14 +78,7 @@ type EmptyStateProps = {
  * never wraps, it just clips at the edges) — vertical-only keeps the width
  * constrained so subtitles wrap.
  */
-export function EmptyState({
-  emoji,
-  icon,
-  title,
-  subtitle,
-  action,
-  children,
-}: EmptyStateProps) {
+export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps) {
   const { colors, scheme } = useAppTheme();
 
   return (
@@ -122,10 +105,6 @@ export function EmptyState({
               tint={colors.onSurfaceMuted}
               modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
             />
-          ) : emoji ? (
-            <Text style={{ fontSize: EMPTY_STATE_STEPS.emojiSize }}>
-              {emoji}
-            </Text>
           ) : null}
           <Text
             color={colors.onSurface}
@@ -164,7 +143,6 @@ export function EmptyState({
               <Text>{action.label}</Text>
             </Button>
           ) : null}
-          {children}
         </Column>
       </Host>
     </View>

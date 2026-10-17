@@ -67,42 +67,21 @@ import type { IconName } from './icons';
 /** M3's icon-button slot. The `IconButton` sizes ITSELF inside it. */
 const HEADER_SLOT = 48;
 
-/**
- * The measured difference between where the header's leading container puts this
- * button and where the navigator draws its own back arrow. Solved on the device
- * rather than derived: React Navigation's container, Compose's own padding and
- * the bar's start keyline all contribute, and none of them is a number this side
- * can read. Only a LEADING action needs it — a trailing one already lands on
- * M3's 48dp pitch and 40dp end inset with no correction at all.
- */
-const LEADING_PULL = 12;
-
 type HeaderIconButtonProps = {
   name: IconName;
   onPress: () => void;
   accessibilityLabel: string;
-  /**
-   * Pull the button onto the keyline the navigator's own back arrow uses, so a
-   * screen with a custom leading action lines up with one that has the real
-   * thing. Only a LEADING action needs it.
-   */
-  leading?: boolean;
 };
 
 export function HeaderIconButton({
   name,
   onPress,
   accessibilityLabel,
-  leading = false,
 }: HeaderIconButtonProps) {
   const { colors, scheme } = useAppTheme();
 
   return (
-    <Host
-      colorScheme={scheme}
-      matchContents
-      style={leading ? { marginStart: -LEADING_PULL } : undefined}
-    >
+    <Host colorScheme={scheme} matchContents>
       <Box
         contentAlignment="center"
         modifiers={[size(HEADER_SLOT, HEADER_SLOT)]}

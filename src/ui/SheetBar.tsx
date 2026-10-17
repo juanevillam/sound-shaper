@@ -31,20 +31,6 @@ const ACTION_CONTAINER_ALPHA = 0.08;
 type SheetBarProps = {
   title: string;
   /**
-   * A glyph action LEADING the title — `SheetBarAction`.
-   *
-   * NO CALLER PASSES IT TODAY. It was for a sheet that SWAPPED its content —
-   * the clips sheet once became the clip editor in place — where going back up
-   * had to be an on-screen affordance because the hardware BACK cannot be
-   * reached: a Compose sheet is its own dialog window and consumes the press
-   * before RN's `BackHandler` sees it (measured on the A54: with the sheet's
-   * own `shouldDismissOnBackPress` left on, BACK closed the whole sheet;
-   * turned off, BACK did nothing at all and the handler never fired). The
-   * editor now stacks as its own sheet (`ClipTrimSheet`), so BACK dismisses
-   * just that sheet and nothing needs this slot.
-   */
-  leading?: ReactNode;
-  /**
    * Glyph actions, leading the commit pill — `SheetBarAction` elements.
    *
    * THEY ARE CONTAINED, and that is the whole reason they go through this bar
@@ -115,7 +101,6 @@ export function SheetBarAction({
 // that component for why. Destructive delete lives at the BOTTOM, not here.
 export function SheetBar({
   title,
-  leading,
   actions,
   saveLabel,
   saving = false,
@@ -130,13 +115,13 @@ export function SheetBar({
       horizontalArrangement="spaceBetween"
       modifiers={[fillMaxWidth(), height(COMPOSE_SHEET_HEADER_HEIGHT)]}
     >
-      {/* The leading group — a back action, then the title, so the two read
-          as one object at the bar's start. */}
+      {/* The leading group — the title alone. A back action once led it, for
+          a sheet that swapped its content in place; the clip editor stacks as
+          its own sheet now, so BACK dismisses just that sheet. */}
       <Row
         verticalAlignment="center"
         horizontalArrangement={{ spacedBy: ACTION_GAP }}
       >
-        {leading}
         <Text style={{ typography: 'titleLarge' }} maxLines={1}>
           {title}
         </Text>

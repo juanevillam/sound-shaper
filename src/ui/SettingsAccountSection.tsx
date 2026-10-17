@@ -293,17 +293,10 @@ export const UsernameDialog = ({
   editor,
   colors,
   onDismiss,
-  dismissable = true,
 }: {
   editor: SettingsUsernameEditor;
   colors: SettingsAccountColors;
   onDismiss: () => void;
-  /**
-   * When false the dialog can't be cancelled or scrim-dismissed — only a
-   * successful submit closes it. Used to force a username on a new account
-   * before the app is usable.
-   */
-  dismissable?: boolean;
 }) => {
   const initialValue = editor.currentValue?.replace(/^@/, '') ?? '';
   const valueState = useNativeState(initialValue);
@@ -340,21 +333,19 @@ export const UsernameDialog = ({
       title={editor.dialog.title}
       colors={colors}
       onDismissRequest={() => {
-        if (dismissable && !isSubmitting) onDismiss();
+        if (!isSubmitting) onDismiss();
       }}
       actions={
         /* Content colour stated, not inherited — see the note on the radio
            dialog's Cancel in `SettingsScreen`. */
         <>
-          {dismissable ? (
-            <TextButton
-              colors={{ contentColor: colors.primary }}
-              enabled={!isSubmitting}
-              onClick={onDismiss}
-            >
-              <Text>{editor.dialog.cancel}</Text>
-            </TextButton>
-          ) : null}
+          <TextButton
+            colors={{ contentColor: colors.primary }}
+            enabled={!isSubmitting}
+            onClick={onDismiss}
+          >
+            <Text>{editor.dialog.cancel}</Text>
+          </TextButton>
           <TextButton
             colors={{ contentColor: colors.primary }}
             enabled={!isSubmitting}
