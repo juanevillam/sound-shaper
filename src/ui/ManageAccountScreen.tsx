@@ -17,6 +17,7 @@ import {
   clip,
   fillMaxWidth,
   padding,
+  size,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -345,15 +346,26 @@ export const ManageAccountScreen = ({
                                    through this row's one allowed
                                    `RNHostView`. The label is static and pins
                                    the row's height; the spacer Box keeps the
-                                   bone trailing where the value will land. */
+                                   bone trailing where the value will land.
+                                   The host's box is RESERVED by the sized
+                                   Box, never asked of the bone — the iOS
+                                   row's fix: a `matchContents` host in a
+                                   native row lays the row out once without
+                                   its size and again when it lands. */
                                 <>
                                   <Box modifiers={[weight(1)]} />
-                                  <RNHostView matchContents>
-                                    <SkeletonBone
-                                      width={VALUE_BONE_WIDTH}
-                                      height={VALUE_BONE_HEIGHT}
-                                    />
-                                  </RNHostView>
+                                  <Box
+                                    modifiers={[
+                                      size(VALUE_BONE_WIDTH, VALUE_BONE_HEIGHT),
+                                    ]}
+                                  >
+                                    <RNHostView>
+                                      <SkeletonBone
+                                        width={VALUE_BONE_WIDTH}
+                                        height={VALUE_BONE_HEIGHT}
+                                      />
+                                    </RNHostView>
+                                  </Box>
                                 </>
                               ) : (
                                 <Text

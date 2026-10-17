@@ -19,6 +19,7 @@ import {
   clickable,
   clip,
   fillMaxWidth,
+  height,
   padding,
 } from '@expo/ui/jetpack-compose/modifiers';
 
@@ -53,6 +54,7 @@ import {
   SheetDragHandle,
   MEDIA_PICKER_SIZE,
   MediaPickerAvatar,
+  mediaPickerSlotHeight,
   SheetBar,
   SheetErrorLine,
   useSnackbar,
@@ -368,49 +370,64 @@ export function EditSoundSheet({
                 onDismissRequest={() => setMediaMenuOpen(false)}
               >
                 <DropdownMenu.Trigger>
-                  <RNHostView matchContents>
-                    <MediaPickerAvatar
-                      onPress={openMedia}
-                      accessibilityLabel={t('common.pickMedia')}
-                      disabled={isSaving}
-                      // THE EMPTY-MEDIA MATERIAL, the shared term — this drew
-                      // `surfaceVariant` by hand, the exact drift the term
-                      // exists to kill (the iOS route already imports it).
-                      surfaceColor={emptyMediaColor({
-                        colors,
-                        container: 'sheet',
-                        scheme,
-                      })}
-                      contentColor={colors.onSurface}
-                      radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
-                      // The action, never the status — see the iOS twin. The
-                      // wider "Uploading sound…" resized the press target
-                      // mid-save, and the sheet bar's own `saving` already
-                      // says the work is running.
-                      caption={t(
-                        artPreviewUri
-                          ? 'soundEdit.art.change'
-                          : 'soundEdit.art.add',
-                      )}
-                      // The accent says it's the action (a text action keeps
-                      // its tint); muted while the sheet commits.
-                      captionColor={
-                        isSaving ? colors.onSurfaceMuted : colors.primary
-                      }
-                      preview={
-                        artPreviewUri ? (
-                          <ArtImage
-                            uri={artPreviewUri}
-                            // Display-sized fetch for an EXISTING sound's
-                            // remote cover; a local pick and the ID3 tag's
-                            // `data:` bytes pass through `thumbUrl` untouched.
-                            displayWidth={MEDIA_PICKER_SIZE}
-                            style={MEDIA_PREVIEW_FILL}
-                          />
-                        ) : null
-                      }
-                    />
-                  </RNHostView>
+                  {/* THE BOX IS RESERVED IN COMPOSE, never asked of the
+                      child — the iOS editor's `SheetFormMediaIos` fix, said in
+                      Compose. A `matchContents` host answers its size after
+                      the sheet has laid out once without it, a shift on the
+                      frame the media mounts (the house ban). Without it the
+                      host fills its parent, so the sized Box states the slot's
+                      height and the column hands it the width; the RN child
+                      still centres itself in that full-width box. */}
+                  <Box
+                    modifiers={[
+                      fillMaxWidth(),
+                      height(mediaPickerSlotHeight()),
+                    ]}
+                  >
+                    <RNHostView>
+                      <MediaPickerAvatar
+                        onPress={openMedia}
+                        accessibilityLabel={t('common.pickMedia')}
+                        disabled={isSaving}
+                        // THE EMPTY-MEDIA MATERIAL, the shared term — this drew
+                        // `surfaceVariant` by hand, the exact drift the term
+                        // exists to kill (the iOS route already imports it).
+                        surfaceColor={emptyMediaColor({
+                          colors,
+                          container: 'sheet',
+                          scheme,
+                        })}
+                        contentColor={colors.onSurface}
+                        radius={artworkRadius(MEDIA_PICKER_SIZE, SHAPE_MD)}
+                        // The action, never the status — see the iOS twin. The
+                        // wider "Uploading sound…" resized the press target
+                        // mid-save, and the sheet bar's own `saving` already
+                        // says the work is running.
+                        caption={t(
+                          artPreviewUri
+                            ? 'soundEdit.art.change'
+                            : 'soundEdit.art.add',
+                        )}
+                        // The accent says it's the action (a text action keeps
+                        // its tint); muted while the sheet commits.
+                        captionColor={
+                          isSaving ? colors.onSurfaceMuted : colors.primary
+                        }
+                        preview={
+                          artPreviewUri ? (
+                            <ArtImage
+                              uri={artPreviewUri}
+                              // Display-sized fetch for an EXISTING sound's
+                              // remote cover; a local pick and the ID3 tag's
+                              // `data:` bytes pass through `thumbUrl` untouched.
+                              displayWidth={MEDIA_PICKER_SIZE}
+                              style={MEDIA_PREVIEW_FILL}
+                            />
+                          ) : null
+                        }
+                      />
+                    </RNHostView>
+                  </Box>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Items>
                   <DropdownMenuItem
