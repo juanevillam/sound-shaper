@@ -78,8 +78,7 @@ type PlayerState = {
   requestExpand: () => void;
   /** Jump-play a saved range of the CURRENT sound. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
-  clearActiveClip: () => void;
-  /** Follow a live end-cap edit while the framing preview is sounding. */
+  /** Follow a live end-cap edit while the editor's preview is sounding. */
   retargetClipEnd: (endS: number) => void;
   toggle: () => void;
   /** Stop playback in place, idempotent — entering clip framing uses it. */
@@ -271,10 +270,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
      */
     if (Math.abs(enginePositionS - startS) > 0.05) audioEngine.seek(startS);
     audioEngine.play();
-  },
-
-  clearActiveClip: () => {
-    if (get().activeClip) set({ activeClip: null });
   },
 
   /**

@@ -521,6 +521,15 @@ export function ClipTrimEditor({
     endSv.value = range.endS;
   }, [range.startS, range.endS, startSv, endSv]);
 
+  // A SOUNDING PREVIEW STOPS AT THE CAP'S NEW EDGE, not the one it was armed
+  // with — the store's `retargetClipEnd` had lost its only caller when
+  // in-place framing went, so dragging the end cap while listening still
+  // stopped at the stale edge. Every committed range change lands here (a
+  // drag, a VoiceOver nudge); a no-op unless the preview is what is playing.
+  useEffect(() => {
+    usePlayerStore.getState().retargetClipEnd(range.endS);
+  }, [range.endS]);
+
   const commitEdges = useCallback(() => {
     edgeDraggingRef.current = false;
     // RELEASE THE SHEET TOO. This cleared only the ref, so a cap drag left
