@@ -398,8 +398,8 @@ export const translations = {
       },
       legal: {
         text: 'Al continuar, aceptas la {privacy} y los {terms} de Sound Shaper.',
-        privacy: 'Política de Privacidad',
-        terms: 'Términos y Condiciones',
+        privacy: 'Política de privacidad',
+        terms: 'Términos y condiciones',
       },
     },
     home: {
