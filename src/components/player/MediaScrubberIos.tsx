@@ -1,4 +1,10 @@
-import { useEffect, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import { StyleSheet, View } from 'react-native';
 
@@ -118,29 +124,62 @@ export function MediaScrubberIos({
     valueSv.value = Math.min(Math.max(position, 0), duration);
   }, [position, duration, valueSv]);
 
-  const setDragging = (value: boolean) => {
-    draggingRef.current = value;
-  };
+  // THE GESTURE IS BUILT ONCE PER DURATION, NOT PER RENDER. The console
+  // re-renders this on every 10Hz transport tick (`position`), and a fresh
+  // `Gesture.Pan()` each time re-created its worklets and re-attached them to
+  // the detector ten times a second while the player was open. The callbacks
+  // the gesture reaches are read through refs, so it never needs rebuilding
+  // to see the latest ones.
+  const onDragRef = useRef(onDrag);
+  const onDragEndRef = useRef(onDragEnd);
+  useLayoutEffect(() => {
+    onDragRef.current = onDrag;
+    onDragEndRef.current = onDragEnd;
+  });
 
-  const scrub = Gesture.Pan()
-    .minDistance(0)
-    .onBegin(() => {
-      runOnJS(setDragging)(true);
-      activeSv.value = 1;
-      movedSv.value = false;
-    })
-    .onChange(event => {
-      if (widthSv.value <= 0) return;
-      movedSv.value = true;
-      const next = valueSv.value + (event.changeX / widthSv.value) * duration;
-      valueSv.value = Math.min(Math.max(next, 0), duration);
-      runOnJS(onDrag)(valueSv.value);
-    })
-    .onFinalize(() => {
-      activeSv.value = 0;
-      runOnJS(setDragging)(false);
-      runOnJS(onDragEnd)(movedSv.value);
-    });
+  const setDragging = useCallback((value: boolean) => {
+    draggingRef.current = value;
+  }, []);
+  const emitDrag = useCallback((value: number) => {
+    onDragRef.current(value);
+  }, []);
+  const emitDragEnd = useCallback((moved: boolean) => {
+    onDragEndRef.current(moved);
+  }, []);
+
+  const scrub = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onBegin(() => {
+          runOnJS(setDragging)(true);
+          activeSv.value = 1;
+          movedSv.value = false;
+        })
+        .onChange(event => {
+          if (widthSv.value <= 0) return;
+          movedSv.value = true;
+          const next =
+            valueSv.value + (event.changeX / widthSv.value) * duration;
+          valueSv.value = Math.min(Math.max(next, 0), duration);
+          runOnJS(emitDrag)(valueSv.value);
+        })
+        .onFinalize(() => {
+          activeSv.value = 0;
+          runOnJS(setDragging)(false);
+          runOnJS(emitDragEnd)(movedSv.value);
+        }),
+    [
+      activeSv,
+      duration,
+      emitDrag,
+      emitDragEnd,
+      movedSv,
+      setDragging,
+      valueSv,
+      widthSv,
+    ],
+  );
 
   const barStyle = useAnimatedStyle(() => ({
     borderRadius: withTiming(
