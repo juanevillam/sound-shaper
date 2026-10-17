@@ -4,6 +4,7 @@ import {
   Button,
   HStack,
   Image,
+  Picker,
   Section,
   Spacer,
   SwipeActions,
@@ -12,6 +13,8 @@ import {
 import {
   accessibilityLabel,
   foregroundStyle,
+  pickerStyle,
+  tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -23,9 +26,11 @@ import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
+import { isRepeatMode, REPEAT_MODES } from '@/lib/clipQueue';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
+import { repeatModeLabel, useClipRepeatStore } from '@/store/clipRepeat';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import {
@@ -51,6 +56,8 @@ function ClipsSheetScreen() {
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
+  const repeatMode = useClipRepeatStore(s => s.mode);
+  const setRepeatMode = useClipRepeatStore(s => s.setMode);
 
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
@@ -182,6 +189,30 @@ function ClipsSheetScreen() {
         </StateWrap>
       ) : (
         <SheetFormBodyIos fullHeight>
+          {/* REPEAT LEADS THE LIST, as one menu Picker row — the Shape
+              sheet's Presets row, and Settings' own idiom for one choice out
+              of a few. It is a setting about how the clips BELOW play, so it
+              sits with them rather than in the clip editor (which edits one
+              clip) and only while there are clips to repeat. Its value takes
+              the Form's tint on Apple's authority: Settings tints its
+              menu-picker values, and `SheetFormBodyIos` tints this Form
+              `primary` for exactly that. */}
+          <Section>
+            <Picker
+              label={t('player.clips.repeat.label')}
+              selection={repeatMode}
+              onSelectionChange={key => {
+                if (isRepeatMode(key)) setRepeatMode(key);
+              }}
+              modifiers={[pickerStyle('menu')]}
+            >
+              {REPEAT_MODES.map(mode => (
+                <SwiftUIText key={mode} modifiers={[tag(mode)]}>
+                  {repeatModeLabel(t, mode)}
+                </SwiftUIText>
+              ))}
+            </Picker>
+          </Section>
           <Section>
             {clips.map(clip => {
               const isActive = activeClip?.clipId === clip.id;

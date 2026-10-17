@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { type TranslationKey } from '@/i18n';
 import { isRepeatMode, type RepeatMode } from '@/lib/clipQueue';
 
 // The Clips sheet's Repeat setting — what plays when a clip runs out (see
@@ -41,3 +42,20 @@ export const useClipRepeatStore = create<ClipRepeatState>()(
     },
   ),
 );
+
+/** The Repeat row's words for each mode — one switch, both platforms. */
+export const repeatModeLabel = (
+  t: (key: TranslationKey) => string,
+  mode: RepeatMode,
+): string => {
+  switch (mode) {
+    case 'clip':
+      return t('player.clips.repeat.clip');
+    case 'sound':
+      return t('player.clips.repeat.sound');
+    case 'all':
+      return t('player.clips.repeat.all');
+    default:
+      return t('player.clips.repeat.off');
+  }
+};

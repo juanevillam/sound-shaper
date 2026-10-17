@@ -145,6 +145,17 @@ export const translations = {
         // INDICATOR, so the accent is paired with a mark — and a mark needs a
         // name for anyone who cannot see it. Music does the same.
         playing: 'Now Playing',
+        // THE CLIPS SHEET'S REPEAT ROW — Music's word for the control, and
+        // each option names WHAT repeats rather than how ("This Clip", not
+        // "One"), because a clip run can cross sounds and "All" alone would
+        // not say all of what.
+        repeat: {
+          label: 'Repeat',
+          off: 'Off',
+          clip: 'This Clip',
+          sound: "This Sound's Clips",
+          all: 'All Clips',
+        },
         delete: 'Delete Clip',
         // A DIALOG, not an undo toast, and the reason is the container. A
         // snackbar fired from inside an open Compose `ModalBottomSheet` draws
@@ -473,6 +484,13 @@ export const translations = {
         noneSummary: 'Ninguno',
         count: '{n} guardados',
         playing: 'Reproduciendo',
+        repeat: {
+          label: 'Repetir',
+          off: 'Desactivado',
+          clip: 'Este clip',
+          sound: 'Clips de este sonido',
+          all: 'Todos los clips',
+        },
         delete: 'Eliminar clip',
         deleteConfirm: {
           title: '¿Eliminar este clip?',
@@ -776,6 +794,13 @@ export const translations = {
         noneSummary: '无',
         count: '已存储 {n} 个',
         playing: '正在播放',
+        repeat: {
+          label: '重复',
+          off: '关闭',
+          clip: '此片段',
+          sound: '此音频的片段',
+          all: '所有片段',
+        },
         delete: '删除片段',
         deleteConfirm: {
           title: '删除此片段？',

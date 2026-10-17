@@ -25,6 +25,7 @@ import {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ChoiceChipGroup } from '@/components/player/ChoiceChipGroup';
 import { ClipTrimSheet } from '@/components/player/ClipTrimSheet';
 import { ShaperSheet } from '@/components/player/ShaperSheet';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
@@ -32,9 +33,11 @@ import { ThemedHost } from '@/components/ui/ThemedHost';
 import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
+import { REPEAT_MODES } from '@/lib/clipQueue';
 import { haptics } from '@/lib/haptics';
 import { formatTime } from '@/lib/player';
 import { deleteClip } from '@/services/firebase/clips';
+import { repeatModeLabel, useClipRepeatStore } from '@/store/clipRepeat';
 import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import {
@@ -205,6 +208,8 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const current = usePlayerStore(s => s.current);
   const playClip = usePlayerStore(s => s.playClip);
   const activeClip = usePlayerStore(s => s.activeClip);
+  const repeatMode = useClipRepeatStore(s => s.mode);
+  const setRepeatMode = useClipRepeatStore(s => s.setMode);
 
   const clips = useClipsStore(s =>
     current ? (s.bySoundId[current.id] ?? NO_CLIPS) : NO_CLIPS,
@@ -417,151 +422,176 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                 subtitle={t('player.clips.empty')}
               />
             ) : (
-              /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
+              <>
+                {/* REPEAT LEADS THE LIST — iOS's menu Picker row, said in
+                  Material as the label-over-chips anatomy the Shape sheet
+                  uses for its own one-of-a-few choices (`ChoiceChipGroup`).
+                  Four options with labels up to "This Sound's Clips" do not
+                  fit a segmented row at a phone's width, and a scrolling
+                  chip row is what this app already answers that with. Only
+                  while there are clips to repeat, as on iOS. */}
+                <ChoiceChipGroup
+                  first
+                  label={t('player.clips.repeat.label')}
+                  options={REPEAT_MODES.map(mode => ({
+                    value: mode,
+                    label: repeatModeLabel(t, mode),
+                  }))}
+                  value={repeatMode}
+                  onChange={setRepeatMode}
+                />
+                {/* GROUPED CARD ROWS — the follow sheets' recipe verbatim
                  (clip → sheetField → clickable, 2dp seams, first/last
                  corners): iOS lists the clips in a native grouped List, and
                  this is that statement in Material (Juan, 2026-09-08). The
                  stack is inset to the gutter, so the ripple is the card's —
-                 bounded — rather than the old edge-to-edge transparent row. */
-              <Column
-                verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                modifiers={[
-                  fillMaxWidth(),
-                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                ]}
-              >
-                {clips.map((rowClip, rowIndex) => {
-                  const isActive = activeClip?.clipId === rowClip.id;
-                  const range = `${formatTime(rowClip.startMs / 1000)} – ${formatTime(rowClip.endMs / 1000)}`;
+                 bounded — rather than the old edge-to-edge transparent row. */}
+                <Column
+                  verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
+                  modifiers={[
+                    fillMaxWidth(),
+                    padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+                  ]}
+                >
+                  {clips.map((rowClip, rowIndex) => {
+                    const isActive = activeClip?.clipId === rowClip.id;
+                    const range = `${formatTime(rowClip.startMs / 1000)} – ${formatTime(rowClip.endMs / 1000)}`;
 
-                  return (
-                    <Row
-                      key={rowClip.id}
-                      verticalAlignment="center"
-                      horizontalArrangement={{ spacedBy: 12 }}
-                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
-                      // does. Playing one is a request to HEAR it, and the thing
-                      // that shows what is sounding — the artwork, the scrubber,
-                      // the frame's own range — is the player underneath.
-                      // Staying put left the person looking at a list while the
-                      // sound they asked for played somewhere they could not see.
-                      // The sound starts BEFORE the hide, not after it: the
-                      // press is a request to HEAR this, and the answer should
-                      // not wait on an animation. The sheet then slides away
-                      // over a player that is already playing.
-                      // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's
-                      // twin does — the sound starts BEFORE the hide so the
-                      // answer never waits on the animation (full reasoning
-                      // in git history).
-                      modifiers={[
-                        fillMaxWidth(),
-                        clip(groupRowShape(rowIndex, clips.length)),
-                        background(colors.sheetField),
-                        clickable(() => {
-                          playClip(rowClip.id, rowClip.startMs, rowClip.endMs);
-                          void leave(onClose);
-                        }),
-                        padding(16, 4, 8, 4),
-                      ]}
-                    >
-                      <Column
-                        verticalArrangement={{ spacedBy: 1 }}
-                        modifiers={[weight(1)]}
+                    return (
+                      <Row
+                        key={rowClip.id}
+                        verticalAlignment="center"
+                        horizontalArrangement={{ spacedBy: 12 }}
+                        // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's twin
+                        // does. Playing one is a request to HEAR it, and the thing
+                        // that shows what is sounding — the artwork, the scrubber,
+                        // the frame's own range — is the player underneath.
+                        // Staying put left the person looking at a list while the
+                        // sound they asked for played somewhere they could not see.
+                        // The sound starts BEFORE the hide, not after it: the
+                        // press is a request to HEAR this, and the answer should
+                        // not wait on an animation. The sheet then slides away
+                        // over a player that is already playing.
+                        // PRESSING A CLIP LEAVES THE SHEET, exactly as iOS's
+                        // twin does — the sound starts BEFORE the hide so the
+                        // answer never waits on the animation (full reasoning
+                        // in git history).
+                        modifiers={[
+                          fillMaxWidth(),
+                          clip(groupRowShape(rowIndex, clips.length)),
+                          background(colors.sheetField),
+                          clickable(() => {
+                            playClip(
+                              rowClip.id,
+                              rowClip.startMs,
+                              rowClip.endMs,
+                            );
+                            void leave(onClose);
+                          }),
+                          padding(16, 4, 8, 4),
+                        ]}
                       >
-                        <Text
-                          color={isActive ? colors.primary : colors.onSurface}
-                          style={{ typography: 'bodyLarge' }}
-                          maxLines={1}
+                        <Column
+                          verticalArrangement={{ spacedBy: 1 }}
+                          modifiers={[weight(1)]}
                         >
-                          {range}
-                        </Text>
-                      </Column>
-                      {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
+                          <Text
+                            color={isActive ? colors.primary : colors.onSurface}
+                            style={{ typography: 'bodyLarge' }}
+                            maxLines={1}
+                          >
+                            {range}
+                          </Text>
+                        </Column>
+                        {/* THE SOUNDING ROW TAKES A GLYPH AS WELL AS THE ACCENT.
                           Material marks an active list item with the accent and
                           that stays, but COLOUR ALONE IS NOT AN INDICATOR for
                           anyone who cannot see this particular colour — the
                           accent was the only marker here, where iOS has always
                           paired it with a mark. Music does the same. */}
-                      {isActive ? (
-                        <AppIcon
-                          name="graphic-eq"
-                          size={MENU_ICON_SIZE}
-                          tint={colors.primary}
-                          contentDescription={t('player.clips.playing')}
-                        />
-                      ) : null}
-                      <DropdownMenu
-                        // The one menu surface — every overflow menu takes
-                        // `menuContainer`; unset, Compose draws the
-                        // raw One UI token this term exists to repair.
-                        color={menuContainer(colors, scheme)}
-                        expanded={menuClipId === rowClip.id}
-                        onDismissRequest={() => setMenuClipId(null)}
-                      >
-                        <DropdownMenu.Trigger>
-                          <IconButton onClick={() => setMenuClipId(rowClip.id)}>
-                            <AppIcon
-                              name="more-vert"
-                              tint={colors.onSurfaceMuted}
-                              contentDescription={t('player.menu.label')}
-                            />
-                          </IconButton>
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Items>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setMenuClipId(null);
-                              // NO `leave` — the sheet stays and swaps to the
-                              // editor mode. That closing hide is exactly what
-                              // made the two surfaces read as a trade rather
-                              // than a step deeper.
-                              setTrim({
-                                editing: {
-                                  clipId: rowClip.id,
-                                  startMs: rowClip.startMs,
-                                  endMs: rowClip.endMs,
-                                },
-                              });
-                            }}
-                          >
-                            <DropdownMenuItem.Text>
-                              <Text color={colors.onSurface}>
-                                {t('player.clips.editAction')}
-                              </Text>
-                            </DropdownMenuItem.Text>
-                            <DropdownMenuItem.LeadingIcon>
+                        {isActive ? (
+                          <AppIcon
+                            name="graphic-eq"
+                            size={MENU_ICON_SIZE}
+                            tint={colors.primary}
+                            contentDescription={t('player.clips.playing')}
+                          />
+                        ) : null}
+                        <DropdownMenu
+                          // The one menu surface — every overflow menu takes
+                          // `menuContainer`; unset, Compose draws the
+                          // raw One UI token this term exists to repair.
+                          color={menuContainer(colors, scheme)}
+                          expanded={menuClipId === rowClip.id}
+                          onDismissRequest={() => setMenuClipId(null)}
+                        >
+                          <DropdownMenu.Trigger>
+                            <IconButton
+                              onClick={() => setMenuClipId(rowClip.id)}
+                            >
                               <AppIcon
-                                name="edit"
-                                size={MENU_ICON_SIZE}
-                                tint={colors.onSurface}
+                                name="more-vert"
+                                tint={colors.onSurfaceMuted}
+                                contentDescription={t('player.menu.label')}
                               />
-                            </DropdownMenuItem.LeadingIcon>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setMenuClipId(null);
-                              setConfirmClipId(rowClip.id);
-                            }}
-                          >
-                            <DropdownMenuItem.Text>
-                              <Text color={colors.danger}>
-                                {t('player.clips.delete')}
-                              </Text>
-                            </DropdownMenuItem.Text>
-                            <DropdownMenuItem.LeadingIcon>
-                              <AppIcon
-                                name="delete"
-                                size={MENU_ICON_SIZE}
-                                tint={colors.danger}
-                              />
-                            </DropdownMenuItem.LeadingIcon>
-                          </DropdownMenuItem>
-                        </DropdownMenu.Items>
-                      </DropdownMenu>
-                    </Row>
-                  );
-                })}
-              </Column>
+                            </IconButton>
+                          </DropdownMenu.Trigger>
+                          <DropdownMenu.Items>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setMenuClipId(null);
+                                // NO `leave` — the sheet stays and swaps to the
+                                // editor mode. That closing hide is exactly what
+                                // made the two surfaces read as a trade rather
+                                // than a step deeper.
+                                setTrim({
+                                  editing: {
+                                    clipId: rowClip.id,
+                                    startMs: rowClip.startMs,
+                                    endMs: rowClip.endMs,
+                                  },
+                                });
+                              }}
+                            >
+                              <DropdownMenuItem.Text>
+                                <Text color={colors.onSurface}>
+                                  {t('player.clips.editAction')}
+                                </Text>
+                              </DropdownMenuItem.Text>
+                              <DropdownMenuItem.LeadingIcon>
+                                <AppIcon
+                                  name="edit"
+                                  size={MENU_ICON_SIZE}
+                                  tint={colors.onSurface}
+                                />
+                              </DropdownMenuItem.LeadingIcon>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setMenuClipId(null);
+                                setConfirmClipId(rowClip.id);
+                              }}
+                            >
+                              <DropdownMenuItem.Text>
+                                <Text color={colors.danger}>
+                                  {t('player.clips.delete')}
+                                </Text>
+                              </DropdownMenuItem.Text>
+                              <DropdownMenuItem.LeadingIcon>
+                                <AppIcon
+                                  name="delete"
+                                  size={MENU_ICON_SIZE}
+                                  tint={colors.danger}
+                                />
+                              </DropdownMenuItem.LeadingIcon>
+                            </DropdownMenuItem>
+                          </DropdownMenu.Items>
+                        </DropdownMenu>
+                      </Row>
+                    );
+                  })}
+                </Column>
+              </>
             )}
           </Column>
         </ModalBottomSheet>
