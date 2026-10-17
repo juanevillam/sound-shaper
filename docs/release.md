@@ -20,10 +20,14 @@ Apple Developer membership (team `PHLR7X3FGN`).
 ## 2i — console hardening
 
 - **Cloudinary** `sound_shaper_unsigned`: anyone holding the preset name can
-  upload into the account. Pin it to the `sound-shaper/` root, restrict
-  formats (mp3 and images) and cap the file size. Never add an incoming
-  transformation: the preset carries audio too, and `q_auto` on a `video`
-  resource re-encodes it.
+  upload into the account. Restrict its allowed formats (mp3 and images) and
+  cap the file size. **Leave its Folder EMPTY**: the app sends
+  `sound-shaper/{uid}` as the `folder` param, the Worker deletes only inside
+  that prefix, and a preset that pins its own folder may win over the param —
+  which is how Topper's assets once landed outside any `{uid}`. Empty is the
+  configuration proven end to end. Never add an incoming transformation
+  either: the preset carries audio too, and `q_auto` on a `video` resource
+  re-encodes it.
 - **Firebase API keys**: restrict the iOS key by bundle id and the Android key
   by package + the EAS release keystore's SHA-1, to the Firebase APIs only.
 - **`firestore.rules`**: deploy and confirm the live rules equal the repo's.
