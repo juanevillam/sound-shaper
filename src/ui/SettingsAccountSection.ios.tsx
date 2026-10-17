@@ -30,19 +30,17 @@ import { SHEET_FIRST_CARD_MARGIN } from './sheetMetrics';
  * banner; why the app takes it is on `SettingsAccountLink`. Sign-out is NOT
  * here — it renders alone at the bottom of the sheet via
  * `SettingsSignOutSection`, which is where Apple puts it. Must be composed
- * inside the parent screen's `Form` or `List`.
- *
- * The shared prop type also carries the Android twin's other modes (a
- * username editor, nav and destructive rows); nothing on iOS passes them.
+ * inside the parent screen's `Form` or `List`. The Compose twin of this name
+ * draws the same banner.
  */
 export const SettingsAccountSection = ({
   profile,
   profileLink,
   colors,
   // `signOutLabel` / `signOutDialog` / `onSignOut` are deliberately NOT read
-  // here: sign-out is its own trailing card (`SettingsSignOutSection`). They
-  // stay on the shared prop type because Android still renders them inside
-  // this section.
+  // here: sign-out is its own trailing card (`SettingsSignOutSection`) on
+  // both platforms. They stay on the shared prop type because the account
+  // config the screen takes carries them to that card.
 }: SettingsAccountSectionProps) => {
   // No session, no identity to show — render no card at all.
   if (!profile || !profileLink) return null;

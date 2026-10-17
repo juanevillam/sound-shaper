@@ -32,7 +32,6 @@ const SF_SYMBOLS = {
   // platforms. The name stays Material's because the icon SET is.
   'graphic-eq': 'speaker.wave.2.fill',
   image: 'photo',
-  logout: 'rectangle.portrait.and.arrow.right',
   'more-vert': 'ellipsis',
   'music-note': 'music.note',
   person: 'person',

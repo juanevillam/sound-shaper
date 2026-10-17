@@ -7,7 +7,6 @@ import Delete from '@expo/material-symbols/delete.xml';
 import Edit from '@expo/material-symbols/edit.xml';
 import GraphicEq from '@expo/material-symbols/graphic_eq.xml';
 import Image from '@expo/material-symbols/image.xml';
-import Logout from '@expo/material-symbols/logout.xml';
 import MoreVert from '@expo/material-symbols/more_vert.xml';
 import MusicNote from '@expo/material-symbols/music_note.xml';
 import Person from '@expo/material-symbols/person.xml';
@@ -36,7 +35,6 @@ const icons = {
   // colour is not the only indicator.
   'graphic-eq': GraphicEq,
   image: Image,
-  logout: Logout,
   'more-vert': MoreVert,
   'music-note': MusicNote,
   person: Person,

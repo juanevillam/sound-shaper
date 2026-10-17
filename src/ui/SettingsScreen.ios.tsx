@@ -89,8 +89,8 @@ const InfoRow = ({
  * layout. Each single-choice section maps to a menu `Picker` row (label on the
  * left, current value plus chevron on the right) grouped under the
  * `sectionsTitle` header; the account block LEADS the form (see below) and its
- * red destructive sign-out row closes it, where Android renders one "Account"
- * group under "General". Rows stay icon-free — Apple Settings rows either carry
+ * red destructive sign-out row closes it — the same order the Compose screen
+ * draws. Rows stay icon-free — Apple Settings rows either carry
  * colored tile icons or none at all, and bare SF symbols read as neither.
  * The `Form` scrolls and insets itself natively, so the RN
  * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.

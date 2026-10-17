@@ -28,10 +28,8 @@ import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { iconSource, type IconName } from './icons';
 import { Screen } from './Screen';
 import {
-  SettingsAccountBanner,
   SettingsAccountSection,
   SettingsSignOutSection,
-  UsernameDialog,
   type SettingsAccountColors,
   type SettingsAccountSectionProps,
 } from './SettingsAccountSection';
@@ -54,14 +52,8 @@ export type SettingsRadioSection = {
   onSelect: (value: string) => void;
 };
 
-/**
- * Account block config — the section's props minus the shared colors
- * and the dialog openers the screen wires up itself.
- */
-export type SettingsAccountConfig = Omit<
-  SettingsAccountSectionProps,
-  'colors' | 'onOpenUsernameDialog' | 'onOpenSignOutConfirm'
->;
+/** Account block config — the section's props minus the shared colors. */
+export type SettingsAccountConfig = Omit<SettingsAccountSectionProps, 'colors'>;
 
 /** A read-only label/value row, e.g. the app version. */
 export type SettingsInfoRow = {
@@ -120,7 +112,10 @@ export type SettingsScreenColors = SettingsAccountColors & {
 };
 
 export type SettingsScreenProps = {
-  /** Optional account block rendered last (title, profile, sign-out). */
+  /**
+   * Optional account block: the identity banner leading the screen and the
+   * sign-out card closing it.
+   */
   account?: SettingsAccountConfig;
   /** Single-choice preferences rendered as rows that open a radio dialog. */
   sections: SettingsRadioSection[];
@@ -466,7 +461,8 @@ const RadioOptionsDialog = ({
 /**
  * Shared settings screen in the Android (Google apps) settings idiom — a
  * category of preference rows (supporting text shows the current value, tap
- * opens a single-choice radio dialog) followed by an optional account block.
+ * opens a single-choice radio dialog), led by an optional account banner and
+ * closed by its sign-out card.
  * Every label, value, handler, and color is supplied by the host app so each
  * app reuses the same layout and interaction model while owning its own copy,
  * state, and palette.
@@ -484,56 +480,24 @@ export const SettingsScreen = ({
   scrollProps,
 }: SettingsScreenProps) => {
   const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
-  const [accountDialog, setAccountDialog] = useState<
-    'username' | 'signOut' | null
-  >(null);
+  const [signOutConfirmVisible, setSignOutConfirmVisible] = useState(false);
 
   const openPreference = useCallback(
     (title: string) => setOpenSectionTitle(title),
     [],
   );
   const closePreference = useCallback(() => setOpenSectionTitle(null), []);
-  const openUsernameDialog = useCallback(
-    () => setAccountDialog('username'),
+  const openSignOutConfirm = useCallback(
+    () => setSignOutConfirmVisible(true),
     [],
   );
-  const openSignOutConfirm = useCallback(() => setAccountDialog('signOut'), []);
-  const closeAccountDialog = useCallback(() => setAccountDialog(null), []);
+  const closeSignOutConfirm = useCallback(
+    () => setSignOutConfirmVisible(false),
+    [],
+  );
 
   const openSection = sections.find(
     section => section.title === openSectionTitle,
-  );
-
-  /**
-   * IS THE ACCOUNT BLOCK A GROUP, OR JUST THE SIGN-OUT ACTION?
-   *
-   * A caller that passes a profile, nav rows or danger rows has a real account
-   * GROUP, and it renders
-   * where it always has — between General and About. A caller that passes
-   * only the sign-out fields (Topper, whose identity lives on its Profile tab,
-   * and the deleted expo-ui-starter) has no group at all: it has one
-   * destructive ACTION, and a lone action does not belong wedged between two
-   * content groups under a header naming a group that isn't there.
-   *
-   * So that case renders LAST, headerless, after About — which is where Google
-   * puts "Sign out", and independently the shape iOS already had (a trailing
-   * bare card; `SettingsLegalConfig` records the same argument for why Sign Out
-   * is the ONE headerless card on that side). Two platforms, one reason: a
-   * header names a group, and this is not one.
-   *
-   * A `profileLink` answers row 8 of the 2026-08-29 parity audit the way
-   * Apple does: the identity becomes the BANNER leading the screen (see
-   * `SettingsAccountBanner`), so the profile no longer makes the account block
-   * a group — an app passing profile + profileLink + sign-out gets the banner
-   * first and the lone sign-out card last, which is Sound Shaper's shape on
-   * both platforms now.
-   */
-  const hasBanner = Boolean(account?.profileLink && account.profile);
-  const accountIsGroup = Boolean(
-    account &&
-    ((account.profile && !hasBanner) ||
-      account.navRows?.length ||
-      account.dangerRows?.length),
   );
 
   return (
@@ -553,12 +517,8 @@ export const SettingsScreen = ({
                   ("Apple puts the person first"), and One UI's: Samsung's own
                   Settings opens on its account banner above every group. No
                   header, as on iOS — the avatar and the name say what it is. */}
-              {hasBanner && account?.profile && account.profileLink ? (
-                <SettingsAccountBanner
-                  profile={account.profile}
-                  link={account.profileLink}
-                  colors={colors}
-                />
+              {account ? (
+                <SettingsAccountSection {...account} colors={colors} />
               ) : null}
 
               {/* A GROUP HEADER IS A LABEL, SO IT TAKES THE INK.
@@ -621,17 +581,6 @@ export const SettingsScreen = ({
                 <DevTogglesGroup devToggles={devToggles} colors={colors} />
               ) : null}
 
-              {account && accountIsGroup ? (
-                <SettingsAccountSection
-                  {...account}
-                  colors={colors}
-                  onOpenUsernameDialog={
-                    account.usernameEditor ? openUsernameDialog : undefined
-                  }
-                  onOpenSignOutConfirm={openSignOutConfirm}
-                />
-              ) : null}
-
               {about ? (
                 <InfoGroup
                   title={about.title}
@@ -660,10 +609,9 @@ export const SettingsScreen = ({
                 />
               ) : null}
 
-              {/* A lone sign-out closes the screen instead of sitting under an
-                  "Account" header that names a group it isn't. See
-                  `accountIsGroup` above. */}
-              {account && !accountIsGroup ? (
+              {/* Sign-out closes the screen, headerless — it is an action, not
+                  a group. See `SettingsSignOutSection`. */}
+              {account ? (
                 <SettingsSignOutSection
                   signOutLabel={account.signOutLabel}
                   signOutDialog={account.signOutDialog}
@@ -690,26 +638,16 @@ export const SettingsScreen = ({
           </Host>
         ) : null}
 
-        {accountDialog === 'username' && account?.usernameEditor ? (
-          <Host matchContents colorScheme={colorScheme}>
-            <UsernameDialog
-              editor={account.usernameEditor}
-              colors={colors}
-              onDismiss={closeAccountDialog}
-            />
-          </Host>
-        ) : null}
-
-        {accountDialog === 'signOut' && account ? (
+        {signOutConfirmVisible && account ? (
           <Host matchContents colorScheme={colorScheme}>
             <DestructiveConfirmDialog
               dialog={account.signOutDialog}
               colors={colors}
               onConfirm={() => {
-                closeAccountDialog();
+                closeSignOutConfirm();
                 account.onSignOut();
               }}
-              onDismiss={closeAccountDialog}
+              onDismiss={closeSignOutConfirm}
             />
           </Host>
         ) : null}
