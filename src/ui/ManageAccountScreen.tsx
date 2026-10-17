@@ -31,6 +31,8 @@ import {
   GROUP_HEADERLESS_TOP_GAP,
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
+  groupHeaderProps,
+  groupRowColors,
   groupRowShape,
   VALUE_BONE_HEIGHT,
   VALUE_BONE_WIDTH,
@@ -196,11 +198,7 @@ export const ManageAccountScreen = ({
   // first editor it finds rather than tracking which row was tapped.
   const editor = info?.rows.find(row => row.editor)?.editor;
 
-  const rowColors = {
-    containerColor: colors.surfaceContainer,
-    contentColor: colors.onSurface,
-    supportingContentColor: colors.onSurfaceMuted,
-  };
+  const rowColors = groupRowColors(colors);
 
   // Ink, not the accent — a group header is a label. These were
   // `colors.primary` for as long as this screen was frozen; the monochrome
@@ -213,13 +211,7 @@ export const ManageAccountScreen = ({
   // "Account Information" visibly higher than Settings' "General" one push
   // away: the scroller's 16 plus the header's 16 is the shared 32.
   const sectionHeader = (title: string) => (
-    <Text
-      color={colors.onSurfaceMuted}
-      style={{ typography: 'labelLarge' }}
-      modifiers={[padding(16, 16, 16, 8)]}
-    >
-      {title}
-    </Text>
+    <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{title}</Text>
   );
 
   /**

@@ -1,4 +1,4 @@
-import { Shapes } from '@expo/ui/jetpack-compose/modifiers';
+import { padding, Shapes } from '@expo/ui/jetpack-compose/modifiers';
 
 /**
  * Corner shapes for rows in a Material 3 grouped settings list (the Google
@@ -84,6 +84,35 @@ export const groupRowShape = (index: number, count: number): GroupShape => {
 
   return shape;
 };
+
+/**
+ * A GROUP HEADER — the muted `labelLarge` subheader over a grouped card, with
+ * the padding every header on the settings family takes (first one included).
+ * Spread onto a Compose `Text`: `<Text {...groupHeaderProps(muted)}>`.
+ *
+ * Ink, not the accent: a group header is a label. The full argument is on
+ * `sectionsTitle` in `SettingsScreen`.
+ */
+export const groupHeaderProps = (onSurfaceMuted: string) => ({
+  color: onSurfaceMuted,
+  style: { typography: 'labelLarge' as const },
+  modifiers: [padding(16, 16, 16, 8)],
+});
+
+/**
+ * A grouped row's `ListItem` colours — the card fill, the ink, and the muted
+ * supporting line. A row whose supporting line carries a SELECTION overrides
+ * that one role (`SettingsScreen`'s preference rows).
+ */
+export const groupRowColors = (colors: {
+  surfaceContainer: string;
+  onSurface: string;
+  onSurfaceMuted: string;
+}) => ({
+  containerColor: colors.surfaceContainer,
+  contentColor: colors.onSurface,
+  supportingContentColor: colors.onSurfaceMuted,
+});
 
 /**
  * THE CONTAINER A HAND-BUILT SETTINGS DIALOG PAINTS — the radio picker in

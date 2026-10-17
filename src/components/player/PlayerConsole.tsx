@@ -6,7 +6,10 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { bannerBottomOffset } from '@/components/player/bannerMetrics';
+import {
+  BANNER_ELEVATION,
+  bannerBottomOffset,
+} from '@/components/player/bannerMetrics';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import { PlayerScrubberLive } from '@/components/player/PlayerScrubberLive';
 import {
@@ -28,6 +31,7 @@ import {
 } from '@/ui';
 
 import {
+  CONSOLE_ROW_PADDING,
   PLAYER_SIDE_PADDING,
   playerArtSize,
   registerPlayerTransportMeasurer,
@@ -87,14 +91,11 @@ const SPACER_LOWER_WEIGHT = 1.55;
  * corner and place on screen, so expanding reads as the bar staying put while
  * its contents change. Same statement the iOS file makes; the CHROME is the
  * Android banner's own (tonal fill, elevation) instead of glass.
- * `FOOTER_ELEVATION` is the banner's `BANNER_ELEVATION`; neither wears an
+ * It takes the banner's `BANNER_ELEVATION`; neither wears an
  * outline any more — tone + shadow only (Juan, 2026-09-08).
  */
 const FOOTER_HEIGHT = MINI_PLAYER_HEIGHT;
-const FOOTER_ELEVATION = 8;
 const FOOTER_ICON = 24;
-/** The compartments' end padding — the iOS bar's `GLASS_ROW_PADDING`. */
-const FOOTER_ROW_PADDING = 16;
 
 function FooterHalf({ card }: { card: PlayerCard }) {
   const { colors } = useAppTheme();
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
   // 2026-09-08, retiring the hairline here and on the banner in one breath).
   footer: {
     borderRadius: FLOATING_RADIUS,
-    elevation: FOOTER_ELEVATION,
+    elevation: BANNER_ELEVATION,
   },
   footerRow: { flexDirection: 'row', height: '100%', width: '100%' },
   footerHalfSlot: { flex: 1 },
@@ -497,7 +498,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     height: '100%',
-    paddingHorizontal: FOOTER_ROW_PADDING,
+    paddingHorizontal: CONSOLE_ROW_PADDING,
   },
   footerIconHost: { height: FOOTER_ICON, width: FOOTER_ICON },
   footerCopy: { flex: 1, gap: 1 },
@@ -507,6 +508,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     height: '100%',
-    paddingHorizontal: FOOTER_ROW_PADDING,
+    paddingHorizontal: CONSOLE_ROW_PADDING,
   },
 });

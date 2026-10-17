@@ -45,6 +45,12 @@ type AnyGesture = ComposedGesture | GestureType;
 export const IOS_SLIDER_HOST_HEIGHT = 18;
 
 /**
+ * The console bar's compartment end padding — iOS's glass bar and Android's
+ * tonal footer both stand their first and last ink this far in.
+ */
+export const CONSOLE_ROW_PADDING = 16;
+
+/**
  * THE iOS TRANSPORT'S GEOMETRY — one term, TWO surfaces since the clip
  * editor gained its own transport row (2026-08-26): the expanded console and
  * the editor must feel like one app's controls, not two apps'. Play carries

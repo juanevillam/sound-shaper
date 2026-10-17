@@ -32,6 +32,7 @@ import {
 
 import { BannerGlassIos } from '@/components/player/BannerGlassIos';
 import {
+  BANNER_ELEVATION,
   BANNER_SIDE_INSET,
   bannerBottomOffset,
   MINI_PLAYER_HEIGHT,
@@ -113,38 +114,6 @@ const MINI_ART_SIZE = 46;
 // box" did when both grew.
 const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 
-/**
- * THE LIFT — Android's alone. iOS's was measured out of existence.
- *
- * A detached surface needs to read as floating rather than as a sticker painted
- * on the screen, and Android raises it through the elevation system. iOS had an
- * RN drop shadow beside it (0.3 opacity, 14 radius, +6) written when the banner
- * was an OPAQUE card. It is Liquid Glass now, and the material supplies its own
- * separation — so the shadow was stacked on top of something already doing the
- * job.
- *
- * Band-scanned against the portfolio's other floating glass surface, Topper's
- * UIKit tab bar, sampling the page just outside each edge (iPhone 17 / iOS 26.5,
- * light; darkening in luminance steps from a CLEAN page reference):
- *
- *              2pt out   8pt out   16pt out
- *   UIKit         +8        +5        +3
- *   ours @0.3    +40       +26       +12
- *   ours @0.09   +21       +13        +7
- *   ours @0.035  +15        +9        +5
- *   ours OFF     +15        +9        +5   ← identical
- *
- * The last two rows are the finding: by the time the shadow is faint enough to
- * approach UIKit it contributes NOTHING, because the glass alone already
- * darkens the gutter by +15 — roughly twice what UIKit's whole treatment does.
- * Any RN shadow on top can only overshoot. iOS therefore draws none and lets
- * the material be the lift, which is the iOS 26 idiom besides.
- *
- * Take the reference FAR from the banner: it sits 16pt from the screen edge and
- * its own halo reaches the gutter, so a "page" sample beside it is already
- * darkened and flatters whatever is being tested.
- */
-const BANNER_ELEVATION = 8;
 // How much of the expansion the banner's own chrome — border, lift — takes to
 // disappear. Matches the surface's colour cross-fade, so the whole "this is a
 // floating object" story ends at once.

@@ -37,6 +37,8 @@ import { SettingsDialog } from './SettingsDialog';
 import {
   GROUP_ROW_GAP,
   GROUP_SIDE_PADDING,
+  groupHeaderProps,
+  groupRowColors,
   groupRowShape,
 } from './settingsGroup';
 
@@ -192,8 +194,7 @@ const PreferenceRow = memo(
   }) => (
     <ListItem
       colors={{
-        containerColor: colors.surfaceContainer,
-        contentColor: colors.onSurface,
+        ...groupRowColors(colors),
         // THE SELECTED VALUE KEEPS THE ACCENT, because here the colour IS the
         // information: this line is not supporting text about the row, it is
         // the row's current SELECTION, and it is the only thing on the screen
@@ -258,11 +259,7 @@ const InfoRow = ({
   colors: SettingsScreenColors;
 }) => (
   <ListItem
-    colors={{
-      containerColor: colors.surfaceContainer,
-      contentColor: colors.onSurface,
-      supportingContentColor: colors.onSurfaceMuted,
-    }}
+    colors={groupRowColors(colors)}
     modifiers={[
       fillMaxWidth(),
       clip(shape),
@@ -303,13 +300,7 @@ const InfoGroup = ({
     <>
       {/* Ink, not the accent — see the note on `sectionsTitle`. */}
       {title ? (
-        <Text
-          color={colors.onSurfaceMuted}
-          style={{ typography: 'labelLarge' }}
-          modifiers={[padding(16, 16, 16, 8)]}
-        >
-          {title}
-        </Text>
+        <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{title}</Text>
       ) : null}
       <Column
         modifiers={[
@@ -348,13 +339,7 @@ const DevTogglesGroup = ({
 }) => (
   <>
     {/* Ink, not the accent — see the note on `sectionsTitle`. */}
-    <Text
-      color={colors.onSurfaceMuted}
-      style={{ typography: 'labelLarge' }}
-      modifiers={[padding(16, 16, 16, 8)]}
-    >
-      {devToggles.title}
-    </Text>
+    <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{devToggles.title}</Text>
     <Column
       modifiers={[
         fillMaxWidth(),
@@ -365,10 +350,7 @@ const DevTogglesGroup = ({
       {devToggles.rows.map((row, index) => (
         <ListItem
           key={row.label}
-          colors={{
-            containerColor: colors.surfaceContainer,
-            contentColor: colors.onSurface,
-          }}
+          colors={groupRowColors(colors)}
           modifiers={[
             fillMaxWidth(),
             clip(groupRowShape(index, devToggles.rows.length)),
@@ -538,11 +520,7 @@ export const SettingsScreen = ({
                   dialog's selected button stays the accent — that one IS the
                   selection. */}
               {sectionsTitle ? (
-                <Text
-                  color={colors.onSurfaceMuted}
-                  style={{ typography: 'labelLarge' }}
-                  modifiers={[padding(16, 16, 16, 8)]}
-                >
+                <Text {...groupHeaderProps(colors.onSurfaceMuted)}>
                   {sectionsTitle}
                 </Text>
               ) : null}

@@ -31,6 +31,7 @@ import { SettingsDialog } from './SettingsDialog';
 import {
   GROUP_HEADERLESS_TOP_GAP,
   GROUP_SIDE_PADDING,
+  groupRowColors,
   groupRowShape,
   SCREEN_CONTENT_TOP,
 } from './settingsGroup';
@@ -151,12 +152,6 @@ export type SettingsAccountSectionProps = {
   colors: SettingsAccountColors;
 };
 
-const listItemColors = (colors: SettingsAccountColors) => ({
-  containerColor: colors.surfaceContainer,
-  contentColor: colors.onSurface,
-  supportingContentColor: colors.onSurfaceMuted,
-});
-
 /**
  * The identity banner's avatar — 55dp, the App Store Apple Account sheet's
  * measured art size, which the iOS banner already renders. One number both
@@ -211,7 +206,7 @@ const AccountBanner = memo(
       ]}
     >
       <ListItem
-        colors={listItemColors(colors)}
+        colors={groupRowColors(colors)}
         modifiers={[
           fillMaxWidth(),
           height(BANNER_HEIGHT),
@@ -417,7 +412,7 @@ const SignOutRow = memo(
        with, and the icon pushed "Sign Out" to 88.89dp while every other row on
        the screen starts its label at 33.07dp (measured on a Galaxy A54). */
     <ListItem
-      colors={listItemColors(colors)}
+      colors={groupRowColors(colors)}
       modifiers={[fillMaxWidth(), clip(shape), clickable(onPress)]}
     >
       <ListItem.HeadlineContent>

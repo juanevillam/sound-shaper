@@ -29,6 +29,7 @@ import {
 
 import { bannerBottomOffset, MINI_PLAYER_HEIGHT } from './bannerMetrics';
 import {
+  CONSOLE_ROW_PADDING,
   TRANSPORT_GAP,
   TRANSPORT_PLAY_SIZE,
   TRANSPORT_SKIP_SIZE,
@@ -261,7 +262,7 @@ type FooterProps = {
  * It takes the same divider the two cards share. The bar had one divider and
  * then none, which is the asymmetry Juan called next.
  */
-const GLASS_ROW_PADDING = 16;
+const GLASS_ROW_PADDING = CONSOLE_ROW_PADDING;
 
 /**
  * THE EDIT GLYPH IS OPTICALLY SIZED, and it is the one place in this bar that

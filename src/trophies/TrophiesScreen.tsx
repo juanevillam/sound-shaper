@@ -4,6 +4,10 @@ import Svg, { Circle } from 'react-native-svg';
 
 import {
   DisclosureChevron,
+  GROUP_INNER_RADIUS,
+  GROUP_OUTER_RADIUS,
+  GROUP_ROW_GAP,
+  GROUP_SIDE_PADDING,
   SCREEN_CONTENT_TOP,
   SkeletonBone,
   SkeletonTextLine,
@@ -77,14 +81,14 @@ export type TrophiesScreenProps = {
   loading?: boolean;
 };
 
-// Grouped-list geometry, mirroring the app's `settingsGroup.ts`: the rows share
-// one rounded card split by 2px hairline gaps — the group's first/last rows take
-// the big outer radius, inner edges the small one. (Kept in sync with
-// settingsGroup.ts by hand: this screen is plain RN, that helper returns Compose
-// shapes, and a Host-per-row would measure async and lag the scroll.)
-const OUTER_RADIUS = 24;
-const INNER_RADIUS = 4;
-const ROW_GAP = 2;
+// Grouped-list geometry is `settingsGroup.ts`'s: the rows share one rounded
+// card split by 2px hairline gaps — the group's first/last rows take the big
+// outer radius, inner edges the small one. This screen is plain RN (a
+// Host-per-row would measure async and lag the scroll), so it imports the
+// CONSTANTS and builds its own radii from them rather than taking that file's
+// Compose shapes.
+const OUTER_RADIUS = GROUP_OUTER_RADIUS;
+const INNER_RADIUS = GROUP_INNER_RADIUS;
 const ICON_SLOT = 40;
 const ICON_SIZE = 26;
 
@@ -252,7 +256,7 @@ const TrophyRow = ({
         groupRadii(index, count),
         {
           backgroundColor: colors.surface,
-          marginBottom: index === count - 1 ? 0 : ROW_GAP,
+          marginBottom: index === count - 1 ? 0 : GROUP_ROW_GAP,
         },
       ]}
     >
@@ -405,7 +409,7 @@ const styles = StyleSheet.create({
   // first header box does (see SCREEN_CONTENT_TOP).
   content: {
     paddingBottom: 32,
-    paddingHorizontal: 16,
+    paddingHorizontal: GROUP_SIDE_PADDING,
     paddingTop: SCREEN_CONTENT_TOP,
   },
   // The centred summary card: figure | ring | figure on the row surface,
