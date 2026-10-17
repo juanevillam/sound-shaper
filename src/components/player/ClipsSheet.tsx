@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import {
+  Button,
   CircularWavyProgressIndicator,
   Column,
   DropdownMenu,
@@ -38,6 +39,7 @@ import { useClipsStore } from '@/store/clips';
 import { usePlayerStore } from '@/store/player';
 import {
   AppIcon,
+  type IconName,
   COMPOSE_SHEET_GUTTER,
   COMPOSE_SHEET_HEADER_TO_CONTENT,
   composeSheetBottomPadding,
@@ -71,6 +73,91 @@ const NO_CLIPS: never[] = [];
 /** The M3 loading indicator's box, matching `SheetBar`'s commit spinner. */
 const SPINNER_SIZE = 20;
 const MENU_ICON_SIZE = 24;
+
+/**
+ * THE SHEET'S EMPTY AND ERROR STATES — the parts `EmptyState` names (a mark,
+ * a title, a supporting line, an optional action), re-drawn in Compose rather
+ * than mounted: `EmptyState` hosts its OWN `Host`, and a Host inside this
+ * sheet's Host is the nesting blow-up the RNHostView notes record. Same parts,
+ * same strings as the iOS twin, and the steps are IMPORTED
+ * (`EMPTY_STATE_STEPS`) rather than matched by hand. Only the container
+ * differs.
+ *
+ * TWO COLUMNS, because the arrangement type is one-or-the-other: `spacedBy`
+ * carries no alignment, so the WEIGHTED outer column centres the block in the
+ * sheet's leftover height (what `StateWrap` does for iOS's EmptyState — it sat
+ * pinned under the header here; Juan, 2026-09-10) and the inner one keeps the
+ * steps' gap.
+ */
+function SheetStateBlock({
+  icon,
+  title,
+  subtitle,
+  action,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  action?: { label: string; onPress: () => void };
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Column
+      horizontalAlignment="center"
+      verticalArrangement="center"
+      modifiers={[
+        weight(1),
+        fillMaxWidth(),
+        padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
+      ]}
+    >
+      <Column
+        horizontalAlignment="center"
+        verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
+        modifiers={[fillMaxWidth()]}
+      >
+        <AppIcon
+          name={icon}
+          size={EMPTY_STATE_STEPS.iconSize}
+          tint={colors.onSurfaceMuted}
+          modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+        />
+        <Text
+          color={colors.onSurface}
+          style={{ typography: EMPTY_STATE_STEPS.title, textAlign: 'center' }}
+        >
+          {title}
+        </Text>
+        <Text
+          color={colors.onSurfaceMuted}
+          style={{
+            typography: EMPTY_STATE_STEPS.subtitle,
+            textAlign: 'center',
+          }}
+        >
+          {subtitle}
+        </Text>
+        {action ? (
+          // MONOCHROME — `EmptyState`'s own mapping: a filled button's colour
+          // is inherited (Material fills with the accent by default), so it
+          // takes the ink, and Material inverts the label through
+          // `contentColor`.
+          <Button
+            onClick={action.onPress}
+            colors={{
+              containerColor: colors.onSurface,
+              contentColor: colors.background,
+            }}
+            modifiers={[padding(0, EMPTY_STATE_STEPS.ctaGap, 0, 0)]}
+          >
+            <Text>{action.label}</Text>
+          </Button>
+        ) : null}
+      </Column>
+    </Column>
+  );
+}
 
 export type ClipsSheetProps = {
   onClose: () => void;
@@ -131,13 +218,13 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
   const settled = useClipsStore(s =>
     current ? (s.settledBySoundId[current.id] ?? false) : false,
   );
-  // A dead listener says so in the sheet's error line, where a failed delete
-  // already speaks, instead of spinning forever (iOS: an `EmptyState` with
-  // Retry).
+  // A dead listener with nothing to show stands the sheet's error state, with
+  // Retry — iOS's `EmptyState`, in Compose. The error line above the list is
+  // for failed deletes only.
   const failed = useClipsStore(s =>
     current ? (s.failedBySoundId[current.id] ?? false) : false,
   );
-  const shownFailure = failure ?? (failed ? t('player.clips.loadError') : null);
+  const retry = useClipsStore(s => s.retry);
   /**
    * A SPINNER, NOT A LINE OF TEXT — the same call iOS made, in Material. The
    * rule (`docs/standards.md` → "Waiting has two shapes") sends predictable shapes
@@ -282,14 +369,14 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
               />
             </Column>
 
-            {shownFailure ? (
+            {failure ? (
               <Column
                 modifiers={[
                   fillMaxWidth(),
                   padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
                 ]}
               >
-                <SheetErrorLine message={shownFailure} />
+                <SheetErrorLine message={failure} />
               </Column>
             ) : null}
 
@@ -313,67 +400,22 @@ export function ClipsSheet({ onClose }: ClipsSheetProps) {
                   />
                 ) : null}
               </Column>
-            ) : failed && clips.length === 0 ? null : clips.length === 0 ? (
-              /* A REAL EMPTY STATE, the parts `EmptyState` names — a mark, a
-               title, a supporting line — rather than the lone muted sentence
-               that used to stand here while iOS drew the full thing.
-
-               It is re-drawn in Compose rather than mounted: `EmptyState` hosts
-               its OWN `Host`, and a Host inside this sheet's Host is the nesting
-               blow-up the RNHostView notes record. Same parts, same strings —
-               and the steps are IMPORTED (`EMPTY_STATE_STEPS`) rather than
-               matched by hand, which is what they were. Only the container
-               differs. */
-              // TWO COLUMNS, because the arrangement type is one-or-the-other:
-              // `spacedBy` carries no alignment, so the WEIGHTED outer column
-              // centres the block in the sheet's leftover height (what
-              // `StateWrap` does for iOS's EmptyState — it sat pinned under
-              // the header here; Juan, 2026-09-10) and the inner one keeps the
-              // steps' gap.
-              <Column
-                horizontalAlignment="center"
-                verticalArrangement="center"
-                modifiers={[
-                  weight(1),
-                  fillMaxWidth(),
-                  padding(COMPOSE_SHEET_GUTTER, 0, COMPOSE_SHEET_GUTTER, 0),
-                ]}
-              >
-                <Column
-                  horizontalAlignment="center"
-                  verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
-                  modifiers={[fillMaxWidth()]}
-                >
-                  {/* The Material twin of iOS's `scissors` mark, at the shared
-                    steps — the 2026-09-04 sweep retired emoji unavailable
-                    states portfolio-wide and this sheet was still carrying
-                    one (Juan, 2026-09-08). */}
-                  <AppIcon
-                    name="content-cut"
-                    size={EMPTY_STATE_STEPS.iconSize}
-                    tint={colors.onSurfaceMuted}
-                    modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
-                  />
-                  <Text
-                    color={colors.onSurface}
-                    style={{
-                      typography: EMPTY_STATE_STEPS.title,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {t('player.clips.none')}
-                  </Text>
-                  <Text
-                    color={colors.onSurfaceMuted}
-                    style={{
-                      typography: EMPTY_STATE_STEPS.subtitle,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {t('player.clips.empty')}
-                  </Text>
-                </Column>
-              </Column>
+            ) : failed && clips.length === 0 ? (
+              <SheetStateBlock
+                icon="warning"
+                title={t('player.clips.loadError')}
+                subtitle={t('player.clips.loadErrorHint')}
+                action={{ label: t('common.retry'), onPress: retry }}
+              />
+            ) : clips.length === 0 ? (
+              /* A REAL EMPTY STATE, rather than the lone muted sentence that
+                 used to stand here while iOS drew the full thing. The mark is
+                 the Material twin of iOS's `scissors` (Juan, 2026-09-08). */
+              <SheetStateBlock
+                icon="content-cut"
+                title={t('player.clips.none')}
+                subtitle={t('player.clips.empty')}
+              />
             ) : (
               /* GROUPED CARD ROWS — the follow sheets' recipe verbatim
                  (clip → sheetField → clickable, 2dp seams, first/last
