@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { withAlpha } from '@/core';
 import {
   SHEET_HERO_BADGE_SIZE,
   SHEET_HERO_GLYPH_SIZE,
@@ -23,13 +24,6 @@ const DISC_SIZE = SHEET_HERO_BADGE_SIZE;
 const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
 // Tint strength for the disc behind the trophy glyph.
 const DISC_ALPHA = 0.16;
-
-// Local alpha helper (the package has no dependency on `src/core`): the
-// tier colors are plain hex, so appending a 0–255 alpha byte is exact.
-const withDiscAlpha = (hex: string) =>
-  `${hex}${Math.round(DISC_ALPHA * 255)
-    .toString(16)
-    .padStart(2, '0')}`;
 
 export type TrophyDetailContentColors = {
   /** Elevated sheet background (the form-sheet surface). */
@@ -74,7 +68,7 @@ export function TrophyDetailContent({
           styles.disc,
           {
             backgroundColor: trophy.unlocked
-              ? withDiscAlpha(tierColor(trophy.tier))
+              ? withAlpha(tierColor(trophy.tier), DISC_ALPHA)
               : colors.lockedDisc,
           },
         ]}

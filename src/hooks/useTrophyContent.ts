@@ -10,6 +10,7 @@ import {
 } from '@/constants/trophies';
 import { type TranslationKey, useI18n } from '@/i18n';
 import {
+  type ResolvedTrophy,
   type TrophyCopy,
   type TrophyOverlayStrings,
   type TrophyTier,
@@ -49,6 +50,14 @@ type TrophyContent = {
   copy: Record<string, TrophyCopy>;
   overlayStrings: TrophyOverlayStrings;
   screenStrings: TrophyScreenStringsBase;
+  /**
+   * A trophy's `tier · status` caption — "Gold · Earned Oct 17, 2026" or
+   * "Gold · Locked". ONE builder for both detail sheets (the iOS route and
+   * the Compose sheet), so the two cannot word it differently.
+   */
+  trophyCaption: (
+    trophy: Pick<ResolvedTrophy, 'tier' | 'unlocked' | 'achievedAt'>,
+  ) => string;
 };
 
 /**
@@ -58,7 +67,7 @@ type TrophyContent = {
  * locale change.
  */
 export const useTrophyContent = (): TrophyContent => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return useMemo(() => {
     const fill = (value: string, id: string) =>
@@ -82,16 +91,23 @@ export const useTrophyContent = (): TrophyContent => {
       {} as Record<TrophyTier, string>,
     );
 
+    const lockedLabel = t('trophies.locked');
+    const achievedLabel = t('trophies.earned');
+
     return {
       copy,
       overlayStrings: { unlockedLabel: t('trophies.unlocked') },
       screenStrings: {
-        lockedLabel: t('trophies.locked'),
-        achievedLabel: t('trophies.earned'),
+        lockedLabel,
+        achievedLabel,
         earnedLabel: t('trophies.earned'),
         availableLabel: t('trophies.available'),
         tierNames,
       },
+      trophyCaption: ({ tier, unlocked, achievedAt }) =>
+        unlocked && achievedAt !== null
+          ? `${tierNames[tier]} · ${achievedLabel} ${formatAchievedDate(locale, achievedAt)}`
+          : `${tierNames[tier]} · ${lockedLabel}`,
     };
-  }, [t]);
+  }, [t, locale]);
 };

@@ -14,6 +14,7 @@ import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { withAlpha } from '@/core';
 import {
   composeSheetBottomPadding,
   SHEET_HERO_BADGE_SIZE,
@@ -35,13 +36,6 @@ const ICON_SIZE = SHEET_HERO_GLYPH_SIZE;
 // own number.
 const DISC_ALPHA = 0.16;
 
-// Local alpha helper (the package has no dependency on `src/core`): the
-// tier colors are plain hex, so appending a 0–255 alpha byte is exact.
-const withDiscAlpha = (hex: string) =>
-  `${hex}${Math.round(DISC_ALPHA * 255)
-    .toString(16)
-    .padStart(2, '0')}`;
-
 export type TrophyDetailSheetColors = {
   onSurface: string;
   onSurfaceMuted: string;
@@ -51,11 +45,9 @@ export type TrophyDetailSheetColors = {
 
 export type TrophyDetailSheetProps = {
   trophy: ResolvedTrophy;
-  tierName: string;
-  /** "Earned" prefix for the date line on an earned trophy. */
-  achievedLabel: string;
-  lockedLabel: string;
-  formatDate: (achievedAt: number) => string;
+  /** The already-localized `tier · status` line — `trophyCaption` in the
+   *  app's `useTrophyContent`, the same builder the iOS route uses. */
+  caption: string;
   onClose: () => void;
   /** The app's palette — a package takes colors as props, never a theme hook. */
   colors: TrophyDetailSheetColors;
@@ -77,10 +69,7 @@ export type TrophyDetailSheetProps = {
 // package's RN SVG, bridged back into Compose via RNHostView.
 export function TrophyDetailSheet({
   trophy,
-  tierName,
-  achievedLabel,
-  lockedLabel,
-  formatDate,
+  caption,
   onClose,
   colors,
   colorScheme,
@@ -90,10 +79,6 @@ export function TrophyDetailSheet({
 
   // Same description whether earned or locked; only the caption's date/lock differs.
   const body = trophy.description;
-  const caption =
-    trophy.unlocked && trophy.achievedAt !== null
-      ? `${tierName} · ${achievedLabel} ${formatDate(trophy.achievedAt)}`
-      : `${tierName} · ${lockedLabel}`;
 
   const iconColor = trophy.unlocked
     ? tierColor(trophy.tier)
@@ -135,7 +120,7 @@ export function TrophyDetailSheet({
                   styles.disc,
                   {
                     backgroundColor: trophy.unlocked
-                      ? withDiscAlpha(tierColor(trophy.tier))
+                      ? withAlpha(tierColor(trophy.tier), DISC_ALPHA)
                       : colors.lockedDisc,
                   },
                 ]}

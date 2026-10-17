@@ -18,7 +18,7 @@ import { TrophiesScreen, TrophyDetailSheet, useTrophies } from '@/trophies';
 export default function TrophiesRoute() {
   const { colors, scheme } = useAppTheme();
   const { locale } = useI18n();
-  const { copy, screenStrings } = useTrophyContent();
+  const { copy, screenStrings, trophyCaption } = useTrophyContent();
   const { trophies, earned, total, hydrated } = useTrophies(copy);
 
   /**
@@ -88,10 +88,7 @@ export default function TrophiesRoute() {
       {selected ? (
         <TrophyDetailSheet
           trophy={selected}
-          tierName={screenStrings.tierNames[selected.tier]}
-          achievedLabel={screenStrings.achievedLabel}
-          lockedLabel={screenStrings.lockedLabel}
-          formatDate={formatDate}
+          caption={trophyCaption(selected)}
           onClose={() => setSelectedId(null)}
           // `src/trophies` takes the palette and the Host theming as props —
           // the app's ThemedHost is app code (see the sheet's header).

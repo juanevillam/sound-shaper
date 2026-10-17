@@ -5,8 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
-import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
-import { useI18n } from '@/i18n';
+import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { TrophyDetailContent, useTrophies } from '@/trophies';
 
 // iOS-only route: one trophy's detail as a content-hugging native form sheet
@@ -17,27 +16,18 @@ import { TrophyDetailContent, useTrophies } from '@/trophies';
 function TrophyDetailSheetScreen() {
   const { trophyId } = useLocalSearchParams<{ trophyId: string }>();
   const { colors } = useAppTheme();
-  const { locale } = useI18n();
   const { bottom } = useSafeAreaInsets();
-  const { copy, screenStrings } = useTrophyContent();
+  const { copy, trophyCaption } = useTrophyContent();
   const { trophies } = useTrophies(copy);
 
   const trophy = trophies.find(entry => entry.id === trophyId);
 
   if (!trophy) return <View style={{ backgroundColor: colors.sheet }} />;
 
-  const formatDate = (achievedAt: number) =>
-    formatAchievedDate(locale, achievedAt);
-
-  const caption =
-    trophy.unlocked && trophy.achievedAt !== null
-      ? `${screenStrings.tierNames[trophy.tier]} · ${screenStrings.achievedLabel} ${formatDate(trophy.achievedAt)}`
-      : `${screenStrings.tierNames[trophy.tier]} · ${screenStrings.lockedLabel}`;
-
   return (
     <TrophyDetailContent
       trophy={trophy}
-      caption={caption}
+      caption={trophyCaption(trophy)}
       bottomInset={bottom}
       colors={{
         sheet: colors.sheet,
