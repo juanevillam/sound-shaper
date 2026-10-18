@@ -37,9 +37,12 @@ When they are:
    signal. A 6.9" device or simulator (iPhone 17 Pro Max, 1320 × 2868) is best;
    any modern iPhone works, since the screen is scaled to one fixed box.
 2. **Show only artwork you have the rights to.** Apple's marketing guidelines
-   ask for rights to all third-party content on screen. The first set shows
-   commercial album covers; the retake should use your own art or freely
-   licensed images.
+   ask for rights to all third-party content on screen. The first set showed
+   commercial album covers and was replaced (2026-10-17) by the six original
+   sounds in [`demo-audio/`](demo-audio/README.md), music and covers both
+   generated there. That set was captured on an iPhone 17 Pro Max simulator
+   against a temporary, uncommitted stand-in for the signed-in session and the
+   library — no real account was signed in to the simulator.
 3. Save them over `source/home.png`, `player.png`, `shape.png` and `clip.png`
    (or add a new entry to `copy.json` for a new screen), run the command, and
    look at every PNG before uploading.

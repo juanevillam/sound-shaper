@@ -198,10 +198,9 @@ to one is a change to the other.
 
 - **The legal pages are LIVE** (2026-10-17, juanevillam.com, site `v1.0.0`):
   both URLs above answer 200.
-- Screenshots: a first set is generated in `store/screenshots/` (6.9" iPhone,
-  1320 × 2868, the one size Apple requires). **It shows commercial album
-  covers (Bad Bunny's DÁKITI with its Parental Advisory label among them) and
-  cannot be submitted** — retake the sources with artwork you have the
-  rights to, and re-run `npm run store-screenshots` — see
-  [`store/README.md`](../store/README.md).
-- The reviewer attachment (above) is not made yet.
+- Screenshots: ✅ retaken 2026-10-17 with original music and covers (see
+  [`store/demo-audio/`](../store/demo-audio/README.md)), 1320 × 2868, English
+  UI in both sets — the Spanish set shows English screens under Spanish
+  headlines.
+- The reviewer attachment is `Midnight Drive.mp3`, generated in
+  `store/demo-audio/` (made for the app from code, no samples).
