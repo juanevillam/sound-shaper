@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import {
   Column,
   FilterChip,
@@ -40,6 +42,7 @@ import {
   rateLabel,
   snapRate,
 } from '@/lib/player';
+import { track } from '@/services/firebase/analytics';
 import { usePlayerStore } from '@/store/player';
 import {
   dbLabel,
@@ -129,6 +132,8 @@ export type ShaperSheetProps = {
 
 export function ShaperSheet({ onClose }: ShaperSheetProps) {
   const { t, locale } = useI18n();
+
+  useEffect(() => track({ name: 'open_shape' }), []);
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 

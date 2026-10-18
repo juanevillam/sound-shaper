@@ -8,6 +8,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { track } from '@/services/firebase/analytics';
 import {
   TROPHIES_SUBCOLLECTION,
   USERS_COLLECTION,
@@ -59,5 +60,6 @@ export const createTrophyAdapter = (uid: string): TrophyPersistenceAdapter => ({
       { achievedAt: serverTimestamp() },
       { merge: true },
     );
+    track({ name: 'trophy_unlocked', trophyId });
   }),
 });

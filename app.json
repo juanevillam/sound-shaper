@@ -19,7 +19,8 @@
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.grostify.soundshaper"
-        ]
+        ],
+        "com.apple.developer.devicecheck.appattest-environment": "production"
       },
       "googleServicesFile": "./GoogleService-Info.plist",
       "privacyManifests": {
@@ -92,7 +93,8 @@
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
             "NSPrivacyCollectedDataTypePurposes": [
-              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              "NSPrivacyCollectedDataTypePurposeAnalytics"
             ]
           },
           {
@@ -116,7 +118,8 @@
             "NSPrivacyCollectedDataTypeLinked": false,
             "NSPrivacyCollectedDataTypeTracking": false,
             "NSPrivacyCollectedDataTypePurposes": [
-              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              "NSPrivacyCollectedDataTypePurposeAnalytics"
             ]
           }
         ]
@@ -140,6 +143,11 @@
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
+      "@react-native-firebase/app-check",
+      [
+        "@react-native-firebase/analytics",
+        { "ios": { "withoutAdIdSupport": true } }
+      ],
       [
         "@react-native-google-signin/google-signin",
         {

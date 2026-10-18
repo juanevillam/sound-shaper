@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import {
   HStack,
   Picker,
@@ -34,6 +36,7 @@ import {
   rateToStop,
   stopToRate,
 } from '@/lib/player';
+import { track } from '@/services/firebase/analytics';
 import { usePlayerStore } from '@/store/player';
 import {
   dbLabel,
@@ -124,6 +127,8 @@ function LevelPickerSection({
 
 function ShaperSheetScreen() {
   const { t, locale } = useI18n();
+
+  useEffect(() => track({ name: 'open_shape' }), []);
   const { colors } = useAppTheme();
 
   const rate = usePlayerStore(s => s.rate);

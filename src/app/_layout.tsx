@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 
 import { Appearance, Platform, StyleSheet } from 'react-native';
 
-import { Stack, ThemeProvider, type ErrorBoundaryProps } from 'expo-router';
+import {
+  Stack,
+  ThemeProvider,
+  usePathname,
+  type ErrorBoundaryProps,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -16,6 +21,10 @@ import { useAppTheme, useThemeStore } from '@/core';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useWidgetSync } from '@/hooks/useWidgetSync';
 import { useI18n } from '@/i18n';
+import { trackScreen } from '@/services/firebase/analytics';
+// Imported for its side effect: App Check activates before the first
+// Firestore call, so every request from here on can carry a token.
+import '@/services/firebase/appCheck';
 import { recordError } from '@/services/firebase/crashlytics';
 import { useAuthStore } from '@/store/auth';
 import { useLayoutStore } from '@/store/layout';
@@ -93,6 +102,10 @@ export default function RootLayout() {
   // work to do — that tree unmounts, and the shared container would keep the
   // last person's library on the Home Screen.
   useWidgetSync();
+
+  const pathname = usePathname();
+
+  useEffect(() => trackScreen(pathname), [pathname]);
 
   // iOS: mirror the in-app theme override onto UIKit (window
   // overrideUserInterfaceStyle), so NATIVE chrome — nav bars, form sheets,

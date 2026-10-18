@@ -14,6 +14,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { track } from '@/services/firebase/analytics';
 import { requireUid } from '@/services/firebase/auth';
 import {
   CLIPS_SUBCOLLECTION,
@@ -176,6 +177,7 @@ export const createClip = reported(
       label,
       startMs,
     });
+    track({ name: 'save_clip' });
 
     return ref.id;
   },

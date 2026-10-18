@@ -25,6 +25,7 @@ const remote = vi.hoisted(() => ({
   cache: new Map<string, Clip[]>(),
   clips: {} as Record<string, Clip[]>,
 }));
+vi.mock('@/services/firebase/analytics', () => ({ track: vi.fn() }));
 vi.mock('@/services/firebase/clips', () => ({
   cachedClipsOfSound: (id: string) => remote.cache.get(id),
   getClipsOfSounds: async (ids: string[]) => {

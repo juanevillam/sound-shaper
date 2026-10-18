@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { audioEngine } from '@/lib/audioEngine';
 import { nextClip, type ClipRange, type NextClip } from '@/lib/clipQueue';
+import { track } from '@/services/firebase/analytics';
 import {
   cachedClipsOfSound,
   getClipsOfSounds,
@@ -308,6 +309,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   // <AudioEngine> plays on load because `playing` is true.
   playSound: (sound, queue) => {
     endRun();
+    track({ name: 'play_sound' });
     set(state => ({
       current: sound,
       queue,
