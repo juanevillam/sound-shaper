@@ -227,6 +227,8 @@ EAS-remote-managed — never edit them.
 - **A GitHub Release once a store approves it**, from that tag. Its first line
   names the store(s) it shipped to (`App Store`, `Google Play`, or both); the
   notes follow (`/release-notes`; the store's own text from `/store-notes`).
+  One Release per version: if the second store approves the same version
+  later, edit that Release's first line to name it — never a second Release.
 - **Each store ships the versions it wants and skips the rest.** A fix for one
   platform is the next version, sent to that store only. Android's first
   release is NOT a second "1.0.0": it is the next version, sent to both
