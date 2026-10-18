@@ -182,7 +182,7 @@ to one is a change to the other.
 - **Notes for the reviewer:**
 
   ```
-  Sound Shaper is a personal music player for MP3 files the person already has. Sign in with Apple to start; the library begins empty. To try it, tap Add Sound and choose the attached MP3 (save it to Files first) — the app reads its title and artwork, then plays it through the shaping graph (Equalizer, Playback Speed, Next Room, Echo under Shape; Clips from the player).
+  Sound Shaper is a personal music player for MP3 files the person already has. Sign in with Apple to start; the library begins empty. To try it, save the attached ZIP to Files and tap it there to unzip it (App Store Connect does not accept an MP3 attachment), then tap Add Sound and choose Midnight Drive.mp3 — the app reads its title and artwork, then plays it through the shaping graph (Equalizer, Playback Speed, Next Room, Echo under Shape; Clips from the player).
 
   Content: the app only imports files the person picks from their own device. It does not download, stream or convert media from any third-party service or URL, and has no catalogue. Everything a person adds stays in their own account: there is no sharing, no feed, no discovery and no way to see another person's library, so no one else ever sees it. The terms require people to own or have the right to keep what they add, and give a copyright complaint procedure.
 
@@ -202,5 +202,6 @@ to one is a change to the other.
   [`store/demo-audio/`](../store/demo-audio/README.md)), 1320 × 2868, English
   UI in both sets — the Spanish set shows English screens under Spanish
   headlines.
-- The reviewer attachment is `Midnight Drive.mp3`, generated in
+- The reviewer attachment is `Midnight Drive.mp3` sent as `Midnight Drive.zip`
+  (App Store Connect rejects an .mp3 attachment), generated in
   `store/demo-audio/` (made for the app from code, no samples).
