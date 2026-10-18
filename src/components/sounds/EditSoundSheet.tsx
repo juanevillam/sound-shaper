@@ -33,6 +33,7 @@ import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { type Id3Tags } from '@/lib/id3';
+import { uploadFailureKey } from '@/services/cloudinary/uploadFailure';
 import {
   createSound,
   deleteSound,
@@ -223,10 +224,10 @@ export function EditSoundSheet({
           await sheetRef.current?.hide();
           onClose();
           showSnackbar(t('snackbar.sound-updated'));
-        } catch {
+        } catch (error) {
           // The sheet stays open so the edit can be retried, so the toast
           // would be invisible — see `SheetErrorLine`.
-          setFailure(t('snackbar.sound-save-failed'));
+          setFailure(t(uploadFailureKey(error, 'snackbar.sound-save-failed')));
           setIsSaving(false);
           savingRef.current = false;
         }
@@ -280,9 +281,9 @@ export function EditSoundSheet({
       await sheetRef.current?.hide();
       onClose();
       showSnackbar(t('snackbar.sound-created'));
-    } catch {
+    } catch (error) {
       // Held open so the upload can be retried without re-picking the file.
-      setFailure(t('snackbar.sound-save-failed'));
+      setFailure(t(uploadFailureKey(error, 'snackbar.sound-save-failed')));
       setIsSaving(false);
       savingRef.current = false;
     }

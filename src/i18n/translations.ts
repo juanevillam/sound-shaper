@@ -356,6 +356,11 @@ export const translations = {
       'delete-account-failed': "Couldn't delete the account. Try again.",
       'profile-name-failed': "Couldn't save your name. Try again.",
       'profile-photo-failed': "Couldn't change your photo. Try again.",
+      'sound-too-large': 'This file is too large. Choose one under 20 MB.',
+      'picture-too-large': 'This picture is too large. Choose one under 5 MB.',
+      'library-full': 'Your library is full. Delete a sound to add another.',
+      'daily-limit':
+        "You've added as many sounds as you can today. Try again tomorrow.",
       'delete-account-reauth':
         'Sign out, sign in again, and then try deleting.',
     },
@@ -670,6 +675,14 @@ export const translations = {
         'No se pudo guardar tu nombre. Vuelve a intentarlo.',
       'profile-photo-failed':
         'No se pudo cambiar tu foto. Vuelve a intentarlo.',
+      'sound-too-large':
+        'Este archivo es demasiado grande. Elige uno de menos de 20 MB.',
+      'picture-too-large':
+        'Esta imagen es demasiado grande. Elige una de menos de 5 MB.',
+      'library-full':
+        'Tu biblioteca está llena. Elimina un sonido para añadir otro.',
+      'daily-limit':
+        'Ya añadiste todos los sonidos que puedes hoy. Vuelve a intentarlo mañana.',
       'delete-account-reauth':
         'Cierra sesión, vuelve a iniciarla e inténtalo de nuevo.',
     },
@@ -969,6 +982,10 @@ export const translations = {
       'delete-account-failed': '无法删除账户。请再试一次。',
       'profile-name-failed': '无法存储你的姓名。请再试一次。',
       'profile-photo-failed': '无法更换你的照片。请再试一次。',
+      'sound-too-large': '此文件过大。请选择小于 20 MB 的文件。',
+      'picture-too-large': '此图片过大。请选择小于 5 MB 的图片。',
+      'library-full': '你的音频库已满。删除一个音频后即可添加新的音频。',
+      'daily-limit': '你今天添加的音频已达上限。请明天再试。',
       'delete-account-reauth': '请退出登录后重新登录，然后再尝试删除。',
     },
   },

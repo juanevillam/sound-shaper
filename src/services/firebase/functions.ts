@@ -1,10 +1,12 @@
+import { appCheckToken } from '@/services/firebase/appCheck';
 import { requireUser } from '@/services/firebase/auth';
 
 /**
  * Thin fetch-based client for the media-cleanup Worker (POST {data} + the
- * caller's Firebase ID token; 200 {result} back). The Worker deletes only the
- * caller's own Cloudinary assets and does nothing else — see `media-worker/`
- * (the `sound-shaper` environment).
+ * caller's Firebase ID token and App Check token; 200 {result} back). The
+ * Worker deletes the caller's own Cloudinary assets and signs their uploads,
+ * and does nothing else — see `media-worker/` (the `sound-shaper`
+ * environment).
  *
  * IT IS THE BACKEND THIS APP'S DOCBLOCKS SAID IT "DELIBERATELY DOESN'T HAVE".
  * That was true, and it cost three orphans: a deleted sound kept its audio and
@@ -24,18 +26,46 @@ import { requireUser } from '@/services/firebase/auth';
 const FUNCTIONS_BASE =
   'https://sound-shaper-media-worker.juanesvillamendoza.workers.dev';
 
+/**
+ * A refusal the Worker NAMED — a cap or a missing App Check token — carried
+ * as its own type so a caller can tell "you are at your limit" from "the
+ * network failed" and say the right words for each.
+ */
+export class BackendRefusal extends Error {
+  constructor(
+    readonly route: string,
+    readonly status: number,
+    readonly reason: string,
+  ) {
+    super(`${route} refused: HTTP ${status} ${reason}`);
+    this.name = 'BackendRefusal';
+  }
+}
+
 const callBackend = async <T>(name: string, data: unknown = {}): Promise<T> => {
-  const token = await requireUser().getIdToken();
+  const [token, appCheck] = await Promise.all([
+    requireUser().getIdToken(),
+    appCheckToken(),
+  ]);
   const response = await fetch(`${FUNCTIONS_BASE}/${name}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
+      ...(appCheck ? { 'X-Firebase-AppCheck': appCheck } : {}),
     },
     body: JSON.stringify({ data }),
   });
 
-  if (!response.ok) throw new Error(`${name} failed: HTTP ${response.status}`);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: unknown;
+    } | null;
+
+    throw typeof body?.error === 'string'
+      ? new BackendRefusal(name, response.status, body.error)
+      : new Error(`${name} failed: HTTP ${response.status}`);
+  }
 
   const payload = (await response.json()) as { result: T };
 
@@ -54,6 +84,25 @@ const callBackend = async <T>(name: string, data: unknown = {}): Promise<T> => {
  */
 export const cleanupMyMedia = (): Promise<{ destroyed: number }> =>
   callBackend('cleanupMyMedia');
+
+/** What `signUpload` hands back: everything a signed upload must send. */
+export type SignedUpload = {
+  apiKey: string;
+  cloudName: string;
+  /** The signed parameters, sent verbatim — `public_id` among them. */
+  params: Record<string, string>;
+  signature: string;
+};
+
+/**
+ * Ask the Worker to sign ONE upload into the caller's own folder. It refuses
+ * past the caps (`library-full`, `storage-full`, `daily-limit`) and without an
+ * App Check token (`app-check`) — each a `BackendRefusal`. Unlike the delete
+ * routes this is NOT best-effort: without a signature there is no upload.
+ */
+export const signUpload = (
+  resourceType: 'image' | 'video',
+): Promise<SignedUpload> => callBackend('signUpload', { resourceType });
 
 /**
  * Destroy one asset the caller is deleting or replacing. Read its id off the

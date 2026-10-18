@@ -15,6 +15,7 @@ import { useAppTheme } from '@/core';
 import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { uploadFailureKey } from '@/services/cloudinary/uploadFailure';
 import {
   createSound,
   deleteSound,
@@ -180,8 +181,10 @@ function EditSoundSheetScreen() {
             scope: 'app',
           });
           router.back();
-        } catch {
-          showSnackbar(t('snackbar.sound-save-failed'));
+        } catch (error) {
+          showSnackbar(
+            t(uploadFailureKey(error, 'snackbar.sound-save-failed')),
+          );
           setIsSaving(false);
           savingRef.current = false;
         }
@@ -243,8 +246,8 @@ function EditSoundSheetScreen() {
 
       showSnackbar(t('snackbar.sound-created'), undefined, { scope: 'app' });
       router.back();
-    } catch {
-      showSnackbar(t('snackbar.sound-save-failed'));
+    } catch (error) {
+      showSnackbar(t(uploadFailureKey(error, 'snackbar.sound-save-failed')));
       setIsSaving(false);
       savingRef.current = false;
     }

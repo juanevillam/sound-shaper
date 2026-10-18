@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { profilePhotoDisplayUrls } from '@/lib/profilePhoto';
 import { uploadCoverImage } from '@/services/cloudinary/upload';
+import { uploadFailureKey } from '@/services/cloudinary/uploadFailure';
 import { setOwnName, setOwnPhoto } from '@/services/firebase/ownProfile';
 import { useAuthStore } from '@/store/auth';
 import { useProfileStore } from '@/store/profile';
@@ -85,8 +86,10 @@ export const useOwnProfileEditing = () => {
           ).catch(() => false);
         }
         patchStores({ photoUrl: asset?.url ?? null });
-      } catch {
-        showSnackbar(t('snackbar.profile-photo-failed'));
+      } catch (error) {
+        showSnackbar(
+          t(uploadFailureKey(error, 'snackbar.profile-photo-failed')),
+        );
       } finally {
         setPhotoBusy(false);
         setPendingPhoto(null);

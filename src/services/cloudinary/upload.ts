@@ -1,9 +1,8 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { withTimeout } from '@/lib/withTimeout';
-import { userMediaFolder } from '@/services/cloudinary/folders';
-import { requireUid } from '@/services/firebase/auth';
 import { reported } from '@/services/firebase/crashlytics';
+import { signUpload } from '@/services/firebase/functions';
 
 // Media (audio + cover art) lives on Cloudinary, NOT Firebase Storage: Storage
 // requires the Blaze (paid) plan, and this app stays on Spark (free). Same
@@ -11,12 +10,36 @@ import { reported } from '@/services/firebase/crashlytics';
 // apps' assets apart. Cloudinary treats an mp3 as a `video` resource (audio is
 // a video with no picture), so audio uploads to `/video/upload` and streams
 // from its delivery URL; art uploads to `/image/upload` like Topper's images.
-
-const CLOUD_NAME = 'juanevillam';
-const UPLOAD_PRESET = 'sound_shaper_unsigned';
+//
+// EVERY UPLOAD IS SIGNED BY THE MEDIA WORKER (since 1.0.1, 2026-10-18). 1.0.0
+// posted to an UNSIGNED preset, `sound_shaper_unsigned`, which any script
+// could use with no account at all, and which shares the cloud's 25 free
+// credits with every app on it. The Worker's signature names the public id —
+// a fresh one under `sound-shaper/{uid}/` — so the folder is the Worker's to
+// choose rather than ours, and it refuses past the per-person caps
+// (`docs/telemetry-and-abuse.md`). Delete the preset once 1.0.0 is gone.
 // Audio files are far bigger than an image, so the socket needs longer than
 // Topper's 30s image cap before we give up and surface the failure.
 const UPLOAD_TIMEOUT_MS = 120_000;
+
+/**
+ * The per-file half of the caps. A signature cannot carry a size, so the app
+ * is where an honest upload is turned away; the Worker bounds a dishonest one
+ * by the library's total. 20 MB is ~3.5× the measured average mp3 (5.79 MB),
+ * so it refuses a long mix or a lossless rip, not a song.
+ */
+export const MAX_UPLOAD_BYTES = {
+  image: 5_000_000,
+  video: 20_000_000,
+} as const;
+
+/** Thrown before anything is sent, for a file over `MAX_UPLOAD_BYTES`. */
+export class FileTooLargeError extends Error {
+  constructor(readonly resourceType: ResourceType) {
+    super(`Upload refused: ${resourceType} over the size limit`);
+    this.name = 'FileTooLargeError';
+  }
+}
 
 export type CloudinaryAsset = { publicId: string; url: string };
 
@@ -40,19 +63,23 @@ type ResourceType = 'image' | 'video';
 // `{ uri, name, type }` file part. `uploadAsync` streams the file natively and
 // sidesteps that (see [[expo-winter-fetch-formdata-upload]]).
 //
-// THE FOLDER IS READ HERE, NOT PASSED IN. Every asset goes to
-// `sound-shaper/{uid}/`, and that uid must equal the one the media worker
-// derives from the caller's ID token — path IS ownership there. Taking it from
-// the same `requireUid` every data path uses makes the two agree by
-// construction; threading it through `createSound` and the cover picker would
-// be two chances for them to disagree.
+// THE FOLDER IS NOT OURS TO NAME. Every asset goes to `sound-shaper/{uid}/`,
+// and that uid must equal the one the media worker derives from the caller's
+// ID token — path IS ownership there. The Worker writes the path into the
+// signed public id itself, so the two agree by construction.
 const uploadFile = async (
   uri: string,
   resourceType: ResourceType,
   mimeType: string,
 ): Promise<CloudinaryUploadResponse> => {
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
-  const folder = userMediaFolder(requireUid());
+  const info = await FileSystem.getInfoAsync(uri);
+
+  if (info.exists && info.size > MAX_UPLOAD_BYTES[resourceType])
+    throw new FileTooLargeError(resourceType);
+
+  const { apiKey, cloudName, params, signature } =
+    await signUpload(resourceType);
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
 
   // AN UPLOAD TASK, NOT `uploadAsync`, so a timed-out upload can be CANCELLED.
   // Racing the plain call against a timer only stopped WAITING for it: the
@@ -62,7 +89,7 @@ const uploadFile = async (
     fieldName: 'file',
     httpMethod: 'POST',
     mimeType,
-    parameters: { upload_preset: UPLOAD_PRESET, folder },
+    parameters: { ...params, api_key: apiKey, signature },
     uploadType: FileSystem.FileSystemUploadType.MULTIPART,
   });
 
@@ -76,7 +103,7 @@ const uploadFile = async (
   if (!response) throw new Error('Cloudinary upload was cancelled');
 
   // The STATUS only. Cloudinary's error body can echo the request — the
-  // folder, i.e. the uid — and this message reaches Crashlytics.
+  // public id, i.e. the uid — and this message reaches Crashlytics.
   if (response.status < 200 || response.status >= 300)
     throw new Error(`Cloudinary upload failed: HTTP ${response.status}`);
 

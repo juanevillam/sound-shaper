@@ -18,6 +18,7 @@ import {
 import { removeMirroredSound, seedMirror } from '@/lib/offlineAudio';
 import { forgetWaveform } from '@/lib/waveform';
 import { uploadSoundArt, uploadSoundAudio } from '@/services/cloudinary/upload';
+import { track } from '@/services/firebase/analytics';
 import { requireUid } from '@/services/firebase/auth';
 import { deleteClipsOfSound } from '@/services/firebase/clips';
 import {
@@ -304,10 +305,26 @@ export const createSound = reported(
     releaseYear,
   }: CreateSoundParams): Promise<string> => {
     const audio = await uploadSoundAudio(localAudioUri);
+
+    // AN MP3 NOTHING POINTS AT IS NOT FREE. Once the audio has landed, a
+    // failure in the steps after it (the file's own artwork, the document)
+    // used to leave it on Cloudinary for good — storage, and since 1.0.1 a
+    // slot of the day's upload cap, which is how it was found. Destroyed
+    // best-effort before the failure propagates.
+    const abandonAudio = (error: unknown): never => {
+      void destroySoundAudio(audio.publicId).catch(destroyError =>
+        recordError(destroyError, 'sounds.abandonAudio'),
+      );
+      throw error;
+    };
+
     // A picked cover is already uploaded; only fall back to the file's own tag
     // when the person did not choose one.
     const cover =
-      pickedCover ?? (art ? await uploadSoundArt(art.base64, art.mime) : null);
+      pickedCover ??
+      (art
+        ? await uploadSoundArt(art.base64, art.mime).catch(abandonAudio)
+        : null);
 
     const docRef = await addDoc(soundsCollection(), {
       ...(album === undefined ? {} : { album }),
@@ -322,7 +339,7 @@ export const createSound = reported(
       position,
       ...(releaseYear === undefined ? {} : { releaseYear }),
       updatedAt: serverTimestamp(),
-    });
+    }).catch(abandonAudio);
 
     // THE PHONE ALREADY HOLDS THIS FILE — it is what was just uploaded — so
     // the offline mirror takes it from here rather than downloading it back.
@@ -330,6 +347,7 @@ export const createSound = reported(
     void seedMirror(docRef.id, localAudioUri).then(uri => {
       if (uri) useOfflineStore.getState().setLocal(docRef.id, uri);
     });
+    track({ name: 'add_sound' });
 
     return docRef.id;
   },
