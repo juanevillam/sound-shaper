@@ -12,10 +12,23 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                        |
 | 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports                |
 | 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)         |
-| 2h   | account deletion end to end, Apple provider                          | ✅ 2026-10-16 — Auth, Firestore, Cloudinary, Apple revocation              |
+| 2h   | account deletion end to end, Apple and Google providers              | ✅ Apple 2026-10-16; Google 2026-10-17 (Release build, see below)          |
 | 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build   |
 | 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                      |
 | 4    | submit                                                               | ⬜                                                                         |
+
+## 2h — the Google delete (2026-10-17)
+
+Juan deleted his main Google account from a Release build on his iPhone (he
+re-uploads his library once the app is live). Checked over REST afterwards:
+the Auth user is gone, and Firestore holds only the one live Apple account's
+documents — no orphan under any other uid. Cloudinary's `sound-shaper/` still
+lists four folders named for uids that no longer exist (this one plus earlier
+test accounts), all **empty**: the Worker deletes every asset under the
+prefix, and Cloudinary never removes a folder on its own. An empty folder
+holds no content, only a random id. The stop-on-media-failure path (airplane
+mode before confirming) was not exercised, and the CDN purge was not probed
+on this delete — the deleted URLs were not captured first.
 
 ## 2i — console hardening
 
