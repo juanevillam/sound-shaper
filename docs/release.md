@@ -26,7 +26,8 @@ documents — no orphan under any other uid. Cloudinary's `sound-shaper/` still
 lists four folders named for uids that no longer exist (this one plus earlier
 test accounts), all **empty**: the Worker deletes every asset under the
 prefix, and Cloudinary never removes a folder on its own. An empty folder
-holds no content, only a random id. The stop-on-media-failure path (airplane
+holds no content, only a random id. Juan deleted the four by hand the same day; the
+Worker was left alone. The stop-on-media-failure path (airplane
 mode before confirming) was not exercised, and the CDN purge was not probed
 on this delete — the deleted URLs were not captured first.
 
