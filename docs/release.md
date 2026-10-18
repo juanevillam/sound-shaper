@@ -31,6 +31,15 @@ Worker was left alone. The stop-on-media-failure path (airplane
 mode before confirming) was not exercised, and the CDN purge was not probed
 on this delete — the deleted URLs were not captured first.
 
+## Open — the intermittent player glitch (reported 2026-10-17)
+
+On Juan's iPhone (Release build of the 1.0.0 code), sometimes: playing a
+sound makes the player glitch (the animation, as far as he can tell), the
+song stops before its end, and home's title bar goes empty — which is what
+home draws while `sheetExpanded` is true, so the sheet likely believes it is
+open while it is not on screen. Not reproduced on the iPhone 17 Pro Max
+simulator. Next step: Juan screen-records it the next time it happens.
+
 ## 2i — console hardening
 
 - ✅ **DONE 2026-10-16** — allowed formats `mp3,jpg,jpeg,png,webp,heic,heif,gif`,
