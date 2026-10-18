@@ -1,7 +1,8 @@
 # Sound Shaper
 
 A personal music player with a sound you can shape. Add your own `.mp3`s,
-play them, shape them with a five-band EQ, playback speed with pitch kept, and
+play them, shape them with a five-band EQ, playback speed from 0.75× to 1.25×
+with the pitch kept or set free, and
 the Next Room and Echo effects, and clip the parts worth replaying. Your
 library is yours alone: there is no social layer, and nothing you upload is
 shared with or shown to anyone else.
@@ -9,6 +10,10 @@ shared with or shown to anyone else.
 Built with Expo (SDK 57) and React Native, native UI on each platform —
 SwiftUI through `@expo/ui` on iOS, Jetpack Compose on Android — on Firebase
 (Auth + Firestore) and Cloudinary.
+
+iPhone first: submitted to the App Store on 2026-10-17 and in review,
+published by Grostify LLC. The Android build exists in the code and hasn't
+shipped yet.
 
 - **Support:** [juanevillam.com/sound-shaper/support](https://juanevillam.com/sound-shaper/support)
 - **Privacy policy:** [juanevillam.com/sound-shaper/privacy-policy](https://juanevillam.com/sound-shaper/privacy-policy)
