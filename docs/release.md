@@ -55,8 +55,8 @@ requests)
    **`sound_shaper_unsigned`** preset (1.0.0 is the only thing using it).
 9. Optional: delete the test orphan `sound-shaper/<uid>/c43c60be…` (6.4 MB).
 
-**Open for Juan, not blocking:** whether 30 sounds a day is too tight for a
-new person importing a whole library on day one (Juan hit it himself).
+**30 sounds a day stays** (Juan, 2026-10-18): someone importing more waits
+for the next day. Closed — do not re-open it as an onboarding problem.
 
 ## 2h — the Google delete (2026-10-17)
 

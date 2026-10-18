@@ -136,11 +136,11 @@ toggle, not code.
 
 ## Juan's decisions
 
-| question                                                 | decision                                                                                          |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| land before or after 1.0.0's first review                | **after** — 1.0.0 ships as is; this is 1.0.1, enforced once 1.0.1 is what people run (2026-10-18) |
-| add Firebase Analytics (no ad id, no user id)            | **yes**, Firebase (2026-10-18)                                                                    |
-| per-person caps (proposed 20 MB / 150 sounds / 30 a day) | **as proposed**: 20 MB mp3, 5 MB cover, 150 sounds, 30 uploads a day (2026-10-18)                 |
+| question                                                 | decision                                                                                                                                                       |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| land before or after 1.0.0's first review                | **after** — 1.0.0 ships as is; this is 1.0.1, enforced once 1.0.1 is what people run (2026-10-18)                                                              |
+| add Firebase Analytics (no ad id, no user id)            | **yes**, Firebase (2026-10-18)                                                                                                                                 |
+| per-person caps (proposed 20 MB / 150 sounds / 30 a day) | **as proposed**: 20 MB mp3, 5 MB cover, 150 sounds, 30 uploads a day (2026-10-18); 30/day re-confirmed after Juan hit it on day one — whoever wants more waits |
 
 ## What was built (2026-10-18, for 1.0.1)
 
