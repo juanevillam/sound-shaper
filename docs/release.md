@@ -15,7 +15,7 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2h   | account deletion end to end, Apple and Google providers              | ✅ Apple 2026-10-16; Google 2026-10-17 (Release build, see below)          |
 | 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build   |
 | 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                      |
-| 4    | submit                                                               | ⬜                                                                         |
+| 4    | submit                                                               | 🟡 2026-10-17 — 1.0.0 (build 4, tag `v1.0.0`) in App Review                |
 
 ## 2h — the Google delete (2026-10-17)
 

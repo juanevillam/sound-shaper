@@ -170,7 +170,9 @@ to one is a change to the other.
 
 ## App Review information
 
-- **Sign-in required:** yes, Sign in with Apple or Google. **No demo account
+- **Sign-in required:** the box is left UNCHECKED — checked, App Store Connect
+  demands a user name and password and refuses Add for Review. Sign-in is Sign
+  in with Apple or Google, which the Notes explain. **No demo account
   is provided:** a reviewer signs in with Sign in with Apple, which needs only
   the device's own Apple Account, and starts with an empty library.
 - **Contact:** Juan (`juanesvillamendoza@gmail.com`) — the operator, who can
