@@ -18,8 +18,45 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 4    | submit                                                               | 🟡 2026-10-17 — 1.0.0 (build 4, tag `v1.0.0`) in App Review                |
 
 **1.0.1 is already built on `main`** (2026-10-18): App Check, Analytics and
-signed uploads with per-person caps — `docs/telemetry-and-abuse.md`, whose
-last section is the switch-over to run once it ships.
+signed uploads with per-person caps. Its checklist — App Privacy changes
+included — is the "1.0.1" section below.
+
+## 1.0.1 — what to do, in order (start once 1.0.0 is live)
+
+Juan's call (2026-10-18): 1.0.0 ships as reviewed; 1.0.1 is the next version
+and is already on `main`. The why and the numbers are in
+[`telemetry-and-abuse.md`](telemetry-and-abuse.md).
+
+**Before submitting 1.0.1**
+
+1. `expo.version` → `1.0.1` in `app.json`; EAS `production` build;
+   `eas submit`; tag `v1.0.1` on that commit.
+2. **App Store Connect → App Privacy** (the table in
+   [`store-listing.md`](store-listing.md) is the source):
+   - Usage Data → Product Interaction: add the purpose **Analytics** (it stays
+     linked to the user, because the trophy totals are).
+   - Identifiers → Device ID: add the purpose **Analytics** (stays not
+     linked).
+   - "Used for tracking": still **No** everywhere.
+3. **Privacy policy**: already updated in the website repo (`64ede6f`) — make
+   sure it is DEPLOYED (pushed) before 1.0.1 goes to review, since review
+   reads the live page.
+4. Store listing text: nothing changes; release notes via `/store-notes`.
+5. Review notes: nothing new — App Check and Analytics need no reviewer
+   action, and there is no ATT prompt to explain.
+
+**After 1.0.1 is what people run** (App Check console shows ~100% verified
+requests)
+
+6. Firebase console → App Check → Cloud Firestore → **Enforce**.
+7. `services/media-worker/wrangler.jsonc`, `sound-shaper` →
+   `"APP_CHECK": "enforce"`; `npm run deploy:sound-shaper`.
+8. Cloudinary console → Settings → Upload → delete the
+   **`sound_shaper_unsigned`** preset (1.0.0 is the only thing using it).
+9. Optional: delete the test orphan `sound-shaper/<uid>/c43c60be…` (6.4 MB).
+
+**Open for Juan, not blocking:** whether 30 sounds a day is too tight for a
+new person importing a whole library on day one (Juan hit it himself).
 
 ## 2h — the Google delete (2026-10-17)
 
