@@ -1,9 +1,10 @@
 # App Store screenshots
 
 `screenshots/en-US/` and `screenshots/es-MX/` hold the listing's iPhone
-screenshots at **1320 × 2868**, the 6.9" size App Store Connect requires (it
-scales them down for every smaller iPhone). They are generated; never edit them
-by hand.
+screenshots at **1206 × 2622**. App Store Connect's iPhone slot is "iPhone
+with Dynamic Island (medium display)", 6.1"/6.3", and it rejected the 6.9"
+1320 × 2868 set on 2026-10-17; the layout is still drawn at 6.9" and scaled
+down once. They are generated; never edit them by hand.
 
 ```bash
 npm run store-screenshots

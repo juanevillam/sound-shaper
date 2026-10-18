@@ -199,7 +199,7 @@ to one is a change to the other.
 - **The legal pages are LIVE** (2026-10-17, juanevillam.com, site `v1.0.0`):
   both URLs above answer 200.
 - Screenshots: ✅ retaken 2026-10-17 with original music and covers (see
-  [`store/demo-audio/`](../store/demo-audio/README.md)), 1320 × 2868, English
+  [`store/demo-audio/`](../store/demo-audio/README.md)), 1206 × 2622 (App Store Connect's medium-display slot), English
   UI in both sets — the Spanish set shows English screens under Spanish
   headlines.
 - The reviewer attachment is `Midnight Drive.mp3` sent as `Midnight Drive.zip`

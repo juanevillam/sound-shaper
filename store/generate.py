@@ -6,8 +6,10 @@
 Inputs:   store/copy.json          headline + subhead per screen, per locale
           store/source/*.png       real app screenshots (store/source/<locale>/
                                    overrides a file for that locale)
-Outputs:  store/screenshots/<locale>/NN-<name>.png at 1320 x 2868, the 6.9"
-          iPhone size App Store Connect requires.
+Outputs:  store/screenshots/<locale>/NN-<name>.png at 1206 x 2622, the
+          size App Store Connect's iPhone slot ("iPhone with Dynamic Island,
+          medium display" — 6.1"/6.3") takes since 2026. It refused 1320 x
+          2868 there. The layout is drawn at 1320 x 2868 and scaled down once.
 
 The composition is the one Apple's own App Store listings use: a short bold
 headline in SF Pro over a calm, flat ground, an optional one-line subhead, and
@@ -34,8 +36,9 @@ SOURCE = ROOT / "source"
 OUT = ROOT / "screenshots"
 LOCALES = ("en-US", "es-MX")
 
-# The 6.9" iPhone size, the one App Store Connect requires.
+# The canvas is laid out at the 6.9" size and scaled to OUT_SIZE on save.
 W, H = 1320, 2868
+OUT_SIZE = (1206, 2622)
 
 GROUND = (0xF5, 0xF5, 0xF5)
 INK = (0x22, 0x22, 0x22)
@@ -167,7 +170,11 @@ def render(screen: dict, locale: str, index: int) -> Path:
     name = Path(screen["source"]).stem
     out = OUT / locale / f"{index:02d}-{name}.png"
     out.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(out, optimize=True)
+    # 1320 x 2868 and 1206 x 2622 differ in aspect by 0.06%: scale to the
+    # height and trim the one spare column, which is flat ground.
+    scaled = canvas.resize((round(OUT_SIZE[1] * W / H), OUT_SIZE[1]), Image.LANCZOS)
+    left = (scaled.width - OUT_SIZE[0]) // 2
+    scaled.crop((left, 0, left + OUT_SIZE[0], OUT_SIZE[1])).save(out, optimize=True)
     return out
 
 
@@ -179,7 +186,7 @@ def main() -> int:
         for i, screen in enumerate(screens, start=1):
             out = render(screen, locale, i)
             with Image.open(out) as im:
-                assert im.size == (W, H), f"{out} is {im.size}"
+                assert im.size == OUT_SIZE, f"{out} is {im.size}"
             print(out.relative_to(ROOT.parent))
     return 0
 
