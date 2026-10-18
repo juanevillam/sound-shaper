@@ -17,6 +17,10 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                      |
 | 4    | submit                                                               | 🟡 2026-10-17 — 1.0.0 (build 4, tag `v1.0.0`) in App Review                |
 
+**1.0.1 is already built on `main`** (2026-10-18): App Check, Analytics and
+signed uploads with per-person caps — `docs/telemetry-and-abuse.md`, whose
+last section is the switch-over to run once it ships.
+
 ## 2h — the Google delete (2026-10-17)
 
 Juan deleted his main Google account from a Release build on his iPhone (he
