@@ -1,3 +1,6 @@
+// The ORIGIN, anchored at the start: a substring test would also rewrite a
+// URL that merely mentions the host (`https://evil.example/res.cloudinary.com`).
+const CLOUDINARY_ORIGIN = 'https://res.cloudinary.com/';
 const UPLOAD_SEGMENT = '/image/upload/';
 
 /**
@@ -10,7 +13,7 @@ const UPLOAD_SEGMENT = '/image/upload/';
 export const thumbUrl = (url: string, displayWidth: number): string => {
   const index = url.indexOf(UPLOAD_SEGMENT);
 
-  if (!url.includes('res.cloudinary.com') || index === -1) return url;
+  if (!url.startsWith(CLOUDINARY_ORIGIN) || index === -1) return url;
 
   const rest = url.slice(index + UPLOAD_SEGMENT.length);
 
