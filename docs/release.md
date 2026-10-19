@@ -24,7 +24,18 @@ included — is the "1.0.1" section below.
 ## 1.0.1 — what to do, in order (start once 1.0.0 is live)
 
 Juan's call (2026-10-18): 1.0.0 ships as reviewed; 1.0.1 is the next version
-and is already on `main`. The why and the numbers are in
+and is already on `main`.
+
+**Release 1.0.0 the moment it is approved — do NOT hold it for 1.0.1** (Juan,
+2026-10-19). Holding an approved 1.0.0 and shipping 1.0.1 as the first public
+version would let enforcement start on day one, and it was considered and
+declined: being in the store fast is worth the short window. What covers that
+window: owner-only `firestore.rules`, sign-in limited to Apple and Google, the
+unsigned preset restricted to `mp3,jpg,jpeg,png,heic,webp`, and Spark having
+no card on file (abuse can exhaust a day's quota, never bill). Keep the window
+short: submit 1.0.1 the same day 1.0.0 goes live. **Never enforce App Check or
+delete the preset while 1.0.0 is in review or is what people run** — 1.0.0 has
+no App Check, so either change breaks it (and a reviewer would reject it). The why and the numbers are in
 [`telemetry-and-abuse.md`](telemetry-and-abuse.md).
 
 **Before submitting 1.0.1**

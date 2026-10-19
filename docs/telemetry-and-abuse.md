@@ -132,13 +132,16 @@ console reach ~100%, THEN enforce and delete the preset.
 **What can be done today, with no build**: in the Cloudinary console, set the
 unsigned preset's allowed formats to `mp3,jpg,jpeg,png,heic,webp` (it changes
 nothing for the app and stops it being a free file host). Juan's dashboard
-toggle, not code.
+toggle, not code. **Done by Juan on 2026-10-19**, together with confirming
+that Firebase Authentication offers only Apple and Google (no email/password,
+no anonymous), so the public API key cannot mint accounts on its own.
 
 ## Juan's decisions
 
 | question                                                 | decision                                                                                                                                                       |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | land before or after 1.0.0's first review                | **after** — 1.0.0 ships as is; this is 1.0.1, enforced once 1.0.1 is what people run (2026-10-18)                                                              |
+| release 1.0.0 on approval, or hold it for 1.0.1          | **release it** — the store first, as fast as safely possible; 1.0.1 goes to review straight after and enforcement waits for it (2026-10-19)                    |
 | add Firebase Analytics (no ad id, no user id)            | **yes**, Firebase (2026-10-18)                                                                                                                                 |
 | per-person caps (proposed 20 MB / 150 sounds / 30 a day) | **as proposed**: 20 MB mp3, 5 MB cover, 150 sounds, 30 uploads a day (2026-10-18); 30/day re-confirmed after Juan hit it on day one — whoever wants more waits |
 
