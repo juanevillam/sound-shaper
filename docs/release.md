@@ -15,11 +15,16 @@ Apple Developer membership (team `PHLR7X3FGN`).
 | 2h   | account deletion end to end, Apple and Google providers              | ✅ Apple 2026-10-16; Google 2026-10-17 (Release build, see below)          |
 | 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build   |
 | 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                      |
-| 4    | submit                                                               | 🟡 2026-10-17 — 1.0.0 (build 4, tag `v1.0.0`) in App Review                |
+| 4    | submit                                                               | ✅ 1.0.0 live 2026-10-30; 🟡 1.0.1 (build 6, tag `v1.0.1`) sent 2026-10-30 |
 
-**1.0.1 is already built on `main`** (2026-10-18): App Check, Analytics and
-signed uploads with per-person caps. Its checklist — App Privacy changes
-included — is the "1.0.1" section below.
+**1.0.0 is LIVE on the App Store (approved and released 2026-10-30):**
+https://apps.apple.com/app/id6823850995. **1.0.1 went to EAS the same day**
+(build 6, tag `v1.0.1`, `eas build --auto-submit`): App Check, Analytics and
+signed uploads with per-person caps. The first build attempt was refused by
+Apple until Grostify's Account Holder accepted the updated Program License
+Agreement — an expired PLA blocks every signing call, so check it first when
+EAS reports an Apple 403. Its checklist — App Privacy changes included — is
+the "1.0.1" section below.
 
 ## 1.0.1 — what to do, in order (start once 1.0.0 is live)
 
