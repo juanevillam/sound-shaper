@@ -27,7 +27,7 @@ Agreement — an expired PLA blocks every signing call, so check it first when
 EAS reports an Apple 403. Its checklist — App Privacy changes included — is
 the "1.0.1" section below.
 
-## 1.0.1 — what to do, in order (steps 1–5 done 2026-10-30; 6–9 wait for adoption)
+## 1.0.1 — what to do, in order (steps 1–5 done 2026-10-30; 6–8 done 2026-11-03)
 
 Juan's call (2026-10-18): 1.0.0 ships as reviewed; 1.0.1 is the next version
 and is already on `main`.
@@ -63,14 +63,19 @@ no App Check, so either change breaks it (and a reviewer would reject it). The w
    action, and there is no ATT prompt to explain.
 
 **After 1.0.1 is what people run** (App Check console shows ~100% verified
-requests)
+requests) — **done 2026-11-03**, Juan's call to not wait longer: Firestore
+showed 21/21 verified, 0 outdated, 0 unknown origin over the past 7 days. A
+1.0.0 install that has not updated can no longer read Firestore or upload;
+updating fixes it. Android is not registered in App Check, so an Android
+build cannot reach Firestore until it is (Play Integrity) — register it
+before Android's first release.
 
 6. Firebase console → App Check → Cloud Firestore → **Enforce**.
 7. `services/media-worker/wrangler.jsonc`, `sound-shaper` →
    `"APP_CHECK": "enforce"`; `npm run deploy:sound-shaper`.
 8. Cloudinary console → Settings → Upload → delete the
    **`sound_shaper_unsigned`** preset (1.0.0 is the only thing using it).
-9. Optional: delete the test orphan `sound-shaper/<uid>/c43c60be…` (6.4 MB).
+9. Optional, still open: delete the test orphan `sound-shaper/<uid>/c43c60be…` (6.4 MB).
 
 **30 sounds a day stays** (Juan, 2026-10-18): someone importing more waits
 for the next day. Closed — do not re-open it as an onboarding problem.

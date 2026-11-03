@@ -1401,8 +1401,9 @@ this and is UNVERIFIED — no device attached.
 
 **No Firebase Storage, no Cloud Functions** — both need the Blaze (paid) plan,
 and this app stays on Spark (free). Media goes to **Cloudinary** (same cloud
-`juanevillam` as Topper, unsigned preset `sound_shaper_unsigned`,
-`src/services/cloudinary/`), under a PER-USER folder `sound-shaper/{uid}/`.
+`juanevillam` as Topper, uploads signed by the media Worker's `signUpload`
+since 1.0.1 — the unsigned preset `sound_shaper_unsigned` was deleted
+2026-11-03 — `src/services/cloudinary/`), under a PER-USER folder `sound-shaper/{uid}/`.
 
 **Deleting from Cloudinary needs the API secret, which cannot ship in an app —
 `media-worker/` holds it instead** (a Cloudflare Worker on the free

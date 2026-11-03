@@ -184,7 +184,7 @@ the console, or leave it.
 reaches 1.0.0 installs immediately, so it wants its own pass against every
 writer and the emulator.
 
-## When 1.0.1 is what people run — the switch-over
+## When 1.0.1 is what people run — the switch-over (done 2026-11-03)
 
 1. Firebase console → App Check → Firestore: watch "verified requests" reach
    ~100%, then **Enforce**.
