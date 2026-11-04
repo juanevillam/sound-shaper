@@ -32,7 +32,9 @@ export function Avatar({ user, size }: { user: User; size: number }) {
           referrerPolicy="no-referrer"
         />
       ) : (
-        <span>{name.trim().slice(0, 1)}</span>
+        // The letter is a share of the disc, as the app's monogram is — a
+        // fixed size read as a speck on the banner's larger disc.
+        <span style={{ fontSize: size * 0.42 }}>{name.trim().slice(0, 1)}</span>
       )}
     </span>
   );

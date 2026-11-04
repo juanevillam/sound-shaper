@@ -18,14 +18,13 @@ import { ClipsForm } from '../ui/ClipsForm';
 import {
   Bars,
   CheckGlyph,
-  ChevronLeftGlyph,
   CloseGlyph,
   GearGlyph,
   PlusGlyph,
   ShapeGlyph,
 } from '../ui/glyphs';
 import { MiniPlayer } from '../ui/MiniPlayer';
-import { NowPlaying, type Panel } from '../ui/NowPlaying';
+import { NowPlaying } from '../ui/NowPlaying';
 import { SettingsForm } from '../ui/SettingsForm';
 import { ShapeForm } from '../ui/ShapePanel';
 import { SidePanel } from '../ui/SidePanel';
@@ -45,14 +44,6 @@ import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
 const TILE_WIDTH = 220;
 
 const DESK = '(min-width: 64rem)';
-
-/** What the side column holds: a player sheet, or Settings and what is behind it. */
-type HomePanel = Panel | 'settings' | 'account' | 'trophies';
-
-const isAccountPanel = (
-  panel: HomePanel | null,
-): panel is 'settings' | 'account' | 'trophies' =>
-  panel === 'settings' || panel === 'account' || panel === 'trophies';
 
 /**
  * A change to the desk's columns, animated as one move. Opening a sheet
@@ -202,9 +193,28 @@ const useLargeTitle = () => {
 };
 
 /**
- * THE SIGNED-IN APP. On a desk, three columns in the order a person reads
- * them: the library, the sound that is playing, and the sheet it opened
- * (Shape or Clips). On a phone it is the app: the grid, the now-playing
+ * One sheet in the stack. The app presents every one of these as a sheet
+ * over what opened it — Shape over Clips, the clip editor over Clips, Account
+ * over Settings, Trophies over Account — so the web keeps a stack, not a
+ * single slot that swaps its body.
+ */
+type Entry =
+  | { kind: 'settings' | 'account' | 'trophies' | 'shape' | 'clips' | 'edit' }
+  | { kind: 'new'; picked: PickedSound }
+  | { kind: 'clip'; clip: Clip | null };
+
+type Layer = { id: number; entry: Entry; leaving: boolean };
+
+/** A sheet's slide, so a popped one is unmounted only once it is gone. */
+const LEAVE_MS = 320;
+
+let nextLayer = 0;
+
+/**
+ * THE SIGNED-IN APP. On a desk, TWO columns — the library, and the sound
+ * that is playing — and every sheet rises over the player's column the way
+ * the app's sheets rise over the player, so the window never re-lays out
+ * when one opens. On a phone it is the app: the grid, the now-playing
  * banner, and the player and its sheets rising over it.
  */
 export function Home({ user }: { user: User }) {
@@ -212,38 +222,17 @@ export function Home({ user }: { user: User }) {
   useTrophySystem(user.uid, library);
   const current = usePlayer(s => s.current);
   const [expanded, setExpanded] = useState(false);
-  const [panel, setPanel] = useState<HomePanel | null>(null);
+  const [layers, setLayers] = useState<Layer[]>([]);
   // Auth's user object changes in place; an edit bumps this to re-render.
   const [, setProfileTick] = useState(0);
-  // The clip editor, over the Clips sheet: `clip` null is a new clip.
-  const [editing, setEditing] = useState<{ clip: Clip | null } | null>(null);
-  // A picked mp3 waiting in the New Sound sheet.
-  const [composing, setComposing] = useState<PickedSound | null>(null);
-  // Every opening of a sheet is a fresh form: the sheet keeps its content
-  // while it slides away, so a form keyed on its sound alone would come back
-  // holding the last opening's typing — or a save's busy state.
-  const [opening, setOpening] = useState(0);
   const { title, titled } = useLargeTitle();
-  // Shape, stacked over the clip editor — the app's merged Shape + ✓ pill.
-  const [shapeOver, setShapeOver] = useState(false);
-  // The sheet keeps showing what it held while it slides away.
-  type Sheet = HomePanel | 'new';
-  const sheet: Sheet | null = composing ? 'new' : panel;
-  const last = useRef<Sheet>('shape');
-  if (sheet) last.current = sheet;
-  const shown = sheet ?? last.current;
-  // The draft the New Sound sheet holds — kept while it slides away.
-  const lastComposing = useRef<PickedSound | null>(null);
-  if (composing) lastComposing.current = composing;
+
+  const live = layers.filter(layer => !layer.leaving);
+  const base = live[0]?.entry.kind ?? null;
 
   useEffect(() => {
     if (library.state === 'ready') syncLibrary(library.sounds);
   }, [library]);
-
-  // Shape is stacked over a clip being edited, and goes with it.
-  useEffect(() => {
-    if (!editing) setShapeOver(false);
-  }, [editing]);
 
   // A sign-out from another tab ends here too: nothing keeps playing.
   useEffect(() => resetPlayer, []);
@@ -251,14 +240,45 @@ export function Home({ user }: { user: User }) {
   // Auto DJ mixes whatever is open, from the Shape sheet's switch.
   useAutoDjDirector();
 
-  const openPanel = (next: HomePanel | null) =>
-    morph(() => {
-      setPanel(next);
-      if (next) setOpening(n => n + 1);
-      setEditing(null);
-      setShapeOver(false);
-      setComposing(null);
-    });
+  const leave = (keep: (layer: Layer, index: number) => boolean) => {
+    setLayers(all =>
+      all.map((layer, i) =>
+        layer.leaving || keep(layer, i) ? layer : { ...layer, leaving: true },
+      ),
+    );
+    setTimeout(
+      () => setLayers(all => all.filter(layer => !layer.leaving)),
+      LEAVE_MS,
+    );
+  };
+
+  /** Over whatever is open. */
+  const push = (entry: Entry) =>
+    setLayers(all => [...all, { id: nextLayer++, entry, leaving: false }]);
+
+  /** The front sheet goes; the one under it comes forward. */
+  const pop = () => {
+    const front = live[live.length - 1];
+    if (front) leave(layer => layer.id !== front.id);
+  };
+
+  /** Everything goes. */
+  const closeAll = () => leave(() => false);
+
+  /** A fresh stack holding one sheet — or none, if that sheet was it. */
+  const openOnly = (entry: Entry) => {
+    if (live.length === 1 && base === entry.kind && entry.kind !== 'new') {
+      closeAll();
+      return;
+    }
+    leave(() => false);
+    push(entry);
+  };
+
+  // The grid re-flows only when the right column has to stand up for a
+  // sheet; a sheet over the player is no column change at all.
+  const stageThen = (change: () => void) =>
+    current || live.length ? change() : morph(change);
 
   const pick = (file: File) => {
     if (!isMp3(file)) {
@@ -266,11 +286,7 @@ export function Home({ user }: { user: User }) {
       return;
     }
     void readPicked(file).then(picked =>
-      morph(() => {
-        setEditing(null);
-        setComposing(picked);
-        setOpening(n => n + 1);
-      }),
+      stageThen(() => openOnly({ kind: 'new', picked })),
     );
   };
 
@@ -297,27 +313,160 @@ export function Home({ user }: { user: User }) {
     const onKey = (e: KeyboardEvent) => {
       if (
         e.key !== 'Escape' ||
-        document.querySelector('dialog[open], .progress-overlay')
+        document.querySelector(
+          'dialog[open], .progress-overlay, .sub-sheet.is-open',
+        )
       )
         return;
-      if (shapeOver) setShapeOver(false);
-      else if (editing) setEditing(null);
-      else if (sheet) openPanel(null);
+      if (live.length) pop();
       else setExpanded(false);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   });
 
+  // The right column stands while a sound is loaded or a sheet is up.
+  const staged = Boolean(current) || live.length > 0;
   const className = [
     'home',
     current ? 'has-current' : '',
+    staged ? 'is-staged' : '',
     expanded ? 'is-expanded' : '',
-    sheet ? 'side-open' : '',
-    editing ? 'is-editing' : '',
+    live.length ? 'side-open' : '',
   ]
     .filter(Boolean)
     .join(' ');
+
+  const close = (
+    <button type="button" className="round" onClick={pop}>
+      <CloseGlyph />
+      <span className="sr">{t('common.close')}</span>
+    </button>
+  );
+  const shapeGlyph = (
+    <button
+      type="button"
+      className="round"
+      onClick={() => push({ kind: 'shape' })}
+    >
+      <ShapeGlyph />
+      <span className="sr">{t('player.shape.title')}</span>
+    </button>
+  );
+
+  /** A sheet's bar and body, by what it holds. */
+  const render = (
+    entry: Entry,
+  ): {
+    title: string;
+    action?: React.ReactNode;
+    trailing?: React.ReactNode;
+    body: React.ReactNode;
+  } => {
+    switch (entry.kind) {
+      case 'settings':
+        return {
+          title: t('app.settings'),
+          body: (
+            <SettingsForm
+              user={user}
+              onAccount={() => push({ kind: 'account' })}
+            />
+          ),
+        };
+      case 'account':
+        return {
+          title: t('settings.account.sheetTitle'),
+          body: (
+            <AccountForm
+              user={user}
+              onChanged={() => setProfileTick(n => n + 1)}
+              onTrophies={() => push({ kind: 'trophies' })}
+            />
+          ),
+        };
+      case 'trophies':
+        return { title: t('trophies.title'), body: <TrophiesForm /> };
+      case 'shape':
+        return { title: t('player.shape.title'), body: <ShapeForm /> };
+      case 'clips':
+        // The app's Clips bar: a close leading, Shape trailing — the sound
+        // stays shapeable from every clip surface.
+        return {
+          title: t('player.clips.title'),
+          action: close,
+          trailing: shapeGlyph,
+          body: (
+            <ClipsForm
+              onEdit={clip => push({ kind: 'clip', clip })}
+              onNew={() => push({ kind: 'clip', clip: null })}
+            />
+          ),
+        };
+      case 'clip':
+        return {
+          title: entry.clip ? t('player.clips.edit') : t('player.clips.new'),
+          action: close,
+          // The app's merged pill: Shape stacks over the editor, the ✓
+          // commits the clip.
+          trailing: (
+            <span className="glass-pill">
+              <button type="button" onClick={() => push({ kind: 'shape' })}>
+                <ShapeGlyph />
+                <span className="sr">{t('player.shape.title')}</span>
+              </button>
+              <button
+                type="button"
+                className="is-commit"
+                onClick={commitClipEditor}
+              >
+                <CheckGlyph />
+                <span className="sr">{t('player.clips.saveClip')}</span>
+              </button>
+            </span>
+          ),
+          body: current ? (
+            <ClipEditor
+              key={entry.clip?.id ?? 'new'}
+              sound={current}
+              clip={entry.clip}
+              onDone={pop}
+            />
+          ) : null,
+        };
+      case 'new':
+        return {
+          title: t('app.soundEdit'),
+          action: close,
+          trailing: <SoundCommit label={t('soundEdit.save')} />,
+          body: (
+            <SoundForm
+              draft={{
+                kind: 'new',
+                picked: entry.picked,
+                position: leadPosition(
+                  library.state === 'ready' ? library.sounds : [],
+                ),
+              }}
+              onDone={closeAll}
+            />
+          ),
+        };
+      case 'edit':
+        return {
+          title: t('app.soundEditExisting'),
+          action: close,
+          trailing: <SoundCommit label={t('soundEdit.saveExisting')} />,
+          body: current ? (
+            <SoundForm
+              key={`edit-${current.id}`}
+              draft={{ kind: 'edit', sound: current }}
+              onDone={closeAll}
+            />
+          ) : null,
+        };
+    }
+  };
 
   return (
     <div className={className}>
@@ -332,8 +481,8 @@ export function Home({ user }: { user: User }) {
           <button
             type="button"
             className="round bar-glyph"
-            aria-expanded={isAccountPanel(panel)}
-            onClick={() => openPanel(isAccountPanel(panel) ? null : 'settings')}
+            aria-expanded={base === 'settings'}
+            onClick={() => stageThen(() => openOnly({ kind: 'settings' }))}
           >
             <GearGlyph />
             <span className="sr">{t('app.settings')}</span>
@@ -363,174 +512,46 @@ export function Home({ user }: { user: User }) {
         )}
       </main>
 
-      <div className="now-column">
-        <PlayerBackdrop artUrl={current?.artUrl ?? ''} />
-        <NowPlaying
-          onCollapse={() => setExpanded(false)}
-          onOpen={next => openPanel(panel === next ? null : next)}
-          panel={isAccountPanel(panel) ? null : panel}
-        />
-      </div>
+      <div className="stage">
+        <div className="now-column">
+          <PlayerBackdrop artUrl={current?.artUrl ?? ''} />
+          <NowPlaying
+            onCollapse={() => setExpanded(false)}
+            onOpen={next => openOnly({ kind: next })}
+            panel={
+              live.length === 1 &&
+              (base === 'shape' || base === 'clips' || base === 'edit')
+                ? base
+                : null
+            }
+          />
+        </div>
 
-      <SidePanel
-        open={sheet !== null}
-        title={
-          shown === 'settings'
-            ? t('app.settings')
-            : shown === 'account'
-              ? t('settings.account.sheetTitle')
-              : shown === 'trophies'
-                ? t('trophies.title')
-                : shown === 'new'
-                  ? t('app.soundEdit')
-                  : shown === 'edit'
-                    ? t('app.soundEditExisting')
-                    : editing && shapeOver
-                      ? t('player.shape.title')
-                      : editing
-                        ? editing.clip
-                          ? t('player.clips.edit')
-                          : t('player.clips.new')
-                        : shown === 'clips'
-                          ? t('player.clips.title')
-                          : t('player.shape.title')
-        }
-        action={
-          shown === 'account' || shown === 'trophies' ? (
-            <button
-              type="button"
-              className="round"
-              onClick={() =>
-                openPanel(shown === 'trophies' ? 'account' : 'settings')
-              }
+        {layers.map((layer, i) => {
+          const sheet = render(layer.entry);
+          const depth = live.length - 1 - live.indexOf(layer);
+          return (
+            <SidePanel
+              key={layer.id}
+              open={!layer.leaving}
+              depth={layer.leaving ? 0 : depth}
+              index={i}
+              title={sheet.title}
+              action={sheet.action}
+              trailing={sheet.trailing}
+              onClose={layer.leaving ? () => {} : pop}
             >
-              <ChevronLeftGlyph />
-              <span className="sr">{t('common.back')}</span>
-            </button>
-          ) : shown === 'new' || shown === 'edit' ? (
-            <button
-              type="button"
-              className="round"
-              onClick={() => openPanel(null)}
-            >
-              <CloseGlyph />
-              <span className="sr">{t('common.cancel')}</span>
-            </button>
-          ) : editing && shapeOver ? (
-            <button
-              type="button"
-              className="round"
-              onClick={() => setShapeOver(false)}
-            >
-              <ChevronLeftGlyph />
-              <span className="sr">{t('common.back')}</span>
-            </button>
-          ) : editing ? (
-            <button
-              type="button"
-              className="round"
-              onClick={() => setEditing(null)}
-            >
-              <CloseGlyph />
-              <span className="sr">{t('common.cancel')}</span>
-            </button>
-          ) : null
-        }
-        trailing={
-          shown === 'new' || shown === 'edit' ? (
-            <SoundCommit
-              label={t(
-                shown === 'new' ? 'soundEdit.save' : 'soundEdit.saveExisting',
-              )}
-            />
-          ) : editing && shapeOver ? (
-            // Back is the way out of a stacked sheet; a close beside it
-            // would end the clip too.
-            <span />
-          ) : (
-            editing && (
-              // The app's merged pill: Shape stacks over the editor, the ✓
-              // commits the clip.
-              <span className="glass-pill">
-                {/* Phone only: on a desk the dock's Shape is beside the
-                    editor already, and opening it there replaces the clip. */}
-                <button
-                  type="button"
-                  className="pill-shape"
-                  onClick={() => setShapeOver(true)}
-                >
-                  <ShapeGlyph />
-                  <span className="sr">{t('player.shape.title')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="is-commit"
-                  onClick={commitClipEditor}
-                >
-                  <CheckGlyph />
-                  <span className="sr">{t('player.clips.saveClip')}</span>
-                </button>
-              </span>
-            )
-          )
-        }
-        onClose={() => openPanel(null)}
-      >
-        {shown === 'settings' ? (
-          <SettingsForm user={user} onAccount={() => openPanel('account')} />
-        ) : shown === 'account' ? (
-          <AccountForm
-            key={`account-${opening}`}
-            user={user}
-            onChanged={() => setProfileTick(n => n + 1)}
-            onTrophies={() => openPanel('trophies')}
-          />
-        ) : shown === 'trophies' ? (
-          <TrophiesForm key={`trophies-${opening}`} />
-        ) : shown === 'new' && lastComposing.current ? (
-          <SoundForm
-            key={`new-${opening}`}
-            draft={{
-              kind: 'new',
-              picked: lastComposing.current,
-              position: leadPosition(
-                library.state === 'ready' ? library.sounds : [],
-              ),
-            }}
-            onDone={() => openPanel(null)}
-          />
-        ) : shown === 'edit' && current ? (
-          <SoundForm
-            key={`edit-${current.id}-${opening}`}
-            draft={{ kind: 'edit', sound: current }}
-            onDone={() => openPanel(null)}
-          />
-        ) : editing && current ? (
-          <>
-            {/* Kept mounted under Shape, so the range survives the trip. */}
-            <div className="stacked" hidden={shapeOver}>
-              <ClipEditor
-                key={editing.clip?.id ?? 'new'}
-                sound={current}
-                clip={editing.clip}
-                onDone={() => setEditing(null)}
-              />
-            </div>
-            {shapeOver && <ShapeForm />}
-          </>
-        ) : shown === 'clips' ? (
-          <ClipsForm
-            onEdit={clip => setEditing({ clip })}
-            onNew={() => setEditing({ clip: null })}
-          />
-        ) : (
-          <ShapeForm />
-        )}
-      </SidePanel>
+              {sheet.body}
+            </SidePanel>
+          );
+        })}
+      </div>
 
       <MiniPlayer onExpand={() => setExpanded(true)} />
       <Toast />
-      <TrophyBanner onOpen={() => openPanel('trophies')} />
+      <TrophyBanner
+        onOpen={() => stageThen(() => openOnly({ kind: 'trophies' }))}
+      />
     </div>
   );
 }

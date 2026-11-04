@@ -240,6 +240,9 @@ function TrophyDetail({
   if (trophy) shown.current = trophy;
   const view = trophy ?? shown.current;
   const open = trophy !== null;
+  // Pulled by its grabber, like every sheet: past a threshold it goes.
+  const [pull, setPull] = useState<number | null>(null);
+  const grab = useRef<{ y: number; t: number } | null>(null);
 
   useEffect(() => {
     setHost(anchor.current?.closest<HTMLElement>('.side') ?? null);
@@ -247,7 +250,9 @@ function TrophyDetail({
 
   useEffect(() => {
     if (!open) return;
-    sheet.current?.focus();
+    // Without preventScroll, focusing a sheet still parked below the edge
+    // scrolled the panel to reach it — the Trophies list jumped up and back.
+    sheet.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -270,6 +275,38 @@ function TrophyDetail({
         aria-label={view?.title}
         aria-hidden={!open}
         tabIndex={-1}
+        style={
+          pull !== null
+            ? ({
+                '--pull': `${Math.max(pull, -12)}px`,
+                transition: 'none',
+              } as React.CSSProperties)
+            : undefined
+        }
+        onPointerDown={e => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          grab.current = { y: e.clientY, t: performance.now() };
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setPull(0);
+        }}
+        onPointerMove={e => {
+          if (!grab.current) return;
+          const dy = e.clientY - grab.current.y;
+          setPull(dy > 0 ? dy : dy / 6);
+        }}
+        onPointerUp={e => {
+          const start = grab.current;
+          grab.current = null;
+          setPull(null);
+          if (!start) return;
+          const dy = e.clientY - start.y;
+          const v = dy / Math.max(1, performance.now() - start.t);
+          if (dy > 80 || (dy > 20 && v > 0.6)) onClose();
+        }}
+        onPointerCancel={() => {
+          grab.current = null;
+          setPull(null);
+        }}
       >
         <span className="sub-grabber" aria-hidden="true" />
         <button

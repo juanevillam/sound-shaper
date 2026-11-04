@@ -1041,8 +1041,10 @@ button {
   position: fixed;
   inset: 0;
   z-index: 4;
-  display: grid;
-  align-content: center;
+  /* The app's console: the cover at the top, the transport in the space
+     left over, the glass bar on the bottom edge. */
+  display: flex;
+  flex-direction: column;
   padding: max(0.5rem, env(safe-area-inset-top)) max(1.5rem, var(--gutter))
     max(1.5rem, env(safe-area-inset-bottom));
   overflow-y: auto;
@@ -1059,9 +1061,26 @@ button {
 
 .now-column .now {
   position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   width: 100%;
   max-width: 26rem;
   margin: 0 auto;
+}
+
+.now-column .now-art {
+  align-self: center;
+  width: min(100%, var(--cover-cap, 100%));
+}
+
+.now-column .transport {
+  margin-block: auto;
+  padding-block: 1rem;
+}
+
+.now-column .dock {
+  margin-top: 0;
 }
 
 /* ── The player's wash: the app's PlayerBackdrop ── */
@@ -1152,9 +1171,13 @@ button {
   pointer-events: none;
 }
 
-/* ── The sheets: Shape and Clips ── */
+/* ── The sheets ──
+   Every sheet is the app's large-detent form sheet: it rises from the
+   bottom, stops a step under the top edge — one more step for each sheet
+   under it — and the one it covers steps back and dims. */
 
 .side {
+  --sheet-r: 2.125rem;
   position: fixed;
   left: 0;
   right: 0;
@@ -1162,32 +1185,61 @@ button {
   z-index: 6;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
-  /* The app's Shape and Clips are [1] sheets: the large detent, stopping
-     just under the status bar. */
-  height: calc(100svh - max(0.75rem, env(safe-area-inset-top) + 0.625rem));
+  height: calc(
+    100svh - max(0.75rem, env(safe-area-inset-top) + 0.625rem) -
+      var(--index, 0) * 0.625rem
+  );
   overflow: hidden;
   border-top: 1px solid var(--hairline);
-  border-radius: 1.5rem 1.5rem 0 0;
+  border-radius: var(--sheet-r) var(--sheet-r) 0 0;
   background: var(--sheet-bg);
   backdrop-filter: blur(40px) saturate(1.4);
   -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  box-shadow: 0 -0.5rem 2rem rgb(0 0 0 / 0.35);
   transform: translateY(105%);
+  transform-origin: 50% 0;
   visibility: hidden;
   transition:
     transform var(--dur-quick) var(--ease),
+    filter var(--dur-quick) var(--ease),
     visibility 0s linear var(--dur-quick);
 }
 
 .side.is-open {
-  transform: none;
+  transform: translateY(var(--pull, 0px));
   visibility: visible;
-  transition: transform var(--dur-turn) var(--ease);
+  transition:
+    transform var(--dur-turn) var(--ease),
+    filter var(--dur-turn) var(--ease);
+}
+
+.side.is-open.is-under {
+  transform: translateY(-0.5rem) scale(0.94);
+  filter: brightness(0.6);
+}
+
+.side.is-open.is-deep {
+  visibility: hidden;
+}
+
+/* The grabber, and the bar it sits in, pull the sheet down. */
+.side-grabber {
+  position: absolute;
+  top: 0.375rem;
+  left: 50%;
+  width: 2.25rem;
+  height: 0.3125rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.3);
+  transform: translateX(-50%);
 }
 
 .side-bar {
   position: absolute;
   inset: 0 0 auto;
   z-index: 2;
+  touch-action: none;
+  cursor: grab;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -1201,8 +1253,13 @@ button {
   font-weight: 600;
 }
 
-.side-bar > .round {
+.side-bar > .round,
+.side-bar > .glass-pill {
   justify-self: end;
+}
+
+.side-bar button {
+  cursor: pointer;
 }
 
 /* iOS 26's bar button: a glass circle, the glyph in full ink. A desk bar
@@ -1645,39 +1702,22 @@ button {
    inset, so their first lines stand level. ══ */
 
 @media (min-width: 64rem) {
-  /* The library takes what is left; the player column is as wide as its
-     console (below); a sheet takes 3.75 to the library's 5 (Juan,
-     2026-11-04 — shares by priority, the sheet widened from 3 for the clip
-     editor's room, and the player's 4 share dropped the same day because a
-     share wider than the cover only added air beside it). */
+  /* TWO COLUMNS, ALWAYS (Juan, 2026-11-04): the library takes what is left,
+     and the right column is the phone — the player, and every sheet rising
+     over it. A third column for the sheets re-laid the window out on every
+     open and close; a sheet over the player is what the app does. */
   .home {
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
-    /* The player column HUGS its console: the cover as large as the window's
-       height allows with the dock still in, and the app's 16pt either side.
-       A share of the width left a short window's cover floating in air. */
-    --cover: clamp(13rem, calc(100svh - 26rem), 20rem);
-    --now-w: calc(var(--cover) + 3rem);
-    /* The Shape / Clips / Account sheet: a sheet's measure, not a share of
-       the window — a share made it a second library on a wide screen. */
-    --side-w: clamp(20rem, 27vw, 24rem);
+    /* The phone's proportions: about half as wide as the window is tall. */
+    --stage-w: clamp(24rem, min(30vw, 56svh), 30rem);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 0 0;
+    grid-template-columns: minmax(0, 1fr) 0;
     height: 100svh;
     overflow: hidden;
   }
 
-  .home.has-current {
-    grid-template-columns: minmax(0, 1fr) var(--now-w) 0;
-  }
-
-  .home.has-current.side-open {
-    grid-template-columns: minmax(0, 1fr) var(--now-w) var(--side-w);
-  }
-
-  /* New Sound with nothing playing yet: the library and the sheet alone,
-     still 5 : 3.75. */
-  .home.side-open:not(.has-current) {
-    grid-template-columns: minmax(0, 1fr) 0 var(--side-w);
+  .home.is-staged {
+    grid-template-columns: minmax(0, 1fr) var(--stage-w);
   }
 
   .library {
@@ -1689,17 +1729,6 @@ button {
 
   /* The bar's glyph sits 1rem off the column's edge, as a toolbar's does —
      not out at the grid's wider margin. */
-  /* The clip editor's pill loses Shape on a desk: the dock's Shape is one
-     column over, and two ways into one sheet put its close glyph in two
-     places. */
-  .glass-pill .pill-shape {
-    display: none;
-  }
-
-  .glass-pill .is-commit {
-    margin-left: 0;
-  }
-
   .bar {
     margin: 0 calc(var(--pad) * -1);
     padding: 0 1rem 0 var(--pad);
@@ -1709,41 +1738,56 @@ button {
     grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
   }
 
-  .now-column {
+  .stage {
     position: relative;
-    inset: auto;
-    z-index: 1;
     grid-column: 2;
-    display: block;
-    /* The phone's column centres its console; a block container honours
-       align-content now, so the desk has to say top, or the cover floats
-       mid-column instead of standing under the window's edge. */
-    align-content: start;
-    /* The cover stands near the top, as the phone's sits 12pt under the
-       island — no bar shares this column — with 2rem of air either side. */
-    padding: 1.5rem;
+    height: 100svh;
+    overflow: hidden;
     border-left: 1px solid var(--hairline);
+    background: #000;
+    view-transition-name: stage;
+  }
+
+  .home:not(.is-staged) .stage {
+    visibility: hidden;
+  }
+
+  .now-column {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    /* The cover stands 1.5rem under the window's edge — the phone's sits
+       12pt under the island — and the glass bar on the bottom one. */
+    padding: 1.5rem;
     background: var(--ground);
     opacity: 1;
     visibility: visible;
     transform: none;
-    transition: none;
-    overflow-y: auto;
-    view-transition-name: now;
+    transform-origin: 50% 0;
+    transition:
+      transform var(--dur-turn) var(--ease),
+      filter var(--dur-turn) var(--ease),
+      border-radius var(--dur-turn) var(--ease);
+    overflow: hidden;
+  }
+
+  /* Under a sheet the player steps back, as the app's screen does under a
+     form sheet. */
+  .home.side-open .now-column {
+    transform: translateY(0.5rem) scale(0.94);
+    border-radius: 2.125rem 2.125rem 0 0;
+    filter: brightness(0.6);
   }
 
   .home:not(.has-current) .now-column {
     visibility: hidden;
   }
 
-  /* A half of a wide window is more than a cover wants: the console keeps
-     its own measure and stands in the middle of its share. */
   .now-column .now {
-    /* The app's one content box runs to SCREEN_PADDING; here it runs to
-       the column's 1rem, and a short window still shrinks the cover so the
-       dock stays in. */
-    max-width: var(--cover);
-    margin: 0.25rem auto 0;
+    max-width: none;
+    margin: 0;
+    /* The cover keeps room for the console under it on a short window. */
+    --cover-cap: calc(100svh - 21rem);
   }
 
   .collapse,
@@ -1752,48 +1796,30 @@ button {
   }
 
   .side {
-    position: relative;
-    inset: auto;
-    z-index: 1;
-    grid-column: 3;
-    min-width: 0;
-    max-height: none;
-    height: 100svh;
-    border-top: 0;
-    border-left: 1px solid var(--hairline);
-    border-radius: 0;
-    background: rgb(16 16 16 / 0.6);
-    transform: none;
-    transition: none;
-    view-transition-name: side;
-  }
-
-  .side:not(.is-open) {
-    visibility: hidden;
-  }
-
-  .side-bar {
-    padding: 0 var(--pad);
+    position: absolute;
+    z-index: 3;
+    height: calc(100% - 0.75rem - var(--index, 0) * 0.625rem);
+    border-top: 1px solid var(--hairline);
   }
 
   .form {
-    --form-x: var(--pad);
-    padding: calc(var(--bar-h) + 0.25rem) var(--form-x) var(--pad);
+    --form-x: 1.25rem;
   }
 }
 
-/* The desk's column change, as one move: tiles glide to their new places,
-   the sheet slides in from the right edge and back out. */
+/* The desk's one column change — the right column standing up when a sheet
+   opens with nothing playing — as one move: tiles glide to their new
+   places, the column slides in from the right edge and back out. */
 ::view-transition-group(*) {
   animation-duration: var(--dur-turn);
   animation-timing-function: var(--ease);
 }
 
-::view-transition-old(side):only-child {
+::view-transition-old(stage):only-child {
   animation: slide-out var(--dur-quick) var(--ease) both;
 }
 
-::view-transition-new(side):only-child {
+::view-transition-new(stage):only-child {
   animation: slide-in var(--dur-turn) var(--ease) both;
 }
 
@@ -2349,9 +2375,11 @@ button {
   overflow-y: auto;
   padding: 2.25rem 1.5rem max(2rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--hairline);
-  border-radius: 1.5rem 1.5rem 0 0;
+  border-radius: 2.125rem 2.125rem 0 0;
   background: var(--surface);
   outline: none;
+  touch-action: none;
+  cursor: grab;
   transform: translateY(105%);
   visibility: hidden;
   transition:
@@ -2360,7 +2388,7 @@ button {
 }
 
 .sub-sheet.is-open {
-  transform: none;
+  transform: translateY(var(--pull, 0px));
   visibility: visible;
   transition: transform var(--dur-quick) var(--ease);
 }
@@ -2372,7 +2400,7 @@ button {
   width: 2.25rem;
   height: 0.3125rem;
   border-radius: 999px;
-  background: var(--separator);
+  background: rgb(255 255 255 / 0.3);
   transform: translateX(-50%);
 }
 
