@@ -119,8 +119,10 @@ Still to do:
    2026-11-04, beside step 3.
 5. Clips, then uploads and Edit Sound (tags, artwork). Clips built
    2026-11-04: list, play to the end and park, Repeat (all four modes, via the
-   app's `clipQueue`), delete, and a two-handle New Clip with Preview. The
-   app's zoomed waveform editor is still to come. Auto DJ follows once the
+   app's `clipQueue`), delete, and the app's clip editor (zoomed waveform under a
+   fixed playhead, ruler, overview with the selection frame, timecode, ±15
+   and a play-once preview) for new and existing clips. The desk's columns
+   share the window equally: halves with a sound open, thirds with a sheet. Auto DJ follows once the
    app's version lands.
 6. Trophies, Settings, Manage Account, delete account.
 7. PWA: manifest, icons from the brand art, service worker, install.

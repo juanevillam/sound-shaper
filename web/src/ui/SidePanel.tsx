@@ -13,12 +13,15 @@ export function SidePanel({
   open,
   title,
   action,
+  trailing,
   onClose,
   children,
 }: {
   open: boolean;
   title: string;
   action?: ReactNode;
+  /** Replaces the close glyph — a commit modal's ✓. */
+  trailing?: ReactNode;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -32,10 +35,12 @@ export function SidePanel({
       <header className="side-bar">
         <span className="side-lead">{action}</span>
         <h2>{title}</h2>
-        <button type="button" className="round" onClick={onClose}>
-          <CloseGlyph />
-          <span className="sr">{t('common.close')}</span>
-        </button>
+        {trailing ?? (
+          <button type="button" className="round" onClick={onClose}>
+            <CloseGlyph />
+            <span className="sr">{t('common.close')}</span>
+          </button>
+        )}
       </header>
       <div className="form">{children}</div>
     </aside>

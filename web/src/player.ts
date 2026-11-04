@@ -10,6 +10,7 @@ import {
 import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
 import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
+import { forgetWaveforms } from './waveform';
 import { forgetClips, getClipsOfSounds, knownClips } from './clips';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
@@ -35,7 +36,7 @@ export type PlayerState = {
   echo: EffectLevel;
   nextRoom: EffectLevel;
   /** The clip that is sounding, or parked on: its end stops or repeats. */
-  activeClip: (ClipRange & { soundId: string }) | null;
+  activeClip: (ClipRange & { soundId: string; once?: boolean }) | null;
   repeat: RepeatMode;
 };
 
@@ -188,6 +189,16 @@ export const playSound = async (sound: Sound): Promise<void> => {
   await start();
 };
 
+export const pause = () => element?.pause();
+
+/** Load a sound without playing it — the editor needs its element to scrub. */
+export const cue = (sound: Sound) => {
+  if (!state.loaded || state.current?.id !== sound.id) {
+    set({ activeClip: null });
+    load(sound);
+  }
+};
+
 export const toggle = async (): Promise<void> => {
   if (!state.current) return;
   if (!state.loaded) return playSound(state.current);
@@ -275,38 +286,58 @@ export const setNextRoom = (level: EffectLevel) => {
 
 let clipEnding = false;
 
+/** Move the playhead without ending a run — the editor's scrub and skips. */
+export const scrubTo = (seconds: number) => {
+  if (!element) return;
+  element.currentTime = seconds;
+  set({ position: seconds });
+};
+
 /** Play a clip: from its start, to its end, then whatever Repeat says. */
-export const playClip = async (soundId: string, clip: ClipRange) => {
+export const playClip = async (
+  soundId: string,
+  clip: ClipRange,
+  /**
+   * The editor's preview: `from` starts inside the range (the playhead, when
+   * it sits there), and `once` ignores Repeat — a range being framed plays
+   * once and parks on its start, whatever the Clips sheet is set to.
+   */
+  { from, once }: { from?: number; once?: boolean } = {},
+) => {
   const sound = state.queue.find(s => s.id === soundId);
 
   if (!sound) return;
   if (!state.loaded || state.current?.id !== soundId) load(sound);
-  if (element) element.currentTime = clip.startMs / 1000;
+  const at = from ?? clip.startMs / 1000;
+  if (element) element.currentTime = at;
   set({
     activeClip: {
       soundId,
       id: clip.id,
       startMs: clip.startMs,
       endMs: clip.endMs,
+      once,
     },
-    position: clip.startMs / 1000,
+    position: at,
   });
   await start();
 };
 
-const clipEnded = async (clip: ClipRange & { soundId: string }) => {
+const clipEnded = async (
+  clip: ClipRange & { soundId: string; once?: boolean },
+) => {
   clipEnding = true;
   try {
     const libraryOrder = state.queue.map(s => s.id);
     const clipsBySound =
-      state.repeat === 'all'
+      state.repeat === 'all' && !clip.once
         ? await getClipsOfSounds(libraryOrder)
         : knownClips();
     const upcoming = nextClip({
       clipsBySound,
       current: clip,
       libraryOrder,
-      mode: state.repeat,
+      mode: clip.once ? 'off' : state.repeat,
       soundId: clip.soundId,
     });
 
@@ -344,6 +375,7 @@ export const resetPlayer = () => {
   release();
   audioEngine.apply(FLAT, 'off', 'off');
   forgetClips();
+  forgetWaveforms();
   try {
     localStorage.removeItem(REPEAT_KEY);
   } catch {

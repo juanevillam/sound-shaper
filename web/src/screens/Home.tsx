@@ -12,7 +12,9 @@ import { Backdrop } from '../ui/Backdrop';
 import { BrandMark } from '../ui/brand';
 import { ClipsForm } from '../ui/ClipsForm';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { Bars, PlusGlyph } from '../ui/glyphs';
+import type { Clip } from '../clips';
+import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
+import { Bars, CheckGlyph, CloseGlyph, PlusGlyph } from '../ui/glyphs';
 import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying, type Panel } from '../ui/NowPlaying';
 import { ShapeForm } from '../ui/ShapePanel';
@@ -204,7 +206,8 @@ export function Home({ user }: { user: User }) {
   const current = usePlayer(s => s.current);
   const [expanded, setExpanded] = useState(false);
   const [panel, setPanel] = useState<Panel | null>(null);
-  const [creating, setCreating] = useState(false);
+  // The clip editor, over the Clips sheet: `clip` null is a new clip.
+  const [editing, setEditing] = useState<{ clip: Clip | null } | null>(null);
   const { top, title, edge, titled } = useLargeTitle();
   // The sheet keeps showing what it held while it slides away.
   const last = useRef<Panel>('shape');
@@ -221,13 +224,14 @@ export function Home({ user }: { user: User }) {
   const openPanel = (next: Panel | null) =>
     morph(() => {
       setPanel(next);
-      setCreating(false);
+      setEditing(null);
     });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
-      if (panel) openPanel(null);
+      if (editing) setEditing(null);
+      else if (panel) openPanel(null);
       else setExpanded(false);
     };
     document.addEventListener('keydown', onKey);
@@ -239,6 +243,7 @@ export function Home({ user }: { user: User }) {
     current ? 'has-current' : '',
     expanded ? 'is-expanded' : '',
     panel ? 'side-open' : '',
+    editing ? 'is-editing' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -302,28 +307,60 @@ export function Home({ user }: { user: User }) {
       <SidePanel
         open={panel !== null}
         title={
-          shown === 'clips' ? t('player.clips.title') : t('player.shape.title')
+          editing
+            ? editing.clip
+              ? t('player.clips.edit')
+              : t('player.clips.new')
+            : shown === 'clips'
+              ? t('player.clips.title')
+              : t('player.shape.title')
         }
         action={
-          shown === 'clips' && (
+          editing ? (
             <button
               type="button"
               className="round"
-              aria-pressed={creating}
-              onClick={() => setCreating(c => !c)}
+              onClick={() => setEditing(null)}
             >
-              <PlusGlyph />
-              <span className="sr">{t('player.clips.new')}</span>
+              <CloseGlyph />
+              <span className="sr">{t('common.cancel')}</span>
+            </button>
+          ) : (
+            shown === 'clips' && (
+              <button
+                type="button"
+                className="round"
+                onClick={() => setEditing({ clip: null })}
+              >
+                <PlusGlyph />
+                <span className="sr">{t('player.clips.new')}</span>
+              </button>
+            )
+          )
+        }
+        trailing={
+          editing && (
+            <button
+              type="button"
+              className="round is-commit"
+              onClick={commitClipEditor}
+            >
+              <CheckGlyph />
+              <span className="sr">{t('player.clips.saveClip')}</span>
             </button>
           )
         }
         onClose={() => openPanel(null)}
       >
-        {shown === 'clips' ? (
-          <ClipsForm
-            creating={creating}
-            onDoneCreating={() => setCreating(false)}
+        {editing && current ? (
+          <ClipEditor
+            key={editing.clip?.id ?? 'new'}
+            sound={current}
+            clip={editing.clip}
+            onDone={() => setEditing(null)}
           />
+        ) : shown === 'clips' ? (
+          <ClipsForm onEdit={clip => setEditing({ clip })} />
         ) : (
           <ShapeForm />
         )}

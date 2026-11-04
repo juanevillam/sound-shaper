@@ -143,3 +143,18 @@ export const ClipGlyph = () => (
     <path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" {...strokeProps} />
   </svg>
 );
+
+export const PencilGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M15.5 4.5l4 4L9 19l-5 1 1-5L15.5 4.5ZM13.5 6.5l4 4"
+      {...strokeProps}
+    />
+  </svg>
+);
+
+export const CheckGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m5 12.5 4.5 4.5L19 7.5" {...strokeProps} strokeWidth={2.2} />
+  </svg>
+);

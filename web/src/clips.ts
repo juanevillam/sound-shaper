@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   type Timestamp,
 } from 'firebase/firestore';
 
@@ -133,6 +134,17 @@ export const createClip = (
     startMs: Math.round(startMs),
   });
 };
+
+/** Re-frame a clip: only the range moves, as the app's `updateClip`. */
+export const updateClip = (
+  soundId: string,
+  clipId: string,
+  { startMs, endMs }: { startMs: number; endMs: number },
+) =>
+  updateDoc(doc(clipsOf(soundId), clipId), {
+    endMs: Math.round(endMs),
+    startMs: Math.round(startMs),
+  });
 
 export const deleteClip = (soundId: string, clipId: string) =>
   deleteDoc(doc(clipsOf(soundId), clipId));

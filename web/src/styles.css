@@ -1441,18 +1441,23 @@ button {
    inset, so their first lines stand level. ══ */
 
 @media (min-width: 64rem) {
+  /* EQUAL SHARES, whatever is open (Juan, 2026-11-04): the library alone
+     takes the window, a playing sound halves it, a sheet makes it thirds —
+     the site's full-screen player's three equal columns. */
   .home {
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
-    --now: clamp(21rem, 26vw, 26rem);
-    --side: 22rem;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--now) 0;
+    grid-template-columns: minmax(0, 1fr) 0 0;
     height: 100svh;
     overflow: hidden;
   }
 
-  .home.side-open {
-    grid-template-columns: minmax(0, 1fr) var(--now) var(--side);
+  .home.has-current {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 0;
+  }
+
+  .home.has-current.side-open {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .library {
@@ -1485,6 +1490,7 @@ button {
     visibility: visible;
     transform: none;
     transition: none;
+    overflow-y: auto;
     view-transition-name: now;
   }
 
@@ -1492,9 +1498,12 @@ button {
     visibility: hidden;
   }
 
+  /* A half of a wide window is more than a cover wants: the console keeps
+     its own measure and stands in the middle of its share. */
   .now-column .now {
-    max-width: none;
-    margin-top: 0.25rem;
+    /* …and on a short window the cover gives way, so the dock stays in. */
+    max-width: clamp(14rem, calc(100svh - 25rem), 26rem);
+    margin: 0.25rem auto 0;
   }
 
   .collapse,
@@ -1507,7 +1516,7 @@ button {
     inset: auto;
     z-index: 1;
     grid-column: 3;
-    width: var(--side);
+    min-width: 0;
     max-height: none;
     height: 100svh;
     border-top: 0;
@@ -1559,6 +1568,64 @@ button {
     opacity: 0;
     transform: translateX(2rem);
   }
+}
+
+/* ── The clip editor ── */
+
+.editor {
+  display: grid;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+.editor canvas {
+  display: block;
+  width: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.editor-band.is-dragging {
+  cursor: grabbing;
+}
+
+.editor-strip {
+  cursor: pointer;
+}
+
+.editor-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding: 0 0.875rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-timecode {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor .transport {
+  margin-top: -0.5rem;
+}
+
+.transport .skip15 {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.3rem;
+}
+
+.round.is-commit {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--ground);
 }
 
 @media (prefers-reduced-motion: reduce) {

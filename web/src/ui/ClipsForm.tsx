@@ -3,113 +3,18 @@ import { useState } from 'react';
 import { REPEAT_MODES, type RepeatMode } from '@app/lib/clipQueue';
 import { formatTime } from '@app/lib/player';
 
-import { createClip, deleteClip, useClips, type Clip } from '../clips';
+import { deleteClip, useClips, type Clip } from '../clips';
 import { t } from '../i18n';
 import { playClip, setRepeat, toggle, usePlayer } from '../player';
 
 import { ConfirmDialog } from './ConfirmDialog';
-import { Bars, TrashGlyph } from './glyphs';
+import { Bars, PencilGlyph, TrashGlyph } from './glyphs';
 
 const range = (clip: { startMs: number; endMs: number }) =>
   `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
-/**
- * A new clip's range: two handles over the sound, defaulting to the playhead
- * less 7 seconds to plus 8 — the app's editor's opening selection. The app's
- * zoomed waveform editor is the full version of this; on the web it starts
- * as the range itself, previewed through the real player.
- */
-function NewClip({ soundId, onDone }: { soundId: string; onDone: () => void }) {
-  const position = usePlayer(s => s.position);
-  const duration = usePlayer(s => s.duration);
-  const total = Math.max(1, duration);
-  const [start, setStart] = useState(() => Math.max(0, position - 7));
-  const [end, setEnd] = useState(() => Math.min(total, position + 8));
-  const fill = (v: number) => ({ '--fill': v / total }) as React.CSSProperties;
-
-  return (
-    <section className="new-clip">
-      <h3 className="section-head split">
-        <span>{t('player.clips.new')}</span>
-        <span className="head-value">
-          {range({ startMs: start * 1000, endMs: end * 1000 })}
-        </span>
-      </h3>
-      <div className="card">
-        <label className="cell band">
-          <span className="band-hz">{formatTime(start)}</span>
-          <input
-            type="range"
-            className="slider"
-            min={0}
-            max={total}
-            step={0.1}
-            value={start}
-            style={fill(start)}
-            aria-label={`${t('player.clips.new')}: start`}
-            onChange={e => setStart(Math.min(Number(e.target.value), end - 1))}
-          />
-          <span />
-        </label>
-        <label className="cell band">
-          <span className="band-hz">{formatTime(end)}</span>
-          <input
-            type="range"
-            className="slider"
-            min={0}
-            max={total}
-            step={0.1}
-            value={end}
-            style={fill(end)}
-            aria-label={`${t('player.clips.new')}: end`}
-            onChange={e => setEnd(Math.max(Number(e.target.value), start + 1))}
-          />
-          <span />
-        </label>
-      </div>
-      <div className="row-actions">
-        <button
-          type="button"
-          className="pill"
-          onClick={() =>
-            playClip(soundId, {
-              id: 'preview',
-              startMs: start * 1000,
-              endMs: end * 1000,
-            })
-          }
-        >
-          {t('player.clips.preview')}
-        </button>
-        <button type="button" className="pill" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
-        <button
-          type="button"
-          className="pill is-primary"
-          onClick={() => {
-            void createClip(soundId, {
-              startMs: start * 1000,
-              endMs: end * 1000,
-            });
-            onDone();
-          }}
-        >
-          {t('player.clips.saveClip')}
-        </button>
-      </div>
-    </section>
-  );
-}
-
 /** The Clips sheet's body: Repeat, then the sound's clips, newest range last. */
-export function ClipsForm({
-  creating,
-  onDoneCreating,
-}: {
-  creating: boolean;
-  onDoneCreating: () => void;
-}) {
+export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
   const current = usePlayer(s => s.current);
   const repeat = usePlayer(s => s.repeat);
   const active = usePlayer(s => s.activeClip?.id ?? null);
@@ -122,8 +27,6 @@ export function ClipsForm({
 
   return (
     <>
-      {creating && <NewClip soundId={current.id} onDone={onDoneCreating} />}
-
       <div className="card">
         <label className="cell picker">
           <span className="cell-name">{t('player.clips.repeat.label')}</span>
@@ -147,12 +50,10 @@ export function ClipsForm({
           </div>
         </div>
       ) : clips.length === 0 ? (
-        !creating && (
-          <div className="side-empty">
-            <h3>{t('player.clips.none')}</h3>
-            <p>{t('player.clips.empty')}</p>
-          </div>
-        )
+        <div className="side-empty">
+          <h3>{t('player.clips.none')}</h3>
+          <p>{t('player.clips.empty')}</p>
+        </div>
       ) : (
         <ul className="card clip-list">
           {clips.map(clip => {
@@ -187,6 +88,14 @@ export function ClipsForm({
                       {formatTime((clip.endMs - clip.startMs) / 1000)}
                     </span>
                   </span>
+                </button>
+                <button
+                  type="button"
+                  className="round quiet"
+                  onClick={() => onEdit(clip)}
+                >
+                  <PencilGlyph />
+                  <span className="sr">{t('player.clips.edit')}</span>
                 </button>
                 <button
                   type="button"
