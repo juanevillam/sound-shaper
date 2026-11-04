@@ -77,7 +77,10 @@ export const setOwnPhoto = async (file: Blob | null) => {
     | undefined;
   const asset = file ? await uploadImage(file) : null;
 
-  await updateProfile(user, { photoURL: asset?.url ?? null });
+  // NOT null for "none": the SDK sends `photoUrl: null`, which the Identity
+  // Toolkit reads as "unchanged" — the photo stayed after Remove. An empty
+  // string clears it, and the SDK hands back `photoURL: null`.
+  await updateProfile(user, { photoURL: asset?.url ?? '' });
   await setDoc(
     ref,
     {
