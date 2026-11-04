@@ -447,6 +447,75 @@ button {
   gap: 0.5rem;
 }
 
+/* The app's action sheet: a card of choices, Cancel apart from it. At the
+   bottom of a phone, as iOS puts it; centred on a desk, with the confirms. */
+.action-sheet {
+  width: min(22rem, calc(100vw - 1rem));
+  margin: auto auto max(0.5rem, env(safe-area-inset-bottom));
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  overflow: visible;
+}
+
+.action-sheet[open] {
+  display: grid;
+  gap: 0.5rem;
+  animation: sheet-rise var(--dur-turn) var(--ease) both;
+}
+
+.action-sheet::backdrop {
+  background: rgb(0 0 0 / 0.4);
+  animation: fade var(--dur-quick) var(--ease) both;
+}
+
+.action-group {
+  display: grid;
+  overflow: hidden;
+  border-radius: 0.875rem;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.action-group button {
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border: 0;
+  background: none;
+  color: rgb(10 132 255);
+  font-size: 1.25rem;
+}
+
+.action-group button + button {
+  box-shadow: inset 0 1px 0 var(--separator);
+}
+
+.action-group button:active {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.action-group .is-destructive {
+  color: var(--destructive);
+}
+
+.action-group .is-cancel {
+  font-weight: 600;
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 64rem) {
+  .action-sheet {
+    margin: auto;
+  }
+}
+
 /* ── The grid: the app's two-column library, more columns as it widens ── */
 
 /* The app's spacing, not a web grid's: TILE_GAP 14 between columns, 18
@@ -461,8 +530,35 @@ button {
 }
 
 .grid li {
-  animation: rise 520ms var(--ease) both;
+  /* backwards, not both: a finished entrance must not hold the transform,
+     or a held tile could never be moved off its slot. */
+  animation: rise 520ms var(--ease) backwards;
   animation-delay: calc(var(--i, 0) * 28ms);
+  /* A hold is the drag's, not the browser's: no callout, no selection, no
+     image drag. */
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.grid li img {
+  -webkit-user-drag: none;
+}
+
+/* The held tile rides over its neighbours; the rest glide out of its way. */
+.grid li.is-lifted {
+  position: relative;
+  z-index: 5;
+  cursor: grabbing;
+  transition: none;
+}
+
+.grid li.is-lifted .tile-art {
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.45);
+  border-radius: 15%;
+}
+
+.grid.is-sorting .tile {
+  pointer-events: none;
 }
 
 .tile {
@@ -2026,6 +2122,13 @@ button {
 
 .field input::placeholder {
   color: var(--faint);
+}
+
+/* A headerless card after another card is the app's card-to-card boundary
+   (35pt, measured on the account sheet), not the gap a header sits in. */
+.form > .fields + .card,
+.form > .card + .card {
+  margin-top: 0.8125rem;
 }
 
 .destructive-row {

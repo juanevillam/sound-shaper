@@ -18,6 +18,7 @@ import {
   type CoverChoice,
 } from '../sounds';
 
+import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Toast, showToast } from './Toast';
 
@@ -116,6 +117,7 @@ export function SoundForm({
   );
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
 
   const [preview, setPreview] = useState('');
@@ -194,7 +196,8 @@ export function SoundForm({
           type="button"
           className="art-pick"
           disabled={busy}
-          onClick={() => picker.current?.click()}
+          // The app's split: one answer with no artwork, two with it.
+          onClick={() => (shown ? setChoosing(true) : picker.current?.click())}
         >
           <span className="art-box">
             {shown ? (
@@ -215,16 +218,6 @@ export function SoundForm({
             {t(shown ? 'soundEdit.art.change' : 'soundEdit.art.add')}
           </span>
         </button>
-        {shown && (
-          <button
-            type="button"
-            className="text-action is-destructive"
-            disabled={busy}
-            onClick={() => setCover({ kind: 'clear' })}
-          >
-            {t('soundEdit.art.remove')}
-          </button>
-        )}
         <input
           ref={picker}
           type="file"
@@ -235,6 +228,22 @@ export function SoundForm({
             if (file) setCover({ kind: 'file', file });
             e.target.value = '';
           }}
+        />
+        <ActionSheet
+          open={choosing}
+          cancel={t('common.cancel')}
+          actions={[
+            {
+              label: t('soundEdit.art.change'),
+              onSelect: () => picker.current?.click(),
+            },
+            {
+              label: t('soundEdit.art.remove'),
+              destructive: true,
+              onSelect: () => setCover({ kind: 'clear' }),
+            },
+          ]}
+          onClose={() => setChoosing(false)}
         />
       </div>
 

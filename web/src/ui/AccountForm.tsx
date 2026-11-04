@@ -16,6 +16,7 @@ import { locale, t } from '../i18n';
 import { uploadFailureKey } from '../media';
 import { resetPlayer } from '../player';
 
+import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ChevronRightGlyph } from './glyphs';
 import { Avatar } from './SettingsForm';
@@ -115,6 +116,7 @@ export function AccountForm({
   const [memberSince, setMemberSince] = useState<number | null | undefined>();
   const [naming, setNaming] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const [confirm, setConfirm] = useState<0 | 1 | 2>(0);
   const [deleting, setDeleting] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
@@ -171,7 +173,10 @@ export function AccountForm({
           type="button"
           className="art-pick"
           disabled={photoBusy || deleting}
-          onClick={() => picker.current?.click()}
+          // The app's split: one answer with no photo, two with one.
+          onClick={() =>
+            hasPhoto ? setChoosing(true) : picker.current?.click()
+          }
         >
           <span className={photoBusy ? 'photo-slot is-busy' : 'photo-slot'}>
             <Avatar user={user} size={PHOTO} />
@@ -185,16 +190,6 @@ export function AccountForm({
             )}
           </span>
         </button>
-        {hasPhoto && (
-          <button
-            type="button"
-            className="text-action is-destructive"
-            disabled={photoBusy || deleting}
-            onClick={() => changePhoto(null)}
-          >
-            {t('settings.manageAccount.photo.remove')}
-          </button>
-        )}
         <input
           ref={picker}
           type="file"
@@ -205,6 +200,22 @@ export function AccountForm({
             if (file) changePhoto(file);
             e.target.value = '';
           }}
+        />
+        <ActionSheet
+          open={choosing}
+          cancel={t('settings.manageAccount.photo.cancel')}
+          actions={[
+            {
+              label: t('settings.manageAccount.photo.change'),
+              onSelect: () => picker.current?.click(),
+            },
+            {
+              label: t('settings.manageAccount.photo.remove'),
+              destructive: true,
+              onSelect: () => changePhoto(null),
+            },
+          ]}
+          onClose={() => setChoosing(false)}
         />
       </div>
 
