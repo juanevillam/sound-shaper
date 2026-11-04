@@ -73,6 +73,14 @@ Done 2026-11-04, from Juan's browser:
    Enterprise) — key "Sound Shaper Web" in Google Cloud, bound to
    `soundshaper.juanevillam.com` only, TTL 1 hour. The reCAPTCHA Enterprise
    API is enabled; on Spark it has no billing account to charge.
+4. App Check debug token "Mac localhost", generated in the console and kept
+   in `web/.env.local` as `VITE_APPCHECK_DEBUG_TOKEN` (gitignored; restart
+   `npm run dev` after editing it). Never commit it.
+5. The web API key (Browser key created 2026-11-04) accepts only
+   `https://soundshaper.juanevillam.com/*`, `http://localhost:5173/*` and
+   `https://sound-shaper.firebaseapp.com/*` — the last is Firebase Auth's
+   sign-in handler. A new origin (a preview URL, another port) must be added
+   there or Firebase calls from it fail.
 
 Still to do:
 
@@ -86,11 +94,6 @@ Still to do:
   `http://localhost:5173` (`ALLOWED_ORIGINS`); without it every browser call
   fails its CORS preflight with a 405. Verify after with a preflight
   (`curl -i -X OPTIONS …/signUpload -H 'Origin: http://localhost:5173'` → 204) and a real upload from the iOS app.
-- Register the localhost App Check debug token: it is
-  `VITE_APPCHECK_DEBUG_TOKEN` in `web/.env.local` (gitignored, made
-  2026-11-04); paste it into App Check → Sound Shaper Web → ⋮ → Manage debug
-  tokens. Never commit it. Restart `npm run dev` after editing that file.
-- Restrict the web API key by HTTP referrer (Google Cloud → Credentials).
 - Sign in with Apple on the web: a Services ID and the domain's verification
   in Grostify's Apple Developer account — the Account Holder's call. Google
   sign-in needs nothing extra.
@@ -106,8 +109,7 @@ Still to do:
 1. Scaffold `web/` with the shared imports and the audio shim, proven by
    playing a file through the shared engine. Done 2026-11-04.
 2. Firebase web: sign in (Google), read the library, App Check. Built
-   2026-11-04 (Welcome, Google popup, live library, tap to play); waiting on
-   the localhost debug token's registration to be walked signed in.
+   2026-11-04 (Welcome, Google popup, live library, tap to play).
 3. Library grid and the player (mini and expanded), streaming from Cloudinary.
 4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room.
 5. Clips, then uploads and Edit Sound (tags, artwork).
