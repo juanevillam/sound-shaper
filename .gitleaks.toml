@@ -7,6 +7,9 @@
 # - Firebase client config (`google-services.json`, `GoogleService-Info.plist`):
 #   the `AIza…` keys ship inside every app binary; Firestore rules are the
 #   boundary, and the keys are restricted per bundle/package in Google Cloud.
+#   The web app's twin is `web/src/firebaseConfig.ts`, which also holds its
+#   reCAPTCHA Enterprise SITE key — a key that is sent to every browser; its
+#   secret half never leaves Google.
 # - Lockfile checksums, which trip the generic-api-key entropy rule.
 #
 # Anything else it flags is a real finding: remove it from the commit, rotate
@@ -20,6 +23,7 @@ description = "Public-by-design Firebase client config and lockfile hashes"
 paths = [
   '''(^|/)google-services\.json$''',
   '''(^|/)GoogleService-Info\.plist$''',
+  '''^web/src/firebaseConfig\.ts$''',
   '''(^|/)Podfile\.lock$''',
   '''(^|/)Manifest\.lock$''',
   '''(^|/)package-lock\.json$''',

@@ -61,20 +61,39 @@ The same model as the app: nothing secret is in the client.
   upload from the web.
 - Uploads go to Cloudinary under `{root}/{uid}/` exactly as the app's do.
 
-## Juan's console steps (cannot be done from here)
+## Console setup
 
-1. Firebase → Project settings → Add app → Web ("Sound Shaper Web"); hand
-   the config over (it goes in `web/.env`, which IS committed — it is public).
-2. Authentication → Settings → Authorized domains: `soundshaper.juanevillam.com`
-   (and `localhost` for development).
-3. App Check → register the web app with reCAPTCHA Enterprise; a debug token
-   for `localhost`.
-4. Sign in with Apple on the web: a Services ID and the domain's
-   verification in Grostify's Apple Developer account — the Account Holder's
-   call. Google sign-in needs nothing extra.
-5. Cloudflare Pages: project `soundshaper`, root `web`, build
-   `npm ci && npm run build`, output `dist`; custom domain
-   `soundshaper.juanevillam.com`.
+Done 2026-11-04, from Juan's browser:
+
+1. Firebase web app "Sound Shaper Web" registered (no Firebase Hosting); its
+   config is `web/src/firebaseConfig.ts`, committed — it is public.
+2. Authentication → Authorized domains: `soundshaper.juanevillam.com`
+   (`localhost` was already there).
+3. App Check: the web app is registered with Fraud Defense (reCAPTCHA
+   Enterprise) — key "Sound Shaper Web" in Google Cloud, bound to
+   `soundshaper.juanevillam.com` only, TTL 1 hour. The reCAPTCHA Enterprise
+   API is enabled; on Spark it has no billing account to charge.
+4. The media Worker answers CORS for `https://soundshaper.juanevillam.com`
+   and `http://localhost:5173` (`ALLOWED_ORIGINS`, portfolio
+   `services/media-worker`, the deployed source — this repo's
+   `media-worker/` copy is older).
+
+Still to do:
+
+- An App Check debug token for `localhost`, made when the web app first
+  initialises App Check (`self.FIREBASE_APPCHECK_DEBUG_TOKEN = true` logs one
+  in development; paste it into App Check → Sound Shaper Web → Manage debug
+  tokens). Never commit it.
+- Restrict the web API key by HTTP referrer (Google Cloud → Credentials).
+- Sign in with Apple on the web: a Services ID and the domain's verification
+  in Grostify's Apple Developer account — the Account Holder's call. Google
+  sign-in needs nothing extra.
+- Cloudflare Pages: project `soundshaper`, root `web`, build
+  `npm ci && npm run build`, output `dist`; custom domain
+  `soundshaper.juanevillam.com`. Nothing at Namecheap: the zone's DNS is on
+  Cloudflare, so the custom domain writes its own record.
+- Cloudinary needs nothing: uploads are signed by the Worker and delivery is
+  open to any origin.
 
 ## Order of work
 
