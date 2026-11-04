@@ -104,10 +104,13 @@ function NameDialog({
 export function AccountForm({
   user,
   onChanged,
+  onTrophies,
 }: {
   user: User;
   /** Auth's user object changes in place; this re-renders whoever shows it. */
   onChanged: () => void;
+  /** Trophies lives behind Account, as in the app. */
+  onTrophies: () => void;
 }) {
   const [memberSince, setMemberSince] = useState<number | null | undefined>();
   const [naming, setNaming] = useState(false);
@@ -246,6 +249,21 @@ export function AccountForm({
           </div>
         </div>
       </section>
+
+      {/* Untitled: the row's label says what it is. */}
+      <div className="card">
+        <button
+          type="button"
+          className="cell link-row"
+          disabled={deleting}
+          onClick={onTrophies}
+        >
+          <span className="cell-name">{t('trophies.title')}</span>
+          <span className="chevron">
+            <ChevronRightGlyph />
+          </span>
+        </button>
+      </div>
 
       <section>
         <div className="card">

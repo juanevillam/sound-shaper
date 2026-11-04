@@ -62,7 +62,9 @@ export function SettingsForm({
             <span className="banner-name">
               {user.displayName || t('settings.account.noName')}
             </span>
-            <span className="banner-legend">{user.email}</span>
+            <span className="banner-legend">
+              {t('settings.account.summary')}
+            </span>
           </span>
           <span className="chevron">
             <ChevronRightGlyph />

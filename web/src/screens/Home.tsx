@@ -37,14 +37,21 @@ import {
   type PickedSound,
 } from '../ui/SoundForm';
 import { showToast } from '../ui/Toast';
+import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
+import { useTrophySystem } from '../trophies';
 
 /** The grid draws a tile at most this wide; Cloudinary serves 2x of it. */
 const TILE_WIDTH = 220;
 
 const DESK = '(min-width: 64rem)';
 
-/** What the side column holds: a player sheet, or Settings and Account. */
-type HomePanel = Panel | 'settings' | 'account';
+/** What the side column holds: a player sheet, or Settings and what is behind it. */
+type HomePanel = Panel | 'settings' | 'account' | 'trophies';
+
+const isAccountPanel = (
+  panel: HomePanel | null,
+): panel is 'settings' | 'account' | 'trophies' =>
+  panel === 'settings' || panel === 'account' || panel === 'trophies';
 
 /**
  * A change to the desk's columns, animated as one move. Opening a sheet
@@ -208,6 +215,7 @@ const useLargeTitle = () => {
  */
 export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
+  useTrophySystem(user.uid, library);
   const current = usePlayer(s => s.current);
   const [expanded, setExpanded] = useState(false);
   const [panel, setPanel] = useState<HomePanel | null>(null);
@@ -322,12 +330,8 @@ export function Home({ user }: { user: User }) {
           <button
             type="button"
             className="round bar-glyph"
-            aria-expanded={panel === 'settings' || panel === 'account'}
-            onClick={() =>
-              openPanel(
-                panel === 'settings' || panel === 'account' ? null : 'settings',
-              )
-            }
+            aria-expanded={isAccountPanel(panel)}
+            onClick={() => openPanel(isAccountPanel(panel) ? null : 'settings')}
           >
             <GearGlyph />
             <span className="sr">{t('app.settings')}</span>
@@ -363,7 +367,7 @@ export function Home({ user }: { user: User }) {
         <NowPlaying
           onCollapse={() => setExpanded(false)}
           onOpen={next => openPanel(panel === next ? null : next)}
-          panel={panel === 'settings' || panel === 'account' ? null : panel}
+          panel={isAccountPanel(panel) ? null : panel}
         />
       </div>
 
@@ -374,24 +378,28 @@ export function Home({ user }: { user: User }) {
             ? t('app.settings')
             : shown === 'account'
               ? t('settings.account.sheetTitle')
-              : shown === 'new'
-                ? t('app.soundEdit')
-                : shown === 'edit'
-                  ? t('app.soundEditExisting')
-                  : editing
-                    ? editing.clip
-                      ? t('player.clips.edit')
-                      : t('player.clips.new')
-                    : shown === 'clips'
-                      ? t('player.clips.title')
-                      : t('player.shape.title')
+              : shown === 'trophies'
+                ? t('trophies.title')
+                : shown === 'new'
+                  ? t('app.soundEdit')
+                  : shown === 'edit'
+                    ? t('app.soundEditExisting')
+                    : editing
+                      ? editing.clip
+                        ? t('player.clips.edit')
+                        : t('player.clips.new')
+                      : shown === 'clips'
+                        ? t('player.clips.title')
+                        : t('player.shape.title')
         }
         action={
-          shown === 'account' ? (
+          shown === 'account' || shown === 'trophies' ? (
             <button
               type="button"
               className="round"
-              onClick={() => openPanel('settings')}
+              onClick={() =>
+                openPanel(shown === 'trophies' ? 'account' : 'settings')
+              }
             >
               <ChevronLeftGlyph />
               <span className="sr">{t('common.back')}</span>
@@ -456,7 +464,10 @@ export function Home({ user }: { user: User }) {
             key={`account-${opening}`}
             user={user}
             onChanged={() => setProfileTick(n => n + 1)}
+            onTrophies={() => openPanel('trophies')}
           />
+        ) : shown === 'trophies' ? (
+          <TrophiesForm key={`trophies-${opening}`} />
         ) : shown === 'new' && lastComposing.current ? (
           <SoundForm
             key={`new-${opening}`}
@@ -491,6 +502,7 @@ export function Home({ user }: { user: User }) {
 
       <MiniPlayer onExpand={() => setExpanded(true)} />
       <Toast />
+      <TrophyBanner onOpen={() => openPanel('trophies')} />
     </div>
   );
 }

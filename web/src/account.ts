@@ -25,6 +25,7 @@ import {
 
 import { auth, db } from './firebase';
 import { cleanupMyMedia, destroyAsset, uploadImage } from './media';
+import { blockTrophySync } from './trophies';
 
 /**
  * The app's account services (services/firebase/ownProfile.ts and
@@ -143,7 +144,14 @@ export const deleteAccount = async () => {
     throw error;
   }
 
-  await cleanupMyMedia();
-  await sweep(user.uid);
-  await deleteUser(user);
+  // A trophy total sent after the sweep would recreate the swept document.
+  blockTrophySync(true);
+  try {
+    await cleanupMyMedia();
+    await sweep(user.uid);
+    await deleteUser(user);
+  } catch (error) {
+    blockTrophySync(false);
+    throw error;
+  }
 };

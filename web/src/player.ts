@@ -87,6 +87,10 @@ const subscribe = (listener: () => void) => {
 export const usePlayer = <T>(select: (s: PlayerState) => T): T =>
   useSyncExternalStore(subscribe, () => select(state));
 
+/** For watchers outside React — the trophies' listening clock. */
+export const subscribePlayer = subscribe;
+export const playerState = () => state;
+
 // The playhead follows the element every frame while it plays, so the
 // scrubber moves smoothly rather than in timeupdate's four steps a second.
 const follow = () => {

@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatTime } from '@app/lib/player';
 
 import type { Clip } from '../clips';
+import { noteClipSaved } from '../trophies';
 import { t } from '../i18n';
 import type { Sound } from '../library';
 import { cue, pause, playClip, scrubTo, usePlayer } from '../player';
@@ -261,9 +262,13 @@ const EditorCommit = ({
     commit = async () => {
       const { createClip, updateClip } = await import('../clips');
       const value = { startMs: range[0] * 1000, endMs: range[1] * 1000 };
-      void (clip
-        ? updateClip(soundId, clip.id, value)
-        : createClip(soundId, value));
+      if (clip) void updateClip(soundId, clip.id, value);
+      else {
+        void createClip(soundId, value);
+        // Re-framing moves the range and nothing else; only a new clip
+        // counts toward Clipper and Splicer.
+        noteClipSaved();
+      }
       pause();
       onDone();
     };

@@ -21,6 +21,9 @@ export default defineConfig({
   plugins: [react()],
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
   resolve: {
+    // The shared modules sit outside this package, so a bare import of theirs
+    // would otherwise find the app's own copy — and a second React.
+    dedupe: ['react', 'react-dom', 'zustand'],
     alias: {
       '@app': at('../src'),
       // The shared modules' own imports (`@/i18n` in lib/player.ts).
