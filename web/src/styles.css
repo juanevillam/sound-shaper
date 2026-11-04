@@ -1,0 +1,71 @@
+/* juanevillam.com's tokens (website/src/styles/global.css) — the web app
+   wears the site's brand: dark, the system faces, no webfonts. */
+:root {
+  --ground: #0d0d0d;
+  --ink: #f5f5f5;
+  --ink-2: #a3a3a3;
+  --ink-3: #737373;
+  --surface: #161616;
+  --hairline: #262626;
+  --font-sans: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.proof {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.pick input {
+  display: none;
+}
+
+.pick,
+button,
+select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bands {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.bands input {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 9rem;
+}
+
+.level {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
