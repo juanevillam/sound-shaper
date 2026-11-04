@@ -11,6 +11,16 @@
   --glass-ink: #2a2a2a;
   --glass: rgb(30 30 30 / 0.62);
   --glass-edge: rgb(255 255 255 / 0.08);
+  /* Liquid Glass, as far as a browser can draw it: the app's GLASS_FLOOR
+     (0.25 of surfaceContainer) under a blur, and the material's rim — a lit
+     top edge and a faint ring — instead of a border. */
+  --lg-fill: rgb(58 58 60 / 0.42);
+  --lg-fill-hover: rgb(72 72 74 / 0.5);
+  --lg-blur: blur(16px) saturate(1.8);
+  --lg-rim:
+    inset 0 0.75px 0 rgb(255 255 255 / 0.26),
+    inset 0 -0.5px 0 rgb(255 255 255 / 0.06),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
   --sheet-bg: rgb(22 22 22 / 0.86);
   --cell-bg: rgb(255 255 255 / 0.075);
   --separator: rgb(255 255 255 / 0.1);
@@ -295,12 +305,6 @@ button {
   background: var(--ground);
 }
 
-/* Phone: the library covers the wash, so the expanded player lifts it
-   above the library and under itself. */
-.home.is-expanded .backdrop {
-  z-index: 3;
-}
-
 /* iOS's navigation bar over a large title. At rest the bar is empty air over
    the title; once anything scrolls under it iOS 26 draws its scroll edge — a
    dark blur band with a hairline under it, not Liquid Glass — and once the
@@ -370,8 +374,6 @@ button {
 
 .bar-glyph {
   justify-self: end;
-  padding: 0.3125rem;
-  color: var(--ink);
 }
 
 .is-destructive {
@@ -449,10 +451,12 @@ button {
 
 /* ── The grid: the app's two-column library, more columns as it widens ── */
 
+/* The app's spacing, not a web grid's: TILE_GAP 14 between columns, 18
+   between rows, 10 from cover to caption. */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(10.5rem, 45%), 1fr));
-  gap: 1.5rem 1rem;
+  gap: 1.125rem 0.875rem;
   margin: 0.25rem 0 0;
   padding: 0;
   list-style: none;
@@ -477,7 +481,7 @@ button {
   position: relative;
   display: block;
   aspect-ratio: 1;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.625rem;
   border-radius: 15%;
   isolation: isolate;
   /* Leaving a hover settles on a long, even curve; an ease-out that spends
@@ -558,6 +562,13 @@ button {
 
 .tile-name {
   font-size: 1.0625rem;
+}
+
+/* The app's opticalTextInset: captions clear the cover's rounded corner by
+   0.215 of its radius — 0.215 × 15% of the tile. */
+.tile-name,
+.tile-sub {
+  padding-inline-start: 3.2%;
 }
 
 .tile-sub {
@@ -714,7 +725,7 @@ button {
 
 .now-art {
   aspect-ratio: 1;
-  border-radius: 9%;
+  border-radius: 15%;
   box-shadow:
     0 1.5rem 3.5rem rgb(0 0 0 / 0.55),
     0 0.375rem 1rem rgb(0 0 0 / 0.35);
@@ -845,14 +856,33 @@ button {
   gap: 0.25rem;
   margin-top: 1.5rem;
   padding: 0.25rem;
-  border: 1px solid var(--glass-edge);
   border-radius: 1.375rem;
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  background: var(--lg-fill);
+  backdrop-filter: var(--lg-blur);
+  -webkit-backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-rim);
+}
+
+/* Every compartment has a divider (the app's bar went one → none → two and
+   settled there). It stands in the gap and steps aside for a pill. */
+.dock-cell + .dock-cell::before {
+  content: '';
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: calc(-0.125rem - 0.5px);
+  width: 1px;
+  background: var(--separator);
+  transition: opacity var(--dur-micro) var(--ease);
+}
+
+.dock-cell:is(:hover, [aria-expanded='true'])::before,
+.dock-cell:is(:hover, [aria-expanded='true']) + .dock-cell::before {
+  opacity: 0;
 }
 
 .dock-cell {
+  position: relative;
   display: flex;
   flex: 1;
   align-items: center;
@@ -920,12 +950,11 @@ button {
   height: 4.25rem;
   padding: 0 0.5rem 0 0.625rem;
   overflow: hidden;
-  border: 1px solid var(--glass-edge);
   border-radius: 1.375rem;
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.4);
+  background: var(--lg-fill);
+  backdrop-filter: var(--lg-blur);
+  -webkit-backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-rim);
   animation: rise 420ms var(--ease) both;
   transition:
     transform 420ms var(--ease),
@@ -949,7 +978,7 @@ button {
   flex: none;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.5rem;
+  border-radius: 15%;
 }
 
 .mini-copy {
@@ -1014,9 +1043,8 @@ button {
   padding: max(0.5rem, env(safe-area-inset-top)) max(1.5rem, var(--gutter))
     max(1.5rem, env(safe-area-inset-bottom));
   overflow-y: auto;
-  background: rgb(16 16 16 / 0.82);
-  backdrop-filter: blur(48px) saturate(1.3);
-  -webkit-backdrop-filter: blur(48px) saturate(1.3);
+  background: var(--ground);
+  isolation: isolate;
   opacity: 0;
   visibility: hidden;
   transform: translateY(100%);
@@ -1027,9 +1055,78 @@ button {
 }
 
 .now-column .now {
+  position: relative;
   width: 100%;
   max-width: 26rem;
   margin: 0 auto;
+}
+
+/* ── The player's wash: the app's PlayerBackdrop ── */
+
+.player-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.player-backdrop img {
+  position: absolute;
+  /* The app overscans 320pt so the blur reaches every edge. */
+  inset: -8rem;
+  width: calc(100% + 16rem);
+  height: calc(100% + 16rem);
+  object-fit: cover;
+  filter: blur(60px);
+  opacity: 0;
+  transition: opacity 420ms var(--ease);
+}
+
+.player-backdrop img.is-on {
+  opacity: 0.75;
+}
+
+/* The art-less sound's wash: the ink in two crossing ramps. */
+.player-backdrop .standin {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom left,
+      rgb(255 255 255 / 0.14),
+      rgb(255 255 255 / 0.03) 55%,
+      rgb(255 255 255 / 0) 100%
+    ),
+    linear-gradient(
+      118deg,
+      rgb(255 255 255 / 0.55),
+      rgb(255 255 255 / 0.34) 35%,
+      rgb(255 255 255 / 0.16) 65%,
+      rgb(255 255 255 / 0.02)
+    );
+  opacity: 0;
+  transition: opacity 420ms var(--ease);
+}
+
+.player-backdrop .standin.is-on {
+  opacity: 1;
+}
+
+/* The app's fade, stop for stop: held at 0.24 under the bar band, clear by
+   the cover's top third, then falling off hard under the console. */
+.player-backdrop .fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    rgb(13 13 13 / 0.24) 0%,
+    rgb(13 13 13 / 0.24) 12%,
+    rgb(13 13 13 / 0.03) 19.3%,
+    rgb(13 13 13 / 0.3) 39.6%,
+    rgb(13 13 13 / 0.68) 63.8%,
+    rgb(13 13 13 / 0.84) 88.1%,
+    rgb(13 13 13 / 0.855) 100%
+  );
 }
 
 .home.is-expanded .now-column {
@@ -1100,25 +1197,79 @@ button {
   justify-self: end;
 }
 
+/* iOS 26's bar button: a 44pt glass circle, the glyph in full ink. */
+.round,
+.glass-pill {
+  border: 0;
+  background: var(--lg-fill);
+  backdrop-filter: var(--lg-blur);
+  -webkit-backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-rim);
+  color: var(--ink);
+  transition:
+    background var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+
 .round {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.6875rem;
+  border-radius: 50%;
+}
+
+@media (hover: hover) {
+  .round:hover {
+    background: var(--lg-fill-hover);
+  }
+}
+
+/* Two glyphs in one capsule — the clip editor's Shape beside its ✓. */
+.glass-pill {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  height: 2.75rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+}
+
+.glass-pill button {
   display: grid;
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  padding: 0.5rem;
-  border: 1px solid var(--hairline);
+  padding: 0.4375rem;
+  border: 0;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  color: var(--ink-2);
+  background: none;
+  color: inherit;
   transition:
-    border-color var(--dur-micro) var(--ease),
-    color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease),
     transform var(--dur-micro) var(--ease);
 }
 
-.round:hover {
-  border-color: var(--ink-3);
-  color: var(--ink);
+.glass-pill button svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (hover: hover) {
+  .glass-pill button:hover {
+    background: rgb(255 255 255 / 0.1);
+  }
+}
+
+.glass-pill button:active {
+  transform: scale(0.92);
+}
+
+.glass-pill .is-commit {
+  margin-left: 0.25rem;
+  background: var(--ink);
+  color: var(--ground);
 }
 
 .round:active {
@@ -1126,8 +1277,7 @@ button {
 }
 
 .round[aria-pressed='true'] {
-  border-color: var(--ink);
-  color: var(--ink);
+  background: var(--lg-fill-hover);
 }
 
 .round svg {
@@ -1136,8 +1286,14 @@ button {
 }
 
 .round.quiet {
-  border-color: transparent;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.5rem;
   background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  color: var(--ink-2);
 }
 
 .side-empty {
@@ -1455,15 +1611,18 @@ button {
    inset, so their first lines stand level. ══ */
 
 @media (min-width: 64rem) {
-  /* SHARES BY PRIORITY, 5 : 4 : 3.75 (Juan, 2026-11-04; the sheet widened
-     from 3 the same day, for the clip editor's room): the library first,
-     the playing sound second, a sheet third. Equal halves gave the sound as
-     much room as the library; equal thirds read well but starved nothing
-     of priority. One progression for both states — the library keeps its
-     5 : 4 against the sound when a sheet opens, so the morph only moves
-     the boundary the sheet pushes. The site's player takes the same shares. */
+  /* The library takes what is left; the player column is as wide as its
+     console (below); a sheet takes 3.75 to the library's 5 (Juan,
+     2026-11-04 — shares by priority, the sheet widened from 3 for the clip
+     editor's room, and the player's 4 share dropped the same day because a
+     share wider than the cover only added air beside it). */
   .home {
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
+    /* The player column HUGS its console: the cover as large as the window's
+       height allows with the dock still in, and the app's 16pt either side.
+       A share of the width left a short window's cover floating in air. */
+    --cover: clamp(14rem, calc(100svh - 24.5rem), 30rem);
+    --now-w: calc(var(--cover) + 2rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 0 0;
     height: 100svh;
@@ -1471,11 +1630,11 @@ button {
   }
 
   .home.has-current {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) 0;
+    grid-template-columns: minmax(0, 1fr) var(--now-w) 0;
   }
 
   .home.has-current.side-open {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3.75fr);
+    grid-template-columns: minmax(0, 5fr) var(--now-w) minmax(0, 3.75fr);
   }
 
   /* New Sound with nothing playing yet: the library and the sheet alone,
@@ -1498,7 +1657,6 @@ button {
 
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-    gap: 2rem 1.5rem;
   }
 
   .now-column {
@@ -1507,9 +1665,9 @@ button {
     z-index: 1;
     grid-column: 2;
     display: block;
-    padding: var(--bar-h) var(--pad) var(--pad);
+    padding: var(--bar-h) 1rem 1.5rem;
     border-left: 1px solid var(--hairline);
-    background: rgb(13 13 13 / 0.45);
+    background: var(--ground);
     opacity: 1;
     visibility: visible;
     transform: none;
@@ -1525,8 +1683,10 @@ button {
   /* A half of a wide window is more than a cover wants: the console keeps
      its own measure and stands in the middle of its share. */
   .now-column .now {
-    /* …and on a short window the cover gives way, so the dock stays in. */
-    max-width: clamp(14rem, calc(100svh - 25rem), 26rem);
+    /* The app's one content box runs to SCREEN_PADDING; here it runs to
+       the column's 1rem, and a short window still shrinks the cover so the
+       dock stays in. */
+    max-width: var(--cover);
     margin: 0.25rem auto 0;
   }
 
@@ -1670,7 +1830,6 @@ button {
 }
 
 .round.is-commit {
-  border-color: var(--ink);
   background: var(--ink);
   color: var(--ground);
 }

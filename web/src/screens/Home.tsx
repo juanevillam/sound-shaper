@@ -7,7 +7,7 @@ import { t } from '../i18n';
 import { useLibrary, type Sound } from '../library';
 import { playSound, resetPlayer, syncLibrary, usePlayer } from '../player';
 import { Artwork } from '../ui/Artwork';
-import { Backdrop } from '../ui/Backdrop';
+import { Backdrop, PlayerBackdrop } from '../ui/Backdrop';
 import { ClipsForm } from '../ui/ClipsForm';
 import type { Clip } from '../clips';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
@@ -19,6 +19,7 @@ import {
   CloseGlyph,
   GearGlyph,
   PlusGlyph,
+  ShapeGlyph,
 } from '../ui/glyphs';
 import { SettingsForm } from '../ui/SettingsForm';
 import { MiniPlayer } from '../ui/MiniPlayer';
@@ -176,34 +177,27 @@ const SkeletonGrid = () => (
 
 /**
  * iOS's large title: the name stands large at the top of the list, and once
- * it has scrolled under the bar the bar takes it, small and centred, over a
- * soft blur that only appears once something is behind it.
+ * it has scrolled under the bar the bar takes it, small and centred, over its
+ * scroll edge. ONE trigger for both: a band with no title in it, for the
+ * stretch between the first scroll and the title going under, read as a
+ * half-collapsed bar (Juan, 2026-11-04).
  */
 const useLargeTitle = () => {
-  const top = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
-  const [edge, setEdge] = useState(false);
   const [titled, setTitled] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          const away = !entry.isIntersecting;
-          if (entry.target === top.current) setEdge(away);
-          if (entry.target === title.current) setTitled(away);
-        }
-      },
-      // The bar's own height: "under the bar" is where these go away.
+      ([entry]) => setTitled(!entry.isIntersecting),
+      // The bar's own height: "under the bar" is where the title goes away.
       { rootMargin: '-56px 0px 0px 0px' },
     );
 
-    if (top.current) observer.observe(top.current);
     if (title.current) observer.observe(title.current);
     return () => observer.disconnect();
   }, []);
 
-  return { top, title, edge, titled };
+  return { title, titled };
 };
 
 /**
@@ -228,7 +222,9 @@ export function Home({ user }: { user: User }) {
   // while it slides away, so a form keyed on its sound alone would come back
   // holding the last opening's typing — or a save's busy state.
   const [opening, setOpening] = useState(0);
-  const { top, title, edge, titled } = useLargeTitle();
+  const { title, titled } = useLargeTitle();
+  // Shape, stacked over the clip editor — the app's merged Shape + ✓ pill.
+  const [shapeOver, setShapeOver] = useState(false);
   // The sheet keeps showing what it held while it slides away.
   type Sheet = HomePanel | 'new';
   const sheet: Sheet | null = composing ? 'new' : panel;
@@ -243,6 +239,11 @@ export function Home({ user }: { user: User }) {
     if (library.state === 'ready') syncLibrary(library.sounds);
   }, [library]);
 
+  // Shape is stacked over a clip being edited, and goes with it.
+  useEffect(() => {
+    if (!editing) setShapeOver(false);
+  }, [editing]);
+
   // A sign-out from another tab ends here too: nothing keeps playing.
   useEffect(() => resetPlayer, []);
 
@@ -251,6 +252,7 @@ export function Home({ user }: { user: User }) {
       setPanel(next);
       if (next) setOpening(n => n + 1);
       setEditing(null);
+      setShapeOver(false);
       setComposing(null);
     });
 
@@ -294,7 +296,8 @@ export function Home({ user }: { user: User }) {
         document.querySelector('dialog[open], .progress-overlay')
       )
         return;
-      if (editing) setEditing(null);
+      if (shapeOver) setShapeOver(false);
+      else if (editing) setEditing(null);
       else if (sheet) openPanel(null);
       else setExpanded(false);
     };
@@ -317,11 +320,7 @@ export function Home({ user }: { user: User }) {
       <Backdrop artUrl={current?.artUrl ?? ''} />
 
       <main className="library">
-        <header
-          className={['bar', edge && 'is-edge', titled && 'is-titled']
-            .filter(Boolean)
-            .join(' ')}
-        >
+        <header className={titled ? 'bar is-edge is-titled' : 'bar'}>
           <span />
           <span className="bar-title" aria-hidden={!titled}>
             Sound Shaper
@@ -337,7 +336,6 @@ export function Home({ user }: { user: User }) {
           </button>
         </header>
 
-        <div ref={top} className="scroll-top" aria-hidden="true" />
         <h1 ref={title} className="large-title">
           Sound Shaper
         </h1>
@@ -362,6 +360,7 @@ export function Home({ user }: { user: User }) {
       </main>
 
       <div className="now-column">
+        <PlayerBackdrop artUrl={current?.artUrl ?? ''} />
         <NowPlaying
           onCollapse={() => setExpanded(false)}
           onOpen={next => openPanel(panel === next ? null : next)}
@@ -382,13 +381,15 @@ export function Home({ user }: { user: User }) {
                   ? t('app.soundEdit')
                   : shown === 'edit'
                     ? t('app.soundEditExisting')
-                    : editing
-                      ? editing.clip
-                        ? t('player.clips.edit')
-                        : t('player.clips.new')
-                      : shown === 'clips'
-                        ? t('player.clips.title')
-                        : t('player.shape.title')
+                    : editing && shapeOver
+                      ? t('player.shape.title')
+                      : editing
+                        ? editing.clip
+                          ? t('player.clips.edit')
+                          : t('player.clips.new')
+                        : shown === 'clips'
+                          ? t('player.clips.title')
+                          : t('player.shape.title')
         }
         action={
           shown === 'account' || shown === 'trophies' ? (
@@ -411,6 +412,15 @@ export function Home({ user }: { user: User }) {
               <CloseGlyph />
               <span className="sr">{t('common.cancel')}</span>
             </button>
+          ) : editing && shapeOver ? (
+            <button
+              type="button"
+              className="round"
+              onClick={() => setShapeOver(false)}
+            >
+              <ChevronLeftGlyph />
+              <span className="sr">{t('common.back')}</span>
+            </button>
           ) : editing ? (
             <button
               type="button"
@@ -420,18 +430,7 @@ export function Home({ user }: { user: User }) {
               <CloseGlyph />
               <span className="sr">{t('common.cancel')}</span>
             </button>
-          ) : (
-            shown === 'clips' && (
-              <button
-                type="button"
-                className="round"
-                onClick={() => setEditing({ clip: null })}
-              >
-                <PlusGlyph />
-                <span className="sr">{t('player.clips.new')}</span>
-              </button>
-            )
-          )
+          ) : null
         }
         trailing={
           shown === 'new' || shown === 'edit' ? (
@@ -440,16 +439,28 @@ export function Home({ user }: { user: User }) {
                 shown === 'new' ? 'soundEdit.save' : 'soundEdit.saveExisting',
               )}
             />
+          ) : editing && shapeOver ? (
+            // Back is the way out of a stacked sheet; a close beside it
+            // would end the clip too.
+            <span />
           ) : (
             editing && (
-              <button
-                type="button"
-                className="round is-commit"
-                onClick={commitClipEditor}
-              >
-                <CheckGlyph />
-                <span className="sr">{t('player.clips.saveClip')}</span>
-              </button>
+              // The app's merged pill: Shape stacks over the editor, the ✓
+              // commits the clip.
+              <span className="glass-pill">
+                <button type="button" onClick={() => setShapeOver(true)}>
+                  <ShapeGlyph />
+                  <span className="sr">{t('player.shape.title')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="is-commit"
+                  onClick={commitClipEditor}
+                >
+                  <CheckGlyph />
+                  <span className="sr">{t('player.clips.saveClip')}</span>
+                </button>
+              </span>
             )
           )
         }
@@ -485,12 +496,18 @@ export function Home({ user }: { user: User }) {
             onDone={() => openPanel(null)}
           />
         ) : editing && current ? (
-          <ClipEditor
-            key={editing.clip?.id ?? 'new'}
-            sound={current}
-            clip={editing.clip}
-            onDone={() => setEditing(null)}
-          />
+          <>
+            {/* Kept mounted under Shape, so the range survives the trip. */}
+            <div className="stacked" hidden={shapeOver}>
+              <ClipEditor
+                key={editing.clip?.id ?? 'new'}
+                sound={current}
+                clip={editing.clip}
+                onDone={() => setEditing(null)}
+              />
+            </div>
+            {shapeOver && <ShapeForm />}
+          </>
         ) : shown === 'clips' ? (
           <ClipsForm
             onEdit={clip => setEditing({ clip })}
