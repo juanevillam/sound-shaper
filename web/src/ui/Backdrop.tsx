@@ -3,28 +3,56 @@ import { useEffect, useState } from 'react';
 import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
 
 /**
+ * Two layers and a front: a new picture is LOADED before it takes the front,
+ * so the old wash holds until there is something to fade to. Flipping on the
+ * prop alone faded the old cover out over an image still on the network —
+ * the column dropped to bare ground for a beat on every change of sound.
+ */
+function useCrossfade(src: string): {
+  layers: [string, string];
+  front: number;
+} {
+  const [state, setState] = useState<{
+    layers: [string, string];
+    front: number;
+  }>({ layers: ['', ''], front: 0 });
+
+  useEffect(() => {
+    let live = true;
+    const show = () =>
+      live &&
+      setState(({ layers, front }) => {
+        if (layers[front] === src) return { layers, front };
+        const back = 1 - front;
+        const next: [string, string] = [...layers];
+        next[back] = src;
+        return { layers: next, front: back };
+      });
+
+    if (!src) {
+      show();
+      return () => {
+        live = false;
+      };
+    }
+    const img = new Image();
+    img.src = src;
+    img.decode().then(show, show);
+    return () => {
+      live = false;
+    };
+  }, [src]);
+
+  return state;
+}
+
+/**
  * The app's PlayerBackdrop, on the web: the playing sound's cover, blurred
  * and dimmed, behind everything. Two layers, so a new cover fades in over the
  * last rather than snapping.
  */
 export function Backdrop({ artUrl }: { artUrl: string }) {
-  const [layers, setLayers] = useState<[string, string]>(['', '']);
-  const [front, setFront] = useState(0);
-
-  useEffect(() => {
-    const src = artUrl ? thumbUrl(artUrl, 160) : '';
-
-    if (src === layers[front]) return;
-    const back = 1 - front;
-
-    setLayers(current => {
-      const copy: [string, string] = [...current];
-      copy[back] = src;
-      return copy;
-    });
-    setFront(back);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [artUrl]);
+  const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 160) : '');
 
   return (
     <div className="backdrop" aria-hidden="true">
@@ -51,27 +79,11 @@ export function Backdrop({ artUrl }: { artUrl: string }) {
  * the ink, in two crossing ramps.
  */
 export function PlayerBackdrop({ artUrl }: { artUrl: string }) {
-  const [layers, setLayers] = useState<[string, string]>(['', '']);
-  const [front, setFront] = useState(0);
-
-  useEffect(() => {
-    const src = artUrl ? thumbUrl(artUrl, 320) : '';
-
-    if (src === layers[front]) return;
-    const back = 1 - front;
-
-    setLayers(current => {
-      const copy: [string, string] = [...current];
-      copy[back] = src;
-      return copy;
-    });
-    setFront(back);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [artUrl]);
+  const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 320) : '');
 
   return (
     <div className="player-backdrop" aria-hidden="true">
-      <div className={artUrl ? 'standin' : 'standin is-on'} />
+      <div className={layers[front] ? 'standin' : 'standin is-on'} />
       {layers.map((src, i) =>
         src ? (
           <img

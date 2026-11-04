@@ -63,6 +63,8 @@ export function NowPlaying({
           artUrl={current.artUrl}
           name={current.name}
           width={520}
+          // The grid's size, almost always in the cache already.
+          quickWidth={220}
           eager
         />
       </div>
