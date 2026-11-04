@@ -6,9 +6,11 @@ import { t } from '../i18n';
 import { next, previous, seek, toggle, usePlayer } from '../player';
 
 import { Artwork } from './Artwork';
+import { useClipsSummary } from './ClipsForm';
 import { useShapeSummary } from './ShapePanel';
 import {
   ChevronDownGlyph,
+  ClipGlyph,
   NextGlyph,
   PlayPauseGlyph,
   PreviousGlyph,
@@ -22,20 +24,23 @@ import {
  * desk it is the column beside the library; on a phone it rises over it from
  * the mini player.
  */
+export type Panel = 'shape' | 'clips';
+
 export function NowPlaying({
   onCollapse,
-  onOpenShape,
-  shapeOpen,
+  onOpen,
+  panel,
 }: {
   onCollapse: () => void;
-  onOpenShape: () => void;
-  shapeOpen: boolean;
+  onOpen: (panel: Panel) => void;
+  panel: Panel | null;
 }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
   const position = usePlayer(s => s.position);
   const duration = usePlayer(s => s.duration);
   const summary = useShapeSummary();
+  const clipsSummary = useClipsSummary();
   // While the thumb is held, the scrubber shows where it is, not the sound.
   const [dragging, setDragging] = useState<number | null>(null);
 
@@ -52,7 +57,7 @@ export function NowPlaying({
         <span className="sr">{t('common.close')}</span>
       </button>
 
-      <div className={playing ? 'now-art is-playing' : 'now-art'}>
+      <div className="now-art">
         <Artwork
           artUrl={current.artUrl}
           name={current.name}
@@ -116,8 +121,8 @@ export function NowPlaying({
         <button
           type="button"
           className="dock-cell"
-          aria-expanded={shapeOpen}
-          onClick={onOpenShape}
+          aria-expanded={panel === 'shape'}
+          onClick={() => onOpen('shape')}
         >
           <span className="dock-icon">
             <ShapeGlyph />
@@ -125,6 +130,20 @@ export function NowPlaying({
           <span className="dock-copy">
             <span className="dock-label">{t('player.shape.title')}</span>
             <span className="dock-summary">{summary}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          className="dock-cell"
+          aria-expanded={panel === 'clips'}
+          onClick={() => onOpen('clips')}
+        >
+          <span className="dock-icon">
+            <ClipGlyph />
+          </span>
+          <span className="dock-copy">
+            <span className="dock-label">{t('player.clips.title')}</span>
+            <span className="dock-summary">{clipsSummary}</span>
           </span>
         </button>
       </div>

@@ -117,7 +117,11 @@ Still to do:
    the sound and forgets the shape (`resetPlayer`).
 4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room. Built
    2026-11-04, beside step 3.
-5. Clips, then uploads and Edit Sound (tags, artwork).
+5. Clips, then uploads and Edit Sound (tags, artwork). Clips built
+   2026-11-04: list, play to the end and park, Repeat (all four modes, via the
+   app's `clipQueue`), delete, and a two-handle New Clip with Preview. The
+   app's zoomed waveform editor is still to come. Auto DJ follows once the
+   app's version lands.
 6. Trophies, Settings, Manage Account, delete account.
 7. PWA: manifest, icons from the brand art, service worker, install.
 8. Deploy, then the website's "Powered by Sound Shaper" mini player moves onto

@@ -94,11 +94,52 @@ export const ChevronDownGlyph = () => (
   </svg>
 );
 
-/** The playing tile's badge: three bars that dance while the sound plays. */
-export const Bars = ({ live }: { live: boolean }) => (
-  <span className={live ? 'bars is-live' : 'bars'} aria-hidden="true">
+/**
+ * The playing tile's mark — the app's `NowPlayingBars`: three white
+ * hairlines breathing inside a round scrim, slow and shallow, keeping time
+ * with the playback speed. Paused, they settle level.
+ */
+export const Bars = ({ live, rate = 1 }: { live: boolean; rate?: number }) => (
+  <span
+    className={live ? 'bars is-live' : 'bars'}
+    style={
+      { '--tempo': Math.min(Math.max(rate, 0.25), 4) } as React.CSSProperties
+    }
+    aria-hidden="true"
+  >
     <i />
     <i />
     <i />
   </span>
+);
+
+const strokeProps = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const;
+
+export const PlusGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" {...strokeProps} strokeWidth={2} />
+  </svg>
+);
+
+export const TrashGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M4.5 6.5h15M9.5 6.5V4.8c0-.7.5-1.3 1.2-1.3h2.6c.7 0 1.2.6 1.2 1.3v1.7M6.5 6.5l.8 12.2c.1 1 .9 1.8 1.9 1.8h5.6c1 0 1.8-.8 1.9-1.8l.8-12.2"
+      {...strokeProps}
+    />
+  </svg>
+);
+
+export const ClipGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="6" cy="6" r="3" {...strokeProps} />
+    <circle cx="6" cy="18" r="3" {...strokeProps} />
+    <path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" {...strokeProps} />
+  </svg>
 );

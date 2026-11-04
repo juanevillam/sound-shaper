@@ -1,9 +1,16 @@
 import { useSyncExternalStore } from 'react';
 
 import { audioEngine } from '@app/lib/audioEngine';
+import {
+  isRepeatMode,
+  nextClip,
+  type ClipRange,
+  type RepeatMode,
+} from '@app/lib/clipQueue';
 import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
 import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
+import { forgetClips, getClipsOfSounds, knownClips } from './clips';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
 
@@ -27,6 +34,20 @@ export type PlayerState = {
   gains: number[];
   echo: EffectLevel;
   nextRoom: EffectLevel;
+  /** The clip that is sounding, or parked on: its end stops or repeats. */
+  activeClip: (ClipRange & { soundId: string }) | null;
+  repeat: RepeatMode;
+};
+
+const REPEAT_KEY = 'soundshaper.clipRepeat';
+
+const storedRepeat = (): RepeatMode => {
+  try {
+    const value = localStorage.getItem(REPEAT_KEY);
+    return isRepeatMode(value) ? value : 'off';
+  } catch {
+    return 'off';
+  }
 };
 
 const FLAT = EQ_PRESETS[0].gains;
@@ -43,9 +64,11 @@ const initial: PlayerState = {
   gains: [...FLAT],
   echo: 'off',
   nextRoom: 'off',
+  activeClip: null,
+  repeat: 'off',
 };
 
-let state = initial;
+let state: PlayerState = { ...initial, repeat: storedRepeat() };
 const listeners = new Set<() => void>();
 let element: AudioTagHandle | null = null;
 let frame = 0;
@@ -69,6 +92,14 @@ const follow = () => {
   cancelAnimationFrame(frame);
   const tick = () => {
     if (element) set({ position: element.currentTime });
+    const clip = state.activeClip;
+    if (
+      clip &&
+      element &&
+      !clipEnding &&
+      element.currentTime * 1000 >= clip.endMs
+    )
+      void clipEnded(clip);
     if (state.playing) frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
@@ -152,6 +183,7 @@ const start = async () => {
 
 export const playSound = async (sound: Sound): Promise<void> => {
   if (state.loaded && state.current?.id === sound.id) return toggle();
+  set({ activeClip: null });
   load(sound);
   await start();
 };
@@ -160,7 +192,13 @@ export const toggle = async (): Promise<void> => {
   if (!state.current) return;
   if (!state.loaded) return playSound(state.current);
   if (state.playing) element?.pause();
-  else await start();
+  else {
+    // A clip parked on its start plays again from there, as the app's does.
+    const clip = state.activeClip;
+    if (clip && element && element.currentTime * 1000 >= clip.endMs - 50)
+      element.currentTime = clip.startMs / 1000;
+    await start();
+  }
 };
 
 const step = (by: 1 | -1) => {
@@ -171,6 +209,7 @@ const step = (by: 1 | -1) => {
   const index = queue.findIndex(s => s.id === current?.id);
   const next = queue[(index + by + queue.length) % queue.length];
 
+  set({ activeClip: null });
   load(next);
   void start();
 };
@@ -185,6 +224,8 @@ export const previous = () => {
 
 export const seek = (seconds: number) => {
   if (!element) return;
+  // A scrub is a manual move, and a manual move ends a clip run.
+  set({ activeClip: null });
   element.currentTime = seconds;
   set({ position: seconds });
 };
@@ -230,6 +271,71 @@ export const setNextRoom = (level: EffectLevel) => {
   set({ nextRoom: level });
 };
 
+// ── Clips ───────────────────────────────────────────────────────────────
+
+let clipEnding = false;
+
+/** Play a clip: from its start, to its end, then whatever Repeat says. */
+export const playClip = async (soundId: string, clip: ClipRange) => {
+  const sound = state.queue.find(s => s.id === soundId);
+
+  if (!sound) return;
+  if (!state.loaded || state.current?.id !== soundId) load(sound);
+  if (element) element.currentTime = clip.startMs / 1000;
+  set({
+    activeClip: {
+      soundId,
+      id: clip.id,
+      startMs: clip.startMs,
+      endMs: clip.endMs,
+    },
+    position: clip.startMs / 1000,
+  });
+  await start();
+};
+
+const clipEnded = async (clip: ClipRange & { soundId: string }) => {
+  clipEnding = true;
+  try {
+    const libraryOrder = state.queue.map(s => s.id);
+    const clipsBySound =
+      state.repeat === 'all'
+        ? await getClipsOfSounds(libraryOrder)
+        : knownClips();
+    const upcoming = nextClip({
+      clipsBySound,
+      current: clip,
+      libraryOrder,
+      mode: state.repeat,
+      soundId: clip.soundId,
+    });
+
+    // The run may have been ended by hand while the lists were read.
+    if (state.activeClip?.id !== clip.id) return;
+
+    if (!upcoming) {
+      // Off: the clip played once and parks on its start, ready to replay.
+      element?.pause();
+      if (element) element.currentTime = clip.startMs / 1000;
+      set({ position: clip.startMs / 1000 });
+      return;
+    }
+
+    await playClip(upcoming.soundId, upcoming.clip);
+  } finally {
+    clipEnding = false;
+  }
+};
+
+export const setRepeat = (repeat: RepeatMode) => {
+  try {
+    localStorage.setItem(REPEAT_KEY, repeat);
+  } catch {
+    // Private mode: the choice lasts for this visit.
+  }
+  set({ repeat });
+};
+
 /**
  * Everything the player holds belongs to the person signed in, so signing
  * out stops the sound and forgets the shape — the app's sign-out resets.
@@ -237,5 +343,11 @@ export const setNextRoom = (level: EffectLevel) => {
 export const resetPlayer = () => {
   release();
   audioEngine.apply(FLAT, 'off', 'off');
+  forgetClips();
+  try {
+    localStorage.removeItem(REPEAT_KEY);
+  } catch {
+    // Nothing stored.
+  }
   set(initial);
 };

@@ -20,8 +20,6 @@ import {
   usePlayer,
 } from '../player';
 
-import { CloseGlyph } from './glyphs';
-
 /**
  * The Shape card's summary — the app's `useShapeSummary`: it states what is
  * not default and nothing else, in the sheet's own order, or "None".
@@ -81,13 +79,8 @@ const LevelPicker = ({
  * is heard as it moves. On a desk it is the column at the right; on a phone,
  * a sheet over the player.
  */
-export function ShapePanel({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+/** The Shape sheet's form — what `SidePanel` holds while Shape is open. */
+export function ShapeForm() {
   const gains = usePlayer(s => s.gains);
   const rate = usePlayer(s => s.rate);
   const keepPitch = usePlayer(s => s.keepPitch);
@@ -96,134 +89,118 @@ export function ShapePanel({
   const preset = presetOf(gains);
 
   return (
-    <aside
-      className={open ? 'shape is-open' : 'shape'}
-      aria-labelledby="shape-title"
-      aria-hidden={!open}
-      inert={!open}
-    >
-      <header className="shape-bar">
-        <h2 id="shape-title">{t('player.shape.title')}</h2>
-        <button type="button" className="close" onClick={onClose}>
-          <CloseGlyph />
-          <span className="sr">{t('common.close')}</span>
-        </button>
-      </header>
-
-      <div className="form">
-        <div className="card">
-          <label className="cell picker">
-            <span className="cell-name">{t('player.shape.presets')}</span>
-            <select value={preset} onChange={e => setPreset(e.target.value)}>
-              {EQ_PRESETS.map(p => (
-                <option key={p.i18nKey} value={p.i18nKey}>
-                  {t(`player.eq.presets.${p.i18nKey}`)}
-                </option>
-              ))}
-              <option value="custom" hidden disabled>
-                {t('player.shape.custom')}
+    <>
+      <div className="card">
+        <label className="cell picker">
+          <span className="cell-name">{t('player.shape.presets')}</span>
+          <select value={preset} onChange={e => setPreset(e.target.value)}>
+            {EQ_PRESETS.map(p => (
+              <option key={p.i18nKey} value={p.i18nKey}>
+                {t(`player.eq.presets.${p.i18nKey}`)}
               </option>
-            </select>
-          </label>
-        </div>
-
-        <section>
-          <h3 className="section-head">{t('player.eq.title')}</h3>
-          <div className="card">
-            {EQ_BANDS.map((band, i) => (
-              <label key={band.hz} className="cell band">
-                <span className="band-hz">{band.label}</span>
-                <input
-                  type="range"
-                  className="slider"
-                  min={EQ_MIN_DB}
-                  max={EQ_MAX_DB}
-                  step={1}
-                  value={gains[i]}
-                  aria-label={`${band.hz} Hz`}
-                  aria-valuetext={`${gains[i]} dB`}
-                  style={
-                    {
-                      '--fill':
-                        (gains[i] - EQ_MIN_DB) / (EQ_MAX_DB - EQ_MIN_DB),
-                    } as React.CSSProperties
-                  }
-                  onChange={e => setBand(i, Number(e.target.value))}
-                />
-                <span className="band-db">
-                  {gains[i] > 0 ? `+${gains[i]}` : gains[i]}
-                </span>
-              </label>
             ))}
-          </div>
-          <p className="section-foot">{t('player.eq.hint')}</p>
-        </section>
+            <option value="custom" hidden disabled>
+              {t('player.shape.custom')}
+            </option>
+          </select>
+        </label>
+      </div>
 
-        <section>
-          <h3 className="section-head split">
-            <span>{t('player.speed')}</span>
-            <span className="head-value">{rateLabel(rate, locale)}</span>
-          </h3>
-          <div className="card">
-            <div className="cell">
+      <section>
+        <h3 className="section-head">{t('player.eq.title')}</h3>
+        <div className="card">
+          {EQ_BANDS.map((band, i) => (
+            <label key={band.hz} className="cell band">
+              <span className="band-hz">{band.label}</span>
               <input
                 type="range"
                 className="slider"
-                min={RATE_MIN}
-                max={RATE_MAX}
-                step={RATE_STEP}
-                value={rate}
-                aria-label={t('player.speed')}
-                aria-valuetext={rateLabel(rate, locale)}
+                min={EQ_MIN_DB}
+                max={EQ_MAX_DB}
+                step={1}
+                value={gains[i]}
+                aria-label={`${band.hz} Hz`}
+                aria-valuetext={`${gains[i]} dB`}
                 style={
                   {
-                    '--fill': (rate - RATE_MIN) / (RATE_MAX - RATE_MIN),
+                    '--fill': (gains[i] - EQ_MIN_DB) / (EQ_MAX_DB - EQ_MIN_DB),
                   } as React.CSSProperties
                 }
-                onChange={e => setRate(Number(e.target.value))}
+                onChange={e => setBand(i, Number(e.target.value))}
               />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <div className="card">
-            <label className="cell">
-              <span className="cell-name">{t('player.keepPitch')}</span>
-              <input
-                type="checkbox"
-                role="switch"
-                className="switch"
-                checked={keepPitch}
-                onChange={e => setKeepPitch(e.target.checked)}
-              />
+              <span className="band-db">
+                {gains[i] > 0 ? `+${gains[i]}` : gains[i]}
+              </span>
             </label>
-          </div>
-          <p className="section-foot">{t('player.keepPitchDescription')}</p>
-        </section>
+          ))}
+        </div>
+        <p className="section-foot">{t('player.eq.hint')}</p>
+      </section>
 
-        <section>
-          <div className="card">
-            <LevelPicker
-              label={t('player.echo')}
-              value={echo}
-              onChange={setEcho}
+      <section>
+        <h3 className="section-head split">
+          <span>{t('player.speed')}</span>
+          <span className="head-value">{rateLabel(rate, locale)}</span>
+        </h3>
+        <div className="card">
+          <div className="cell">
+            <input
+              type="range"
+              className="slider"
+              min={RATE_MIN}
+              max={RATE_MAX}
+              step={RATE_STEP}
+              value={rate}
+              aria-label={t('player.speed')}
+              aria-valuetext={rateLabel(rate, locale)}
+              style={
+                {
+                  '--fill': (rate - RATE_MIN) / (RATE_MAX - RATE_MIN),
+                } as React.CSSProperties
+              }
+              onChange={e => setRate(Number(e.target.value))}
             />
           </div>
-          <p className="section-foot">{t('player.echoDescription')}</p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <div className="card">
-            <LevelPicker
-              label={t('player.nextRoom')}
-              value={nextRoom}
-              onChange={setNextRoom}
+      <section>
+        <div className="card">
+          <label className="cell">
+            <span className="cell-name">{t('player.keepPitch')}</span>
+            <input
+              type="checkbox"
+              role="switch"
+              className="switch"
+              checked={keepPitch}
+              onChange={e => setKeepPitch(e.target.checked)}
             />
-          </div>
-          <p className="section-foot">{t('player.nextRoomDescription')}</p>
-        </section>
-      </div>
-    </aside>
+          </label>
+        </div>
+        <p className="section-foot">{t('player.keepPitchDescription')}</p>
+      </section>
+
+      <section>
+        <div className="card">
+          <LevelPicker
+            label={t('player.echo')}
+            value={echo}
+            onChange={setEcho}
+          />
+        </div>
+        <p className="section-foot">{t('player.echoDescription')}</p>
+      </section>
+
+      <section>
+        <div className="card">
+          <LevelPicker
+            label={t('player.nextRoom')}
+            value={nextRoom}
+            onChange={setNextRoom}
+          />
+        </div>
+        <p className="section-foot">{t('player.nextRoomDescription')}</p>
+      </section>
+    </>
   );
 }
