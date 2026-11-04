@@ -19,6 +19,17 @@ import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying, type Panel } from '../ui/NowPlaying';
 import { ShapeForm } from '../ui/ShapePanel';
 import { SidePanel } from '../ui/SidePanel';
+import { leadPosition } from '../sounds';
+import {
+  commitSoundForm,
+  isMp3,
+  readPicked,
+  SoundForm,
+  Toast,
+  useSoundFormBar,
+  type PickedSound,
+} from '../ui/SoundForm';
+import { showToast } from '../ui/Toast';
 
 /** The grid draws a tile at most this wide; Cloudinary serves 2x of it. */
 const TILE_WIDTH = 220;
@@ -74,6 +85,62 @@ const SoundTile = ({ sound, index }: { sound: Sound; index: number }) => {
         {sound.artist && <span className="tile-sub">{sound.artist}</span>}
       </button>
     </li>
+  );
+};
+
+/**
+ * The app's add tile: the empty-media box with a plus, "Add Sound" under it
+ * and the one rule the picker enforces. First in the grid, so a new sound —
+ * which lands at the front — appears right beside it.
+ */
+const AddTile = ({ onPick }: { onPick: (file: File) => void }) => {
+  const input = useRef<HTMLInputElement>(null);
+
+  return (
+    <li style={{ viewTransitionName: 'tile-add' } as React.CSSProperties}>
+      <button
+        type="button"
+        className="tile is-add"
+        onClick={() => input.current?.click()}
+      >
+        <span className="tile-art">
+          <span className="artwork is-empty" aria-hidden="true">
+            <PlusGlyph />
+          </span>
+        </span>
+        <span className="tile-name">{t('home.addSound')}</span>
+        <span className="tile-sub">{t('home.addSoundFormat')}</span>
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept=".mp3,audio/mpeg"
+        hidden
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) onPick(file);
+          e.target.value = '';
+        }}
+      />
+    </li>
+  );
+};
+
+/** The editor's ✓: busy while a save uploads, dimmed while it can't save. */
+const SoundCommit = ({ label }: { label: string }) => {
+  const { valid, busy } = useSoundFormBar();
+
+  return (
+    <button
+      type="button"
+      className={busy ? 'round is-commit is-busy' : 'round is-commit'}
+      disabled={!valid || busy}
+      aria-busy={busy || undefined}
+      onClick={commitSoundForm}
+    >
+      {busy ? <span className="spinner" aria-hidden="true" /> : <CheckGlyph />}
+      <span className="sr">{label}</span>
+    </button>
   );
 };
 
@@ -208,11 +275,18 @@ export function Home({ user }: { user: User }) {
   const [panel, setPanel] = useState<Panel | null>(null);
   // The clip editor, over the Clips sheet: `clip` null is a new clip.
   const [editing, setEditing] = useState<{ clip: Clip | null } | null>(null);
+  // A picked mp3 waiting in the New Sound sheet.
+  const [composing, setComposing] = useState<PickedSound | null>(null);
   const { top, title, edge, titled } = useLargeTitle();
   // The sheet keeps showing what it held while it slides away.
-  const last = useRef<Panel>('shape');
-  if (panel) last.current = panel;
-  const shown = panel ?? last.current;
+  type Sheet = Panel | 'new';
+  const sheet: Sheet | null = composing ? 'new' : panel;
+  const last = useRef<Sheet>('shape');
+  if (sheet) last.current = sheet;
+  const shown = sheet ?? last.current;
+  // The draft the New Sound sheet holds — kept while it slides away.
+  const lastComposing = useRef<PickedSound | null>(null);
+  if (composing) lastComposing.current = composing;
 
   useEffect(() => {
     if (library.state === 'ready') syncLibrary(library.sounds);
@@ -225,13 +299,46 @@ export function Home({ user }: { user: User }) {
     morph(() => {
       setPanel(next);
       setEditing(null);
+      setComposing(null);
     });
+
+  const pick = (file: File) => {
+    if (!isMp3(file)) {
+      showToast(t('home.addSoundFormat'));
+      return;
+    }
+    void readPicked(file).then(picked =>
+      morph(() => {
+        setEditing(null);
+        setComposing(picked);
+      }),
+    );
+  };
+
+  // On a desk an mp3 can simply be dropped on the window.
+  useEffect(() => {
+    const over = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      const file = e.dataTransfer?.files[0];
+      if (!file) return;
+      e.preventDefault();
+      pick(file);
+    };
+    document.addEventListener('dragover', over);
+    document.addEventListener('drop', drop);
+    return () => {
+      document.removeEventListener('dragover', over);
+      document.removeEventListener('drop', drop);
+    };
+  });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
       if (editing) setEditing(null);
-      else if (panel) openPanel(null);
+      else if (sheet) openPanel(null);
       else setExpanded(false);
     };
     document.addEventListener('keydown', onKey);
@@ -242,7 +349,7 @@ export function Home({ user }: { user: User }) {
     'home',
     current ? 'has-current' : '',
     expanded ? 'is-expanded' : '',
-    panel ? 'side-open' : '',
+    sheet ? 'side-open' : '',
     editing ? 'is-editing' : '',
   ]
     .filter(Boolean)
@@ -280,17 +387,11 @@ export function Home({ user }: { user: User }) {
           </section>
         )}
 
-        {library.state === 'ready' && library.sounds.length === 0 && (
-          <section className="empty">
-            <h2>{t('player.empty')}</h2>
-            <p>{t('player.emptyHint')}</p>
-          </section>
-        )}
-
-        {library.state === 'ready' && library.sounds.length > 0 && (
+        {library.state === 'ready' && (
           <ul className="grid">
+            <AddTile onPick={pick} />
             {library.sounds.map((sound, i) => (
-              <SoundTile key={sound.id} sound={sound} index={i} />
+              <SoundTile key={sound.id} sound={sound} index={i + 1} />
             ))}
           </ul>
         )}
@@ -305,18 +406,31 @@ export function Home({ user }: { user: User }) {
       </div>
 
       <SidePanel
-        open={panel !== null}
+        open={sheet !== null}
         title={
-          editing
-            ? editing.clip
-              ? t('player.clips.edit')
-              : t('player.clips.new')
-            : shown === 'clips'
-              ? t('player.clips.title')
-              : t('player.shape.title')
+          shown === 'new'
+            ? t('app.soundEdit')
+            : shown === 'edit'
+              ? t('app.soundEditExisting')
+              : editing
+                ? editing.clip
+                  ? t('player.clips.edit')
+                  : t('player.clips.new')
+                : shown === 'clips'
+                  ? t('player.clips.title')
+                  : t('player.shape.title')
         }
         action={
-          editing ? (
+          shown === 'new' || shown === 'edit' ? (
+            <button
+              type="button"
+              className="round"
+              onClick={() => openPanel(null)}
+            >
+              <CloseGlyph />
+              <span className="sr">{t('common.cancel')}</span>
+            </button>
+          ) : editing ? (
             <button
               type="button"
               className="round"
@@ -339,20 +453,46 @@ export function Home({ user }: { user: User }) {
           )
         }
         trailing={
-          editing && (
-            <button
-              type="button"
-              className="round is-commit"
-              onClick={commitClipEditor}
-            >
-              <CheckGlyph />
-              <span className="sr">{t('player.clips.saveClip')}</span>
-            </button>
+          shown === 'new' || shown === 'edit' ? (
+            <SoundCommit
+              label={t(
+                shown === 'new' ? 'soundEdit.save' : 'soundEdit.saveExisting',
+              )}
+            />
+          ) : (
+            editing && (
+              <button
+                type="button"
+                className="round is-commit"
+                onClick={commitClipEditor}
+              >
+                <CheckGlyph />
+                <span className="sr">{t('player.clips.saveClip')}</span>
+              </button>
+            )
           )
         }
         onClose={() => openPanel(null)}
       >
-        {editing && current ? (
+        {shown === 'new' && lastComposing.current ? (
+          <SoundForm
+            key={`new-${lastComposing.current.file.name}-${lastComposing.current.file.lastModified}`}
+            draft={{
+              kind: 'new',
+              picked: lastComposing.current,
+              position: leadPosition(
+                library.state === 'ready' ? library.sounds : [],
+              ),
+            }}
+            onDone={() => openPanel(null)}
+          />
+        ) : shown === 'edit' && current ? (
+          <SoundForm
+            key={`edit-${current.id}`}
+            draft={{ kind: 'edit', sound: current }}
+            onDone={() => openPanel(null)}
+          />
+        ) : editing && current ? (
           <ClipEditor
             key={editing.clip?.id ?? 'new'}
             sound={current}
@@ -367,6 +507,7 @@ export function Home({ user }: { user: User }) {
       </SidePanel>
 
       <MiniPlayer onExpand={() => setExpanded(true)} />
+      <Toast />
     </div>
   );
 }

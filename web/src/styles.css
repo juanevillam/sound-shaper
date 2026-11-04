@@ -30,8 +30,11 @@
   --dur-quick: 300ms;
   --dur-turn: 450ms;
   --bar-h: 3.5rem;
-  --font-sans: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --font-sans:
+    system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text',
+    'Segoe UI', sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   color-scheme: dark;
 }
 
@@ -560,7 +563,6 @@ button {
     box-shadow: 0 1rem 2rem rgb(0 0 0 / 0.45);
   }
 }
-
 
 .artwork {
   display: grid;
@@ -1463,6 +1465,12 @@ button {
     grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
   }
 
+  /* New Sound with nothing playing yet: the library and the sheet alone,
+     still 5 : 3. */
+  .home.side-open:not(.has-current) {
+    grid-template-columns: minmax(0, 5fr) 0 minmax(0, 3fr);
+  }
+
   .library {
     grid-column: 1;
     height: 100svh;
@@ -1629,6 +1637,172 @@ button {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--ground);
+}
+
+/* ── Edit Sound: the artwork slot, Title and Subtitle, Delete ── */
+
+.round:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.round.is-commit.is-busy {
+  opacity: 1;
+}
+
+.spinner {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.dock-cell.is-hug {
+  flex: none;
+}
+
+.tile.is-add .artwork.is-empty svg {
+  width: 30%;
+  height: 30%;
+  color: var(--ink-2);
+}
+
+.art-slot {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+}
+
+.art-pick {
+  display: grid;
+  justify-items: center;
+  gap: 0.625rem;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.art-box {
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 15%;
+  background: var(--empty-media);
+  color: var(--ink-2);
+  transition: transform var(--dur-micro) var(--ease);
+}
+
+.art-pick:active .art-box {
+  transform: scale(0.96);
+}
+
+.art-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.art-box svg {
+  width: 30%;
+  height: 30%;
+}
+
+/* A text button keeps the accent: without it, it stops reading as one. */
+.text-action {
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: rgb(10 132 255);
+  font-size: 1.0625rem;
+}
+
+.text-action.is-destructive {
+  color: var(--destructive);
+}
+
+.art-pick:disabled,
+.text-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.field {
+  cursor: text;
+}
+
+.field .cell-name {
+  flex: none;
+  width: 6.5rem;
+  color: var(--ink);
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.0625rem;
+}
+
+.field input::placeholder {
+  color: var(--faint);
+}
+
+.destructive-row {
+  justify-content: center;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--destructive);
+  font-size: 1.0625rem;
+}
+
+.destructive-row:active {
+  background: rgb(255 255 255 / 0.06);
+}
+
+/* The app's snackbar, in the site's pill language. */
+.toast-slot {
+  position: fixed;
+  left: 50%;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  margin: 0;
+  padding: 0.75rem 1.125rem;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  animation: rise var(--dur-turn) var(--ease) both;
+}
+
+@media (min-width: 64rem) {
+  .toast-slot {
+    bottom: 2rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

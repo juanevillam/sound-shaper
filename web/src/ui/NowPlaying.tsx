@@ -12,6 +12,7 @@ import {
   ChevronDownGlyph,
   ClipGlyph,
   NextGlyph,
+  PencilGlyph,
   PlayPauseGlyph,
   PreviousGlyph,
   ShapeGlyph,
@@ -24,7 +25,7 @@ import {
  * desk it is the column beside the library; on a phone it rises over it from
  * the mini player.
  */
-export type Panel = 'shape' | 'clips';
+export type Panel = 'shape' | 'clips' | 'edit';
 
 export function NowPlaying({
   onCollapse,
@@ -145,6 +146,20 @@ export function NowPlaying({
             <span className="dock-label">{t('player.clips.title')}</span>
             <span className="dock-summary">{clipsSummary}</span>
           </span>
+        </button>
+        {/* EDIT, the bar's third compartment: an icon and one word, hugging
+            what it holds — it has no live state to summarise. */}
+        <button
+          type="button"
+          className="dock-cell is-hug"
+          aria-expanded={panel === 'edit'}
+          aria-label={t('player.menu.edit')}
+          onClick={() => onOpen('edit')}
+        >
+          <span className="dock-icon">
+            <PencilGlyph />
+          </span>
+          <span className="dock-label">{t('player.menu.editShort')}</span>
         </button>
       </div>
     </section>
