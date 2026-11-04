@@ -23,6 +23,9 @@ export default [
       // The Cloudflare Worker has its own toolchain and Workers globals — this
       // RN/React lint config doesn't govern it.
       'media-worker/**',
+      // The web app (docs/web.md) is a Vite + React DOM app with its own
+      // toolchain; it reaches into src/ but src/ never reaches into it.
+      'web/**',
     ],
   },
   {
