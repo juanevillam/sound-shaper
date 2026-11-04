@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 import {
   SUPPORTED_LOCALES,
   translations,
@@ -33,22 +35,40 @@ const pickLocale = (): Locale => {
   return 'en';
 };
 
-export const locale = pickLocale();
+/** A live binding: importers read the current language, not the first. */
+export let locale = pickLocale();
+
+const listeners = new Set<() => void>();
+
+/**
+ * The app root subscribes, so a new language re-renders the whole tree in
+ * place — nothing reloads, and the sound keeps playing.
+ */
+export const useLocale = (): Locale =>
+  useSyncExternalStore(
+    listener => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => locale,
+  );
 
 export { SUPPORTED_LOCALES };
 
 /**
  * Settings' Language row, as in the app: the choice outranks the browser's
- * and is kept on this device. Every string is resolved once per page, so a
- * new language takes a reload.
+ * and is kept on this device. It applies at once, without a reload (Juan,
+ * 2026-11-04: a full refresh was the jarring part).
  */
 export const setLocale = (next: Locale) => {
   try {
     localStorage.setItem(LOCALE_KEY, next);
   } catch {
-    // Private mode: the choice lasts this page only, which a reload ends.
+    // Private mode: the choice lasts this visit.
   }
-  location.reload();
+  locale = next;
+  document.documentElement.lang = next;
+  listeners.forEach(listener => listener());
 };
 
 document.documentElement.lang = locale;
