@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { rateLabel, RATE_MAX, RATE_MIN, RATE_STEP } from '@app/lib/player';
 import {
   EFFECT_LEVELS,
@@ -8,17 +10,30 @@ import {
   type EffectLevel,
 } from '@app/lib/shapeDsp';
 
+import { byHand, startAutoDj, stopAutoDj, useAutoDj } from '../autoDj';
 import { locale, t } from '../i18n';
 import {
   presetOf,
-  setBand,
-  setEcho,
-  setKeepPitch,
-  setNextRoom,
-  setPreset,
-  setRate,
+  setBand as setBandRaw,
+  setEcho as setEchoRaw,
+  setKeepPitch as setKeepPitchRaw,
+  setNextRoom as setNextRoomRaw,
+  setPreset as setPresetRaw,
+  setRate as setRateRaw,
   usePlayer,
 } from '../player';
+
+// Any control moved by hand takes the controls back from the DJ — the app's
+// `byHand`: the DJ stops with the shape where it is, and the move stands.
+const setBand = byHand(setBandRaw);
+const setEcho = byHand(setEchoRaw);
+const setKeepPitch = byHand(setKeepPitchRaw);
+const setNextRoom = byHand(setNextRoomRaw);
+const setPreset = byHand(setPresetRaw);
+const setRate = byHand(setRateRaw);
+
+/** The app's `SKELETON_DELAY_MS`: a wait shorter than this shows nothing. */
+const PROGRESS_DELAY_MS = 400;
 
 /**
  * The Shape card's summary — the app's `useShapeSummary`: it states what is
@@ -30,8 +45,11 @@ export function useShapeSummary(): string {
   const keepPitch = usePlayer(s => s.keepPitch);
   const echo = usePlayer(s => s.echo);
   const nextRoom = usePlayer(s => s.nextRoom);
+  const djOn = useAutoDj(s => s.on);
   const preset = presetOf(gains);
 
+  // While the DJ mixes, every value below is its, not the person's.
+  if (djOn) return t('player.autoDj');
   return (
     [
       preset === 'flat'
@@ -79,6 +97,59 @@ const LevelPicker = ({
  * is heard as it moves. On a desk it is the column at the right; on a phone,
  * a sheet over the player.
  */
+/**
+ * Auto DJ — the sheet's last section, as in the app: a switch, a footer, and
+ * while the library is being read a "Reading Library · 3 of 12" row, shown
+ * only once the wait has lasted long enough to be worth naming.
+ */
+function AutoDjSection() {
+  const on = useAutoDj(s => s.on);
+  const ready = useAutoDj(s => s.ready);
+  const total = useAutoDj(s => s.total);
+  const reading = on && total > 0 && ready < total;
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (!reading) {
+      setShown(false);
+      return;
+    }
+    const timer = setTimeout(() => setShown(true), PROGRESS_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [reading]);
+
+  return (
+    <section>
+      <div className="card">
+        <label className="cell">
+          <span className="cell-name">{t('player.autoDj')}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="switch"
+            checked={on}
+            onChange={e =>
+              e.target.checked ? startAutoDj() : stopAutoDj({ restore: true })
+            }
+          />
+        </label>
+        {reading && shown && (
+          <div className="cell">
+            <span className="cell-name">{t('player.autoDjPreparing')}</span>
+            <span className="cell-value">
+              {t('player.autoDjProgress', {
+                ready: String(ready),
+                total: String(total),
+              })}
+            </span>
+          </div>
+        )}
+      </div>
+      <p className="section-foot">{t('player.autoDjDescription')}</p>
+    </section>
+  );
+}
+
 /** The Shape sheet's form — what `SidePanel` holds while Shape is open. */
 export function ShapeForm() {
   const gains = usePlayer(s => s.gains);
@@ -201,6 +272,8 @@ export function ShapeForm() {
         </div>
         <p className="section-foot">{t('player.nextRoomDescription')}</p>
       </section>
+
+      <AutoDjSection />
     </>
   );
 }

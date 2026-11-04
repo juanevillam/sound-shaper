@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 
 import type { User } from 'firebase/auth';
+import { flushSync } from 'react-dom';
 
+import { useAutoDjDirector } from '../autoDj';
+import type { Clip } from '../clips';
 import { t } from '../i18n';
 import { useLibrary, type Sound } from '../library';
 import { playSound, resetPlayer, syncLibrary, usePlayer } from '../player';
+import { leadPosition } from '../sounds';
+import { useTrophySystem } from '../trophies';
+import { AccountForm } from '../ui/AccountForm';
 import { Artwork } from '../ui/Artwork';
 import { Backdrop, PlayerBackdrop } from '../ui/Backdrop';
-import { ClipsForm } from '../ui/ClipsForm';
-import type { Clip } from '../clips';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
-import { AccountForm } from '../ui/AccountForm';
+import { ClipsForm } from '../ui/ClipsForm';
 import {
   Bars,
   CheckGlyph,
@@ -21,12 +24,11 @@ import {
   PlusGlyph,
   ShapeGlyph,
 } from '../ui/glyphs';
-import { SettingsForm } from '../ui/SettingsForm';
 import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying, type Panel } from '../ui/NowPlaying';
+import { SettingsForm } from '../ui/SettingsForm';
 import { ShapeForm } from '../ui/ShapePanel';
 import { SidePanel } from '../ui/SidePanel';
-import { leadPosition } from '../sounds';
 import {
   commitSoundForm,
   isMp3,
@@ -38,7 +40,6 @@ import {
 } from '../ui/SoundForm';
 import { showToast } from '../ui/Toast';
 import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
-import { useTrophySystem } from '../trophies';
 
 /** The grid draws a tile at most this wide; Cloudinary serves 2x of it. */
 const TILE_WIDTH = 220;
@@ -246,6 +247,9 @@ export function Home({ user }: { user: User }) {
 
   // A sign-out from another tab ends here too: nothing keeps playing.
   useEffect(() => resetPlayer, []);
+
+  // Auto DJ mixes whatever is open, from the Shape sheet's switch.
+  useAutoDjDirector();
 
   const openPanel = (next: HomePanel | null) =>
     morph(() => {

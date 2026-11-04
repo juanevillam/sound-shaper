@@ -10,10 +10,10 @@ import {
 import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
 import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
-import { forgetWaveforms } from './waveform';
 import { forgetClips, getClipsOfSounds, knownClips } from './clips';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
+import { forgetWaveforms } from './waveform';
 
 /**
  * THE WEB'S PLAYER STORE — the app's `store/player.ts` and `store/shaper.ts`
@@ -38,6 +38,8 @@ export type PlayerState = {
   /** The clip that is sounding, or parked on: its end stops or repeats. */
   activeClip: (ClipRange & { soundId: string; once?: boolean }) | null;
   repeat: RepeatMode;
+  /** Bumps on every load — how Auto DJ tells its own cuts from a person's. */
+  loadNonce: number;
 };
 
 const REPEAT_KEY = 'soundshaper.clipRepeat';
@@ -67,6 +69,7 @@ const initial: PlayerState = {
   nextRoom: 'off',
   activeClip: null,
   repeat: 'off',
+  loadNonce: 0,
 };
 
 let state: PlayerState = { ...initial, repeat: storedRepeat() };
@@ -152,7 +155,20 @@ const load = (sound: Sound) => {
     loaded: true,
     position: 0,
     duration: (sound.durationMs ?? 0) / 1000,
+    loadNonce: state.loadNonce + 1,
   });
+};
+
+/**
+ * Load `sound` and start it at `startS` — how Auto DJ cuts to the next
+ * stretch of its set. Leaves the queue alone, as the app's `cueSound` does.
+ */
+export const cueSound = async (sound: Sound, startS: number) => {
+  set({ activeClip: null });
+  load(sound);
+  if (element) element.currentTime = startS;
+  set({ position: startS });
+  await start();
 };
 
 /** Keep the queue in step with the library, as the app's `syncLibrary` does. */
@@ -257,6 +273,12 @@ export const setPreset = (key: string) => {
   if (!preset) return;
   audioEngine.apply(preset.gains);
   set({ gains: [...preset.gains] });
+};
+
+/** A whole curve at once — Auto DJ's lever, one push for five bands. */
+export const applyGains = (gains: number[]) => {
+  audioEngine.apply(gains);
+  set({ gains: [...gains] });
 };
 
 export const setBand = (index: number, db: number) => {
@@ -385,5 +407,5 @@ export const resetPlayer = () => {
   } catch {
     // Nothing stored.
   }
-  set(initial);
+  set({ ...initial, loadNonce: state.loadNonce + 1 });
 };
