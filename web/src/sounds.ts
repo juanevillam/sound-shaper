@@ -6,7 +6,9 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
+  setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 import { positionBetween } from '@app/lib/gridOrder';
@@ -151,4 +153,50 @@ export const deleteSound = async (soundId: string) => {
       (data?.artUrl as string) ?? '',
     ]),
   ]);
+};
+
+/**
+ * The app's `moveSound`: ONE document per move, which is the whole point of
+ * the fractional index (`lib/gridOrder.ts`). No `updatedAt` — where a tile
+ * sits is not an edit of the sound.
+ */
+export const moveSound = (soundId: string, position: number) =>
+  updateDoc(doc(soundsOf(), soundId), { position });
+
+/** The app's `setAddTilePosition`: the add tile is a cell in the order too. */
+export const setAddTilePosition = (position: number) => {
+  const uid = auth.currentUser?.uid;
+
+  if (!uid) throw new Error('Not signed in');
+
+  return setDoc(
+    doc(db, USERS_COLLECTION, uid),
+    { addTilePosition: position },
+    { merge: true },
+  );
+};
+
+/**
+ * The whole order re-spaced, for the one case a move cannot be given a slot
+ * (float64 out of room between two neighbours) — the app's
+ * `renormalizeSoundPositions` plus the add tile, in one batch.
+ */
+export const renormalizeOrder = async (
+  order: Array<{ id: string; position: number }>,
+  addTileKey: string,
+) => {
+  const uid = auth.currentUser?.uid;
+
+  if (!uid) throw new Error('Not signed in');
+
+  const batch = writeBatch(db);
+  for (const entry of order)
+    if (entry.id === addTileKey)
+      batch.set(
+        doc(db, USERS_COLLECTION, uid),
+        { addTilePosition: entry.position },
+        { merge: true },
+      );
+    else batch.update(doc(soundsOf(), entry.id), { position: entry.position });
+  await batch.commit();
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import {
   collection,
+  doc,
   onSnapshot,
   orderBy,
   query,
@@ -79,4 +80,24 @@ export const useLibrary = (uid: string): Library => {
   );
 
   return library;
+};
+
+/**
+ * Where the person parked the add tile — `users/{uid}.addTilePosition`, the
+ * app's own field. `null` until somebody moves it, which puts it first.
+ */
+export const useAddTilePosition = (uid: string): number | null => {
+  const [position, setPosition] = useState<number | null>(null);
+
+  useEffect(
+    () =>
+      onSnapshot(
+        doc(db, USERS_COLLECTION, uid),
+        snapshot => setPosition(finite(snapshot.data()?.addTilePosition)),
+        error => console.warn('add tile position', error),
+      ),
+    [uid],
+  );
+
+  return position;
 };

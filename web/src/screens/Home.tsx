@@ -6,23 +6,16 @@ import { flushSync } from 'react-dom';
 import { useAutoDjDirector } from '../autoDj';
 import type { Clip } from '../clips';
 import { t } from '../i18n';
-import { useLibrary, type Sound } from '../library';
-import { playSound, resetPlayer, syncLibrary, usePlayer } from '../player';
+import { useAddTilePosition, useLibrary, type Sound } from '../library';
+import { resetPlayer, syncLibrary, usePlayer } from '../player';
 import { leadPosition } from '../sounds';
 import { useTrophySystem } from '../trophies';
 import { AccountForm } from '../ui/AccountForm';
-import { Artwork } from '../ui/Artwork';
 import { Backdrop, PlayerBackdrop } from '../ui/Backdrop';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
 import { ClipsForm } from '../ui/ClipsForm';
-import {
-  Bars,
-  CheckGlyph,
-  CloseGlyph,
-  GearGlyph,
-  PlusGlyph,
-  ShapeGlyph,
-} from '../ui/glyphs';
+import { CheckGlyph, CloseGlyph, GearGlyph, ShapeGlyph } from '../ui/glyphs';
+import { LibraryGrid } from '../ui/LibraryGrid';
 import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying } from '../ui/NowPlaying';
 import { SettingsForm } from '../ui/SettingsForm';
@@ -39,9 +32,6 @@ import {
 } from '../ui/SoundForm';
 import { showToast } from '../ui/Toast';
 import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
-
-/** The grid draws a tile at most this wide; Cloudinary serves 2x of it. */
-const TILE_WIDTH = 220;
 
 const DESK = '(min-width: 64rem)';
 
@@ -64,75 +54,6 @@ const morph = (change: () => void) => {
     return change();
 
   doc.startViewTransition(() => flushSync(change));
-};
-
-const SoundTile = ({ sound, index }: { sound: Sound; index: number }) => {
-  const isCurrent = usePlayer(s => s.loaded && s.current?.id === sound.id);
-  const playing = usePlayer(s => s.playing);
-  const rate = usePlayer(s => s.rate);
-
-  return (
-    <li
-      style={
-        {
-          '--i': Math.min(index, 24),
-          viewTransitionName: `tile-${sound.id}`,
-        } as React.CSSProperties
-      }
-    >
-      <button
-        type="button"
-        className={isCurrent ? 'tile is-current' : 'tile'}
-        aria-current={isCurrent || undefined}
-        onClick={() => playSound(sound)}
-      >
-        <span className="tile-art">
-          <Artwork artUrl={sound.artUrl} name={sound.name} width={TILE_WIDTH} />
-          {isCurrent && <Bars live={playing} rate={rate} />}
-        </span>
-        <span className="tile-name">{sound.name}</span>
-        {sound.artist && <span className="tile-sub">{sound.artist}</span>}
-      </button>
-    </li>
-  );
-};
-
-/**
- * The app's add tile: the empty-media box with a plus, "Add Sound" under it
- * and the one rule the picker enforces. First in the grid, so a new sound —
- * which lands at the front — appears right beside it.
- */
-const AddTile = ({ onPick }: { onPick: (file: File) => void }) => {
-  const input = useRef<HTMLInputElement>(null);
-
-  return (
-    <li style={{ viewTransitionName: 'tile-add' } as React.CSSProperties}>
-      <button
-        type="button"
-        className="tile is-add"
-        onClick={() => input.current?.click()}
-      >
-        <span className="tile-art">
-          <span className="artwork is-empty" aria-hidden="true">
-            <PlusGlyph />
-          </span>
-        </span>
-        <span className="tile-name">{t('home.addSound')}</span>
-        <span className="tile-sub">{t('home.addSoundFormat')}</span>
-      </button>
-      <input
-        ref={input}
-        type="file"
-        accept=".mp3,audio/mpeg"
-        hidden
-        onChange={e => {
-          const file = e.target.files?.[0];
-          if (file) onPick(file);
-          e.target.value = '';
-        }}
-      />
-    </li>
-  );
 };
 
 /** The editor's ✓: busy while a save uploads, dimmed while it can't save. */
@@ -199,7 +120,9 @@ const useLargeTitle = () => {
  * single slot that swaps its body.
  */
 type Entry =
-  | { kind: 'settings' | 'account' | 'trophies' | 'shape' | 'clips' | 'edit' }
+  | { kind: 'settings' | 'account' | 'trophies' | 'shape' | 'clips' }
+  /** The playing sound's editor, or — from a held tile — that sound's. */
+  | { kind: 'edit'; sound?: Sound }
   | { kind: 'new'; picked: PickedSound }
   | { kind: 'clip'; clip: Clip | null };
 
@@ -219,6 +142,7 @@ let nextLayer = 0;
  */
 export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
+  const addTilePosition = useAddTilePosition(user.uid);
   useTrophySystem(user.uid, library);
   const current = usePlayer(s => s.current);
   const [expanded, setExpanded] = useState(false);
@@ -275,10 +199,25 @@ export function Home({ user }: { user: User }) {
     push(entry);
   };
 
+  // THE RIGHT COLUMN STANDS FOR A SOUND, and it stands up as one move. The
+  // library's first snapshot primes `current` with the first sound — the
+  // app's parked banner — so the column arrives on its own, after the grid
+  // has drawn; taking `current` straight would snap it in. It follows
+  // `current` through `morph` instead, like every other column change.
+  const [stood, setStood] = useState(false);
+  const hasCurrent = Boolean(current);
+  useEffect(() => {
+    if (hasCurrent === stood) return;
+    if (live.length) setStood(hasCurrent);
+    else morph(() => setStood(hasCurrent));
+    // `live` only decides whether a sheet already holds the column up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasCurrent, stood]);
+
   // The grid re-flows only when the right column has to stand up for a
   // sheet; a sheet over the player is no column change at all.
   const stageThen = (change: () => void) =>
-    current || live.length ? change() : morph(change);
+    stood || live.length ? change() : morph(change);
 
   const pick = (file: File) => {
     if (!isMp3(file)) {
@@ -326,7 +265,7 @@ export function Home({ user }: { user: User }) {
   });
 
   // The right column stands while a sound is loaded or a sheet is up.
-  const staged = Boolean(current) || live.length > 0;
+  const staged = stood || live.length > 0;
   const className = [
     'home',
     current ? 'has-current' : '',
@@ -452,19 +391,21 @@ export function Home({ user }: { user: User }) {
             />
           ),
         };
-      case 'edit':
+      case 'edit': {
+        const sound = entry.sound ?? current;
         return {
           title: t('app.soundEditExisting'),
           action: close,
           trailing: <SoundCommit label={t('soundEdit.saveExisting')} />,
-          body: current ? (
+          body: sound ? (
             <SoundForm
-              key={`edit-${current.id}`}
-              draft={{ kind: 'edit', sound: current }}
+              key={`edit-${sound.id}`}
+              draft={{ kind: 'edit', sound }}
               onDone={closeAll}
             />
           ) : null,
         };
+      }
     }
   };
 
@@ -503,12 +444,12 @@ export function Home({ user }: { user: User }) {
         )}
 
         {library.state === 'ready' && (
-          <ul className="grid">
-            <AddTile onPick={pick} />
-            {library.sounds.map((sound, i) => (
-              <SoundTile key={sound.id} sound={sound} index={i + 1} />
-            ))}
-          </ul>
+          <LibraryGrid
+            sounds={library.sounds}
+            addTilePosition={addTilePosition}
+            onPick={pick}
+            onEdit={sound => stageThen(() => openOnly({ kind: 'edit', sound }))}
+          />
         )}
       </main>
 
