@@ -1737,14 +1737,14 @@ button {
   cursor: default;
 }
 
-.field {
-  cursor: text;
+.fields {
+  display: grid;
+  gap: 1.375rem;
 }
 
-.field .cell-name {
-  flex: none;
-  width: 6.5rem;
-  color: var(--ink);
+.field {
+  display: grid;
+  cursor: text;
 }
 
 .field input {

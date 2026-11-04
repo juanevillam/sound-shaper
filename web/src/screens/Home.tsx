@@ -277,6 +277,10 @@ export function Home({ user }: { user: User }) {
   const [editing, setEditing] = useState<{ clip: Clip | null } | null>(null);
   // A picked mp3 waiting in the New Sound sheet.
   const [composing, setComposing] = useState<PickedSound | null>(null);
+  // Every opening of a sheet is a fresh form: the sheet keeps its content
+  // while it slides away, so a form keyed on its sound alone would come back
+  // holding the last opening's typing — or a save's busy state.
+  const [opening, setOpening] = useState(0);
   const { top, title, edge, titled } = useLargeTitle();
   // The sheet keeps showing what it held while it slides away.
   type Sheet = Panel | 'new';
@@ -298,6 +302,7 @@ export function Home({ user }: { user: User }) {
   const openPanel = (next: Panel | null) =>
     morph(() => {
       setPanel(next);
+      if (next) setOpening(n => n + 1);
       setEditing(null);
       setComposing(null);
     });
@@ -311,6 +316,7 @@ export function Home({ user }: { user: User }) {
       morph(() => {
         setEditing(null);
         setComposing(picked);
+        setOpening(n => n + 1);
       }),
     );
   };
@@ -476,7 +482,7 @@ export function Home({ user }: { user: User }) {
       >
         {shown === 'new' && lastComposing.current ? (
           <SoundForm
-            key={`new-${lastComposing.current.file.name}-${lastComposing.current.file.lastModified}`}
+            key={`new-${opening}`}
             draft={{
               kind: 'new',
               picked: lastComposing.current,
@@ -488,7 +494,7 @@ export function Home({ user }: { user: User }) {
           />
         ) : shown === 'edit' && current ? (
           <SoundForm
-            key={`edit-${current.id}`}
+            key={`edit-${current.id}-${opening}`}
             draft={{ kind: 'edit', sound: current }}
             onDone={() => openPanel(null)}
           />

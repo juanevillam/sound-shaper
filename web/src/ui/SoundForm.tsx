@@ -238,32 +238,39 @@ export function SoundForm({
         />
       </div>
 
+      {/* Each field under its own label, the grouped form's header-over-card
+          shape: a side column is too narrow to hold a label and a value on
+          one line. */}
       <form
-        className="card"
+        className="fields"
         onSubmit={e => {
           e.preventDefault();
           void save();
         }}
       >
-        <label className="cell field">
-          <span className="cell-name">{t('soundEdit.name.label')}</span>
-          <input
-            value={name}
-            placeholder={t('soundEdit.name.placeholder')}
-            disabled={busy}
-            autoComplete="off"
-            onChange={e => setName(e.target.value)}
-          />
+        <label className="field">
+          <span className="section-head">{t('soundEdit.name.label')}</span>
+          <span className="card cell">
+            <input
+              value={name}
+              placeholder={t('soundEdit.name.placeholder')}
+              disabled={busy}
+              autoComplete="off"
+              onChange={e => setName(e.target.value)}
+            />
+          </span>
         </label>
-        <label className="cell field">
-          <span className="cell-name">{t('soundEdit.subtitle.label')}</span>
-          <input
-            value={artist}
-            placeholder={t('soundEdit.subtitle.placeholder')}
-            disabled={busy}
-            autoComplete="off"
-            onChange={e => setArtist(e.target.value)}
-          />
+        <label className="field">
+          <span className="section-head">{t('soundEdit.subtitle.label')}</span>
+          <span className="card cell">
+            <input
+              value={artist}
+              placeholder={t('soundEdit.subtitle.placeholder')}
+              disabled={busy}
+              autoComplete="off"
+              onChange={e => setArtist(e.target.value)}
+            />
+          </span>
         </label>
         <button type="submit" hidden />
       </form>
