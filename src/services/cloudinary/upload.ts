@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { withTimeout } from '@/lib/withTimeout';
+import { MAX_UPLOAD_BYTES } from '@/services/cloudinary/limits';
 import { reported } from '@/services/firebase/crashlytics';
 import { signUpload } from '@/services/firebase/functions';
 
@@ -22,16 +23,7 @@ import { signUpload } from '@/services/firebase/functions';
 // Topper's 30s image cap before we give up and surface the failure.
 const UPLOAD_TIMEOUT_MS = 120_000;
 
-/**
- * The per-file half of the caps. A signature cannot carry a size, so the app
- * is where an honest upload is turned away; the Worker bounds a dishonest one
- * by the library's total. 20 MB is ~3.5× the measured average mp3 (5.79 MB),
- * so it refuses a long mix or a lossless rip, not a song.
- */
-export const MAX_UPLOAD_BYTES = {
-  image: 5_000_000,
-  video: 20_000_000,
-} as const;
+export { MAX_UPLOAD_BYTES } from '@/services/cloudinary/limits';
 
 /** Thrown before anything is sent, for a file over `MAX_UPLOAD_BYTES`. */
 export class FileTooLargeError extends Error {
