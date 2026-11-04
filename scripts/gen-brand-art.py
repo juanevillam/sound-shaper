@@ -12,6 +12,7 @@ pipelines they drifted. Outputs:
     assets/images/splash-icon{,-dark}.png  splash art, one per appearance
     assets/images/android-icon-*.png       adaptive foreground/monochrome/background
     store-icons/play-512.png               Play Console listing icon
+    web/public/favicon.svg, icons/…        the web app's icons — see build_web()
 
 Colours come from GROUND_LIGHT / GROUND_DARK below — but the same two values are
 ALSO hard-coded in `app.json` and in `src/ui/BrandTile.tsx`. To change one,
@@ -34,8 +35,8 @@ The App Store needs no marketing-icon file — Xcode generates the 1024 from the
       assets/AppIcon.icon --export-image --output-file /tmp/out.png \
       --platform iOS --rendition Dark --width 512 --height 512 --scale 1
 """
-import json, os, shutil
-from PIL import Image, ImageChops, ImageDraw
+import json, math, os, shutil
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from shapely.geometry import LineString, LinearRing
 from shapely.ops import unary_union
 
@@ -286,6 +287,133 @@ def build(app, out_dir):
     return doc
 
 
+# ── The web app's icons ──
+#
+# The web has no Icon Composer to render the ground, so the INSTALLED icon is
+# the tile BrandTile draws on the Welcome screen, dark (the web is dark-only):
+# the superellipse silhouette, the measured vertical shine, a contact shadow.
+# These are BrandTile's constants; when it retunes, retune these with it.
+SQUIRCLE_N = 4.5
+TILE_GRADIENT_DARK = [
+    (0, "#727272"), (0.008, "#5A5A59"), (0.016, "#414141"), (0.2, "#2C2D2D"),
+    (0.5, "#222222"), (0.8, "#181817"), (0.984, "#1E1D1E"), (0.992, "#2E2E2D"),
+    (1, "#3E3E3E"),
+]
+SHADOW = {"opacity": 0.5, "blur": 0.045, "dy": 0.05}
+# The installed icon sits on macOS's own icon grid — an 824 body on 1024 —
+# so it stands the size of its neighbours in the Dock instead of a full-bleed
+# square looming over them.
+WEB_TILE = 824
+
+
+def squircle_points(size, offset=(0, 0), steps=512):
+    r = size / 2
+    exp = 2 / SQUIRCLE_N
+    pts = []
+    for i in range(steps):
+        t = i / steps * 2 * math.pi
+        c, s_ = math.cos(t), math.sin(t)
+        pts.append((offset[0] + r + math.copysign(r * abs(c) ** exp, c),
+                    offset[1] + r + math.copysign(r * abs(s_) ** exp, s_)))
+    return pts
+
+
+def gradient_at(f):
+    for (o0, c0), (o1, c1) in zip(TILE_GRADIENT_DARK, TILE_GRADIENT_DARK[1:]):
+        if f <= o1:
+            k = 0 if o1 == o0 else (f - o0) / (o1 - o0)
+            a, b = hex_rgb(c0), hex_rgb(c1)
+            return tuple(round(x + (y - x) * k) for x, y in zip(a, b))
+    return hex_rgb(TILE_GRADIENT_DARK[-1][1])
+
+
+def web_tile(geom, tile):
+    """The dark brand tile, `tile` wide, centred on a transparent canvas."""
+    off = ((CANVAS - tile) / 2, (CANVAS - tile) / 2)
+    big = CANVAS * SS
+    mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask).polygon(
+        [(x * SS, y * SS) for x, y in squircle_points(tile, off)], fill=255)
+    mask = mask.resize((CANVAS, CANVAS), Image.LANCZOS)
+
+    shine = Image.new("RGB", (CANVAS, CANVAS))
+    draw = ImageDraw.Draw(shine)
+    for y in range(CANVAS):
+        draw.line([(0, y), (CANVAS, y)],
+                  fill=gradient_at(min(1, max(0, (y - off[1]) / tile))))
+
+    shadow = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
+    dy = round(tile * SHADOW["dy"])
+    shadow_mask = Image.new("L", (CANVAS, CANVAS), 0)
+    shadow_mask.paste(mask, (0, dy))
+    shadow_mask = shadow_mask.filter(
+        ImageFilter.GaussianBlur(tile * SHADOW["blur"]))
+    shadow.putalpha(shadow_mask.point(lambda a: round(a * SHADOW["opacity"])))
+
+    out = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
+    out.alpha_composite(shadow)
+    body = shine.convert("RGBA")
+    body.putalpha(mask)
+    out.alpha_composite(body)
+
+    # The mark at the app icon's own proportion of its tile.
+    ink = Image.new("RGBA", (CANVAS, CANVAS), hex_rgb(GROUND_LIGHT) + (255,))
+    ink.putalpha(rasterise(geom, GRIDS["icon"] * tile / CANVAS))
+    out.alpha_composite(ink)
+    return out
+
+
+def favicon_svg(geom):
+    """The same tile as a vector, full canvas, for the browser tab."""
+    pts = squircle_points(CANVAS, steps=256)
+    path = "M" + "L".join(f"{x:.1f},{y:.1f}" for x, y in pts) + "Z"
+    stops = "".join(
+        f'<stop offset="{o}" stop-color="{c}"/>' for o, c in TILE_GRADIENT_DARK)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {CANVAS} {CANVAS}">\n'
+        f'  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">{stops}'
+        f"</linearGradient></defs>\n"
+        f'  <path d="{path}" fill="url(#g)"/>\n'
+        f'  <path d="{to_path_data(geom, GRIDS["icon"])}" fill="{GROUND_LIGHT}"'
+        f' fill-rule="evenodd"/>\n'
+        f"</svg>\n"
+    )
+
+
+def build_web(app, assets_dir, out_dir):
+    """The web app's favicon, installed icons and maskable icon."""
+    geom = unary_union(MARKS[app]())
+    icons = os.path.join(out_dir, "icons")
+    os.makedirs(icons, exist_ok=True)
+
+    with open(os.path.join(out_dir, "favicon.svg"), "w") as f:
+        f.write(favicon_svg(geom))
+    print("built", os.path.relpath(out_dir, REPO_ROOT))
+    print("    favicon.svg")
+
+    tile = web_tile(geom, WEB_TILE)
+    for size in (192, 512):
+        tile.resize((size, size), Image.LANCZOS).save(
+            os.path.join(icons, f"icon-{size}.png"))
+        print(f"    icons/icon-{size}.png")
+
+    # MASKABLE is Android's adaptive icon flattened: the launcher cuts its
+    # own shape, so it is full-bleed, mark inside the adaptive safe zone.
+    maskable = Image.new("RGBA", (CANVAS, CANVAS), hex_rgb(GROUND_DARK) + (255,))
+    fg = Image.open(os.path.join(assets_dir, "images", "android-icon-foreground.png"))
+    maskable.alpha_composite(fg.convert("RGBA"))
+    maskable.convert("RGB").resize((512, 512), Image.LANCZOS).save(
+        os.path.join(icons, "maskable-512.png"))
+    print("    icons/maskable-512.png")
+
+    # iOS masks a Home Screen icon itself: the app's own full-bleed icon.
+    Image.open(os.path.join(assets_dir, "images", "icon.png")).resize(
+        (180, 180), Image.LANCZOS).save(os.path.join(icons, "apple-touch-icon.png"))
+    print("    icons/apple-touch-icon.png")
+
+
 if __name__ == "__main__":
     for app in MARKS:
-        build(app, os.path.join(REPO_ROOT, "assets"))
+        assets = os.path.join(REPO_ROOT, "assets")
+        build(app, assets)
+        build_web(app, assets, os.path.join(REPO_ROOT, "web", "public"))
