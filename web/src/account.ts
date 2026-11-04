@@ -25,6 +25,7 @@ import {
 
 import { auth, db } from './firebase';
 import { cleanupMyMedia, destroyAsset, uploadImage } from './media';
+import { forgetOfflineMedia } from './offline';
 import { blockTrophySync } from './trophies';
 
 /**
@@ -149,6 +150,7 @@ export const deleteAccount = async () => {
   try {
     await cleanupMyMedia();
     await sweep(user.uid);
+    await forgetOfflineMedia();
     await deleteUser(user);
   } catch (error) {
     blockTrophySync(false);

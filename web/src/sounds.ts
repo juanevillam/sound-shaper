@@ -17,6 +17,7 @@ import {
 } from '@app/services/firebase/collections';
 
 import { auth, db } from './firebase';
+import { forgetOfflineSound } from './offline';
 import type { Sound } from './library';
 import { destroyAsset, uploadAudio, uploadImage, type Asset } from './media';
 
@@ -145,5 +146,9 @@ export const deleteSound = async (soundId: string) => {
   await Promise.all([
     destroyAsset((data?.audioPublicId as string) ?? '', 'video'),
     destroyAsset((data?.artPublicId as string) ?? '', 'image'),
+    forgetOfflineSound([
+      (data?.audioUrl as string) ?? '',
+      (data?.artUrl as string) ?? '',
+    ]),
   ]);
 };
