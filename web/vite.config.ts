@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import react from '@vitejs/plugin-react';
@@ -8,8 +9,17 @@ import { defineConfig } from 'vite';
 // browser's Web Audio API — resolves to the browser's own classes.
 const at = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
+// ONE VERSION LINE: the web says the app's own version (app.json), which is
+// what Settings → About names on a phone.
+const appVersion = (
+  JSON.parse(readFileSync(at('../app.json'), 'utf8')) as {
+    expo: { version: string };
+  }
+).expo.version;
+
 export default defineConfig({
   plugins: [react()],
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   resolve: {
     alias: {
       '@app': at('../src'),

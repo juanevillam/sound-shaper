@@ -9,7 +9,21 @@ import {
  * says exactly what the iOS app says. The language is the browser's, as the
  * app's is the phone's, falling back to English.
  */
+const LOCALE_KEY = 'soundshaper.locale';
+
+const chosenLocale = (): Locale | null => {
+  try {
+    const saved = localStorage.getItem(LOCALE_KEY) as Locale | null;
+    return saved && SUPPORTED_LOCALES.includes(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+};
+
 const pickLocale = (): Locale => {
+  const chosen = chosenLocale();
+  if (chosen) return chosen;
+
   for (const tag of navigator.languages ?? [navigator.language]) {
     const base = tag.toLowerCase().split('-')[0] as Locale;
 
@@ -20,6 +34,22 @@ const pickLocale = (): Locale => {
 };
 
 export const locale = pickLocale();
+
+export { SUPPORTED_LOCALES };
+
+/**
+ * Settings' Language row, as in the app: the choice outranks the browser's
+ * and is kept on this device. Every string is resolved once per page, so a
+ * new language takes a reload.
+ */
+export const setLocale = (next: Locale) => {
+  try {
+    localStorage.setItem(LOCALE_KEY, next);
+  } catch {
+    // Private mode: the choice lasts this page only, which a reload ends.
+  }
+  location.reload();
+};
 
 document.documentElement.lang = locale;
 

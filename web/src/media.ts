@@ -172,3 +172,11 @@ export const uploadFailureKey = (error: unknown, fallback: string): string => {
 
   return fallback;
 };
+
+/**
+ * Destroy every asset under this account's folder, in one sweep — the first
+ * step of deleting an account. NOT best-effort: a failure stops the delete
+ * before any document goes, so nothing is left unreachable.
+ */
+export const cleanupMyMedia = () =>
+  callBackend<{ destroyed: number }>('cleanupMyMedia');

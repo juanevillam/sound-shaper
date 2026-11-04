@@ -6,15 +6,22 @@ import type { User } from 'firebase/auth';
 import { t } from '../i18n';
 import { useLibrary, type Sound } from '../library';
 import { playSound, resetPlayer, syncLibrary, usePlayer } from '../player';
-import { signOut } from '../session';
 import { Artwork } from '../ui/Artwork';
 import { Backdrop } from '../ui/Backdrop';
 import { BrandMark } from '../ui/brand';
 import { ClipsForm } from '../ui/ClipsForm';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { Clip } from '../clips';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
-import { Bars, CheckGlyph, CloseGlyph, PlusGlyph } from '../ui/glyphs';
+import { AccountForm } from '../ui/AccountForm';
+import {
+  Bars,
+  CheckGlyph,
+  ChevronLeftGlyph,
+  CloseGlyph,
+  GearGlyph,
+  PlusGlyph,
+} from '../ui/glyphs';
+import { SettingsForm } from '../ui/SettingsForm';
 import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying, type Panel } from '../ui/NowPlaying';
 import { ShapeForm } from '../ui/ShapePanel';
@@ -35,6 +42,9 @@ import { showToast } from '../ui/Toast';
 const TILE_WIDTH = 220;
 
 const DESK = '(min-width: 64rem)';
+
+/** What the side column holds: a player sheet, or Settings and Account. */
+type HomePanel = Panel | 'settings' | 'account';
 
 /**
  * A change to the desk's columns, animated as one move. Opening a sheet
@@ -158,78 +168,6 @@ const SkeletonGrid = () => (
   </ul>
 );
 
-function AccountMenu({ user }: { user: User }) {
-  const [open, setOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', escape);
-    };
-  }, [open]);
-
-  const name = user.displayName ?? user.email ?? '';
-
-  return (
-    <div className="account" ref={root}>
-      <button
-        type="button"
-        className="avatar"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen(o => !o)}
-      >
-        {user.photoURL ? (
-          <img src={user.photoURL} alt="" referrerPolicy="no-referrer" />
-        ) : (
-          <span>{name.slice(0, 1)}</span>
-        )}
-        <span className="sr">{name}</span>
-      </button>
-      {open && (
-        <div className="menu" role="menu">
-          <div className="menu-who">
-            <strong>{user.displayName}</strong>
-            <span>{user.email}</span>
-          </div>
-          <button
-            type="button"
-            role="menuitem"
-            className="menu-item is-destructive"
-            onClick={() => {
-              setOpen(false);
-              setConfirming(true);
-            }}
-          >
-            {t('settings.signOut')}
-          </button>
-        </div>
-      )}
-      <ConfirmDialog
-        open={confirming}
-        title={t('settings.signOutDialog.title')}
-        message={t('settings.signOutDialog.message')}
-        cancel={t('settings.signOutDialog.cancel')}
-        confirm={t('settings.signOutDialog.confirm')}
-        onConfirm={() => {
-          resetPlayer();
-          void signOut();
-        }}
-        onClose={() => setConfirming(false)}
-      />
-    </div>
-  );
-}
-
 /**
  * iOS's large title: the name stands large at the top of the list, and once
  * it has scrolled under the bar the bar takes it, small and centred, over a
@@ -272,7 +210,9 @@ export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
   const current = usePlayer(s => s.current);
   const [expanded, setExpanded] = useState(false);
-  const [panel, setPanel] = useState<Panel | null>(null);
+  const [panel, setPanel] = useState<HomePanel | null>(null);
+  // Auth's user object changes in place; an edit bumps this to re-render.
+  const [, setProfileTick] = useState(0);
   // The clip editor, over the Clips sheet: `clip` null is a new clip.
   const [editing, setEditing] = useState<{ clip: Clip | null } | null>(null);
   // A picked mp3 waiting in the New Sound sheet.
@@ -283,7 +223,7 @@ export function Home({ user }: { user: User }) {
   const [opening, setOpening] = useState(0);
   const { top, title, edge, titled } = useLargeTitle();
   // The sheet keeps showing what it held while it slides away.
-  type Sheet = Panel | 'new';
+  type Sheet = HomePanel | 'new';
   const sheet: Sheet | null = composing ? 'new' : panel;
   const last = useRef<Sheet>('shape');
   if (sheet) last.current = sheet;
@@ -299,7 +239,7 @@ export function Home({ user }: { user: User }) {
   // A sign-out from another tab ends here too: nothing keeps playing.
   useEffect(() => resetPlayer, []);
 
-  const openPanel = (next: Panel | null) =>
+  const openPanel = (next: HomePanel | null) =>
     morph(() => {
       setPanel(next);
       if (next) setOpening(n => n + 1);
@@ -342,7 +282,11 @@ export function Home({ user }: { user: User }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
+      if (
+        e.key !== 'Escape' ||
+        document.querySelector('dialog[open], .progress-overlay')
+      )
+        return;
       if (editing) setEditing(null);
       else if (sheet) openPanel(null);
       else setExpanded(false);
@@ -375,7 +319,19 @@ export function Home({ user }: { user: User }) {
           <span className="bar-title" aria-hidden={!titled}>
             Sound Shaper
           </span>
-          <AccountMenu user={user} />
+          <button
+            type="button"
+            className="round bar-glyph"
+            aria-expanded={panel === 'settings' || panel === 'account'}
+            onClick={() =>
+              openPanel(
+                panel === 'settings' || panel === 'account' ? null : 'settings',
+              )
+            }
+          >
+            <GearGlyph />
+            <span className="sr">{t('app.settings')}</span>
+          </button>
         </header>
 
         <div ref={top} className="scroll-top" aria-hidden="true" />
@@ -407,27 +363,40 @@ export function Home({ user }: { user: User }) {
         <NowPlaying
           onCollapse={() => setExpanded(false)}
           onOpen={next => openPanel(panel === next ? null : next)}
-          panel={panel}
+          panel={panel === 'settings' || panel === 'account' ? null : panel}
         />
       </div>
 
       <SidePanel
         open={sheet !== null}
         title={
-          shown === 'new'
-            ? t('app.soundEdit')
-            : shown === 'edit'
-              ? t('app.soundEditExisting')
-              : editing
-                ? editing.clip
-                  ? t('player.clips.edit')
-                  : t('player.clips.new')
-                : shown === 'clips'
-                  ? t('player.clips.title')
-                  : t('player.shape.title')
+          shown === 'settings'
+            ? t('app.settings')
+            : shown === 'account'
+              ? t('settings.account.sheetTitle')
+              : shown === 'new'
+                ? t('app.soundEdit')
+                : shown === 'edit'
+                  ? t('app.soundEditExisting')
+                  : editing
+                    ? editing.clip
+                      ? t('player.clips.edit')
+                      : t('player.clips.new')
+                    : shown === 'clips'
+                      ? t('player.clips.title')
+                      : t('player.shape.title')
         }
         action={
-          shown === 'new' || shown === 'edit' ? (
+          shown === 'account' ? (
+            <button
+              type="button"
+              className="round"
+              onClick={() => openPanel('settings')}
+            >
+              <ChevronLeftGlyph />
+              <span className="sr">{t('common.back')}</span>
+            </button>
+          ) : shown === 'new' || shown === 'edit' ? (
             <button
               type="button"
               className="round"
@@ -480,7 +449,15 @@ export function Home({ user }: { user: User }) {
         }
         onClose={() => openPanel(null)}
       >
-        {shown === 'new' && lastComposing.current ? (
+        {shown === 'settings' ? (
+          <SettingsForm user={user} onAccount={() => openPanel('account')} />
+        ) : shown === 'account' ? (
+          <AccountForm
+            key={`account-${opening}`}
+            user={user}
+            onChanged={() => setProfileTick(n => n + 1)}
+          />
+        ) : shown === 'new' && lastComposing.current ? (
           <SoundForm
             key={`new-${opening}`}
             draft={{
