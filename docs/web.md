@@ -73,13 +73,19 @@ Done 2026-11-04, from Juan's browser:
    Enterprise) — key "Sound Shaper Web" in Google Cloud, bound to
    `soundshaper.juanevillam.com` only, TTL 1 hour. The reCAPTCHA Enterprise
    API is enabled; on Spark it has no billing account to charge.
-4. The media Worker answers CORS for `https://soundshaper.juanevillam.com`
-   and `http://localhost:5173` (`ALLOWED_ORIGINS`, portfolio
-   `services/media-worker`, the deployed source — this repo's
-   `media-worker/` copy is older).
 
 Still to do:
 
+- **Deploy the media Worker's CORS change before the web app's first
+  upload** (`npm run deploy:sound-shaper` in portfolio
+  `services/media-worker`, the deployed source — this repo's `media-worker/`
+  copy is older). Committed 2026-11-04 (portfolio `2ca88b93`) and tested
+  locally with `wrangler dev`, deliberately NOT deployed: nothing in a
+  browser calls the Worker yet, so deploying early only risks the live iOS
+  app. It allows `https://soundshaper.juanevillam.com` and
+  `http://localhost:5173` (`ALLOWED_ORIGINS`); without it every browser call
+  fails its CORS preflight with a 405. Verify after with a preflight
+  (`curl -i -X OPTIONS …/signUpload -H 'Origin: http://localhost:5173'` → 204) and a real upload from the iOS app.
 - An App Check debug token for `localhost`, made when the web app first
   initialises App Check (`self.FIREBASE_APPCHECK_DEBUG_TOKEN = true` logs one
   in development; paste it into App Check → Sound Shaper Web → Manage debug
