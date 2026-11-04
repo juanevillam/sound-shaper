@@ -8,13 +8,34 @@ import { t } from '../i18n';
 import { playClip, setRepeat, toggle, usePlayer } from '../player';
 
 import { ConfirmDialog } from './ConfirmDialog';
-import { Bars, PencilGlyph, TrashGlyph } from './glyphs';
+import { Bars, PencilGlyph, PlusGlyph, TrashGlyph } from './glyphs';
 
 const range = (clip: { startMs: number; endMs: number }) =>
   `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
+/**
+ * The list's last row: a new clip, in words. The bar's + alone was the only
+ * way in, and on a wide sheet a lone glyph in a corner is easy to miss — the
+ * row is where the list itself says what can be added to it (Reminders'
+ * "New Reminder").
+ */
+const NewClipRow = ({ onNew }: { onNew: () => void }) => (
+  <button type="button" className="cell new-clip-row" onClick={onNew}>
+    <span className="clip-mark">
+      <PlusGlyph />
+    </span>
+    {t('player.clips.new')}
+  </button>
+);
+
 /** The Clips sheet's body: Repeat, then the sound's clips, newest range last. */
-export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
+export function ClipsForm({
+  onEdit,
+  onNew,
+}: {
+  onEdit: (clip: Clip) => void;
+  onNew: () => void;
+}) {
   const current = usePlayer(s => s.current);
   const repeat = usePlayer(s => s.repeat);
   const active = usePlayer(s => s.activeClip?.id ?? null);
@@ -50,10 +71,15 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
           </div>
         </div>
       ) : clips.length === 0 ? (
-        <div className="side-empty">
-          <h3>{t('player.clips.none')}</h3>
-          <p>{t('player.clips.empty')}</p>
-        </div>
+        <>
+          <div className="side-empty">
+            <h3>{t('player.clips.none')}</h3>
+            <p>{t('player.clips.empty')}</p>
+          </div>
+          <div className="card">
+            <NewClipRow onNew={onNew} />
+          </div>
+        </>
       ) : (
         <ul className="card clip-list">
           {clips.map(clip => {
@@ -108,6 +134,9 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
               </li>
             );
           })}
+          <li className="cell-host">
+            <NewClipRow onNew={onNew} />
+          </li>
         </ul>
       )}
 

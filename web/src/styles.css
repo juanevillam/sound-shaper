@@ -21,6 +21,9 @@
   --destructive: #ff453a;
   --accent: rgb(10 132 255);
   --empty-media: #2c2c2e;
+  /* iOS 26's hard scroll edge: a dark blur with a hairline under it. */
+  --edge-bg: rgb(12 12 12 / 0.62);
+  --edge-line: rgb(255 255 255 / 0.14);
   --radius: 1rem;
   --gutter: max(1rem, env(safe-area-inset-left));
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -285,13 +288,23 @@ button {
 .library {
   position: relative;
   z-index: 1;
+  min-height: 100svh;
   padding: 0 var(--gutter) calc(7rem + env(safe-area-inset-bottom));
+  /* The app's home is black: the cover's wash belongs to the player and its
+     sheets, never to the library. */
+  background: var(--ground);
+}
+
+/* Phone: the library covers the wash, so the expanded player lifts it
+   above the library and under itself. */
+.home.is-expanded .backdrop {
+  z-index: 3;
 }
 
 /* iOS's navigation bar over a large title. At rest the bar is empty air over
-   the title; once anything scrolls under it a soft blur rises from the top
-   edge (the scroll-edge effect, no hairline, no shadow), and once the large
-   title has gone under, its small twin fades in at the centre. */
+   the title; once anything scrolls under it iOS 26 draws its scroll edge — a
+   dark blur band with a hairline under it, not Liquid Glass — and once the
+   large title has gone under, its small twin fades in at the centre. */
 .bar {
   position: sticky;
   top: 0;
@@ -304,22 +317,23 @@ button {
   padding: env(safe-area-inset-top) var(--gutter) 0;
 }
 
-.bar::before {
+.bar::before,
+.side-bar::before {
   content: '';
   position: absolute;
-  inset: 0 0 -1.5rem;
+  inset: 0;
   z-index: -1;
-  background: linear-gradient(rgb(13 13 13 / 0.7), rgb(13 13 13 / 0));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  mask-image: linear-gradient(#000 55%, transparent);
-  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  background: var(--edge-bg);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: inset 0 -0.5px 0 var(--edge-line);
   opacity: 0;
   transition: opacity var(--dur-quick) var(--ease);
   pointer-events: none;
 }
 
-.bar.is-edge::before {
+.bar.is-edge::before,
+.side-bar.is-edge::before {
   opacity: 1;
 }
 
@@ -348,9 +362,6 @@ button {
 }
 
 .large-title {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
   margin: 0.25rem 0 1.25rem;
   font-size: 2.125rem;
   font-weight: 700;
@@ -468,9 +479,24 @@ button {
   aspect-ratio: 1;
   margin-bottom: 0.5rem;
   border-radius: 15%;
-  transition:
-    transform 260ms var(--ease),
-    box-shadow 260ms var(--ease);
+  isolation: isolate;
+  /* Leaving a hover settles on a long, even curve; an ease-out that spends
+     itself in the first frames reads as a snap on the way back. */
+  transition: transform 560ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* The lift's shadow is a layer that fades, not an animated box-shadow,
+   which repaints every frame and stutters. */
+.tile-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 1rem 2rem rgb(0 0 0 / 0.5);
+  opacity: 0;
+  transition: opacity 560ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
 }
 
 .tile:active .tile-art {
@@ -481,7 +507,17 @@ button {
 @media (hover: hover) {
   .tile:hover .tile-art {
     transform: translateY(-4px);
-    box-shadow: 0 1rem 2rem rgb(0 0 0 / 0.45);
+    transition-duration: 320ms;
+  }
+
+  .tile:hover .tile-art::after {
+    opacity: 1;
+    transition-duration: 320ms;
+  }
+
+  .tile:hover:active .tile-art {
+    transform: translateY(-4px) scale(0.96);
+    transition-duration: 120ms;
   }
 }
 
@@ -806,7 +842,9 @@ button {
 /* The app's glass footer, holding the Shape card. */
 .dock {
   display: flex;
+  gap: 0.25rem;
   margin-top: 1.5rem;
+  padding: 0.25rem;
   border: 1px solid var(--glass-edge);
   border-radius: 1.375rem;
   background: var(--glass);
@@ -820,9 +858,10 @@ button {
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
-  padding: 0.875rem 1.125rem;
+  padding: 0.625rem 0.875rem;
   border: 0;
-  border-radius: inherit;
+  /* Concentric with the bar: its corner less the inset. */
+  border-radius: 1.125rem;
   background: none;
   text-align: start;
   transition:
@@ -830,12 +869,18 @@ button {
     background var(--dur) var(--ease);
 }
 
+@media (hover: hover) {
+  .dock-cell:hover {
+    background: rgb(255 255 255 / 0.06);
+  }
+}
+
 .dock-cell:active {
   transform: scale(0.97);
 }
 
 .dock-cell[aria-expanded='true'] {
-  background: rgb(255 255 255 / 0.08);
+  background: rgb(255 255 255 / 0.13);
 }
 
 .dock-icon {
@@ -1011,8 +1056,11 @@ button {
   bottom: 0;
   z-index: 6;
   display: grid;
-  grid-template-rows: auto 1fr;
-  max-height: 88svh;
+  grid-template-rows: minmax(0, 1fr);
+  /* The app's Shape and Clips are [1] sheets: the large detent, stopping
+     just under the status bar. */
+  height: calc(100svh - max(0.75rem, env(safe-area-inset-top) + 0.625rem));
+  overflow: hidden;
   border-top: 1px solid var(--hairline);
   border-radius: 1.5rem 1.5rem 0 0;
   background: var(--sheet-bg);
@@ -1032,6 +1080,9 @@ button {
 }
 
 .side-bar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -1110,6 +1161,37 @@ button {
   animation: rise var(--dur-turn) var(--ease) both;
 }
 
+.cell-host + .cell-host,
+.clip-row + .cell-host {
+  box-shadow: inset 0 1px 0 var(--separator);
+}
+
+/* A text button keeps the accent: without it, it stops reading as one. */
+.cell.new-clip-row {
+  justify-content: flex-start;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 1.0625rem;
+  text-align: start;
+  transition: background var(--dur-micro) var(--ease);
+}
+
+.new-clip-row .clip-mark {
+  color: inherit;
+}
+
+@media (hover: hover) {
+  .new-clip-row:hover {
+    background: rgb(255 255 255 / 0.04);
+  }
+}
+
+.new-clip-row:active {
+  background: rgb(255 255 255 / 0.08);
+}
+
 .row-actions {
   display: flex;
   justify-content: flex-end;
@@ -1180,7 +1262,9 @@ button {
      form overflows; max-content keeps every card its own height. */
   grid-auto-rows: max-content;
   gap: 1.375rem;
-  padding: 0.75rem 1rem max(1.5rem, env(safe-area-inset-bottom));
+  --form-x: 1rem;
+  padding: calc(var(--bar-h) + 0.75rem) var(--form-x)
+    max(1.5rem, env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -1371,7 +1455,8 @@ button {
    inset, so their first lines stand level. ══ */
 
 @media (min-width: 64rem) {
-  /* SHARES BY PRIORITY, 5 : 4 : 3 (Juan, 2026-11-04): the library first,
+  /* SHARES BY PRIORITY, 5 : 4 : 3.75 (Juan, 2026-11-04; the sheet widened
+     from 3 the same day, for the clip editor's room): the library first,
      the playing sound second, a sheet third. Equal halves gave the sound as
      much room as the library; equal thirds read well but starved nothing
      of priority. One progression for both states — the library keeps its
@@ -1390,13 +1475,13 @@ button {
   }
 
   .home.has-current.side-open {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3.75fr);
   }
 
   /* New Sound with nothing playing yet: the library and the sheet alone,
-     still 5 : 3. */
+     still 5 : 3.75. */
   .home.side-open:not(.has-current) {
-    grid-template-columns: minmax(0, 5fr) 0 minmax(0, 3fr);
+    grid-template-columns: minmax(0, 5fr) 0 minmax(0, 3.75fr);
   }
 
   .library {
@@ -1476,7 +1561,8 @@ button {
   }
 
   .form {
-    padding: 0.25rem var(--pad) var(--pad);
+    --form-x: var(--pad);
+    padding: calc(var(--bar-h) + 0.25rem) var(--form-x) var(--pad);
   }
 }
 
@@ -1522,6 +1608,28 @@ button {
   width: 100%;
   touch-action: none;
   cursor: grab;
+}
+
+/* The zoomed band runs under the sheet's own edges and fades into them, as
+   Voice Memos' does: it is a window onto a longer track, and a track panel
+   sliced flat by the form's padding read as broken. */
+.editor .editor-band {
+  width: calc(100% + var(--form-x) * 2);
+  margin: 0 calc(var(--form-x) * -1);
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--form-x),
+    #000 calc(100% - var(--form-x)),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--form-x),
+    #000 calc(100% - var(--form-x)),
+    transparent
+  );
 }
 
 .editor-band.is-dragging {

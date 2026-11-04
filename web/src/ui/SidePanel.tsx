@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { t } from '../i18n';
 
@@ -25,6 +25,16 @@ export function SidePanel({
   onClose: () => void;
   children: ReactNode;
 }) {
+  // iOS draws the bar's scroll edge only once something is under it.
+  const form = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState(false);
+
+  // A new sheet, or a new body in it, starts at the top with a bare bar.
+  useEffect(() => {
+    if (form.current) form.current.scrollTop = 0;
+    setEdge(false);
+  }, [title]);
+
   return (
     <aside
       className={open ? 'side is-open' : 'side'}
@@ -32,7 +42,7 @@ export function SidePanel({
       aria-hidden={!open}
       inert={!open}
     >
-      <header className="side-bar">
+      <header className={edge ? 'side-bar is-edge' : 'side-bar'}>
         <span className="side-lead">{action}</span>
         <h2>{title}</h2>
         {trailing ?? (
@@ -42,7 +52,13 @@ export function SidePanel({
           </button>
         )}
       </header>
-      <div className="form">{children}</div>
+      <div
+        ref={form}
+        className="form"
+        onScroll={e => setEdge(e.currentTarget.scrollTop > 0)}
+      >
+        {children}
+      </div>
     </aside>
   );
 }

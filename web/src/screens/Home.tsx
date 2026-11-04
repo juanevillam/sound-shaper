@@ -8,7 +8,6 @@ import { useLibrary, type Sound } from '../library';
 import { playSound, resetPlayer, syncLibrary, usePlayer } from '../player';
 import { Artwork } from '../ui/Artwork';
 import { Backdrop } from '../ui/Backdrop';
-import { BrandMark } from '../ui/brand';
 import { ClipsForm } from '../ui/ClipsForm';
 import type { Clip } from '../clips';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
@@ -340,8 +339,7 @@ export function Home({ user }: { user: User }) {
 
         <div ref={top} className="scroll-top" aria-hidden="true" />
         <h1 ref={title} className="large-title">
-          <BrandMark size={30} />
-          <span>Sound Shaper</span>
+          Sound Shaper
         </h1>
 
         {library.state === 'loading' && <SkeletonGrid />}
@@ -494,7 +492,10 @@ export function Home({ user }: { user: User }) {
             onDone={() => setEditing(null)}
           />
         ) : shown === 'clips' ? (
-          <ClipsForm onEdit={clip => setEditing({ clip })} />
+          <ClipsForm
+            onEdit={clip => setEditing({ clip })}
+            onNew={() => setEditing({ clip: null })}
+          />
         ) : (
           <ShapeForm />
         )}
