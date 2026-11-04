@@ -343,7 +343,7 @@ function Band({
 
     // The ruler: a second per label, one minor tick at the half.
     ctx.fillStyle = MUTED;
-    ctx.font = '11px ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.font = '500 12px system-ui, -apple-system, sans-serif';
     ctx.textAlign = 'center';
     for (let s = Math.floor(fromS * 2) / 2; s <= toS; s += 0.5) {
       const whole = Number.isInteger(s);

@@ -47,8 +47,6 @@
   --font-sans:
     system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text',
     'Segoe UI', sans-serif;
-  --font-mono:
-    ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   color-scheme: dark;
 }
 
@@ -536,6 +534,8 @@ button {
 }
 
 .artwork img {
+  /* Every layer in one cell: the last cover beneath, the new one over it. */
+  grid-area: 1 / 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -703,6 +703,9 @@ button {
 
 .now {
   display: grid;
+  /* One column the console's width: an auto track grew to the cover's
+     intrinsic size and pushed it past the column's measure. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 0;
 }
@@ -814,9 +817,9 @@ button {
 }
 
 .time {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -839,9 +842,9 @@ button {
 }
 
 .transport .play {
-  width: 4rem;
-  height: 4rem;
-  padding: 0.95rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0.625rem;
 }
 
 @media (hover: hover) {
@@ -853,10 +856,11 @@ button {
 /* The app's glass footer, holding the Shape card. */
 .dock {
   display: flex;
-  gap: 0.25rem;
+  /* Wide enough that a divider stands clear of a hovered or open pill. */
+  gap: 0.75rem;
   margin-top: 1.5rem;
   padding: 0.25rem;
-  border-radius: 999px;
+  border-radius: 1.375rem;
   background: var(--lg-fill);
   backdrop-filter: var(--lg-blur);
   -webkit-backdrop-filter: var(--lg-blur);
@@ -871,7 +875,7 @@ button {
   position: absolute;
   top: 25%;
   bottom: 25%;
-  left: calc(-0.125rem - 0.5px);
+  left: calc(-0.375rem - 0.5px);
   width: 1px;
   background: var(--separator);
   transition: opacity var(--dur-micro) var(--ease);
@@ -889,8 +893,8 @@ button {
   min-width: 0;
   padding: 0.625rem 1rem;
   border: 0;
-  /* A capsule inside a capsule: the hover and the open state are a pill. */
-  border-radius: 999px;
+  /* Concentric with the bar: its corner less the inset. */
+  border-radius: 1.125rem;
   background: none;
   text-align: start;
   transition:
@@ -1079,11 +1083,15 @@ button {
   object-fit: cover;
   filter: blur(60px);
   opacity: 0;
-  transition: opacity 420ms var(--ease);
+  /* The outgoing cover waits for the incoming one to be fully in, so the
+     wash crosses cover to cover and never dips to bare ground between. */
+  transition: opacity 420ms var(--ease) 420ms;
 }
 
 .player-backdrop img.is-on {
+  z-index: 1;
   opacity: 0.75;
+  transition-delay: 0ms;
 }
 
 /* The art-less sound's wash: the ink in two crossing ramps. */
@@ -1117,6 +1125,7 @@ button {
 .player-backdrop .fade {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background: linear-gradient(
     rgb(13 13 13 / 0.24) 0%,
     rgb(13 13 13 / 0.24) 12%,
@@ -1183,7 +1192,7 @@ button {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   height: var(--bar-h);
-  padding: 0 1.25rem;
+  padding: 0 0.875rem;
 }
 
 .side-bar h2 {
@@ -1528,8 +1537,7 @@ button {
 
 .band-hz,
 .band-db {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1647,8 +1655,11 @@ button {
     /* The player column HUGS its console: the cover as large as the window's
        height allows with the dock still in, and the app's 16pt either side.
        A share of the width left a short window's cover floating in air. */
-    --cover: clamp(14rem, calc(100svh - 24.5rem), 30rem);
-    --now-w: calc(var(--cover) + 4rem);
+    --cover: clamp(13rem, calc(100svh - 26rem), 20rem);
+    --now-w: calc(var(--cover) + 3rem);
+    /* The Shape / Clips / Account sheet: a sheet's measure, not a share of
+       the window — a share made it a second library on a wide screen. */
+    --side-w: clamp(20rem, 27vw, 24rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 0 0;
     height: 100svh;
@@ -1660,13 +1671,13 @@ button {
   }
 
   .home.has-current.side-open {
-    grid-template-columns: minmax(0, 5fr) var(--now-w) minmax(0, 3.75fr);
+    grid-template-columns: minmax(0, 1fr) var(--now-w) var(--side-w);
   }
 
   /* New Sound with nothing playing yet: the library and the sheet alone,
      still 5 : 3.75. */
   .home.side-open:not(.has-current) {
-    grid-template-columns: minmax(0, 5fr) 0 minmax(0, 3.75fr);
+    grid-template-columns: minmax(0, 1fr) 0 var(--side-w);
   }
 
   .library {
@@ -1676,9 +1687,22 @@ button {
     padding: 0 var(--pad) 3rem;
   }
 
+  /* The bar's glyph sits 1rem off the column's edge, as a toolbar's does —
+     not out at the grid's wider margin. */
+  /* The clip editor's pill loses Shape on a desk: the dock's Shape is one
+     column over, and two ways into one sheet put its close glyph in two
+     places. */
+  .glass-pill .pill-shape {
+    display: none;
+  }
+
+  .glass-pill .is-commit {
+    margin-left: 0;
+  }
+
   .bar {
     margin: 0 calc(var(--pad) * -1);
-    padding: 0 var(--pad);
+    padding: 0 1rem 0 var(--pad);
   }
 
   .grid {
@@ -1691,9 +1715,13 @@ button {
     z-index: 1;
     grid-column: 2;
     display: block;
+    /* The phone's column centres its console; a block container honours
+       align-content now, so the desk has to say top, or the cover floats
+       mid-column instead of standing under the window's edge. */
+    align-content: start;
     /* The cover stands near the top, as the phone's sits 12pt under the
        island — no bar shares this column — with 2rem of air either side. */
-    padding: 1.5rem 2rem;
+    padding: 1.5rem;
     border-left: 1px solid var(--hairline);
     background: var(--ground);
     opacity: 1;
@@ -1798,26 +1826,12 @@ button {
   cursor: grab;
 }
 
-/* The zoomed band runs under the sheet's own edges and fades into them, as
-   Voice Memos' does: it is a window onto a longer track, and a track panel
-   sliced flat by the form's padding read as broken. */
+/* The zoomed band is a rounded window onto the track, inside the form's
+   margins: the track's own panel pans with it, so at either end of the
+   sound it is the TRACK that ends, and the window shows the sheet beyond it
+   (Voice Memos). */
 .editor .editor-band {
-  width: calc(100% + var(--form-x) * 2);
-  margin: 0 calc(var(--form-x) * -1);
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 var(--form-x),
-    #000 calc(100% - var(--form-x)),
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 var(--form-x),
-    #000 calc(100% - var(--form-x)),
-    transparent
-  );
+  border-radius: 1rem;
 }
 
 .editor-band.is-dragging {
@@ -1834,15 +1848,17 @@ button {
   margin-top: 0.5rem;
   padding: 0 0.875rem;
   color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
+/* The app's 34pt semibold readout — a running timer's weight, not a
+   display face's hairline. */
 .editor-timecode {
   text-align: center;
-  font-size: 3rem;
-  font-weight: 300;
+  font-size: 2.125rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1852,9 +1868,9 @@ button {
 }
 
 .transport .skip15 {
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0.3rem;
+  width: 3rem;
+  height: 3rem;
+  padding: 0.4375rem;
 }
 
 .round.is-commit {

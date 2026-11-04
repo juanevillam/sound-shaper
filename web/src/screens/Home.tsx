@@ -452,7 +452,13 @@ export function Home({ user }: { user: User }) {
               // The app's merged pill: Shape stacks over the editor, the ✓
               // commits the clip.
               <span className="glass-pill">
-                <button type="button" onClick={() => setShapeOver(true)}>
+                {/* Phone only: on a desk the dock's Shape is beside the
+                    editor already, and opening it there replaces the clip. */}
+                <button
+                  type="button"
+                  className="pill-shape"
+                  onClick={() => setShapeOver(true)}
+                >
                   <ShapeGlyph />
                   <span className="sr">{t('player.shape.title')}</span>
                 </button>
