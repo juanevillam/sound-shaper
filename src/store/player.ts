@@ -23,6 +23,12 @@ export type ActiveClip = { clipId: string; startS: number; endS: number };
 /** The clip editor's preview borrows `activeClip` under this id. */
 const PREVIEW_CLIP_ID = 'preview';
 
+/**
+ * Auto DJ's cue borrows `pendingClip` under this id: a sound loaded to start
+ * at a point, with no clip boundary after it — the DJ decides where it ends.
+ */
+const CUE_CLIP_ID = 'autodj-cue';
+
 // Global playback state. WHAT is playing (sound + its playlist queue), the
 // user's shaping choices (rate, pitch), and the live transport (position /
 // duration / playing) — the last three are fed in by the <AudioEngine> from
@@ -100,6 +106,11 @@ type PlayerState = {
 
   playSound: (sound: Sound, queue: Sound[]) => void;
   requestExpand: () => void;
+  /**
+   * Load `sound` and start it at `startS` — how Auto DJ cuts to the next
+   * stretch of its set. Leaves the queue alone, like a clip run's crossing.
+   */
+  cueSound: (sound: Sound, startS: number) => void;
   /** Jump-play a saved range of the CURRENT sound. */
   playClip: (clipId: string, startMs: number, endMs: number) => void;
   /** Follow a live end-cap edit while the editor's preview is sounding. */
@@ -319,6 +330,16 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   requestExpand: () => set(state => ({ expandNonce: state.expandNonce + 1 })),
+
+  cueSound: (sound, startS) => {
+    endRun();
+    set(state => ({
+      current: sound,
+      playing: true,
+      ...loadReset(state.loadNonce, sound),
+      pendingClip: { clipId: CUE_CLIP_ID, startS, endS: Infinity },
+    }));
+  },
 
   playClip: (clipId, startMs, endMs) => {
     const sound = get().current;
@@ -686,7 +707,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       until: Date.now() + SETTLE_WINDOW_MS,
     };
     set({
-      activeClip: pending,
+      // A cue has no boundary for the clip logic to act on.
+      activeClip: pending.clipId === CUE_CLIP_ID ? null : pending,
       pendingClip: null,
       // The load's own guard is answered by `settle` from here on, and it
       // would otherwise wait for a report under 1s that a clip deep in the

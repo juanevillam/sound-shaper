@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { decodeAudioData } from 'react-native-audio-api';
 
-import { offlineAudioPath } from './offlineAudio';
+import { withSoundFile } from './soundFile';
 
 // The clip editor's waveform — RMS buckets decoded ONCE per sound, ever.
 //
@@ -177,22 +177,8 @@ async function compute(
   const cached = await readCached(jsonPath);
   if (cached) return cached;
 
-  /**
-   * THE OFFLINE MIRROR ALREADY HAS THE FILE, USUALLY — every sound in the
-   * library is on the phone (`lib/offlineAudio.ts`), so the decode reads that
-   * copy instead of pulling the mp3 down a second time. It also makes the clip
-   * editor work with no signal, which the download below never could.
-   *
-   * The borrowed file is NOT OURS TO DELETE, which is what the two paths below
-   * separate: only a file this function fetched is removed afterwards.
-   */
-  const mirrored = offlineAudioPath(soundId);
-  const mirroredInfo = await FileSystem.getInfoAsync(mirrored);
-  const borrowed = mirroredInfo.exists && (mirroredInfo.size ?? 0) > 0;
-  const mp3Path = borrowed ? mirrored : `${cacheDir()}${soundId}.mp3`;
-
-  try {
-    if (!borrowed) await FileSystem.downloadAsync(audioUrl, mp3Path);
+  // The mirror's copy when there is one — see `withSoundFile`.
+  return withSoundFile(soundId, audioUrl, cacheDir(), async mp3Path => {
     const buffer = await decodeAudioData(mp3Path, DECODE_SAMPLE_RATE);
     const waveform = bucketize(
       buffer.getChannelData(0),
@@ -200,18 +186,12 @@ async function compute(
       buffer.duration,
     );
     if (!waveform) return null;
-    // WRITTEN BESIDE, THEN MOVED INTO PLACE — the offline mirror's own rule. A
-    // process killed mid-write used to leave a truncated JSON under the real
-    // name, and `readCached` is what now survives one; this stops making them.
     const tempPath = `${jsonPath}.tmp`;
     await FileSystem.writeAsStringAsync(tempPath, JSON.stringify(waveform));
     await FileSystem.deleteAsync(jsonPath, { idempotent: true });
     await FileSystem.moveAsync({ from: tempPath, to: jsonPath });
     return waveform;
-  } finally {
-    if (!borrowed)
-      FileSystem.deleteAsync(mp3Path, { idempotent: true }).catch(() => {});
-  }
+  });
 }
 
 /**

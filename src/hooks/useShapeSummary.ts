@@ -1,5 +1,6 @@
 import { useI18n } from '@/i18n';
 import { rateLabel } from '@/lib/player';
+import { useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
 import { presetLabel, useShaperStore } from '@/store/shaper';
 
@@ -43,6 +44,12 @@ export function useShapeSummary(): string {
   const keepPitch = usePlayerStore(s => s.keepPitch);
   const nextRoom = useShaperStore(s => s.nextRoom);
   const echo = useShaperStore(s => s.echo);
+
+  // WHILE THE DJ MIXES, THE SUMMARY NAMES THE DJ. The shape under it changes
+  // every few beats, and a summary that rewrote itself that often would be a
+  // flicker in the bar rather than a statement.
+  const djOn = useAutoDjStore(s => s.on);
+  if (djOn) return t('player.autoDj');
 
   const presetSummary =
     presetLabel(t, activePreset) ?? t('player.shape.custom');

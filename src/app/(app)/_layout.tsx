@@ -7,6 +7,7 @@ import { Redirect, Stack } from 'expo-router';
 import { router } from 'expo-router';
 
 import { AudioEngine } from '@/components/player/AudioEngine';
+import { AutoDjDirector } from '@/components/player/AutoDjDirector';
 import { NowPlayingBridge } from '@/components/player/NowPlayingBridge';
 import { HeaderCloseButtonIos } from '@/components/ui/HeaderCloseButtonIos';
 import { useAppTheme } from '@/core';
@@ -193,6 +194,9 @@ export default function AppLayout() {
           is deliberately NOT tied to the player UI: the UI is mounted by the
           Home screen (see its comment), this keeps playing regardless. */}
       <AudioEngine />
+      {/* The Auto DJ's hand on the Shape controls — headless, beside the
+          engine, so a mix keeps going with every sheet closed. */}
+      <AutoDjDirector />
       {/* Publishes the system Now Playing session, on BOTH platforms — iOS's
           Dynamic Island pill, Lock Screen player and Control Center card, and
           Android's MediaSession notification in the shade and on the lock

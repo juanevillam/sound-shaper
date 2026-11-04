@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Image } from 'expo-image';
 
 import { forgetPrefetchedArt } from '@/hooks/useOfflineMirror';
+import { clearSongMaps } from '@/lib/autoDj/songMap';
 import { clearMirror } from '@/lib/offlineAudio';
 import {
   hydrateTrophyCounters,
@@ -17,6 +18,7 @@ import {
 import { forgetClipsOfSounds } from '@/services/firebase/clips';
 import { upsertOwnProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { useAutoDjStore } from '@/store/autoDj';
 import { useClipRepeatStore } from '@/store/clipRepeat';
 import { useClipsStore } from '@/store/clips';
 import { useClipsSavedStore } from '@/store/clipsSaved';
@@ -80,6 +82,9 @@ export const useAuthListener = () => {
          * copy of the curve back to flat — see the store.
          */
         useShaperStore.getState().reset();
+        // The Auto DJ is shaping too — off, and nothing of the last account's
+        // shape held to restore.
+        useAutoDjStore.getState().reset();
         /**
          * AND THE MIRRORED AUDIO, which is the same rule one level down: the
          * mp3s on disk are the signed-out account's sounds, and the ids they
@@ -98,6 +103,7 @@ export const useAuthListener = () => {
          * Fire-and-forget, like the mirror.
          */
         void clearWaveforms();
+        void clearSongMaps();
         void Image.clearDiskCache().catch(() => {});
         void Image.clearMemoryCache().catch(() => {});
         clearUser({ sessionExpired: wasAuthedRef.current && !wasManual });

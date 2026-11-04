@@ -85,6 +85,12 @@ export const translations = {
         'Plays the sound as if it were coming from another room, muffled through a wall.',
       echo: 'Echo',
       echoDescription: 'Adds a short repeat, so the sound arrives twice.',
+      // AUTO DJ (2026-11-04). The styles are names, so title case in English.
+      autoDj: 'Auto DJ',
+      autoDjDescription:
+        'Mixes parts of every sound in your library into a set, differently every time.',
+      autoDjPreparing: 'Reading Library',
+      autoDjProgress: '{ready} of {total}',
       shape: {
         title: 'Shape',
         custom: 'Custom',
@@ -445,6 +451,11 @@ export const translations = {
       echo: 'Eco',
       echoDescription:
         'Añade una repetición corta, para que el sonido llegue dos veces.',
+      autoDj: 'Auto DJ',
+      autoDjDescription:
+        'Mezcla partes de todos los sonidos de tu biblioteca en un set, distinto cada vez.',
+      autoDjPreparing: 'Leyendo biblioteca',
+      autoDjProgress: '{ready} de {total}',
       shape: {
         title: 'Moldear',
         custom: 'Personalizado',
@@ -763,6 +774,10 @@ export const translations = {
       nextRoomDescription: '让声音听起来像从隔壁房间传来，隔着一堵墙。',
       echo: '回声',
       echoDescription: '添加一次短暂的重复，让声音响两次。',
+      autoDj: '自动 DJ',
+      autoDjDescription: '将资料库中所有声音的片段混成一套，每次都不同。',
+      autoDjPreparing: '正在读取资料库',
+      autoDjProgress: '{ready}/{total}',
       shape: {
         title: '塑形',
         custom: '自定',

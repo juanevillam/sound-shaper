@@ -20,8 +20,10 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
+import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import {
   EFFECT_LEVELS,
@@ -37,6 +39,7 @@ import {
   stopToRate,
 } from '@/lib/player';
 import { track } from '@/services/firebase/analytics';
+import { useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
 import {
   dbLabel,
@@ -45,7 +48,7 @@ import {
   presetLabel,
   useShaperStore,
 } from '@/store/shaper';
-import { SheetFormBodyIos } from '@/ui';
+import { FormValueRowIos, SheetFormBodyIos } from '@/ui';
 
 // iOS-only route: every sound-shaping control as a grouped native `Form`
 // (Android presents the Compose `ShaperSheet` in place). iOS vocabulary
@@ -88,6 +91,18 @@ const EQ_LABEL_WIDTH = 38;
 
 /** The Presets row's tag for a hand-shaped curve; never a real preset key. */
 const CUSTOM_TAG = 'custom';
+
+/**
+ * HOW FAR THE FIRST READ OF THE LIBRARY HAS GOT — after the standard loading
+ * delay, never before. Once the library has been read, switching Auto DJ on
+ * only reloads what is cached, which finishes inside that window; shown at
+ * once, the row flashed in and out (Juan, on device, 2026-11-04). Mounted
+ * only while reading, so the delay counts from the switch, not the sheet.
+ */
+function DjProgressRow(props: Parameters<typeof FormValueRowIos>[0]) {
+  const show = useDelayedShow(SKELETON_DELAY_MS);
+  return show ? <FormValueRowIos {...props} /> : null;
+}
 
 /**
  * One graded effect — Echo or Next Room — as a menu `Picker` row in a section
@@ -145,6 +160,30 @@ function ShaperSheetScreen() {
   const echo = useShaperStore(s => s.echo);
   const setEcho = useShaperStore(s => s.setEcho);
 
+  const djOn = useAutoDjStore(s => s.on);
+  const djReady = useAutoDjStore(s => s.ready);
+  const djTotal = useAutoDjStore(s => s.total);
+  const startDj = useAutoDjStore(s => s.start);
+  const stopDj = useAutoDjStore(s => s.stop);
+
+  /**
+   * ANY OTHER CONTROL TAKES THE SHAPE BACK FROM THE DJ. Moving one while it
+   * mixes would be overwritten on the next beat, which reads as the control
+   * not working. So the DJ stops and the sound stays where it is — not
+   * restored, because snapping back to the pre-DJ shape under the person's
+   * finger would undo the move they just made. See `store/autoDj.ts`.
+   */
+  const byHand =
+    <A extends unknown[]>(action: (...args: A) => void) =>
+    (...args: A) => {
+      if (useAutoDjStore.getState().on) stopDj({ restore: false });
+      action(...args);
+    };
+
+  const djProgress = t('player.autoDjProgress')
+    .replace('{ready}', String(djReady))
+    .replace('{total}', String(djTotal));
+
   const levelLabel = (level: EffectLevel) => shaperLevelLabel(t, level);
 
   // A Picker hands back an unknown; only a known level may reach the engine.
@@ -188,7 +227,7 @@ function ShaperSheetScreen() {
             label={t('player.shape.presets')}
             selection={activePreset ?? CUSTOM_TAG}
             onSelectionChange={key => {
-              if (key !== CUSTOM_TAG) applyPreset(String(key));
+              if (key !== CUSTOM_TAG) byHand(applyPreset)(String(key));
             }}
             modifiers={[pickerStyle('menu')]}
           >
@@ -239,7 +278,9 @@ function ShaperSheetScreen() {
                 min={EQ_MIN_DB}
                 max={EQ_MAX_DB}
                 step={1}
-                onValueChange={value => setBandGain(index, Math.round(value))}
+                onValueChange={value =>
+                  byHand(setBandGain)(index, Math.round(value))
+                }
               />
               <SwiftUIText
                 modifiers={[
@@ -289,7 +330,7 @@ function ShaperSheetScreen() {
             min={0}
             max={RATE_LAST_STOP}
             step={1}
-            onValueChange={value => setRate(stopToRate(value))}
+            onValueChange={value => byHand(setRate)(stopToRate(value))}
           />
         </Section>
 
@@ -302,7 +343,7 @@ function ShaperSheetScreen() {
           <Toggle
             isOn={keepPitch}
             label={t('player.keepPitch')}
-            onIsOnChange={setKeepPitch}
+            onIsOnChange={byHand(setKeepPitch)}
             // GREEN, not the ink and not the accent — see `switchOn`. It
             // has to be stated because a SwiftUI `Toggle` takes the ambient
             // accent, and `SheetFormBodyIos` tints this whole Form `primary`
@@ -323,7 +364,7 @@ function ShaperSheetScreen() {
           label={t('player.echo')}
           footer={t('player.echoDescription')}
           value={echo}
-          onChange={key => setEcho(asLevel(key))}
+          onChange={key => byHand(setEcho)(asLevel(key))}
           levelLabel={levelLabel}
         />
 
@@ -337,9 +378,35 @@ function ShaperSheetScreen() {
           label={t('player.nextRoom')}
           footer={t('player.nextRoomDescription')}
           value={nextRoom}
-          onChange={key => setNextRoom(asLevel(key))}
+          onChange={key => byHand(setNextRoom)(asLevel(key))}
           levelLabel={levelLabel}
         />
+
+        {/* AUTO DJ CLOSES THE SHEET (Juan, 2026-11-04): a switch, like
+          Preserve Pitch — on, it plays the library as a set and moves every
+          control above it itself, mixing the speeds and curves the way a DJ
+          would; off from here, the shape goes back to what it was. While the
+          library is read the first time, a row says how far that has got.
+          What comes next is not shown, on purpose: a DJ does not announce
+          the next record. */}
+        <Section
+          footer={<SwiftUIText>{t('player.autoDjDescription')}</SwiftUIText>}
+        >
+          <Toggle
+            isOn={djOn}
+            label={t('player.autoDj')}
+            onIsOnChange={on => (on ? startDj() : stopDj({ restore: true }))}
+            // Green, as Preserve Pitch above — see `switchOn`.
+            modifiers={[tint(colors.switchOn)]}
+          />
+          {djOn && djTotal > 0 && djReady < djTotal ? (
+            <DjProgressRow
+              label={t('player.autoDjPreparing')}
+              value={djProgress}
+              colors={colors}
+            />
+          ) : null}
+        </Section>
       </SheetFormBodyIos>
     </SheetScreen>
   );
