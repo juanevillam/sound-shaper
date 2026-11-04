@@ -14,6 +14,9 @@ import { ClipIcon, GoogleG, LibraryIcon, ShapeIcon } from '../ui/icons';
 
 const APP_NAME = 'Sound Shaper';
 
+// The brand mark's five bars, as fractions of the tallest (BrandMark.tsx).
+const STAGE_BARS = [15 / 32, 25 / 32, 16 / 32, 1, 20 / 32];
+
 const FEATURES = [
   { key: 'library', Icon: LibraryIcon },
   { key: 'shape', Icon: ShapeIcon },
@@ -50,6 +53,19 @@ export function Welcome() {
 
   return (
     <main className="welcome">
+      {/* On a desk the welcome stands beside a stage: the mark's five bars,
+          large and moving as if a sound were playing through them. */}
+      <div className="welcome-stage" aria-hidden="true">
+        <div className="stage-light" />
+        <div className="stage-bars">
+          {STAGE_BARS.map((height, i) => (
+            <i
+              key={i}
+              style={{ '--h': height, '--i': i } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      </div>
       <section className="welcome-hero">
         <BrandTile size={88} />
         <h1>{APP_NAME}</h1>

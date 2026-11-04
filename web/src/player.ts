@@ -1,0 +1,241 @@
+import { useSyncExternalStore } from 'react';
+
+import { audioEngine } from '@app/lib/audioEngine';
+import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
+import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
+
+import type { Sound } from './library';
+import { asHandle, type AudioTagHandle } from './shims/audio-api';
+
+/**
+ * THE WEB'S PLAYER STORE — the app's `store/player.ts` and `store/shaper.ts`
+ * in one small module, driving the app's own `audioEngine`. One media element
+ * per sound, as the app has one <Audio> per load: `createMediaElementSource`
+ * takes an element once, and the engine builds a fresh graph for each.
+ */
+export type PlayerState = {
+  /** The library, in grid order — what next and previous walk. */
+  queue: Sound[];
+  current: Sound | null;
+  /** True once `current` has been loaded into an element. */
+  loaded: boolean;
+  playing: boolean;
+  position: number;
+  duration: number;
+  rate: number;
+  keepPitch: boolean;
+  gains: number[];
+  echo: EffectLevel;
+  nextRoom: EffectLevel;
+};
+
+const FLAT = EQ_PRESETS[0].gains;
+
+const initial: PlayerState = {
+  queue: [],
+  current: null,
+  loaded: false,
+  playing: false,
+  position: 0,
+  duration: 0,
+  rate: 1,
+  keepPitch: true,
+  gains: [...FLAT],
+  echo: 'off',
+  nextRoom: 'off',
+};
+
+let state = initial;
+const listeners = new Set<() => void>();
+let element: AudioTagHandle | null = null;
+let frame = 0;
+
+const set = (patch: Partial<PlayerState>) => {
+  state = { ...state, ...patch };
+  listeners.forEach(listener => listener());
+};
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export const usePlayer = <T>(select: (s: PlayerState) => T): T =>
+  useSyncExternalStore(subscribe, () => select(state));
+
+// The playhead follows the element every frame while it plays, so the
+// scrubber moves smoothly rather than in timeupdate's four steps a second.
+const follow = () => {
+  cancelAnimationFrame(frame);
+  const tick = () => {
+    if (element) set({ position: element.currentTime });
+    if (state.playing) frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+};
+
+const release = () => {
+  cancelAnimationFrame(frame);
+  if (!element) return;
+  element.pause();
+  element.removeAttribute('src');
+  element.load();
+  element = null;
+  audioEngine.registerHandle(null);
+  audioEngine.teardownGraph();
+};
+
+const load = (sound: Sound) => {
+  release();
+
+  const el = asHandle(new Audio());
+
+  // Cloudinary answers CORS, and Web Audio may only read a cross-origin
+  // stream the page asked for anonymously.
+  el.crossOrigin = 'anonymous';
+  el.preload = 'auto';
+  el.src = sound.audioUrl;
+  el.playbackRate = state.rate;
+  el.preservesPitch = state.keepPitch;
+  el.addEventListener('play', () => {
+    set({ playing: true });
+    follow();
+  });
+  el.addEventListener('pause', () => set({ playing: false }));
+  el.addEventListener('loadedmetadata', () =>
+    set({ duration: Number.isFinite(el.duration) ? el.duration : 0 }),
+  );
+  el.addEventListener('ended', () => step(1));
+
+  audioEngine.registerHandle(el);
+  audioEngine.buildGraph(el);
+  audioEngine.apply(state.gains, state.nextRoom, state.echo);
+  element = el;
+  set({
+    current: sound,
+    loaded: true,
+    position: 0,
+    duration: (sound.durationMs ?? 0) / 1000,
+  });
+};
+
+/** Keep the queue in step with the library, as the app's `syncLibrary` does. */
+export const syncLibrary = (sounds: Sound[]) => {
+  const current = state.current
+    ? (sounds.find(s => s.id === state.current?.id) ?? null)
+    : null;
+
+  // The playing sound was deleted elsewhere: stop rather than play a ghost.
+  if (state.current && !current) {
+    release();
+    set({
+      queue: sounds,
+      current: sounds[0] ?? null,
+      loaded: false,
+      playing: false,
+      position: 0,
+    });
+    return;
+  }
+
+  // Nothing chosen yet: the banner parks on the first sound, as the app's
+  // idle banner does.
+  set({ queue: sounds, current: current ?? sounds[0] ?? null });
+};
+
+const start = async () => {
+  // A browser starts its audio context only from a gesture — the tap that
+  // got here.
+  await audioEngine.getContext().resume();
+  await element?.play().catch(() => set({ playing: false }));
+};
+
+export const playSound = async (sound: Sound): Promise<void> => {
+  if (state.loaded && state.current?.id === sound.id) return toggle();
+  load(sound);
+  await start();
+};
+
+export const toggle = async (): Promise<void> => {
+  if (!state.current) return;
+  if (!state.loaded) return playSound(state.current);
+  if (state.playing) element?.pause();
+  else await start();
+};
+
+const step = (by: 1 | -1) => {
+  const { queue, current } = state;
+
+  if (!queue.length) return;
+
+  const index = queue.findIndex(s => s.id === current?.id);
+  const next = queue[(index + by + queue.length) % queue.length];
+
+  load(next);
+  void start();
+};
+
+export const next = () => step(1);
+
+/** Previous restarts the sound past its first three seconds, as Music does. */
+export const previous = () => {
+  if (element && element.currentTime > 3) return seek(0);
+  step(-1);
+};
+
+export const seek = (seconds: number) => {
+  if (!element) return;
+  element.currentTime = seconds;
+  set({ position: seconds });
+};
+
+// ── The Shape ───────────────────────────────────────────────────────────
+
+export const presetOf = (gains: number[]): string =>
+  EQ_PRESETS.find(p => p.gains.every((g, i) => g === gains[i]))?.i18nKey ??
+  'custom';
+
+export const setPreset = (key: string) => {
+  const preset = EQ_PRESETS.find(p => p.i18nKey === key);
+
+  if (!preset) return;
+  audioEngine.apply(preset.gains);
+  set({ gains: [...preset.gains] });
+};
+
+export const setBand = (index: number, db: number) => {
+  audioEngine.setBandGain(index, db);
+  set({ gains: state.gains.map((g, i) => (i === index ? db : g)) });
+};
+
+export const setRate = (rate: number) => {
+  const snapped = Math.min(RATE_MAX, Math.max(RATE_MIN, snapRate(rate)));
+
+  if (element) element.playbackRate = snapped;
+  set({ rate: snapped });
+};
+
+export const setKeepPitch = (keepPitch: boolean) => {
+  if (element) element.preservesPitch = keepPitch;
+  set({ keepPitch });
+};
+
+export const setEcho = (level: EffectLevel) => {
+  audioEngine.setEcho(level);
+  set({ echo: level });
+};
+
+export const setNextRoom = (level: EffectLevel) => {
+  audioEngine.setNextRoom(level);
+  set({ nextRoom: level });
+};
+
+/**
+ * Everything the player holds belongs to the person signed in, so signing
+ * out stops the sound and forgets the shape — the app's sign-out resets.
+ */
+export const resetPlayer = () => {
+  release();
+  audioEngine.apply(FLAT, 'off', 'off');
+  set(initial);
+};

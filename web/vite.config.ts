@@ -13,6 +13,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@app': at('../src'),
+      // The shared modules' own imports (`@/i18n` in lib/player.ts).
+      '@': at('../src'),
       'react-native-audio-api': at('./src/shims/audio-api.ts'),
     },
   },

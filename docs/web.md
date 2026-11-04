@@ -111,7 +111,12 @@ Still to do:
 2. Firebase web: sign in (Google), read the library, App Check. Built
    2026-11-04 (Welcome, Google popup, live library, tap to play).
 3. Library grid and the player (mini and expanded), streaming from Cloudinary.
-4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room.
+   Built 2026-11-04: on a desk three columns (now playing, grid, Shape), the
+   site's full-screen Songs player as the whole window; on a phone the app's
+   grid, mini player, full-screen player and Shape sheet. Signing out stops
+   the sound and forgets the shape (`resetPlayer`).
+4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room. Built
+   2026-11-04, beside step 3.
 5. Clips, then uploads and Edit Sound (tags, artwork).
 6. Trophies, Settings, Manage Account, delete account.
 7. PWA: manifest, icons from the brand art, service worker, install.

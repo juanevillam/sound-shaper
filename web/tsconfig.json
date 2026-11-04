@@ -12,6 +12,7 @@
     "types": ["vite/client"],
     "paths": {
       "@app/*": ["../src/*"],
+      "@/*": ["../src/*"],
       "react-native-audio-api": ["./src/shims/audio-api.ts"]
     }
   },

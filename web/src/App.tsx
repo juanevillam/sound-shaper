@@ -1,4 +1,4 @@
-import { Library } from './screens/Library';
+import { Home } from './screens/Home';
 import { Welcome } from './screens/Welcome';
 import { useSession } from './session';
 
@@ -10,7 +10,7 @@ export function App() {
   if (session.state === 'loading') return null;
 
   return session.state === 'signed-in' ? (
-    <Library user={session.user} />
+    <Home key={session.user.uid} user={session.user} />
   ) : (
     <Welcome />
   );
