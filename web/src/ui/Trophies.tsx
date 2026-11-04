@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import trophyChime from '@app/../assets/sounds/trophy.mp3';
 import platinumChime from '@app/../assets/sounds/trophy-platinum.mp3';
+import trophyChime from '@app/../assets/sounds/trophy.mp3';
 import {
   LIBRARY_SOUND_COUNT,
   LISTENING_MINUTES,
@@ -18,6 +18,7 @@ import type {
   TrophyTier,
 } from '@app/trophies/types';
 import { useTrophies } from '@app/trophies/useTrophies';
+import { createPortal } from 'react-dom';
 
 import { locale, t } from '../i18n';
 import { pause, playerState, toggle } from '../player';
@@ -218,8 +219,11 @@ export function TrophiesForm() {
 }
 
 /**
- * One trophy, the app's detail sheet as a dialog: the glyph on a disc of its
- * tier, the name, "Tier · Earned date", and the objective.
+ * One trophy, as the app shows it: a SHEET that rises over the Trophies sheet
+ * (`trophy-detail`, a fitToContents detent stacked on its parent), not a
+ * dialog in the middle of the window. It belongs to the panel it was opened
+ * from, so it is drawn into that panel — dimming it, and only it — and leaves
+ * the library and the player beside it untouched.
  */
 function TrophyDetail({
   trophy,
@@ -228,52 +232,81 @@ function TrophyDetail({
   trophy: ResolvedTrophy | null;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  // The last trophy stays drawn while the sheet slides away.
   const shown = useRef<ResolvedTrophy | null>(null);
   if (trophy) shown.current = trophy;
   const view = trophy ?? shown.current;
+  const open = trophy !== null;
 
   useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (trophy && !dialog.open) {
-      dialog.showModal();
-      // Opened by a click, it should not open with a ring on its ✕.
-      dialog.focus();
-    }
-    if (!trophy && dialog.open) dialog.close();
-  }, [trophy]);
+    setHost(anchor.current?.closest<HTMLElement>('.side') ?? null);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    sheet.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const layer = (
+    <>
+      <div
+        className={open ? 'sub-scrim is-open' : 'sub-scrim'}
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div
+        ref={sheet}
+        className={
+          open ? 'sub-sheet trophy-detail is-open' : 'sub-sheet trophy-detail'
+        }
+        role="dialog"
+        aria-modal="true"
+        aria-label={view?.title}
+        aria-hidden={!open}
+        tabIndex={-1}
+      >
+        <span className="sub-grabber" aria-hidden="true" />
+        <button
+          type="button"
+          className="round detail-close"
+          tabIndex={open ? 0 : -1}
+          onClick={onClose}
+        >
+          <CloseGlyph />
+          <span className="sr">{t('common.close')}</span>
+        </button>
+        {view && (
+          <>
+            <span
+              className="trophy-disc"
+              style={{
+                background: view.unlocked
+                  ? `color-mix(in srgb, ${tierColor(view.tier)} 16%, transparent)`
+                  : 'var(--empty-media)',
+              }}
+            >
+              <TrophyGlyph tier={view.tier} locked={!view.unlocked} size={44} />
+            </span>
+            <h2>{view.title}</h2>
+            <p className="trophy-caption">{caption(view)}</p>
+            <p>{view.description}</p>
+          </>
+        )}
+      </div>
+    </>
+  );
 
   return (
-    <dialog
-      ref={ref}
-      className="confirm trophy-detail"
-      tabIndex={-1}
-      onClose={onClose}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <button type="button" className="round detail-close" onClick={onClose}>
-        <CloseGlyph />
-        <span className="sr">{t('common.close')}</span>
-      </button>
-      {view && (
-        <>
-          <span
-            className="trophy-disc"
-            style={{
-              background: view.unlocked
-                ? `color-mix(in srgb, ${tierColor(view.tier)} 16%, transparent)`
-                : 'var(--empty-media)',
-            }}
-          >
-            <TrophyGlyph tier={view.tier} locked={!view.unlocked} size={44} />
-          </span>
-          <h2>{view.title}</h2>
-          <p className="trophy-caption">{caption(view)}</p>
-          <p>{view.description}</p>
-        </>
-      )}
-    </dialog>
+    <>
+      <span ref={anchor} hidden />
+      {host && createPortal(layer, host)}
+    </>
   );
 }
 
