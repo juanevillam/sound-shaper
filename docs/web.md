@@ -32,6 +32,11 @@ drifts.
   the SAME code on both sides.
 - A version bump is `package.json`'s `version`, read by both. A release
   tag covers the iOS build sent to review AND the web deploy of that commit.
+- **A web-only change a visitor can see gets its own patch version** (Juan,
+  2026-11-05), as juanevillam.com does: bump, tag, push and a GitHub Release
+  named "X.Y.Z — Web" the same day, since the web has no review to wait for.
+  The App Store simply skips that number; the next iOS build takes the next
+  one. Docs- and tooling-only pushes take none.
 
 ## What differs, and is allowed to
 
