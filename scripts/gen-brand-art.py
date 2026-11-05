@@ -381,7 +381,8 @@ def favicon_svg(geom):
 
 
 def build_web(app, assets_dir, out_dir):
-    """The web app's favicon, installed icons and maskable icon."""
+    """The web app's favicon and the icon a bookmark takes. Not a PWA (Juan,
+    2026-11-04): no installed or maskable icons."""
     geom = unary_union(MARKS[app]())
     icons = os.path.join(out_dir, "icons")
     os.makedirs(icons, exist_ok=True)
@@ -390,21 +391,6 @@ def build_web(app, assets_dir, out_dir):
         f.write(favicon_svg(geom))
     print("built", os.path.relpath(out_dir, REPO_ROOT))
     print("    favicon.svg")
-
-    tile = web_tile(geom, WEB_TILE)
-    for size in (192, 512):
-        tile.resize((size, size), Image.LANCZOS).save(
-            os.path.join(icons, f"icon-{size}.png"))
-        print(f"    icons/icon-{size}.png")
-
-    # MASKABLE is Android's adaptive icon flattened: the launcher cuts its
-    # own shape, so it is full-bleed, mark inside the adaptive safe zone.
-    maskable = Image.new("RGBA", (CANVAS, CANVAS), hex_rgb(GROUND_DARK) + (255,))
-    fg = Image.open(os.path.join(assets_dir, "images", "android-icon-foreground.png"))
-    maskable.alpha_composite(fg.convert("RGBA"))
-    maskable.convert("RGB").resize((512, 512), Image.LANCZOS).save(
-        os.path.join(icons, "maskable-512.png"))
-    print("    icons/maskable-512.png")
 
     # iOS masks a Home Screen icon itself: the app's own full-bleed icon.
     Image.open(os.path.join(assets_dir, "images", "icon.png")).resize(

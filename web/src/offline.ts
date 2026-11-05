@@ -1,38 +1,25 @@
 /**
- * What the service worker (`sw.js`) keeps of a person's library — played
- * audio and artwork — belongs to whoever is signed in, so it goes with them:
- * the app's sign-out wipes its offline mirror for the same reason.
+ * NOT A PWA (Juan, 2026-11-04: no web of his installs — it is awkward to
+ * use). An earlier build registered a service worker that kept the shell,
+ * artwork and played audio; a browser that visited then still runs it and
+ * still holds those caches. This takes both away on the next visit, so
+ * every page comes from the network and nothing of a library stays behind.
  */
-const MEDIA = 'soundshaper-media';
-
-export const registerServiceWorker = () => {
-  // The dev server rebuilds modules on the fly; a worker would serve stale ones.
-  if (import.meta.hot || !('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .catch(error => console.warn('service worker', error));
-  });
-};
-
-/** Sign-out and account deletion: forget every kept file. */
-export const forgetOfflineMedia = () =>
-  'caches' in window ? caches.delete(MEDIA).catch(() => false) : undefined;
-
-/** A deleted sound: drop its file and its artwork from the cache. */
-export const forgetOfflineSound = async (urls: string[]) => {
-  if (!('caches' in window)) return;
-  try {
-    const cache = await caches.open(MEDIA);
-    const keys = await cache.keys();
-    // Artwork is cached per transformed URL, so match on the asset's tail.
-    const tails = urls.filter(Boolean).map(url => url.split('/').pop() ?? url);
-    await Promise.all(
-      keys
-        .filter(key => tails.some(tail => key.url.endsWith(tail)))
-        .map(key => cache.delete(key)),
-    );
-  } catch {
-    // A cache that cannot be read holds nothing to forget.
-  }
+export const retireServiceWorker = () => {
+  if ('serviceWorker' in navigator)
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then(all => Promise.all(all.map(worker => worker.unregister())))
+      .catch(() => undefined);
+  if ('caches' in window)
+    void caches
+      .keys()
+      .then(names =>
+        Promise.all(
+          names
+            .filter(name => name.startsWith('soundshaper-'))
+            .map(name => caches.delete(name)),
+        ),
+      )
+      .catch(() => undefined);
 };

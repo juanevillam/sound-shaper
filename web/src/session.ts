@@ -12,7 +12,6 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { USERS_COLLECTION } from '@app/services/firebase/collections';
 
 import { auth, db } from './firebase';
-import { forgetOfflineMedia } from './offline';
 
 export type Session =
   | { state: 'loading' }
@@ -94,8 +93,6 @@ export const signInWithGoogle = async (): Promise<boolean> => {
   }
 };
 
-/** The offline copies go with the person, as the app's mirror does. */
 export const signOut = async () => {
-  await forgetOfflineMedia();
   await firebaseSignOut(auth);
 };

@@ -2,8 +2,9 @@
 
 **Decided 2026-11-04 (Juan).** The Play Store is paused for good, and Sound
 Shaper gets a web version that does everything the iOS app does — library,
-uploads, the player, Shape, clips, trophies, settings and the account —
-installable as a PWA, at `soundshaper.juanevillam.com`. The iOS app stays on
+uploads, the player, Shape, clips, trophies, settings and the account — at
+`soundshaper.juanevillam.com`. **It is a website, not a PWA** (Juan,
+2026-11-04: installing is awkward, and none of his webs install). The iOS app stays on
 the App Store. Topper and Booker follow the same road later (web only, their
 own public repos); this app goes first.
 
@@ -44,9 +45,8 @@ drifts.
   is for desktops and for Android, which is how Sound Shaper reaches Android
   without the Play Store.
 - **No widgets, no haptics, no Live Activity.** Native surfaces.
-- **Offline.** The app mirrors the library to the phone. The web caches what
-  has been played (Cache Storage), and an installed PWA keeps it; Safari may
-  evict a site's storage after weeks unused, so it is a cache, not a mirror.
+- **Offline.** The app mirrors the library to the phone. The web streams:
+  with no service worker it keeps nothing offline but Firestore's own copy.
 
 ## Security in a public repo
 
@@ -125,17 +125,11 @@ Still to do:
    share the window equally: halves with a sound open, thirds with a sheet. Auto DJ follows once the
    app's version lands.
 6. Trophies, Settings, Manage Account, delete account.
-7. PWA: manifest, icons from the brand art, service worker, install. Built
-   2026-11-04. `npm run brand-art` now also writes `web/public/` (the tab's
-   favicon and the installed icon are the Welcome screen's dark BrandTile; the
-   maskable icon is the Android adaptive icon flattened; the Home Screen icon
-   on an iPhone is the app's own `icon.png`). `web/sw.js` is a template the
-   Vite build stamps with every built file and a version: the shell opens with
-   no network, pages go to the network first, artwork is cache-first, and a
-   played sound is kept whole and its range requests answered from the copy.
-   Signing out, deleting the account and deleting a sound empty what was kept
-   (`web/src/offline.ts`). The dev server never registers it; to try it, the
-   `shaper-web-pwa` launch config builds in development mode (for the App
-   Check debug token) and serves the result on 5173.
+7. ~~PWA~~ — built 2026-11-04 and REMOVED the same day (Juan: no web of his
+   installs). The manifest, `web/sw.js` and its build plugin are gone;
+   `web/src/offline.ts` now only unregisters a worker an earlier visit left
+   and deletes its `soundshaper-*` caches. `npm run brand-art` still writes
+   `web/public/`, but only the favicon and the bookmark's
+   `apple-touch-icon.png`.
 8. Deploy, then the website's "Powered by Sound Shaper" mini player moves onto
    this repo's engine, and its link offers both the web app and the App Store.
