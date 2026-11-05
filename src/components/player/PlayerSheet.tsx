@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   BackHandler,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -32,7 +31,6 @@ import {
 
 import { BannerGlassIos } from '@/components/player/BannerGlassIos';
 import {
-  BANNER_ELEVATION,
   BANNER_SIDE_INSET,
   bannerBottomOffset,
   MINI_PLAYER_HEIGHT,
@@ -45,24 +43,21 @@ import {
   playerConsoleTop,
   type PlayerCard,
 } from '@/components/player/chrome';
-import { ClipsSheet } from '@/components/player/ClipsSheet';
 import { GlyphButton } from '@/components/player/GlyphButton';
 import {
   PlayerBackdrop,
   prefetchPlayerBackdrop,
 } from '@/components/player/PlayerBackdrop';
 import { PlayerConsole } from '@/components/player/PlayerConsole';
-import { ShaperSheet } from '@/components/player/ShaperSheet';
 import {
   NextGlyph,
   PauseGlyph,
   PlayGlyph,
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
-import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
-import { useAppTheme } from '@/core';
+import { useAppTheme, withAlpha } from '@/core';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useI18n } from '@/i18n';
@@ -75,7 +70,6 @@ import {
   glassFloorColor,
   CONTINUOUS_CURVE,
   SHAPE_SM,
-  TILE_RADIUS,
   innerRadius,
 } from '@/ui';
 
@@ -114,17 +108,12 @@ const MINI_ART_SIZE = 46;
 // box" did when both grew.
 const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 
-// How much of the expansion the banner's own chrome — border, lift — takes to
-// disappear. Matches the surface's colour cross-fade, so the whole "this is a
-// floating object" story ends at once.
-const BANNER_CHROME_FADE = 0.35;
-
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
 // The artwork is ONE element scaled between the two states, so a fixed
 // borderRadius renders ~5x smaller when collapsed. These are the radii we want
 // to SEE at each end; the style divides by the live scale to hit them.
 // Collapsed it is a rounded child of a rounded container, so its corner is the
-// concentric one: iOS subtracts the inset, Android steps down the M3 scale.
+// concentric one.
 const MINI_ART_RADIUS = innerRadius(BANNER_RADIUS, BANNER_INSET, SHAPE_SM);
 // The artwork's position in container (screen) space, where the shared element
 // that travels to the expanded square is positioned.
@@ -205,11 +194,10 @@ const MINI_ROW_PADDING_RIGHT =
   (MINI_BUTTON_WIDTH - MINI_GLYPH_WIDTH) / 2 +
   MINI_GLYPH_TRAILING_BEARING;
 
-// iOS trades the banner's solid fill for real Liquid Glass, so the library's
-// cover art reads through it. The player it becomes is opaque, so the fill
-// ramps in — and the glass out — over this window, fast enough that the
-// expanding surface is never see-through for long.
-const BANNER_GLASS = Platform.OS === 'ios';
+// The banner is real Liquid Glass, so the library's cover art reads through
+// it. The player it becomes is opaque, so the fill ramps in — and the glass
+// out — over this window, fast enough that the expanding surface is never
+// see-through for long.
 const BANNER_GLASS_FADE = 0.12;
 /**
  * THE FLOOR IS THE FAMILY'S, NOT THIS BANNER'S. `GLASS_FLOOR` is the one
@@ -299,9 +287,27 @@ const BACKDROP_FADE_END = 0.3;
  * handoff is `-velocityY / travel` in progress units and the motion is one
  * continuous gesture-into-settle.
  *
- * The durations also came down (320/260 → 280/200): with the flick fixed,
- * the button-triggered transitions were the remaining slow ones, and the
- * close is the briskest — leaving a screen should cost less than arriving.
+ * THE DURATION IS YOUTUBE MUSIC'S, MEASURED (Juan, 2026-11-04 — "there are
+ * maybe 6 or 9 steps instead of 3"). It came down to 280/200 on 2026-09-11 and
+ * that was too quick to READ: at 60Hz a 280 spring is ~8 frames to 90% and a
+ * 200 one ~6, so the cover, the wash and the console each got a couple of
+ * frames and the move read as a jump. A screen recording of YouTube Music's
+ * iOS player, tracked frame by frame (the cover's top edge across a 598pt tap
+ * expand), fits a critically damped spring at ω ≈ 16.4 rad/s to within a
+ * percent at every frame — 50% at frame 6, 90% at 14, 98% at 20, no
+ * overshoot — and that is exactly what Reanimated's `duration: 500` resolves
+ * to (`getEnergyStiffness`'s 1.5× perceptual coefficient included). Its
+ * flicked closes ride the same spring with the release velocity on top, so
+ * both directions take it: the velocity handoff already makes a flick brisk,
+ * and a slower button close is what lets the colour change be seen.
+ *
+ * Juan then asked for it a touch quicker than YouTube Music's (same day,
+ * "mucho mejor, pero… más rápida"), so it ships at 420: ω ≈ 19.6, 90% at
+ * frame 12 rather than 14 — the same curve, a little brisker.
+ *
+ * Every progress-keyed window below (glass, wash, console) stretches with it,
+ * which is the point: the colour change now spans several frames instead of
+ * one or two.
  *
  * The house already had the no-overshoot instinct for the sound pager
  * (`SETTLE_SPRING`, "settles without overshoot"); this states it as the
@@ -309,15 +315,11 @@ const BACKDROP_FADE_END = 0.3;
  */
 const PROGRESS_CLAMP = { min: 0, max: 1 } as const;
 const EXPAND_SPRING = {
-  duration: 280,
+  duration: 420,
   dampingRatio: 1,
   clamp: PROGRESS_CLAMP,
 } as const;
-const COLLAPSE_SPRING = {
-  duration: 200,
-  dampingRatio: 1,
-  clamp: PROGRESS_CLAMP,
-} as const;
+const COLLAPSE_SPRING = EXPAND_SPRING;
 // Drag-release: past this progress (or flung faster than this) it commits.
 const SNAP_PROGRESS = 0.28;
 const SNAP_VELOCITY = 600;
@@ -434,7 +436,7 @@ export function PlayerSheet() {
    * 0.070 of it, against the term's 0.15. `artworkRadius` exists for exactly
    * this drift and the player was the one caller that never adopted it.
    */
-  const artFullRadius = playerArtRadius(artFull, TILE_RADIUS);
+  const artFullRadius = playerArtRadius(artFull);
   const artExpandedX = (winW - artFull) / 2;
   const artExpandedY = playerArtTop(insets.top);
   const artScaleMin = MINI_ART_SIZE / artFull;
@@ -914,6 +916,7 @@ export function PlayerSheet() {
   // Computed here, not in the worklet: `glassFloorColor` is plain JS and
   // cannot be called on the UI runtime.
   const glassFillStart = glassFloorColor(colors.surfaceContainer);
+  const surfaceClear = withAlpha(colors.background, 0);
 
   // THE detach: the painted surface is a layer inside the container, not the
   // container's own background, so it can be a pill at one end and the whole
@@ -928,34 +931,16 @@ export function PlayerSheet() {
     // to: iOS's chrome is CONSTANT — no border, no elevation, per the edge
     // rule above — and writing `borderWidth: 0` every frame was buying an
     // extra layout commit for a value that never changes.
-    if (Platform.OS === 'ios') {
-      return {
-        // Same hue throughout, only the alpha moves: the glass carries the
-        // banner's surface at rest, and the opaque player takes over.
-        backgroundColor: interpolateColor(
-          p,
-          [0, BANNER_GLASS_FADE],
-          [glassFillStart, colors.background],
-        ),
-        borderRadius: BANNER_RADIUS * (1 - p),
-        height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
-        left: BANNER_SIDE_INSET * (1 - p),
-        right: BANNER_SIDE_INSET * (1 - p),
-      };
-    }
-
-    // The floating-object chrome (outline, lift) goes early — by the time the
-    // sheet reads as a screen there is nothing left for it to float above.
-    const chrome = 1 - Math.min(p / BANNER_CHROME_FADE, 1);
-
     return {
+      // CLEAR AT REST, OPAQUE BY `BANNER_GLASS_FADE`: the glass and its floor
+      // sit UNDER this surface, and it is this fill coming in over them that
+      // hides them — see `bannerGlassStyle`.
       backgroundColor: interpolateColor(
         p,
-        [0, BANNER_CHROME_FADE],
-        [colors.surfaceContainer, colors.background],
+        [0, BANNER_GLASS_FADE],
+        [surfaceClear, colors.background],
       ),
       borderRadius: BANNER_RADIUS * (1 - p),
-      elevation: BANNER_ELEVATION * chrome,
       height: MINI_PLAYER_HEIGHT + (winH - MINI_PLAYER_HEIGHT) * p,
       left: BANNER_SIDE_INSET * (1 - p),
       right: BANNER_SIDE_INSET * (1 - p),
@@ -1023,29 +1008,25 @@ export function PlayerSheet() {
     ),
   }));
 
-  // The banner's glass belongs to the SETTLED banner: it fades within the
-  // first breath of the movement (`BANNER_GLASS_FADE`) and rides the surface's
-  // bottom edge meanwhile, so the material never floats inside a surface that
-  // has grown past it.
+  // THE GLASS IS NEVER FADED — IT IS COVERED (Juan, 2026-11-04: a fast close
+  // flickered). It used to fade its own opacity 1 → 0 over the first
+  // `BANNER_GLASS_FADE` of the movement, and SwiftUI's `glassEffect` is a
+  // backdrop-sampling material, which does not render honestly under a
+  // partial group opacity: it drew wrong on the way and snapped to the real
+  // material at 1. A flicked close crosses that window in a frame or two, so
+  // the snap read as a flash.
+  //
+  // So the glass (and its floor) now sit UNDER the surface at full opacity,
+  // and the surface's own fill — an ordinary colour, which blends honestly —
+  // comes in over them. Once the fill is opaque the glass is fully hidden, and
+  // only then does it switch off, in one step nobody can see. It still rides
+  // the surface's bottom edge, so it stays inside the box that covers it.
   const bannerGlassStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0, BANNER_GLASS_FADE],
-      [1, 0],
-      Extrapolation.CLAMP,
-    ),
+    opacity: progress.value < BANNER_GLASS_FADE ? 1 : 0,
     transform: [{ translateY: (winH - MINI_PLAYER_HEIGHT) * progress.value }],
   }));
 
   // -------------------------------------------------------------------------
-
-  // The console's sheets: Shape, Clips and Edit.
-  const [shaperVisible, setShaperVisible] = useState(false);
-
-  // A clip is made in the dedicated Voice Memos-style editor (`clip-trim` on
-  // iOS, `ClipTrimSheet` on Android), which the Clips sheet opens.
-  const [clipsVisible, setClipsVisible] = useState(false);
-  const [editVisible, setEditVisible] = useState(false);
 
   /**
    * THE CLIPS LISTENER FOLLOWS THE CONSOLE, NOT THE SOUND.
@@ -1099,16 +1080,14 @@ export function PlayerSheet() {
       icon: 'tune',
       key: 'shape',
       label: t('player.shape.title'),
-      onPress: () =>
-        Platform.OS === 'ios' ? router.push('/shaper') : setShaperVisible(true),
+      onPress: () => router.push('/shaper'),
       summary: shapeSummary,
     },
     {
       icon: 'content-cut',
       key: 'clips',
       label: t('player.clips.title'),
-      onPress: () =>
-        Platform.OS === 'ios' ? router.push('/clips') : setClipsVisible(true),
+      onPress: () => router.push('/clips'),
       summary: clipsSummary,
     },
   ];
@@ -1150,6 +1129,23 @@ export function PlayerSheet() {
             rather than something drawn on top of it — which is what the
             snackbar and the trophy banner do through `GlassSurfaceIos`, and
             why those two read glassier. */}
+        {/* Floor, then glass, then the surface that covers both as it
+            grows — see `bannerGlassStyle`. */}
+        <Animated.View
+          style={[
+            styles.bannerGlass,
+            { backgroundColor: glassFillStart },
+            bannerGlassStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <BannerGlassIos
+            width={winW - BANNER_SIDE_INSET * 2}
+            height={MINI_PLAYER_HEIGHT}
+            radius={BANNER_RADIUS}
+          />
+        </Animated.View>
+
         <Animated.View
           style={[styles.surface, surfaceStyle]}
           pointerEvents="none"
@@ -1178,19 +1174,6 @@ export function PlayerSheet() {
             </Animated.View>
           ) : null}
         </Animated.View>
-
-        {BANNER_GLASS ? (
-          <Animated.View
-            style={[styles.bannerGlass, bannerGlassStyle]}
-            pointerEvents="none"
-          >
-            <BannerGlassIos
-              width={winW - BANNER_SIDE_INSET * 2}
-              height={MINI_PLAYER_HEIGHT}
-              radius={BANNER_RADIUS}
-            />
-          </Animated.View>
-        ) : null}
 
         <GestureDetector gesture={dragUp}>
           <Animated.View
@@ -1234,12 +1217,10 @@ export function PlayerSheet() {
             neighbours={neighbours}
             onCollapse={collapse}
             onEdit={() =>
-              Platform.OS === 'ios'
-                ? router.push({
-                    pathname: '/edit-sound',
-                    params: { soundId: current.id },
-                  })
-                : setEditVisible(true)
+              router.push({
+                pathname: '/edit-sound',
+                params: { soundId: current.id },
+              })
             }
             onNext={onNext}
             onPrevious={onPrevious}
@@ -1345,19 +1326,6 @@ export function PlayerSheet() {
           </Animated.View>
         </GestureDetector>
       </Animated.View>
-
-      {shaperVisible && <ShaperSheet onClose={() => setShaperVisible(false)} />}
-      {/* ONE SHEET FOR BOTH CLIP SURFACES — the list and the editor are two
-          MODES of it, so nothing closes as the other opens. It used to take
-          `onNewClip` / `onEditClip` and hand the editor back here as a second
-          sheet; see `ClipsSheet` for why that had to go. */}
-      {clipsVisible && <ClipsSheet onClose={() => setClipsVisible(false)} />}
-      {editVisible && (
-        <EditSoundSheet
-          soundId={current.id}
-          onClose={() => setEditVisible(false)}
-        />
-      )}
     </>
   );
 }
@@ -1417,22 +1385,18 @@ function IdleBanner({ bottomInset }: IdleBannerProps) {
           // Transparent under the glass, which paints this banner's surface
           // for it — the parked banner is the same object as the loaded one
           // and must not be the one solid slab on the screen.
-          backgroundColor: BANNER_GLASS
-            ? glassFloorColor(colors.surfaceContainer)
-            : colors.surfaceContainer,
+          backgroundColor: glassFloorColor(colors.surfaceContainer),
           // The same floating island the loaded banner resolves to — parked,
           // so it needs none of the animation, only the shape.
           bottom: bannerBottomOffset(bottomInset),
         },
       ]}
     >
-      {BANNER_GLASS ? (
-        <BannerGlassIos
-          width={winW - BANNER_SIDE_INSET * 2}
-          height={MINI_PLAYER_HEIGHT}
-          radius={BANNER_RADIUS}
-        />
-      ) : null}
+      <BannerGlassIos
+        width={winW - BANNER_SIDE_INSET * 2}
+        height={MINI_PLAYER_HEIGHT}
+        radius={BANNER_RADIUS}
+      />
       <Pressable
         style={styles.miniRow}
         onPress={start}
@@ -1580,7 +1544,6 @@ const styles = StyleSheet.create({
   // once here and never moves. `bottom` comes from the safe-area inset.
   idleBanner: {
     borderRadius: BANNER_RADIUS,
-    elevation: BANNER_ELEVATION,
     left: BANNER_SIDE_INSET,
     position: 'absolute',
     right: BANNER_SIDE_INSET,
@@ -1627,11 +1590,13 @@ const styles = StyleSheet.create({
   // The banner's box, holding the glass. Static like the progress mask, and
   // moved by transform for the same reason.
   bannerGlass: {
+    borderRadius: BANNER_RADIUS,
     height: MINI_PLAYER_HEIGHT,
     left: BANNER_SIDE_INSET,
     position: 'absolute',
     right: BANNER_SIDE_INSET,
     top: 0,
+    ...CONTINUOUS_CURVE,
   },
   miniRow: {
     alignItems: 'center',

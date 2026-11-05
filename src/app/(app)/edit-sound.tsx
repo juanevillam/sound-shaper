@@ -6,15 +6,14 @@ import { Section } from '@expo/ui/swift-ui';
 
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
-import { type PickedSoundFile } from '@/components/sounds/EditSoundSheet';
 import { ArtImage } from '@/components/ui/ArtImage';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { MIN_NAME_LENGTH } from '@/constants/forms';
 import { useAppTheme } from '@/core';
 import { useCoverPicker, type PickedCover } from '@/hooks/useCoverPicker';
 import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
+import { type PickedSoundFile } from '@/lib/id3';
 import { uploadFailureKey } from '@/services/cloudinary/uploadFailure';
 import {
   createSound,
@@ -345,7 +344,7 @@ function EditSoundSheetScreen() {
                 // full circle the Android sheet draws; every cover in this app
                 // renders as a rounded square, so previewing one as a disc
                 // showed a shape the app never draws.
-                radius={artworkRadius(MEDIA_PICKER_SIZE, 0)}
+                radius={artworkRadius(MEDIA_PICKER_SIZE)}
                 /* THE CAPTION IS THE ACTION AND NEVER THE STATUS, which is
                    this slot's own stated contract — and the reason is
                    measurable as well as conceptual. It swapped to
@@ -426,7 +425,7 @@ function EditSoundSheetScreen() {
   );
 }
 
-export default iosOnlyRoute(EditSoundSheetScreen);
+export default EditSoundSheetScreen;
 
 const styles = StyleSheet.create({
   // Full width so the disc centres in the form row; RNHostView measures the

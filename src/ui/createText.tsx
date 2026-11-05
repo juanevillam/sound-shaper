@@ -1,5 +1,4 @@
 import {
-  Platform,
   Text as RNText,
   StyleSheet,
   type StyleProp,
@@ -19,20 +18,8 @@ export type TextVariant =
   | 'labelLarge'
   | 'labelMedium';
 
-// The variant NAMES are Material's, and so were the sizes — on both platforms.
-// That meant every iOS screen was typeset in Android's voice: body text at 14pt
-// where iOS's is 17, section headers at 16pt where iOS uses 20. Nothing was
-// individually wrong and the whole thing read as not-quite-native, because a
-// platform's type ramp is most of its handwriting.
-//
-// So the steps are per-platform. ANDROID TAKES M3'S OWN NUMBERS — and three
-// of them had to be CORRECTED to say so (2026-09-06): `titleMedium`,
-// `bodyLarge` and `labelLarge` carried line heights two under the spec
-// (22/22/18 against M3's 24/24/20), which is what a since-deleted line-height probe
-// measured as a 7.11dp-short comment bone against the real Compose row —
-// every RN line at those rungs sat 2dp tighter than the same role drawn by
-// Compose one screen over. iOS maps each step onto the matching Apple text style at
-// the default (Large) Dynamic Type size, from the HIG's specification:
+// The variant NAMES are Material's (the type predates the iOS-only app); the
+// steps are Apple's text styles at the default (Large) Dynamic Type size:
 //
 //   Large Title 34/41   Title 1 28/34   Title 2 22/28   Title 3 20/25
 //   Body 17/22          Callout 16/21   Subheadline 15/20
@@ -40,40 +27,7 @@ export type TextVariant =
 //
 // These are still fixed points, not real Dynamic Type — `fontSize` does not
 // track the user's text-size setting. Honouring that properly means mapping to
-// SwiftUI's text styles, which also means auditing every fixed-height layout
-// (the skeletons are dimension-matched on purpose, and the rail header height
-// is a derived constant). Tracked as the next step, not smuggled in here.
-// M3 SPECIFIES A WEIGHT PER ROLE, AND HALF OF THESE WERE SILENTLY DROPPING IT.
-// The sizes were right and the weights were never written, so RN fell back to
-// Roboto Regular for every role — including the four M3 sets in Medium (500).
-// Measured on a Galaxy A54 (density 450, dark): the stem of `titleMedium`'s
-// "B" and `bodyLarge`'s "B" were both 5px, i.e. a block's TITLE and the body
-// text under it were rendering as the same face at the same size. There was no
-// weight step anywhere on the Android side, while the iOS ladder below has
-// carried its `'600'` on `titleMedium` all along.
-//
-// This is invisible to tsc, to lint and to a band-scan — the metrics do not
-// change, only the face — which is why it survived until a stem was measured.
-// The M3 roles that are Medium: `titleMedium`, `labelLarge`, `labelMedium`
-// (and `titleSmall`, which this scale has no step for). Everything else on the
-// display / headline / body ramps is Regular, and stays unset.
-//
-// The 2026-09-06 line-height correction DOES move layout (+2dp per line at
-// the three rungs). Every ghost-measured bone (`SkeletonTextLine`) follows by
-// construction; the hard-coded boxes that could not follow were converted to
-// ghosts in the same change.
-const ANDROID_VARIANTS: Record<TextVariant, TextStyle> = {
-  displayLarge: { fontSize: 36, lineHeight: 44 },
-  headlineLarge: { fontSize: 28, lineHeight: 36 },
-  titleLarge: { fontSize: 22, lineHeight: 28 },
-  titleMedium: { fontSize: 16, lineHeight: 24, fontWeight: '500' },
-  bodyLarge: { fontSize: 16, lineHeight: 24 },
-  bodyMedium: { fontSize: 14, lineHeight: 20 },
-  bodySmall: { fontSize: 12, lineHeight: 16 },
-  labelLarge: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
-  labelMedium: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
-};
-
+// SwiftUI's text styles, which also means auditing every fixed-height layout.
 const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
   displayLarge: { fontSize: 34, lineHeight: 41 }, // Large Title
   headlineLarge: { fontSize: 28, lineHeight: 34 }, // Title 1
@@ -100,8 +54,7 @@ const IOS_VARIANTS: Record<TextVariant, TextStyle> = {
  * already-translated strings, so don't use the app's translating `Text`) still
  * render on the exact same steps as every screen.
  */
-export const TEXT_VARIANTS: Record<TextVariant, TextStyle> =
-  Platform.OS === 'ios' ? IOS_VARIANTS : ANDROID_VARIANTS;
+export const TEXT_VARIANTS: Record<TextVariant, TextStyle> = IOS_VARIANTS;
 
 type BaseTextProps = {
   ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip';

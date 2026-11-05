@@ -8,7 +8,6 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -22,7 +21,6 @@
   },
   "dependencies": {
     "@bacons/apple-targets": "5.0.0",
-    "@expo/material-symbols": "0.1.1",
     "@expo/ui": "~57.0.7",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/analytics": "24.1.1",
@@ -114,11 +112,6 @@
       "apple": {
         "buildFromSource": [
           "ExpoImage"
-        ]
-      },
-      "android": {
-        "buildFromSource": [
-          "expo-ui"
         ]
       }
     }

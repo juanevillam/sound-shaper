@@ -21,7 +21,6 @@ import {
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
-import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
@@ -412,4 +411,4 @@ function ShaperSheetScreen() {
   );
 }
 
-export default iosOnlyRoute(ShaperSheetScreen);
+export default ShaperSheetScreen;

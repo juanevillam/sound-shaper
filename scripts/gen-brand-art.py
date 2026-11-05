@@ -3,15 +3,13 @@
 
     npm run brand-art          # bootstraps its own venv (shapely + pillow)
 
-ONE generator on purpose: the iOS icon, the splash art and the Android adaptive
-icon are the same mark at three different scales, and while they had separate
-pipelines they drifted. Outputs:
+ONE generator on purpose: the iOS icon, the splash art and the web icons are
+the same mark at different scales, and while they had separate pipelines they
+drifted. Outputs:
 
     assets/AppIcon.icon/                   the iOS icon — `ios.icon` points here
-    assets/images/icon.png                 Android / root fallback
+    assets/images/icon.png                 root fallback
     assets/images/splash-icon{,-dark}.png  splash art, one per appearance
-    assets/images/android-icon-*.png       adaptive foreground/monochrome/background
-    store-icons/play-512.png               Play Console listing icon
     web/public/favicon.svg, icons/…        the web app's icons — see build_web()
 
 Colours come from GROUND_LIGHT / GROUND_DARK below — but the same two values are
@@ -51,17 +49,12 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # How wide the 48-unit grid is drawn, per surface. Each number is load-bearing:
 GRIDS = {
     "icon": 914,  # the app icon / .icon document
-    "splash": 800,  # small enough that the mark clears Android 12's circular
-    #                 splash mask (centre 66%) — verified below, keep it
-    "adaptive": 651,  # inside Android's adaptive-icon safe zone
+    "splash": 800,  # the splash glyph's size, kept from when it had to clear
+    #                 Android 12's circular splash mask
 }
 
-# A mark whose corners reach further from centre than the others' needs a
-# smaller splash grid to clear Android 12's circle — Booker's open book is 30
-# units wide with square outer corners. Measured with the check below: 800
-# clipped 1.69% of the ink, 760 still 0.10%, 750 clears. Keyed per mark, so the
-# others keep their size; empty here, because the equalizer clears the
-# standard grid.
+# Per-mark splash grids, kept from the monorepo's three-app generator; empty
+# here, because the equalizer takes the standard grid.
 SPLASH_GRID_OVERRIDES = {}
 
 # THE brand palette. Two neutrals, swapped per appearance. Changing either of
@@ -179,21 +172,6 @@ def write_mark_png(path, geom, grid, ink, ground=None):
     print("   ", os.path.basename(path))
 
 
-def android_splash_clearance(geom, grid):
-    """Fraction of the splash mark falling outside Android 12's centre-66% circle."""
-    alpha = rasterise(geom, grid)
-    px = alpha.load()
-    r = CANVAS * 0.66 / 2
-    ink = outside = 0
-    for y in range(CANVAS):
-        for x in range(CANVAS):
-            if px[x, y] > 127:
-                ink += 1
-                if (x - CANVAS / 2) ** 2 + (y - CANVAS / 2) ** 2 > r * r:
-                    outside += 1
-    return outside / max(1, ink)
-
-
 def svg(geom, color):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{CANVAS}" '
@@ -242,7 +220,6 @@ def icon_json():
     }
 
 
-PLAY_ICON_SIZE = 512  # Google Play hi-res listing icon: exactly 512x512, full-bleed
 
 
 def build(app, out_dir):
@@ -261,29 +238,11 @@ def build(app, out_dir):
         f.write("\n")
     print("built", doc)
 
-    ic, ad = GRIDS["icon"], GRIDS["adaptive"]
+    ic = GRIDS["icon"]
     sp = SPLASH_GRID_OVERRIDES.get(app, GRIDS["splash"])
     write_mark_png(os.path.join(images, "icon.png"), geom, ic, GROUND_LIGHT, GROUND_DARK)
     write_mark_png(os.path.join(images, "splash-icon.png"), geom, sp, GROUND_DARK)
     write_mark_png(os.path.join(images, "splash-icon-dark.png"), geom, sp, GROUND_LIGHT)
-    for name in ("android-icon-foreground.png", "android-icon-monochrome.png"):
-        write_mark_png(os.path.join(images, name), geom, ad, GROUND_LIGHT)
-    Image.new("RGB", (CANVAS, CANVAS), hex_rgb(GROUND_DARK)).save(
-        os.path.join(images, "android-icon-background.png"))
-    print("    android-icon-background.png")
-
-    # Play Console takes one flat square and applies its own masking — the
-    # adaptive layers are not accepted there. Same art as icon.png, its size.
-    store = os.path.join(REPO_ROOT, "store-icons")
-    os.makedirs(store, exist_ok=True)
-    play = os.path.join(store, "play-512.png")
-    Image.open(os.path.join(images, "icon.png")).resize(
-        (PLAY_ICON_SIZE, PLAY_ICON_SIZE), Image.LANCZOS).save(play)
-    print("   ", os.path.relpath(play, REPO_ROOT))
-
-    outside = android_splash_clearance(geom, sp)
-    flag = "ok" if outside == 0 else "CLIPS — shrink its splash grid"
-    print(f"    splash outside Android 12 circle: {outside:.2%} ({flag})")
     return doc
 
 

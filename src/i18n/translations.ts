@@ -1,5 +1,8 @@
 export const translations = {
   en: {
+    platform: {
+      androidUnavailable: "Sound Shaper isn't available on Android yet.",
+    },
     errors: {
       title: 'An Error Occurred',
       message: 'An unexpected error occurred.',
@@ -374,6 +377,9 @@ export const translations = {
     },
   },
   es: {
+    platform: {
+      androidUnavailable: 'Sound Shaper aún no está disponible en Android.',
+    },
     errors: {
       title: 'Se produjo un error',
       message: 'Se produjo un error inesperado.',
@@ -702,6 +708,9 @@ export const translations = {
     },
   },
   zh: {
+    platform: {
+      androidUnavailable: 'Sound Shaper 尚不支持 Android。',
+    },
     errors: {
       title: '发生错误',
       message: '发生了意外错误。',

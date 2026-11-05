@@ -1,5 +1,8 @@
 # Component support matrix — Android vs iOS
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 Which `@expo/ui` components exist on **Android (Jetpack Compose)** vs **iOS
 (SwiftUI)**. This is the decision aid for building real
 portfolio apps: before reaching for a component, check whether it exists on both

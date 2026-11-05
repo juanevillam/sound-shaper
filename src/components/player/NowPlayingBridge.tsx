@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 
-import { PermissionsAndroid, Platform } from 'react-native';
-
 import { PlaybackNotificationManager } from 'react-native-audio-api';
 
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
@@ -41,28 +39,6 @@ import { usePlayerStore } from '@/store/player';
 // state carries a position and a speed and the system extrapolates from them,
 // exactly as iOS does, so the same effect keys serve both.
 // ---------------------------------------------------------------------------
-
-/**
- * ANDROID 13+ WILL NOT DRAW THE NOTIFICATION WITHOUT THIS, and the foreground
- * service alone is not enough: the media-playback service is already declared
- * by the audio library's own config plugin, but `POST_NOTIFICATIONS` is a
- * runtime permission and its notification is silently dropped when it is
- * denied.
- *
- * ASKED IN CONTEXT, not at launch. Android's own guidance is to request it at
- * the moment the notification would first be useful, and there is nothing to
- * notify about until a sound is loaded — so this runs on the first `current`,
- * which is the person having pressed play. Denial is not an error: playback and
- * the foreground service both carry on, and the person simply gets no shade
- * controls.
- */
-const ensureNotificationPermission = () => {
-  if (Platform.OS !== 'android' || Platform.Version < 33) return;
-
-  void PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-  ).catch(() => {});
-};
 
 /**
  * The island's artwork slot is ~60pt (~180px @3x); the Lock Screen player's is
@@ -244,8 +220,6 @@ export function NowPlayingBridge() {
    */
   useEffect(() => {
     if (!hasCurrent) return;
-
-    ensureNotificationPermission();
 
     REMOTE_CONTROLS.forEach(([control, enabled]) => {
       enqueuePublish(() =>

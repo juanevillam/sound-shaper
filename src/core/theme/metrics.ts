@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 /**
  * Platform-aware spacing and sizing — the second half of the design tokens
  * (`./colors` owns fills and inks).
@@ -50,13 +48,13 @@ export const SCREEN_PADDING = 16;
  * Topper's tops are a one-row rail, but the relationship being spaced is the
  * same one either way.
  */
-export const TILE_GAP = Platform.select({ ios: 14, default: 16 }) as number;
+export const TILE_GAP = 14;
 
 /**
  * Vertical gap between two sections of a screen. Material stacks sections on
  * the 8dp grid; iOS grouped lists leave a deeper trough between groups.
  */
-export const SECTION_GAP = Platform.select({ ios: 28, default: 24 }) as number;
+export const SECTION_GAP = 28;
 
 /**
  * Inset a row's own content sits at INSIDE its container. iOS list cells run

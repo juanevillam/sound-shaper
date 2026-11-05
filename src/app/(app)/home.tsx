@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -22,17 +22,12 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
-import {
-  EditSoundSheet,
-  type PickedSoundFile,
-} from '@/components/sounds/EditSoundSheet';
 import { AddSoundTile, SoundTile } from '@/components/sounds/SoundTile';
 import { HeaderSettingsButtonIos } from '@/components/ui/HeaderSettingsButtonIos';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
 import { SKELETON_DELAY_MS, SoundTileSkeleton } from '@/components/ui/Skeleton';
-import { Text } from '@/components/ui/Text';
-import { useAppTheme, TILE_GAP, SCREEN_PADDING } from '@/core';
+import { TILE_GAP, SCREEN_PADDING } from '@/core';
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { UiStateLabBar } from '@/dev/UiStateLabBar';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
@@ -56,14 +51,7 @@ import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import { useSoundsStore } from '@/store/sounds';
-import {
-  DRAG_ACTIVE_SCALE,
-  StateWrap,
-  EmptyState,
-  HeaderIconButton,
-  useHeaderScroll,
-  useSnackbar,
-} from '@/ui';
+import { DRAG_ACTIVE_SCALE, StateWrap, EmptyState, useSnackbar } from '@/ui';
 
 /**
  * ONE GRID CELL — a sound, or the add tile.
@@ -86,9 +74,6 @@ export type GridCell =
   | (Sound & { kind: 'sound' })
   | { id: typeof ADD_TILE_KEY; kind: 'add'; position: number | null };
 
-const IS_IOS = Platform.OS === 'ios';
-// M3's small top app bar. Android only — iOS draws the collapsing header.
-const APP_BAR_HEIGHT = 64;
 /**
  * Clearance above the first grid row.
  *
@@ -118,7 +103,7 @@ const APP_BAR_HEIGHT = 64;
  * 25.6 → 21.6 — measured on the A54: ink 347px → 336px below one fixed bar,
  * exactly the 4dp).
  */
-const GRID_TOP_GAP = IS_IOS ? 24 : 21.6;
+const GRID_TOP_GAP = 24;
 
 /**
  * ROWS OF BONES the first-load skeleton stands.
@@ -192,7 +177,6 @@ const toGridCells = (
 // the same hand order.
 export default function HomeScreen() {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const sounds = useSoundsStore(s => s.sounds);
   const rawError = useSoundsStore(s => s.error);
@@ -212,9 +196,6 @@ export default function HomeScreen() {
    */
   const labState = useUiStateLab(state => state.home);
   const lab = UI_STATE_LAB && labState !== 'live';
-
-  const [pickedFile, setPickedFile] = useState<PickedSoundFile | null>(null);
-  const [editingSoundId, setEditingSoundId] = useState<string | null>(null);
 
   const openAddSound = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -237,16 +218,10 @@ export default function HomeScreen() {
     const tags = await readId3Tags(asset.uri);
     const picked = { uri: asset.uri, fileName: asset.name, tags };
 
-    // iOS presents the editor as a native form-sheet ROUTE; the picked file
-    // rides the pendingUpload handoff (too large for a route param). Android
-    // mounts the Compose sheet in place.
-    if (Platform.OS === 'ios') {
-      stashPendingUpload(picked);
-      router.push('/edit-sound');
-      return;
-    }
-
-    setPickedFile(picked);
+    // The editor is a native form-sheet ROUTE; the picked file rides the
+    // pendingUpload handoff (too large for a route param).
+    stashPendingUpload(picked);
+    router.push('/edit-sound');
   }, []);
 
   const onPressSound = useCallback(
@@ -288,25 +263,12 @@ export default function HomeScreen() {
   );
   const cells = toGridCells(sounds, addTilePosition);
 
-  // Android's hand-drawn bar takes the same on-scroll step as every navigator
-  // bar in the portfolio: the page's own ground at rest, `surface` once the
-  // grid is behind it. The SHARED hook, with no colours — this bar is not the
-  // navigator's, so the screen paints from `scrolled` itself (the omit case
-  // the hook's docblock names). No-op on iOS, where the system bar owns it.
-  const { scrolled, scrollProps } = useHeaderScroll();
-
   /**
    * OPEN THE EDITOR — the door a long-press used to be, and still is, with one
    * step in front of it (see `handleDragEnd`).
    */
   const openEditor = useCallback((soundId: string) => {
-    if (Platform.OS === 'ios') {
-      router.push({ pathname: '/edit-sound', params: { soundId } });
-
-      return;
-    }
-
-    setEditingSoundId(soundId);
+    router.push({ pathname: '/edit-sound', params: { soundId } });
   }, []);
 
   const renderCell = useCallback<SortableGridRenderItem<GridCell>>(
@@ -521,10 +483,8 @@ export default function HomeScreen() {
     bannerBottomOffset(insets.bottom) +
     MINI_PLAYER_HEIGHT +
     TILE_GAP -
-    // Only iOS gets the safe area for free (see above). Android has no
-    // `contentInsetAdjustmentBehavior`, so its nav-bar inset — which is already
-    // inside `bannerBottomOffset` there — is the list's to spend too.
-    (IS_IOS ? insets.bottom : 0);
+    // The safe area comes free through `contentInsetAdjustmentBehavior`.
+    insets.bottom;
 
   return (
     <Screen>
@@ -566,66 +526,20 @@ export default function HomeScreen() {
           `sheetExpanded`: toggling it off and back on left the bar showing its
           INLINE title at scroll-top until the next scroll re-armed the large
           one. Held constant, the large title is simply back the moment the
-          player collapses.
-
-          Android keeps drawing its OWN Material bar as content, below, for
-          precisely the same reason stated the other way round: there the
-          navigator's header cannot be hidden per-state without the layout
-          jumping, so the bar was made content once and stays that way. */}
+          player collapses.  */}
       <Stack.Screen
-        options={
-          IS_IOS
-            ? {
-                headerShown: true,
-                headerLargeTitle: true,
-                headerLargeTitleShadowVisible: false,
-                headerTitle: sheetExpanded ? '' : t('app.title'),
-                headerRight: sheetExpanded
-                  ? () => null
-                  : () => <HeaderSettingsButtonIos />,
-              }
-            : { headerShown: false }
-        }
+        options={{
+          headerShown: true,
+          headerLargeTitle: true,
+          headerLargeTitleShadowVisible: false,
+          headerTitle: sheetExpanded ? '' : t('app.title'),
+          headerRight: sheetExpanded
+            ? () => null
+            : () => <HeaderSettingsButtonIos />,
+        }}
       />
 
       <SafeAreaView style={styles.safeArea} edges={[]}>
-        {/* Android only: M3's small top app bar, drawn as content. Same 64dp,
-            the navigator's own title type on the grid margin (see `title`
-            below), and the gear is still a real Compose action — the only thing that changed is
-            who owns the view, which is what lets the player cover it. iOS takes
-            the navigator's own bar instead (see the Stack.Screen above). */}
-        {IS_IOS ? null : (
-          <View
-            style={[
-              styles.appBar,
-              {
-                // M3's on-scroll bar, hand-drawn: the page's own ground at
-                // rest — no band at all — stepping to `surface` once the grid
-                // is behind it, same pair as every navigator bar in the
-                // portfolio (Juan, 2026-09-08, reversing the same-day
-                // "always elevated" call along with the family's static bar;
-                // the shared hook's docblock carries the full history).
-                backgroundColor: scrolled ? colors.surface : colors.background,
-                height: insets.top + APP_BAR_HEIGHT,
-                paddingTop: insets.top,
-              },
-            ]}
-          >
-            {/* No `variant`: this bar's face is stated whole in
-                `appBarTitle`. */}
-            <Text
-              text="app.title"
-              numberOfLines={1}
-              style={styles.appBarTitle}
-            />
-            <HeaderIconButton
-              name="settings"
-              onPress={() => router.push('/settings')}
-              accessibilityLabel={t('app.settings')}
-            />
-          </View>
-        )}
-
         {firstLoad ? (
           showSkeleton ? (
             // `top`, not centred: these bones stand in for real content and
@@ -679,12 +593,8 @@ export default function HomeScreen() {
             // No in-content heading: the stack's native large title owns it.
             // `automatic` is what hands the scroller that title's height as a
             // content inset and drives the collapse — without it the first row
-            // starts under the expanded title. Android ignores the prop.
+            // starts under the expanded title.
             contentInsetAdjustmentBehavior="automatic"
-            // Android only: feeds the hand-drawn bar's on-scroll step above.
-            // Not spread on iOS — the system bar arms its own edge effect and
-            // nothing here reads `scrolled`.
-            {...(IS_IOS ? null : scrollProps)}
             contentContainerStyle={{
               paddingHorizontal: SCREEN_PADDING,
               paddingTop: GRID_TOP_GAP,
@@ -705,19 +615,6 @@ export default function HomeScreen() {
               onDragEnd={handleDragEnd}
             />
           </Animated.ScrollView>
-        )}
-
-        {pickedFile && (
-          <EditSoundSheet
-            pickedFile={pickedFile}
-            onClose={() => setPickedFile(null)}
-          />
-        )}
-        {editingSoundId && (
-          <EditSoundSheet
-            soundId={editingSoundId}
-            onClose={() => setEditingSoundId(null)}
-          />
         )}
       </SafeAreaView>
 
@@ -746,33 +643,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  appBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    // Material aligns bar content to the grid margin; the trailing icon is
-    // 24dp centred in a 48dp box, so 4 lands its glyph on that same margin.
-    paddingLeft: 16,
-    paddingRight: 4,
-  },
-  // The navigator's own Android header type, which Topper gets
-  // for free by using its header — 20sp medium, NOT the M3 titleLarge token
-  // (22sp regular). Drawing this bar ourselves means matching it by hand, and
-  // matching every other app bar (and, at the time, the portfolio's other two
-  // apps) beats being closer to the spec on this one screen: measured side by side, 22/400 read 9% larger AND lighter.
-  //
-  // ALL THREE VALUES ARE STATED HERE, and the `Text` takes no `variant`. It
-  // used to pass `titleLarge` and then override two of its three properties in
-  // this object, so the declaration said 22sp while the screen rendered 20 —
-  // and the only thing the variant still contributed was a line box nobody had
-  // chosen. The 28 below IS that line box, kept so nothing moves; it is the
-  // number to re-measure if this bar's face ever changes again.
-  appBarTitle: {
-    flexShrink: 1,
-    fontSize: 20,
-    fontWeight: '500',
-    lineHeight: 28,
-  },
   list: { flex: 1 },
   // The SKELETON's row — the live grid states the same two gaps to
   // `Sortable.Grid` as props. Both read `GRID_ROW_GAP` / `GRID_COLUMN_GAP`.

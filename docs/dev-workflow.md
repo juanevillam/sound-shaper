@@ -1,5 +1,8 @@
 # Working in this repo — workflow traps & verification recipes
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 Institutional knowledge that used to live only in one Claude account's memory.
 Any agent (or human) working here hits these; read before the first commit and
 before trusting any on-device verification.

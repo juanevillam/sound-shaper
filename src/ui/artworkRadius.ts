@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 /**
  * ARTWORK CORNERS SCALE WITH THE ARTWORK; CONTAINER CORNERS DO NOT.
  *
@@ -15,12 +13,8 @@ import { Platform } from 'react-native';
  * got away with it only by coincidence: 26 happens to sit one point off the
  * 27 the ratio gives at that size, so the two apps agreed until either grid
  * changed. Naming the real term is what makes them keep agreeing.
- *
- * Android takes a DISCRETE step instead of the ratio: Material's shape scale is
- * 4/8/12/16/28, and a continuous ratio would leave the system for the sake of a
- * proportion.
  */
 const ARTWORK_RATIO = 0.15;
 
-export const artworkRadius = (size: number, androidStep: number): number =>
-  Platform.OS === 'ios' ? Math.round(size * ARTWORK_RATIO) : androidStep;
+export const artworkRadius = (size: number): number =>
+  Math.round(size * ARTWORK_RATIO);

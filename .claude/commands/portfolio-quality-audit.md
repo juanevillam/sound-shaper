@@ -220,17 +220,13 @@ doesn't apply to the stack, add what the stack demands.
 - Account deletion: complete (auth + all user docs + storage/CDN assets +
   third-party data), reachable in-app (store requirement), and documented.
 - Privacy policy & data-deletion URLs exist and match reality.
-- Kids/ads/tracking flags correct (ATT on iOS if applicable, ad ID
-  declaration on Android).
+- Kids/ads/tracking flags correct (ATT on iOS if applicable).
 
 ## 8. Release & store configuration
 
 - Versioning strategy sane and documented; build numbers auto-managed.
 - Signing: release keys managed safely (EAS/keystore/App Store Connect),
   never in repo.
-- Android: R8/ProGuard on with working rules, target/compile SDK current,
-  app bundle (.aab), edge-to-edge compliance for current OS, adaptive +
-  themed icons.
 - iOS: ATS exceptions justified, required-reason APIs declared, correct
   entitlements/capabilities, icon set complete, plist privacy strings.
 - Deep links / app links verified (assetlinks.json / AASA).

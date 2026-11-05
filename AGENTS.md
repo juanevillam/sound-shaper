@@ -1,5 +1,16 @@
 # Sound Shaper
 
+> **iOS AND THE WEB ONLY (Juan, 2026-11-04). There is NO Android.** The
+> Android code, config, Firebase app, adaptive icons, Play listing icon and
+> patch files are deleted. An Android run of the bundle renders one screen —
+> "Sound Shaper isn't available on Android yet." — and nothing else
+> (`src/app/_layout.tsx`). Juan tests only what he can hold: his iPhone and a
+> browser. Android comes back only if he says he has an Android phone, and then
+> it is new work, not a resume. **Every Android passage below is HISTORY** —
+> the A54, the Compose twins, "UNVERIFIED on Android", Phase B: read them for
+> the iOS reasoning, never as a task. Never write, fix or verify an Android
+> path, and don't propose one.
+
 ## Working in this repo — read before your first commit or device check
 
 - **This is a standalone Expo app**, extracted on 2026-10-16 with its history
@@ -1332,7 +1343,7 @@ audit.
 
 ## Status
 
-**Built on both platforms; Phase B closed 2026-09-11, and what is left before
+**Built and shipping on iOS (App Store) and the web; Phase B closed 2026-09-11, and what is left before
 the stores is the release gates in
 [`docs/release.md`](docs/release.md).** Auth (Sign in
 with Apple and Google — below), sound upload (document-picker → ID3 parse
@@ -1631,12 +1642,8 @@ ID, Key ID, `.p8`) — see gate 2a in [`docs/release.md`](docs/release.md).
 
 ## iOS build recipe — same as Topper's, deliberately
 
-`expo-build-properties` carries only `ios: { useFrameworks: "static" }` on the
-iOS side (Android adds its release minify/shrink flags), and `package.json`
-carries `expo.autolinking.apple.buildFromSource: ["ExpoImage"]`. (Its Android
-twin, `expo.autolinking.android.buildFromSource: ["expo-ui"]`, is unrelated to
-this recipe — it is what compiles the `patches/@expo/ui` overlay into this app
-on Android, 2026-09-08.)
+`expo-build-properties` carries only `ios: { useFrameworks: "static" }`, and
+`package.json` carries `expo.autolinking.apple.buildFromSource: ["ExpoImage"]`.
 That pair dodges the precompiled-`ExpoModulesCore` ABI drift (source-build just
 the one drifted pod) while keeping precompiled modules **on**, which is what
 keeps `RNFBFirestore` compiling under `use_frameworks!`.
@@ -1653,6 +1660,7 @@ both the `ios-arm64` and `ios-arm64_x86_64-simulator` slices.
 
 ## Native projects (CNG)
 
-`android/` and `ios/` are **gitignored prebuild output** — never hand-edit them.
+`ios/` is **gitignored prebuild output** — never hand-edit it (an old
+`android/` folder may still sit there from before 2026-11-04; it is dead).
 All native config lives in `app.json` + `expo-build-properties`. Regenerate with
 `npx expo prebuild --clean`.

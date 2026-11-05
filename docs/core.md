@@ -1,5 +1,8 @@
 # Core
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 `src/core` (imported as `@/core`) — the app's **non-visual foundation**: theme
 resolution, the persisted theme and locale stores, and the i18n wiring. The UI
 kit in `src/ui` (see [`ui.md`](ui.md)) sits on top of it.

@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 
-import { Platform } from 'react-native';
-
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -41,19 +39,16 @@ export default function Welcome() {
 
   // App Store policy: offering Google sign-in requires offering Sign in with
   // Apple too, at equal or greater prominence — so Apple leads on iOS.
-  const authActions: [AuthAction] | [AuthAction, AuthAction] =
-    Platform.OS === 'ios'
-      ? [
-          {
-            provider: 'apple',
-            label: t('welcome.button.apple.label'),
-            loadingLabel: t('welcome.button.apple.loadingLabel'),
-            isLoading: isAppleSigningIn,
-            onPress: signInWithApple,
-          },
-          googleAction,
-        ]
-      : [googleAction];
+  const authActions: [AuthAction] | [AuthAction, AuthAction] = [
+    {
+      provider: 'apple',
+      label: t('welcome.button.apple.label'),
+      loadingLabel: t('welcome.button.apple.loadingLabel'),
+      isLoading: isAppleSigningIn,
+      onPress: signInWithApple,
+    },
+    googleAction,
+  ];
 
   return (
     <WelcomeScreen

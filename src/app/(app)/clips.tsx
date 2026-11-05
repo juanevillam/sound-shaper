@@ -22,7 +22,6 @@ import { router, Stack } from 'expo-router';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
-import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
@@ -336,4 +335,4 @@ function ClipsSheetScreen() {
   );
 }
 
-export default iosOnlyRoute(ClipsSheetScreen);
+export default ClipsSheetScreen;

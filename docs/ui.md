@@ -1,5 +1,8 @@
 # UI kit
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 `src/ui` (imported as `@/ui`) — the app's React Native UI kit: design tokens, a
 typed icon set, the Welcome / Settings / Manage-account screens, the iOS sheet
 and bar chrome, dialogs, and splash / animation helpers. Built on

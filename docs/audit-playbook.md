@@ -1,5 +1,19 @@
 # The audit playbook — five commands, and the order they run in
 
+> **iOS ONLY SINCE 2026-11-04.** Android is gone from the portfolio (see
+> AGENTS.md → "Platform"), so `/portfolio-native-parity` is DELETED and every
+> phase below that brings Android anywhere is history. The order that is
+> left, per app, on iOS alone:
+>
+> ```
+> /portfolio-craft-audit   <app> ios   # lock the surfaces
+> /portfolio-data-audit    <app>       # prune what it asks for
+> /portfolio-cache-audit   <app>       # bank what remains
+> /portfolio-quality-audit <app>       # gate the release, last
+> ```
+>
+> The web has its own six `web-*` audits, in its own repo.
+
 The five audits live in `.claude/commands/`, ported from the portfolio monorepo
 on 2026-10-17 with their substance unchanged — only paths, names and checks
 that no longer exist were adapted to this repo's layout (`src/ui`, `src/core`,

@@ -1,10 +1,4 @@
-export {
-  type AppColors,
-  FALLBACK_COLORS,
-  IOS_COLORS,
-  materialToAppColors,
-  withAlpha,
-} from './theme/colors';
+export { type AppColors, IOS_COLORS, withAlpha } from './theme/colors';
 export {
   opticalTextInset,
   ROW_INSET,

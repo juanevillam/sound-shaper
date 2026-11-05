@@ -1,10 +1,4 @@
-import {
-  Platform,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Image } from 'expo-image';
 
@@ -65,7 +59,7 @@ const BACKDROP_SOURCE_WIDTH = 64;
  * (the offline mirror's) fetches exactly this variant, not a near miss.
  */
 export const artBackdropUrl = (uri: string): string | null =>
-  Platform.OS === 'ios' ? thumbUrl(uri, BACKDROP_SOURCE_WIDTH) : null;
+  thumbUrl(uri, BACKDROP_SOURCE_WIDTH);
 // Short cross-dissolve so artwork fades in instead of popping. Cached images
 // load synchronously and skip it, so lists of already-seen art never flash.
 const FADE_MS = 200;
@@ -91,7 +85,7 @@ export function ArtImage({
   // behind it — a local pick, or an already-transformed url. That is the only
   // test needed here, and it keeps this file from carrying a second copy of
   // what counts as a Cloudinary url.
-  const needsThumbhash = Platform.OS === 'ios' && backdropUri === uri;
+  const needsThumbhash = backdropUri === uri;
   const thumbhash = useBackdropThumbhash(uri, needsThumbhash);
   const backdropSource = needsThumbhash
     ? thumbhash

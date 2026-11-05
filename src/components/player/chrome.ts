@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { type StyleProp, type ViewStyle } from 'react-native';
 
 import {
   type ComposedGesture,
@@ -359,7 +359,7 @@ export const playerArtFullSize = (
  * 1 : 1.55 split — the optical-centre rule redistributes it by construction,
  * nothing else moves.
  */
-const ART_TOP_GAP = Platform.select({ ios: 12, default: 16 }) as number;
+const ART_TOP_GAP = 12;
 
 export const playerArtTop = (topInset: number): number =>
   topInset + ART_TOP_GAP;
@@ -382,8 +382,8 @@ export const playerConsoleTop = (artTop: number, artSize: number): number =>
  * never binds today, and its `opticalTextInset` consumer is a sub-point nudge
  * that has no business knowing the window height.
  */
-export const playerArtRadius = (artSize: number, androidStep: number): number =>
-  artworkRadius(artSize, androidStep);
+export const playerArtRadius = (artSize: number): number =>
+  artworkRadius(artSize);
 
 /** How far a skip button moves the playhead — the clip editor's ±15 and the
  *  scrubber's VoiceOver step. Both `TrimGlyphs` twins draw this number. */

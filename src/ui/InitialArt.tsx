@@ -1,5 +1,4 @@
 import {
-  Platform,
   StyleSheet,
   Text,
   View,
@@ -79,14 +78,9 @@ export const emptyMediaColor = ({
   container?: MediaContainer;
   scheme: 'light' | 'dark';
 }): string =>
-  Platform.select({
-    ios:
-      container === 'sheet' && scheme === 'dark'
-        ? colors.surfaceVariant
-        : colors.surfaceContainer,
-    // Android takes its M3 role and has no sheet-elevated split to make.
-    default: colors.surfaceVariant,
-  }) as string;
+  (container === 'sheet' && scheme === 'dark'
+    ? colors.surfaceVariant
+    : colors.surfaceContainer) as string;
 
 type InitialArtProps = {
   /**

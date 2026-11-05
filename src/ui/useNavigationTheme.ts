@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 
-import { Platform } from 'react-native';
-
 import { DarkTheme, DefaultTheme } from 'expo-router';
 
 import { useAppTheme } from '@/core';
@@ -39,7 +37,7 @@ export function useNavigationTheme() {
         // the at-rest ground and nothing flashes. iOS keeps `surface`: its
         // bars are `headerTransparent`, and this only feeds the Liquid Glass
         // items' initial appearance.
-        card: Platform.OS === 'android' ? colors.background : colors.surface,
+        card: colors.surface,
         text: colors.onSurface,
         border: colors.border,
         primary: colors.primary,

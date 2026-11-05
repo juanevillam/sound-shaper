@@ -31,11 +31,6 @@ export {
   type TrophyDetailContentColors,
   type TrophyDetailContentProps,
 } from './TrophyDetailContent';
-export {
-  TrophyDetailSheet,
-  type TrophyDetailSheetColors,
-  type TrophyDetailSheetProps,
-} from './TrophyDetailSheet';
 export { TrophyIcon } from './TrophyIcon';
 export { TIER_COLORS, tierColor } from './tierColors';
 

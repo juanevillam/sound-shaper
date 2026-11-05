@@ -1,7 +1,5 @@
 import { type ReactNode } from 'react';
 
-import { Platform, StyleSheet, View } from 'react-native';
-
 import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -9,7 +7,6 @@ import * as WebBrowser from 'expo-web-browser';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { useAppTheme, SUPPORTED_THEMES, useThemeStore } from '@/core';
-import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { type TranslationKey, useI18n } from '@/i18n';
 import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { PROFILE_PHOTO_DISPLAY } from '@/lib/profilePhoto';
@@ -52,11 +49,7 @@ const openLegalPage = (page: LegalPage) =>
  * plain View. That is the reason, not the release freeze it used to cite.
  */
 function SettingsRoot({ children }: { children: ReactNode }) {
-  return Platform.OS === 'ios' ? (
-    <SheetScreen>{children}</SheetScreen>
-  ) : (
-    <View style={styles.root}>{children}</View>
-  );
+  return <SheetScreen>{children}</SheetScreen>;
 }
 
 export default function Settings() {
@@ -72,9 +65,6 @@ export default function Settings() {
   const { showSnackbar } = useSnackbar();
   const devStateLabBar = useDevSettingsStore(s => s.stateLabBar);
   const setDevStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
-  // The shared screen owns its scroller, so the M3 bar-lift has to be handed
-  // in — see `useHeaderScroll`. A no-op on iOS, which leaves the bar clear.
-  const { scrollProps } = useHeaderScroll();
 
   // Identity display only — personal app, so no username line or editor. On
   // iOS this same object is what the account banner draws, so the second line
@@ -192,12 +182,7 @@ export default function Settings() {
         }}
         colorScheme={scheme}
         colors={colors}
-        scrollProps={scrollProps}
       />
     </SettingsRoot>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-});

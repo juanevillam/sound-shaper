@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { withAlpha } from '@/core';
 
@@ -58,17 +58,14 @@ export const ErrorScreen = ({
         android_ripple={{ color: withAlpha(colors.background, 0.2) }}
         style={({ pressed }) => [
           styles.button,
-          Platform.OS === 'android'
-            ? { backgroundColor: colors.onSurface }
-            : pressed && styles.buttonPressedIos,
+          pressed && styles.buttonPressedIos,
         ]}
       >
         <Text
           style={[
             styles.buttonLabel,
             {
-              color:
-                Platform.OS === 'android' ? colors.background : colors.primary,
+              color: colors.primary,
             },
           ]}
         >
@@ -90,19 +87,15 @@ const styles = StyleSheet.create({
   // ContentUnavailableView headline.
   title: {
     textAlign: 'center',
-    ...Platform.select({
-      android: { fontSize: 24, fontWeight: '400', lineHeight: 32 },
-      default: { fontSize: 22, fontWeight: '700' },
-    }),
+    fontSize: 22,
+    fontWeight: '700',
   },
   // Android: M3 bodyMedium (14/20, +0.25). iOS: subheadline (15) secondary.
   message: {
     marginTop: 8,
     textAlign: 'center',
-    ...Platform.select({
-      android: { fontSize: 14, letterSpacing: 0.25, lineHeight: 20 },
-      default: { fontSize: 15, lineHeight: 20 },
-    }),
+    fontSize: 15,
+    lineHeight: 20,
   },
   // Android: M3 filled button (40dp, full-round, 24dp side padding); the fill
   // color comes inline so the ripple can sit on it. iOS: borderless tinted
@@ -110,24 +103,15 @@ const styles = StyleSheet.create({
   button: {
     justifyContent: 'center',
     marginTop: 24,
-    ...Platform.select({
-      android: {
-        borderRadius: 20,
-        minHeight: 40,
-        overflow: 'hidden',
-        paddingHorizontal: 24,
-      },
-      default: { minHeight: 44, paddingHorizontal: 16 },
-    }),
+    minHeight: 44,
+    paddingHorizontal: 16,
   },
   buttonPressedIos: { opacity: PRESSED_OPACITY },
   // Android: M3 labelLarge (14, medium, +0.1). iOS: semibold subheadline, the
   // App Store / Wi-Fi settings "Retry" idiom.
   buttonLabel: {
     textAlign: 'center',
-    ...Platform.select({
-      android: { fontSize: 14, fontWeight: '500', letterSpacing: 0.1 },
-      default: { fontSize: 15, fontWeight: '600' },
-    }),
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

@@ -1,5 +1,8 @@
 # Release — what the first submission needs
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 Sound Shaper ships first on iOS, then Android, published under Grostify LLC's
 Apple Developer membership (team `PHLR7X3FGN`).
 

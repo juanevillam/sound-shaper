@@ -19,7 +19,6 @@ import {
   EMPTY_MEDIA_PLUS,
   SquashPressable,
   CONTINUOUS_CURVE,
-  SHAPE_MD,
 } from '@/ui';
 
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the
@@ -193,7 +192,7 @@ export type SoundTileMetrics = {
  * bone and the tile cannot land on different widths.
  */
 export const soundTileMetrics = (cell: number): SoundTileMetrics => {
-  const artRadius = artworkRadius(cell, SHAPE_MD);
+  const artRadius = artworkRadius(cell);
 
   return {
     cell,

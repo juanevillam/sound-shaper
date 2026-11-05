@@ -8,24 +8,14 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "android": {
-        "buildType": "app-bundle"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
     "production": {
-      "android": {
-        "serviceAccountKeyPath": "./play-service-account.json",
-        "track": "internal"
-      },
       "ios": {
         "ascAppId": "6823850995",
         "appleTeamId": "PHLR7X3FGN"

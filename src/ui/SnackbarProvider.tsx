@@ -6,13 +6,7 @@ import React, {
   useState,
 } from 'react';
 
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text as RNText,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text as RNText, View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -405,28 +399,20 @@ const SnackbarProvider = ({
     <SafeAreaView
       edges={['bottom']}
       pointerEvents="box-none"
-      style={[
-        styles.host,
-        Platform.OS === 'ios' ? { paddingBottom: bottomClearance } : null,
-      ]}
+      style={[styles.host, { paddingBottom: bottomClearance }]}
     >
       <GestureDetector gesture={swipeGesture}>
         <Animated.View
-          onLayout={
-            Platform.OS === 'ios'
-              ? event => {
-                  const { width, height } = event.nativeEvent.layout;
-                  setToastSize({ w: width, h: height });
-                }
-              : undefined
-          }
+          onLayout={event => {
+            const { width, height } = event.nativeEvent.layout;
+            setToastSize({ w: width, h: height });
+          }}
           style={[
             styles.snackbar,
             {
               // Android: solid M3 snackbar. iOS: transparent — the glass
               // layer below is the surface.
-              backgroundColor:
-                Platform.OS === 'ios' ? 'transparent' : colors.surfaceVariant,
+              backgroundColor: 'transparent',
             },
             animatedStyle,
           ]}
@@ -438,7 +424,7 @@ const SnackbarProvider = ({
                   trophy banner and Sound Shaper's now-playing banner stand on.
                   This used to be pure `glassEffect` with nothing behind it,
                   which is where its readability problems came from. */}
-          {Platform.OS === 'ios' && toastSize ? (
+          {toastSize ? (
             <GlassSurfaceIos
               width={toastSize.w}
               height={toastSize.h}
@@ -460,7 +446,7 @@ const SnackbarProvider = ({
                     untranslated string besides. Android keeps its constant
                     action slot: a real action's label arrives via `action`,
                     the plain dismiss via `dismissLabel`. */}
-            {action || Platform.OS !== 'ios' ? (
+            {action ? (
               <Pressable
                 hitSlop={8}
                 onPress={action ? onActionPress : onDismissPress}
@@ -513,17 +499,12 @@ const styles = StyleSheet.create({
   snackbar: {
     // Android = the full-width M3 snackbar; iOS (which has no snackbar
     // idiom) = a floating Liquid Glass capsule toast.
-    ...Platform.select({
-      ios: {
-        alignSelf: 'center' as const,
-        // The shape is a CAPSULE (`GlassSurfaceIos` draws it as one), so this
-        // only has to clip the RN content to the same silhouette. It tracks the
-        // family's corner rather than a literal, which is what it was.
-        borderRadius: FLOATING_RADIUS,
-        maxWidth: '92%' as const,
-      },
-      default: { borderRadius: 12, elevation: 4 },
-    }),
+    alignSelf: 'center' as const,
+    // The shape is a CAPSULE (`GlassSurfaceIos` draws it as one), so this
+    // only has to clip the RN content to the same silhouette. It tracks the
+    // family's corner rather than a literal, which is what it was.
+    borderRadius: FLOATING_RADIUS,
+    maxWidth: '92%' as const,
   },
   content: {
     alignItems: 'center',
@@ -537,22 +518,15 @@ const styles = StyleSheet.create({
     // 15/20 is SUBHEADLINE — the iOS step for a secondary line of running
     // text. The 14 both platforms shared was Material's body-medium leaking
     // across the split; iOS has no 14pt step at all.
-    ...Platform.select({
-      ios: { fontSize: 15, lineHeight: 20 },
-      default: { flex: 1, fontSize: 14, lineHeight: 20 },
-    }),
+    fontSize: 15,
+    lineHeight: 20,
   },
   action: {
     // Uppercase action labels are a Material convention; iOS keeps sentence
     // case at Subheadline with a semibold weight.
-    ...Platform.select({
-      ios: { fontSize: 15, fontWeight: '600' as const, lineHeight: 20 },
-      default: {
-        fontSize: 14,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase' as const,
-      },
-    }),
+    fontSize: 15,
+    fontWeight: '600' as const,
+    lineHeight: 20,
   },
 });
 

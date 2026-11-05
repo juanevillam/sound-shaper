@@ -1,4 +1,4 @@
-import { type PickedSoundFile } from '@/components/sounds/EditSoundSheet';
+import { type PickedSoundFile } from '@/lib/id3';
 
 // One-shot handoff for the create-sound flow on iOS: the picked file (with its
 // parsed ID3 tags and possibly a base64 cover) is far too large for a route

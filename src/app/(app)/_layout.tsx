@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 
-import { Platform } from 'react-native';
-
 import { Redirect, Stack } from 'expo-router';
 
 import { router } from 'expo-router';
@@ -30,7 +28,7 @@ import { makeGlassUnderlay } from '@/ui';
 // the same material Topper's unlock banner and this app's now-playing banner
 // stand on. It was a solid card here while Topper's twin was glass — one
 // surface, two answers. Android keeps the solid elevated card.
-const glassUnderlay = Platform.OS === 'ios' ? makeGlassUnderlay() : undefined;
+const glassUnderlay = makeGlassUnderlay();
 
 function AuthenticatedSubscriptions() {
   // The one session-wide Firestore listener: the flat sound library, which
@@ -126,21 +124,13 @@ export default function AppLayout() {
           // ground" bar — the shared hook's docblock carries the full
           // history). A screen that cannot scroll (manage-account is a short
           // Compose column) correctly stays bare.
-          ...(Platform.OS === 'ios'
-            ? {
-                headerTransparent: true,
-                headerTitleStyle: { color: colors.onSurface },
-                headerLargeTitleStyle: { color: colors.onSurface },
-              }
-            : {
-                headerStyle: { backgroundColor: colors.background },
-              }),
+          headerTransparent: true,
+          headerTitleStyle: { color: colors.onSurface },
+          headerLargeTitleStyle: { color: colors.onSurface },
           headerShadowVisible: false,
           headerTintColor: colors.onSurface,
           contentStyle: { backgroundColor: colors.background },
           // ONE transition for every Android push: the fast Material
-          // fade-through. iOS keeps its platform default.
-          animation: Platform.select({ android: 'fade_from_bottom' }),
         }}
       >
         {/* Home is the single root — a personal app has no tabs. Its title +
@@ -161,7 +151,7 @@ export default function AppLayout() {
             name={name}
             options={{
               title: t(titleKey as TranslationKey),
-              ...(Platform.OS === 'ios' ? sheetOptions(detents, true) : {}),
+              ...sheetOptions(detents, true),
             }}
           />
         ))}
@@ -184,7 +174,7 @@ export default function AppLayout() {
             key={name}
             name={name}
             options={{
-              ...(Platform.OS === 'ios' ? sheetOptions(detents, titled) : {}),
+              ...sheetOptions(detents, titled),
               ...(titleKey ? { title: t(titleKey as TranslationKey) } : {}),
             }}
           />

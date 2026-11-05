@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 // THE FLOATING FAMILY'S GEOMETRY — the snackbar, the trophy unlock banner and
 // the now-playing banner. Platform-neutral on purpose: both platforms' banners
 // and the toast read these, so they cannot live in `GlassSurfaceIos.tsx`, which
@@ -53,10 +51,7 @@ export const FLOATING_EDGE_GAP = 12;
  * not at 22 — so the term moved here the day a second and third surface needed
  * it.
  */
-export const FLOATING_RADIUS = Platform.select({
-  ios: 22,
-  default: 16,
-}) as number;
+export const FLOATING_RADIUS = 22;
 
 /**
  * The gap between a floating surface's title and the supporting line under it.

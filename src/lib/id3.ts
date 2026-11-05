@@ -47,3 +47,11 @@ export const readId3Tags = async (uri: string): Promise<Id3Tags> => {
     return EMPTY_ID3;
   }
 };
+
+/** A freshly picked .mp3, parsed: the document picker and the ID3 read run
+ *  BEFORE the editor opens, so the form opens already prefilled. */
+export type PickedSoundFile = {
+  uri: string;
+  fileName: string;
+  tags: Id3Tags;
+};

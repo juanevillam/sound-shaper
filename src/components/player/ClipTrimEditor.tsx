@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
     // clip it. See `PLAYHEAD_DOT_OVERHANG`.
     height:
       WAVE_HEIGHT + RULER_HEIGHT + BAND_BOTTOM_PAD + PLAYHEAD_DOT_OVERHANG * 2,
-    marginTop: Platform.select({ ios: SHEET_CONTENT_TOP, default: 0 }),
+    marginTop: SHEET_CONTENT_TOP,
   },
   zoomCard: {
     borderRadius: CARD_RADIUS,

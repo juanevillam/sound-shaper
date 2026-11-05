@@ -125,19 +125,6 @@
         ]
       }
     },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#222222",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": true,
-      "package": "com.juanevillam.soundshaper",
-      "googleServicesFile": "./google-services.json",
-      "allowBackup": false,
-      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
-    },
     "plugins": [
       "@bacons/apple-targets",
       "expo-router",
@@ -146,7 +133,11 @@
       "@react-native-firebase/app-check",
       [
         "@react-native-firebase/analytics",
-        { "ios": { "withoutAdIdSupport": true } }
+        {
+          "ios": {
+            "withoutAdIdSupport": true
+          }
+        }
       ],
       [
         "@react-native-google-signin/google-signin",
@@ -160,10 +151,6 @@
         {
           "ios": {
             "useFrameworks": "static"
-          },
-          "android": {
-            "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
@@ -183,8 +170,7 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["en", "es", "zh"],
-            "android": ["en", "es", "zh"]
+            "ios": ["en", "es", "zh"]
           }
         }
       ],
@@ -197,13 +183,6 @@
       [
         "react-native-audio-api",
         {
-          "androidForegroundService": true,
-          "androidFSTypes": ["mediaPlayback"],
-          "androidPermissions": [
-            "android.permission.FOREGROUND_SERVICE",
-            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-            "android.permission.POST_NOTIFICATIONS"
-          ],
           "iosBackgroundMode": true,
           "iosMicrophonePermission": "Sound Shaper never uses the microphone. Its audio engine includes recording features the app doesn't use."
         }

@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -31,16 +31,10 @@ export const SHAPE_SM = 8;
 export const SHAPE_MD = 12;
 
 /** Standard card/row container (M3 12 / iOS grouped 26). */
-export const CARD_RADIUS = Platform.select({
-  ios: IOS_GROUP_RADIUS,
-  default: SHAPE_MD,
-}) as number;
+export const CARD_RADIUS = IOS_GROUP_RADIUS;
 
 /** Larger tile container (M3 16 / iOS grouped 26). */
-export const TILE_RADIUS = Platform.select({
-  ios: IOS_GROUP_RADIUS,
-  default: 16,
-}) as number;
+export const TILE_RADIUS = IOS_GROUP_RADIUS;
 
 /**
  * The corner CURVE, not its size. Apple's corners are continuous ("squircle")
@@ -51,7 +45,7 @@ export const TILE_RADIUS = Platform.select({
  * surface; on Android it resolves to RN's default and changes nothing.
  */
 export const CONTINUOUS_CURVE: { borderCurve: ViewStyle['borderCurve'] } = {
-  borderCurve: Platform.OS === 'ios' ? 'continuous' : 'circular',
+  borderCurve: 'continuous',
 };
 
 /**
@@ -75,20 +69,16 @@ export const CONTINUOUS_CURVE: { borderCurve: ViewStyle['borderCurve'] } = {
  */
 
 /**
- * Radius of a rounded child nested inside a rounded container. iOS follows the
+ * Radius of a rounded child nested inside a rounded container. Follows the
  * concentric-corner rule (inner = outer − inset between the surfaces, so both
- * curves share a center); Android keys to the M3 shape-scale step instead
- * (`androidStep`, also the iOS floor so a deep inset can't push the child
- * sharper than its platform scale).
+ * curves share a center), never sharper than `floor`, so a deep inset can't
+ * push the child below its scale step.
  */
 export const innerRadius = (
   outerRadius: number,
   inset: number,
-  androidStep: number,
-): number =>
-  Platform.OS === 'ios'
-    ? Math.max(outerRadius - inset, androidStep)
-    : androidStep;
+  floor: number,
+): number => Math.max(outerRadius - inset, floor);
 
 /**
  * Stroke width for a separator or an outlined surface. iOS draws true hairlines
@@ -98,7 +88,4 @@ export const innerRadius = (
  * `GROUPED_ROW` and the bones all record that measurement. This is the stroke
  * for an OUTLINE a surface draws itself.
  */
-export const HAIRLINE = Platform.select({
-  ios: StyleSheet.hairlineWidth,
-  default: 1,
-}) as number;
+export const HAIRLINE = StyleSheet.hairlineWidth as number;

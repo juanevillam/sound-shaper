@@ -1,5 +1,8 @@
 # Rejected experiments — built (or proven), then killed. Do not retry blind.
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 Each entry: what was tried, why it died, what shipped instead. If a future
 task proposes one of these, the answer is "already run, here's the verdict" —
 link this file instead of rebuilding. (Some verdicts also live as in-code

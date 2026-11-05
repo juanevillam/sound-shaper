@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Platform, StyleSheet, Text, type TextStyle } from 'react-native';
+import { StyleSheet, Text, type TextStyle } from 'react-native';
 
 import { TextLink } from './TextLink';
 import { spacing } from './tokens';
@@ -29,18 +29,11 @@ import { spacing } from './tokens';
  * `labelMedium`, Material's own style at 12sp, and a tappable run inside prose
  * is a label rather than body. There is no 13 on Material's scale to step to.
  */
-const FOOTER = Platform.select({
-  ios: {
-    fontSize: 13,
-    lineHeight: 18,
-    linkWeight: '400' as TextStyle['fontWeight'],
-  },
-  default: {
-    fontSize: 12,
-    lineHeight: 16,
-    linkWeight: '500' as TextStyle['fontWeight'],
-  },
-});
+const FOOTER = {
+  fontSize: 13,
+  lineHeight: 18,
+  linkWeight: '400' as TextStyle['fontWeight'],
+};
 
 export type WelcomeLegal = {
   /** Disclaimer sentence carrying `{privacy}` and `{terms}` placeholders,

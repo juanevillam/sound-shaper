@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
 import { useAppTheme } from '@/core';
 import { useTrophyContent } from '@/hooks/useTrophyContent';
 import { TrophyDetailContent, useTrophies } from '@/trophies';
@@ -39,4 +38,4 @@ function TrophyDetailSheetScreen() {
   );
 }
 
-export default iosOnlyRoute(TrophyDetailSheetScreen);
+export default TrophyDetailSheetScreen;

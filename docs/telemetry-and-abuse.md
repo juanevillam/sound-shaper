@@ -1,5 +1,8 @@
 # Telemetry, quotas and abuse protection — plan (2026-10-18)
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 Asked by Juan on 2026-10-18: should the app have bot protection, will the free
 tiers hold, and can he see what is used most and where it crashed. This is the
 plan, decided the same day. **Juan's decisions** are at the end and are

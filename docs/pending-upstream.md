@@ -1,5 +1,8 @@
 # Pending — wanted, blocked on a dependency
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 **Not** [`rejected-experiments.md`](rejected-experiments.md). Everything here is
 something we WANT and have decided to build the day the blocker lifts. Each
 entry names the exact API that unlocks it, so the check is mechanical.

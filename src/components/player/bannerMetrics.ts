@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import { SCREEN_PADDING } from '@/core';
 import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@/ui';
 
@@ -45,25 +43,15 @@ export {
 export const BANNER_SIDE_INSET = SCREEN_PADDING;
 
 /**
- * ANDROID CLEARS ITS NAVIGATION BAR and must: the inset there is real chrome
- * the system draws opaquely, not an indicator that floats over content.
- */
-const BANNER_BOTTOM_GAP_ANDROID = 16;
-
-/**
  * The banner's own gap to the screen's bottom edge, WITHOUT the safe-area
  * inset — i.e. how far it floats above whatever chrome is down there.
  *
  * Exported because two callers want the gap on its own rather than the total:
  * anything that positions itself against the inset ALREADY (the dev state
  * lab's picker adds `insets.bottom` itself) would double-count it otherwise.
- * That is not hypothetical — `HOME_LAB_BOTTOM_OFFSET` was built from the iOS
- * gap outright, so the picker stood 8dp low on Android.
+ *
  */
-export const BANNER_BOTTOM_GAP =
-  Platform.OS === 'ios'
-    ? NOW_PLAYING_BOTTOM_GAP_IOS
-    : BANNER_BOTTOM_GAP_ANDROID;
+export const BANNER_BOTTOM_GAP = NOW_PLAYING_BOTTOM_GAP_IOS;
 
 /**
  * Clearance under the banner, from the screen's bottom EDGE — a total, so
@@ -102,8 +90,4 @@ export const bannerBottomOffset = (bottomInset: number) =>
  * Take the reference FAR from the banner: it sits 16pt from the screen edge and
  * its own halo reaches the gutter, so a "page" sample beside it is already
  * darkened and flatters whatever is being tested.
- *
- * Exported because the expanded console's footer IS this banner's box, and it
- * takes the same lift.
  */
-export const BANNER_ELEVATION = 8;

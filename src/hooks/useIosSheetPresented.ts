@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import { usePathname } from 'expo-router';
 
 import { IOS_FORM_SHEET_PATHS } from '@/lib/sheetRoutes';
@@ -17,5 +15,5 @@ import { IOS_FORM_SHEET_PATHS } from '@/lib/sheetRoutes';
  */
 export const useIosSheetPresented = () => {
   const pathname = usePathname();
-  return Platform.OS === 'ios' && IOS_FORM_SHEET_PATHS.has(pathname);
+  return IOS_FORM_SHEET_PATHS.has(pathname);
 };

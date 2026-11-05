@@ -1,5 +1,8 @@
 # House standards
 
+> **iOS AND THE WEB ONLY since 2026-11-04 — there is no Android.** Every
+> Android passage in this file is history, never a task. See `AGENTS.md`.
+
 The rules every surface of Sound Shaper is held to. They were written for a
 portfolio of three apps (Topper, Sound Shaper and Booker) that shared one UI
 kit — the kit that is `src/ui`, `src/core` and `src/trophies` here — so the
