@@ -126,7 +126,7 @@ function Ring({ fraction, label }: { fraction: number; label: string }) {
             cy={RING / 2}
             r={r}
             fill="none"
-            stroke="var(--accent)"
+            stroke="var(--ink)"
             strokeWidth={RING_STROKE}
             strokeLinecap="round"
             strokeDasharray={`${length * fraction} ${length}`}

@@ -41,6 +41,10 @@
   --dur: 320ms;
   --dur-settle: 600ms;
   --dur-micro: 150ms;
+  /* A highlight FADES in and out, as iOS's own does: an even ease over a
+     quarter second. The site's spring (--ease) lands in a few frames, which
+     reads as a snap, not a transition. */
+  --hover: 240ms cubic-bezier(0.25, 0.1, 0.25, 1);
   --dur-quick: 300ms;
   --dur-turn: 450ms;
   --bar-h: 4rem;
@@ -213,7 +217,7 @@ button {
   font-size: 0.875rem;
   font-weight: 500;
   transition:
-    background var(--dur) var(--ease),
+    background var(--hover),
     transform 160ms var(--ease);
 }
 
@@ -389,7 +393,7 @@ button {
   background: color-mix(in srgb, var(--surface) 82%, transparent);
   font-size: 0.9375rem;
   transition:
-    border-color var(--dur-micro) var(--ease),
+    border-color var(--hover),
     transform var(--dur-micro) var(--ease);
 }
 
@@ -473,7 +477,7 @@ button {
 .action-group {
   display: grid;
   overflow: hidden;
-  border-radius: 0.875rem;
+  border-radius: 1.625rem;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
@@ -785,7 +789,7 @@ button {
   background: none;
   transition:
     transform 160ms var(--ease),
-    background var(--dur) var(--ease);
+    background var(--hover);
 }
 
 .glyph:active {
@@ -955,7 +959,9 @@ button {
   /* Wide enough that a divider stands clear of a hovered or open pill. */
   gap: 0.75rem;
   margin-top: 1.5rem;
-  padding: 0.25rem;
+  /* Half the gap: a highlight stands the same 6px off the bar's edge as off
+     the divider beside it, on every side. */
+  padding: 0.375rem;
   border-radius: 1.375rem;
   background: var(--lg-fill);
   backdrop-filter: var(--lg-blur);
@@ -990,12 +996,12 @@ button {
   padding: 0.625rem 1rem;
   border: 0;
   /* Concentric with the bar: its corner less the inset. */
-  border-radius: 1.125rem;
+  border-radius: 1rem;
   background: none;
   text-align: start;
   transition:
     transform 160ms var(--ease),
-    background var(--dur) var(--ease);
+    background var(--hover);
 }
 
 @media (hover: hover) {
@@ -1370,7 +1376,7 @@ button {
   box-shadow: var(--lg-rim);
   color: var(--ink);
   transition:
-    background var(--dur-micro) var(--ease),
+    background var(--hover),
     transform var(--dur-micro) var(--ease);
 }
 
@@ -1410,7 +1416,7 @@ button {
   background: none;
   color: inherit;
   transition:
-    background var(--dur-micro) var(--ease),
+    background var(--hover),
     transform var(--dur-micro) var(--ease);
 }
 
@@ -1519,7 +1525,7 @@ button {
   color: var(--accent);
   font-size: 1.0625rem;
   text-align: start;
-  transition: background var(--dur-micro) var(--ease);
+  transition: background var(--hover);
 }
 
 .new-clip-row .clip-mark {
@@ -1605,7 +1611,10 @@ button {
   /* A clipped card's min-content is 0, so auto rows would crush it when the
      form overflows; max-content keeps every card its own height. */
   grid-auto-rows: max-content;
-  gap: 1.375rem;
+  /* iOS's grouped rhythm, measured in the app: 35 card to card, and a
+     section's header (22 with its gap) on top of that — 57 against the
+     Shape sheet's 58. One gap, so the two boundaries can never drift. */
+  gap: 2.1875rem;
   --form-x: 1rem;
   padding: calc(var(--bar-h) + 0.75rem) var(--form-x)
     max(1.5rem, env(safe-area-inset-bottom));
@@ -1620,7 +1629,8 @@ button {
 
 .card {
   overflow: hidden;
-  border-radius: 0.75rem;
+  /* iOS 26's inset-grouped radius — the app's CARD_RADIUS, 26 at any size. */
+  border-radius: 1.625rem;
   background: var(--cell-bg);
 }
 
@@ -2100,7 +2110,7 @@ button {
 
 .fields {
   display: grid;
-  gap: 1.375rem;
+  gap: 2.1875rem;
 }
 
 .field {
@@ -2122,13 +2132,6 @@ button {
 
 .field input::placeholder {
   color: var(--faint);
-}
-
-/* A headerless card after another card is the app's card-to-card boundary
-   (35pt, measured on the account sheet), not the gap a header sits in. */
-.form > .fields + .card,
-.form > .card + .card {
-  margin-top: 0.8125rem;
 }
 
 .destructive-row {
@@ -2343,14 +2346,15 @@ button {
 /* The summary card: earned, the ring, available — the two figures share one
    width so the ring lands on the card's centre whatever the labels say. */
 .trophy-summary {
-  --ring-size: 5.25rem;
+  /* Sized against the rows under it, not as a hero: a 72px ring in a 96px
+     card beside 60px rows. */
+  --ring-size: 4.5rem;
   container-type: inline-size;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 0.75rem;
-  min-height: 8.5rem;
-  padding: 1rem 0.75rem;
+  padding: 0.75rem;
 }
 
 .figure {
