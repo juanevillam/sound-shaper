@@ -23,9 +23,10 @@ const FEATURES = [
 /**
  * The app's Welcome screen (src/app/(welcome)/welcome.tsx) in the web's own
  * language: the tile, the name and its byline, the same three features in
- * the same words, one sign-in button and the legal line it carries. Apple is
- * not offered yet — on the web it needs a Services ID in Grostify's Apple
- * Developer account (docs/web.md).
+ * the same words, one sign-in button and the legal line it carries. GOOGLE
+ * ONLY, by decision (Juan, 2026-11-05): Sign in with Apple is not offered on
+ * the web (docs/web.md), so an account made with Apple on an iPhone opens
+ * only there.
  */
 export function Welcome() {
   const [busy, setBusy] = useState(false);

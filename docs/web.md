@@ -89,9 +89,13 @@ Still to do:
   older). Preflights from `https://soundshaper.juanevillam.com` and
   `http://localhost:5173` answer 204 with their origin; any other origin
   405; a token-less POST still answers 401 `missing-token`, as before.
-- Sign in with Apple on the web: a Services ID and the domain's verification
-  in Grostify's Apple Developer account — the Account Holder's call. Google
-  sign-in needs nothing extra.
+- **Sign in with Apple is NOT offered on the web** (Juan, 2026-11-05):
+  Google only. It would need a Services ID and domain verification in
+  Grostify's Apple Developer account, and it was declined rather than left
+  pending. The cost: an account created with Apple on an iPhone (often a
+  private-relay email) cannot sign in on the web; the same person signing in
+  with Google there gets a separate, empty library. Firebase links neither.
+  Google sign-in needs nothing extra.
 - ✅ **Cloudflare Pages project `soundshaper` CREATED 2026-11-05** (via the
   API, git-connected to this repo, deploys every push to `main`, no preview
   deployments — the API key and reCAPTCHA would refuse their origins anyway).
