@@ -47,9 +47,9 @@ When they are:
 3. Save them over `source/home.png`, `player.png`, `shape.png` and `clip.png`
    (or add a new entry to `copy.json` for a new screen), run the command, and
    look at every PNG before uploading.
-4. For Spanish UI, capture with the device in Spanish and save into
-   `source/es-MX/`. Until then the Spanish set shows English UI under Spanish
-   headlines.
+4. For Spanish UI, switch the app to Español (Settings → Language; the
+   simulator's own language does not reach it) and save into
+   `source/es-MX/`. The 1.1.0 set (2026-11-05) has both.
 
 ## Why it looks like this
 
