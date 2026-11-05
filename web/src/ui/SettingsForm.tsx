@@ -2,10 +2,12 @@ import { useState } from 'react';
 
 import type { User } from 'firebase/auth';
 
+import type { Theme } from '@app/core/theme/themes';
 import type { Locale } from '@app/i18n/translations';
 import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
 import { legalUrl } from '@app/ui/author';
 
+import { setTheme, SUPPORTED_THEMES, useTheme } from '../appearance';
 import { locale, setLocale, SUPPORTED_LOCALES, t } from '../i18n';
 import { resetPlayer } from '../player';
 import { signOut } from '../session';
@@ -42,9 +44,8 @@ export function Avatar({ user, size }: { user: User; size: number }) {
 
 /**
  * The app's Settings: the identity banner leading the form (the Apple
- * Account card — the way to Account), General, About, Legal, Sign Out.
- * Appearance is not here: the web wears the site's dark brand, with no light
- * twin to choose.
+ * Account card — the way to Account), General (Language, then Appearance,
+ * the app's order), About, Legal, Sign Out.
  */
 export function SettingsForm({
   user,
@@ -54,6 +55,7 @@ export function SettingsForm({
   onAccount: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const theme = useTheme();
 
   return (
     <>
@@ -86,6 +88,19 @@ export function SettingsForm({
               {SUPPORTED_LOCALES.map(code => (
                 <option key={code} value={code}>
                   {t(`settings.language.${code}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="cell picker">
+            <span className="cell-name">{t('settings.theme.label')}</span>
+            <select
+              value={theme}
+              onChange={e => setTheme(e.target.value as Theme)}
+            >
+              {SUPPORTED_THEMES.map(value => (
+                <option key={value} value={value}>
+                  {t(`settings.theme.${value}`)}
                 </option>
               ))}
             </select>

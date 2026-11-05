@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { useScheme } from '../appearance';
+
 import { formatTime } from '@app/lib/player';
 
 import type { Clip } from '../clips';
@@ -41,11 +43,26 @@ const BONE_LEVEL = 0.18;
 
 // Selection is the one accent on the surface — it marks a SELECTION, which
 // is what the accent is kept for; the playhead is the instrument, in red.
-const INK = '245 245 245';
-const ACCENT = '10 132 255';
-const PLAYHEAD = '#ff453a';
-const PANEL = 'rgb(255 255 255 / 0.075)';
-const MUTED = 'rgb(235 235 245 / 0.6)';
+// A canvas cannot read the CSS tokens, so it carries both schemes' values
+// (the same ones styles.css states) and draws in whichever is in force.
+const PALETTES = {
+  dark: {
+    ink: '245 245 245',
+    accent: '10 132 255',
+    playhead: '#ff453a',
+    panel: 'rgb(255 255 255 / 0.075)',
+    muted: 'rgb(235 235 245 / 0.6)',
+    halo: 'rgb(22 22 22 / 0.6)',
+  },
+  light: {
+    ink: '0 0 0',
+    accent: '0 122 255',
+    playhead: '#ff3b30',
+    panel: 'rgb(0 0 0 / 0.05)',
+    muted: 'rgb(60 60 67 / 0.6)',
+    halo: 'rgb(242 242 247 / 0.6)',
+  },
+};
 
 /** A canvas sized to its box at the device's pixel ratio. */
 const useCanvas = (height: number) => {
@@ -302,6 +319,14 @@ function Band({
 }) {
   const height = WAVE_HEIGHT + RULER_HEIGHT + BAND_BOTTOM_PAD;
   const { ref, width, context } = useCanvas(height);
+  const {
+    ink: INK,
+    accent: ACCENT,
+    playhead: PLAYHEAD,
+    panel: PANEL,
+    muted: MUTED,
+    halo: HALO,
+  } = PALETTES[useScheme()];
 
   useLayoutEffect(() => {
     const ctx = context();
@@ -361,7 +386,7 @@ function Band({
 
     // The playhead: a line with Voice Memos' dots, over a ground-coloured
     // halo so the bars never strobe against it.
-    ctx.fillStyle = 'rgb(13 13 13 / 0.6)';
+    ctx.fillStyle = HALO;
     ctx.fillRect(mid - 3, 0, 6, WAVE_HEIGHT);
     ctx.fillStyle = PLAYHEAD;
     ctx.fillRect(mid - 1, 0, 2, WAVE_HEIGHT);
@@ -443,6 +468,12 @@ function Overview({
   setEdge: (edge: 'start' | 'end', seconds: number) => void;
 }) {
   const { ref, width, context } = useCanvas(OVERVIEW_HEIGHT);
+  const {
+    ink: INK,
+    accent: ACCENT,
+    playhead: PLAYHEAD,
+    panel: PANEL,
+  } = PALETTES[useScheme()];
   const [held, setHeld] = useState<'start' | 'end' | 'seek' | null>(null);
   // The frame's caps stand outside the range, so the track sits inset by one.
   const inner = Math.max(1, width - CAP_WIDTH * 2);

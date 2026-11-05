@@ -1,6 +1,8 @@
 /* juanevillam.com's tokens (website/src/styles/global.css) and the Songs
    player's iOS materials (SongsPlayer.astro) — the web app wears the site's
-   brand: dark, the system faces, no webfonts. */
+   brand: the system faces, no webfonts. Dark is the site's own; light is
+   iOS's grouped palette (src/core/theme/colors.ts), and Settings →
+   Appearance picks between them (src/appearance.ts sets data-theme). */
 :root {
   --ground: #0d0d0d;
   --ink: #f5f5f5;
@@ -21,7 +23,9 @@
     inset 0 0.75px 0 rgb(255 255 255 / 0.26),
     inset 0 -0.5px 0 rgb(255 255 255 / 0.06),
     inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
-  --sheet-bg: rgb(22 22 22 / 0.86);
+  /* Opaque, like the app's form sheet: what is behind a sheet is the
+     screen it covers, not something to read through it. */
+  --sheet-bg: #161616;
   --cell-bg: rgb(255 255 255 / 0.075);
   --separator: rgb(255 255 255 / 0.1);
   --muted: rgb(235 235 245 / 0.6);
@@ -34,6 +38,15 @@
   /* iOS 26's hard scroll edge: a dark blur with a hairline under it. */
   --edge-bg: rgb(12 12 12 / 0.62);
   --edge-line: rgb(255 255 255 / 0.14);
+  /* The ink's own channels, for washes of it at any strength, and the
+     ground's, for fades into it. */
+  --fg: 255 255 255;
+  --ground-rgb: 13 13 13;
+  --stage: #000;
+  --google-bg: #131314;
+  --google-bg-hover: #1d1d1f;
+  --google-ink: #e3e3e3;
+  --google-edge: #8e918f;
   --radius: 1rem;
   --gutter: max(1rem, env(safe-area-inset-left));
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -52,6 +65,44 @@
     system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text',
     'Segoe UI', sans-serif;
   color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --ground: #f2f2f7;
+  --ink: #000;
+  --ink-2: #6e6e73;
+  --ink-3: #8e8e93;
+  --surface: #fff;
+  --hairline: #d1d1d6;
+  --glass-ink: #e5e5ea;
+  --glass: rgb(255 255 255 / 0.62);
+  --glass-edge: rgb(0 0 0 / 0.06);
+  --lg-fill: rgb(255 255 255 / 0.55);
+  --lg-fill-hover: rgb(255 255 255 / 0.72);
+  --lg-rim:
+    inset 0 0.75px 0 rgb(255 255 255 / 0.9), inset 0 -0.5px 0 rgb(0 0 0 / 0.04),
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --sheet-bg: #f2f2f7;
+  --cell-bg: #fff;
+  --separator: rgb(60 60 67 / 0.29);
+  --muted: rgb(60 60 67 / 0.6);
+  --faint: rgb(60 60 67 / 0.3);
+  --track: rgb(120 120 128 / 0.2);
+  --switch-on: #34c759;
+  --destructive: #ff3b30;
+  --accent: rgb(0 122 255);
+  --empty-media: #e5e5ea;
+  --edge-bg: rgb(242 242 247 / 0.72);
+  --edge-line: rgb(0 0 0 / 0.12);
+  --fg: 0 0 0;
+  --ground-rgb: 242 242 247;
+  --stage: #fff;
+  /* Google's light button, from the same guidelines. */
+  --google-bg: #fff;
+  --google-bg-hover: #f2f2f2;
+  --google-ink: #1f1f1f;
+  --google-edge: #747775;
+  color-scheme: light;
 }
 
 * {
@@ -202,17 +253,18 @@ button {
   animation: rise var(--dur-settle) var(--ease) 240ms both;
 }
 
-/* Google's dark button, verbatim from its branding guidelines. */
+/* Google's button, verbatim from its branding guidelines — the dark one, or
+   the light one under a light Appearance. */
 .google {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
   height: 2.75rem;
-  border: 1px solid #8e918f;
+  border: 1px solid var(--google-edge);
   border-radius: 999px;
-  background: #131314;
-  color: #e3e3e3;
+  background: var(--google-bg);
+  color: var(--google-ink);
   font-family: Roboto, var(--font-sans);
   font-size: 0.875rem;
   font-weight: 500;
@@ -222,7 +274,7 @@ button {
 }
 
 .google:hover {
-  background: #1d1d1f;
+  background: var(--google-bg-hover);
 }
 
 .google:active {
@@ -493,7 +545,7 @@ button {
   padding: 0 1rem;
   border: 0;
   background: none;
-  color: rgb(10 132 255);
+  color: var(--accent);
   font-size: 1.25rem;
 }
 
@@ -502,7 +554,7 @@ button {
 }
 
 .action-group button:active {
-  background: rgb(255 255 255 / 0.08);
+  background: rgb(var(--fg) / 0.08);
 }
 
 .action-group .is-destructive {
@@ -740,7 +792,7 @@ button {
   background: linear-gradient(
       100deg,
       transparent 30%,
-      rgb(255 255 255 / 0.05) 50%,
+      rgb(var(--fg) / 0.05) 50%,
       transparent 70%
     )
     0 0 / 300% 100% var(--empty-media);
@@ -889,8 +941,8 @@ button {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    rgb(255 255 255 / 0.85) calc(var(--progress) * 100%),
-    rgb(255 255 255 / 0.2) 0
+    rgb(var(--fg) / 0.85) calc(var(--progress) * 100%),
+    rgb(var(--fg) / 0.2) 0
   );
   transition: height 180ms var(--ease);
 }
@@ -900,8 +952,8 @@ button {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    rgb(255 255 255 / 0.85) calc(var(--progress) * 100%),
-    rgb(255 255 255 / 0.2) 0
+    rgb(var(--fg) / 0.85) calc(var(--progress) * 100%),
+    rgb(var(--fg) / 0.2) 0
   );
 }
 
@@ -955,7 +1007,7 @@ button {
 
 @media (hover: hover) {
   .transport .glyph:hover {
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(var(--fg) / 0.08);
   }
 }
 
@@ -1012,7 +1064,7 @@ button {
 
 @media (hover: hover) {
   .dock-cell:hover {
-    background: rgb(255 255 255 / 0.06);
+    background: rgb(var(--fg) / 0.06);
   }
 }
 
@@ -1021,7 +1073,7 @@ button {
 }
 
 .dock-cell[aria-expanded='true'] {
-  background: rgb(255 255 255 / 0.13);
+  background: rgb(var(--fg) / 0.13);
 }
 
 .dock-icon {
@@ -1131,7 +1183,7 @@ button {
   bottom: 0;
   height: 2px;
   border-radius: 2px;
-  background: rgb(255 255 255 / 0.12);
+  background: rgb(var(--fg) / 0.12);
 }
 
 .mini-progress::after {
@@ -1266,16 +1318,16 @@ button {
   background:
     linear-gradient(
       to bottom left,
-      rgb(255 255 255 / 0.14),
-      rgb(255 255 255 / 0.03) 55%,
-      rgb(255 255 255 / 0) 100%
+      rgb(var(--fg) / 0.14),
+      rgb(var(--fg) / 0.03) 55%,
+      rgb(var(--fg) / 0) 100%
     ),
     linear-gradient(
       118deg,
-      rgb(255 255 255 / 0.55),
-      rgb(255 255 255 / 0.34) 35%,
-      rgb(255 255 255 / 0.16) 65%,
-      rgb(255 255 255 / 0.02)
+      rgb(var(--fg) / 0.55),
+      rgb(var(--fg) / 0.34) 35%,
+      rgb(var(--fg) / 0.16) 65%,
+      rgb(var(--fg) / 0.02)
     );
   opacity: 0;
   transition: opacity 420ms ease-in-out;
@@ -1292,13 +1344,13 @@ button {
   inset: 0;
   z-index: 2;
   background: linear-gradient(
-    rgb(13 13 13 / 0.24) 0%,
-    rgb(13 13 13 / 0.24) 12%,
-    rgb(13 13 13 / 0.03) 19.3%,
-    rgb(13 13 13 / 0.3) 39.6%,
-    rgb(13 13 13 / 0.68) 63.8%,
-    rgb(13 13 13 / 0.84) 88.1%,
-    rgb(13 13 13 / 0.855) 100%
+    rgb(var(--ground-rgb) / 0.24) 0%,
+    rgb(var(--ground-rgb) / 0.24) 12%,
+    rgb(var(--ground-rgb) / 0.03) 19.3%,
+    rgb(var(--ground-rgb) / 0.3) 39.6%,
+    rgb(var(--ground-rgb) / 0.68) 63.8%,
+    rgb(var(--ground-rgb) / 0.84) 88.1%,
+    rgb(var(--ground-rgb) / 0.855) 100%
   );
 }
 
@@ -1339,8 +1391,6 @@ button {
   border-top: 1px solid var(--hairline);
   border-radius: var(--sheet-r) var(--sheet-r) 0 0;
   background: var(--sheet-bg);
-  backdrop-filter: blur(40px) saturate(1.4);
-  -webkit-backdrop-filter: blur(40px) saturate(1.4);
   box-shadow: 0 -0.5rem 2rem rgb(0 0 0 / 0.35);
   transform: translateY(105%);
   transform-origin: 50% 0;
@@ -1376,7 +1426,7 @@ button {
   width: 2.25rem;
   height: 0.3125rem;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.3);
+  background: rgb(var(--fg) / 0.3);
   transform: translateX(-50%);
 }
 
@@ -1471,7 +1521,7 @@ button {
 
 @media (hover: hover) {
   .glass-pill button:hover {
-    background: rgb(255 255 255 / 0.1);
+    background: rgb(var(--fg) / 0.1);
   }
 }
 
@@ -1578,12 +1628,12 @@ button {
 
 @media (hover: hover) {
   .new-clip-row:hover {
-    background: rgb(255 255 255 / 0.04);
+    background: rgb(var(--fg) / 0.04);
   }
 }
 
 .new-clip-row:active {
-  background: rgb(255 255 255 / 0.08);
+  background: rgb(var(--fg) / 0.08);
 }
 
 .row-actions {
@@ -1905,7 +1955,7 @@ button {
     height: 100svh;
     overflow: hidden;
     border-left: 1px solid var(--hairline);
-    background: #000;
+    background: var(--stage);
     view-transition-name: stage;
   }
 
@@ -2259,7 +2309,7 @@ button {
   padding: 0.25rem 0.5rem;
   border: 0;
   background: none;
-  color: rgb(10 132 255);
+  color: var(--accent);
   font-size: 1.0625rem;
 }
 
@@ -2309,7 +2359,7 @@ button {
 }
 
 .destructive-row:active {
-  background: rgb(255 255 255 / 0.06);
+  background: rgb(var(--fg) / 0.06);
 }
 
 /* The app's snackbar, in the site's pill language. */
@@ -2436,7 +2486,7 @@ button {
 
 .banner:active,
 .link-row:active {
-  background: rgb(255 255 255 / 0.06);
+  background: rgb(var(--fg) / 0.06);
 }
 
 .value-bone {
@@ -2672,7 +2722,7 @@ button {
   width: 2.25rem;
   height: 0.3125rem;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.3);
+  background: rgb(var(--fg) / 0.3);
   transform: translateX(-50%);
 }
 
@@ -2750,7 +2800,7 @@ button {
   background: linear-gradient(
     105deg,
     transparent 35%,
-    rgb(255 255 255 / 0.14) 50%,
+    rgb(var(--fg) / 0.14) 50%,
     transparent 65%
   );
   background-size: 300% 100%;

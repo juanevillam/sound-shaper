@@ -6,8 +6,23 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0d0d" />
+    <!-- The Appearance choice (src/appearance.ts) BEFORE the first paint, so
+         a light page never flashes dark while the app loads. -->
+    <script>
+      (function () {
+        var t = 'system';
+        try {
+          t = localStorage.getItem('soundshaper.theme') || 'system';
+        } catch (e) {}
+        if (t !== 'light' && t !== 'dark')
+          t = matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <meta name="description" content="EQ, speed and clips for MP3s" />
     <title>Sound Shaper</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
