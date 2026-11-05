@@ -295,6 +295,12 @@ button {
   min-height: 100svh;
 }
 
+/* On a phone the third column is no box at all: its sheets rise over the
+   screen like every other. */
+.tools {
+  display: contents;
+}
+
 /* ── The library ── */
 
 .library {
@@ -1808,14 +1814,16 @@ button {
    inset, so their first lines stand level. ══ */
 
 @media (min-width: 64rem) {
-  /* TWO COLUMNS, ALWAYS (Juan, 2026-11-04): the library takes what is left,
-     and the right column is the phone — the player, and every sheet rising
-     over it. A third column for the sheets re-laid the window out on every
-     open and close; a sheet over the player is what the app does. */
+  /* The library takes what is left, and the right column is the phone —
+     the player, and the sheets rising over it. SHAPE AND CLIPS ARE THE ONE
+     EXCEPTION (Juan, 2026-11-04, reversing "two columns, always" for these
+     two alone): they are worked WITH the player, so they open in a third
+     column beside it, and whatever stacks over them stacks there, nested. */
   .home {
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
     /* The phone's proportions: about half as wide as the window is tall. */
     --stage-w: clamp(24rem, min(30vw, 56svh), 30rem);
+    --tools-w: clamp(22rem, 26vw, 27rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 0;
     height: 100svh;
@@ -1824,6 +1832,10 @@ button {
 
   .home.is-staged {
     grid-template-columns: minmax(0, 1fr) var(--stage-w);
+  }
+
+  .home.is-staged.is-tooled {
+    grid-template-columns: minmax(0, 1fr) var(--stage-w) var(--tools-w);
   }
 
   .library {
@@ -1856,6 +1868,23 @@ button {
 
   .home:not(.is-staged) .stage {
     visibility: hidden;
+  }
+
+  /* The third column: Shape or Clips, and what stacks over them. Its sheets
+     rise within it, as they would over the player. */
+  .tools {
+    display: block;
+    position: relative;
+    grid-column: 3;
+    height: 100svh;
+    overflow: hidden;
+    border-left: 1px solid var(--hairline);
+    background: var(--ground);
+    view-transition-name: tools;
+  }
+
+  .home:not(.is-tooled) .tools {
+    display: none;
   }
 
   .now-column {
@@ -1921,11 +1950,13 @@ button {
   animation-timing-function: var(--ease);
 }
 
-::view-transition-old(stage):only-child {
+::view-transition-old(stage):only-child,
+::view-transition-old(tools):only-child {
   animation: slide-out var(--dur-quick) var(--ease) both;
 }
 
-::view-transition-new(stage):only-child {
+::view-transition-new(stage):only-child,
+::view-transition-new(tools):only-child {
   animation: slide-in var(--dur-turn) var(--ease) both;
 }
 

@@ -126,7 +126,18 @@ type Entry =
   | { kind: 'new'; picked: PickedSound }
   | { kind: 'clip'; clip: Clip | null };
 
-type Layer = { id: number; entry: Entry; leaving: boolean };
+/**
+ * `tools`: the layer belongs to the desk's THIRD column. Shape and Clips are
+ * worked WITH the player — you shape what you hear, you frame a clip while it
+ * plays — so on a desk they open beside the player instead of over it, and
+ * whatever stacks over them (Shape over Clips, the clip editor) stacks there
+ * too, nested. Decided when the layer is pushed, so a closing stack never
+ * jumps columns on its way out.
+ */
+type Layer = { id: number; entry: Entry; leaving: boolean; tools: boolean };
+
+const isTool = (entry: Entry) =>
+  entry.kind === 'shape' || entry.kind === 'clips';
 
 /** A sheet's slide, so a popped one is unmounted only once it is gone. */
 const LEAVE_MS = 320;
@@ -134,11 +145,11 @@ const LEAVE_MS = 320;
 let nextLayer = 0;
 
 /**
- * THE SIGNED-IN APP. On a desk, TWO columns — the library, and the sound
- * that is playing — and every sheet rises over the player's column the way
- * the app's sheets rise over the player, so the window never re-lays out
- * when one opens. On a phone it is the app: the grid, the now-playing
- * banner, and the player and its sheets rising over it.
+ * THE SIGNED-IN APP. On a desk, the library and the sound that is playing,
+ * and a third column while Shape or Clips is open (see `Layer`); every other
+ * sheet rises over the player's column the way the app's sheets rise over
+ * the player. On a phone it is the app: the grid, the now-playing banner,
+ * and the player and its sheets rising over it.
  */
 export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
@@ -178,7 +189,12 @@ export function Home({ user }: { user: User }) {
 
   /** Over whatever is open. */
   const push = (entry: Entry) =>
-    setLayers(all => [...all, { id: nextLayer++, entry, leaving: false }]);
+    setLayers(all => {
+      // A stack keeps the column its first sheet opened in.
+      const front = all.find(layer => !layer.leaving);
+      const tools = front ? front.tools : isTool(entry);
+      return [...all, { id: nextLayer++, entry, leaving: false, tools }];
+    });
 
   /** The front sheet goes; the one under it comes forward. */
   const pop = () => {
@@ -213,6 +229,15 @@ export function Home({ user }: { user: User }) {
     // `live` only decides whether a sheet already holds the column up.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasCurrent, stood]);
+
+  // THE THIRD COLUMN stands up and lies down through `morph` too, a beat
+  // after the stack that needs it — the same lag as the player's column.
+  const tooled = live.some(layer => layer.tools);
+  const [toolsShown, setToolsShown] = useState(false);
+  useEffect(() => {
+    if (tooled !== toolsShown) morph(() => setToolsShown(tooled));
+  }, [tooled, toolsShown]);
+  const overPlayer = live.filter(layer => !layer.tools);
 
   // The grid re-flows only when the right column has to stand up for a
   // sheet; a sheet over the player is no column change at all.
@@ -271,7 +296,8 @@ export function Home({ user }: { user: User }) {
     current ? 'has-current' : '',
     staged ? 'is-staged' : '',
     expanded ? 'is-expanded' : '',
-    live.length ? 'side-open' : '',
+    overPlayer.length ? 'side-open' : '',
+    toolsShown ? 'is-tooled' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -409,6 +435,30 @@ export function Home({ user }: { user: User }) {
     }
   };
 
+  /** One column's stack: its layers, each knowing how many stand over it. */
+  const sheets = (tools: boolean) => {
+    const group = layers.filter(layer => layer.tools === tools);
+    const front = group.filter(layer => !layer.leaving);
+    return group.map((layer, i) => {
+      const sheet = render(layer.entry);
+      const depth = front.length - 1 - front.indexOf(layer);
+      return (
+        <SidePanel
+          key={layer.id}
+          open={!layer.leaving}
+          depth={layer.leaving ? 0 : depth}
+          index={i}
+          title={sheet.title}
+          action={sheet.action}
+          trailing={sheet.trailing}
+          onClose={layer.leaving ? () => {} : pop}
+        >
+          {sheet.body}
+        </SidePanel>
+      );
+    });
+  };
+
   return (
     <div className={className}>
       <Backdrop artUrl={current?.artUrl ?? ''} />
@@ -460,33 +510,19 @@ export function Home({ user }: { user: User }) {
             onCollapse={() => setExpanded(false)}
             onOpen={next => openOnly({ kind: next })}
             panel={
-              live.length === 1 &&
-              (base === 'shape' || base === 'clips' || base === 'edit')
+              base === 'shape' ||
+              base === 'clips' ||
+              (base === 'edit' && live.length === 1)
                 ? base
                 : null
             }
           />
         </div>
 
-        {layers.map((layer, i) => {
-          const sheet = render(layer.entry);
-          const depth = live.length - 1 - live.indexOf(layer);
-          return (
-            <SidePanel
-              key={layer.id}
-              open={!layer.leaving}
-              depth={layer.leaving ? 0 : depth}
-              index={i}
-              title={sheet.title}
-              action={sheet.action}
-              trailing={sheet.trailing}
-              onClose={layer.leaving ? () => {} : pop}
-            >
-              {sheet.body}
-            </SidePanel>
-          );
-        })}
+        {sheets(false)}
       </div>
+
+      <div className="tools">{sheets(true)}</div>
 
       <MiniPlayer onExpand={() => setExpanded(true)} />
       <Toast />
