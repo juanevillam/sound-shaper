@@ -7,14 +7,13 @@ the Next Room and Echo effects, and clip the parts worth replaying. Your
 library is yours alone: there is no social layer, and nothing you upload is
 shared with or shown to anyone else.
 
-Built with Expo (SDK 57) and React Native, native UI on each platform —
-SwiftUI through `@expo/ui` on iOS, Jetpack Compose on Android — on Firebase
-(Auth + Firestore) and Cloudinary.
+On iPhone it is an Expo (SDK 57) and React Native app with native SwiftUI
+through `@expo/ui`; on the web it is a React and Vite app in `web/`, playing
+through the Web Audio API with the same shaping. Both share one account on
+Firebase (Auth + Firestore) and Cloudinary.
 
-iPhone first: submitted to the App Store on 2026-10-17 and in review,
-published by Grostify LLC. The Android build exists in the code and hasn't
-shipped yet.
-
+- **App Store:** [apps.apple.com/app/id6823850995](https://apps.apple.com/app/id6823850995), published by Grostify LLC
+- **Web:** [soundshaper.juanevillam.com](https://soundshaper.juanevillam.com)
 - **Support:** [juanevillam.com/sound-shaper/support](https://juanevillam.com/sound-shaper/support)
 - **Privacy policy:** [juanevillam.com/sound-shaper/privacy-policy](https://juanevillam.com/sound-shaper/privacy-policy)
 
@@ -30,6 +29,7 @@ shipped yet.
 | `targets/`      | the iOS widget extension (`@bacons/apple-targets`)                                                                           |
 | `patches/`      | source overlays on two dependencies, applied by `postinstall` — see below                                                    |
 | `plugins/`      | config plugins for the iOS build: the SwiftUI link fix and the UIScene lifecycle iOS 26+ requires                            |
+| `web/`          | the web app at soundshaper.juanevillam.com — React, Vite, Web Audio; see [`docs/web.md`](docs/web.md)                        |
 | `media-worker/` | the Cloudflare Worker that lets the app delete its own Cloudinary uploads (it holds the API secret)                          |
 
 `src/ui`, `src/core` and `src/trophies` began life as shared packages in a
@@ -43,12 +43,13 @@ measured against.
 npm install            # postinstall applies patches/
 node scripts/apply-patches.mjs   # …unless npm runs with ignore-scripts
 npx husky              # installs the git hooks, which ignore-scripts also skips
-npx expo run:ios       # or run:android
+npx expo run:ios
+cd web && npm ci && npm run dev   # the web app
 ```
 
-`android/` and `ios/` are prebuild output and gitignored; all native config is
+`ios/` is prebuild output and gitignored; all native config is
 `app.json` plus config plugins. Firebase's client config files
-(`google-services.json`, `GoogleService-Info.plist`) are committed — they
+(`GoogleService-Info.plist`, and the web's `web/src/firebaseConfig.ts`) are committed — they
 identify the project and are public by design; access is enforced by
 `firestore.rules`.
 
