@@ -134,29 +134,34 @@ export function PlayerBackdrop({ artUrl }: { artUrl: string }) {
   return (
     <div className="player-backdrop" aria-hidden="true" ref={root}>
       <div className={layers[front] ? 'standin' : 'standin is-on'} />
-      {layers.map((src, i) =>
-        src ? (
-          <div key={i} className={i === front ? 'wash is-on' : 'wash'}>
-            <img src={src} alt="" />
-            {FLOW_LAYERS.map((layer, n) => (
-              <div
-                key={n}
-                className="flow"
-                data-layer={n}
-                style={
-                  {
-                    '--x': layer.x,
-                    '--y': layer.y,
-                    opacity: layer.opacity,
-                  } as React.CSSProperties
-                }
-              >
-                <img src={src} alt="" />
-              </div>
-            ))}
-          </div>
-        ) : null,
-      )}
+      {/* BOTH WASHES STAY MOUNTED, picture or not. Mounting one only once it
+          had a picture put it on screen ALREADY at its resting opacity — no
+          transition runs on an element's first style — so the first change
+          of sound, and every change out of an art-less one, cut instead of
+          crossing. */}
+      {layers.map((src, i) => (
+        <div key={i} className={i === front ? 'wash is-on' : 'wash'}>
+          {src ? <img src={src} alt="" /> : null}
+          {src
+            ? FLOW_LAYERS.map((layer, n) => (
+                <div
+                  key={n}
+                  className="flow"
+                  data-layer={n}
+                  style={
+                    {
+                      '--x': layer.x,
+                      '--y': layer.y,
+                      opacity: layer.opacity,
+                    } as React.CSSProperties
+                  }
+                >
+                  <img src={src} alt="" />
+                </div>
+              ))
+            : null}
+        </div>
+      ))}
       <div className="fade" />
     </div>
   );
