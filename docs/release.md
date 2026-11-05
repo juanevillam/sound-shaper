@@ -30,6 +30,18 @@ Agreement — an expired PLA blocks every signing call, so check it first when
 EAS reports an Apple 403. Its checklist — App Privacy changes included — is
 the "1.0.1" section below.
 
+## 1.1.0 — ready to submit (2026-11-04)
+
+Tag `v1.1.0` sits on the version-bump commit; build and submit THAT commit
+(`eas build --platform ios --profile production --auto-submit`). What it
+brings over 1.0.1: Auto DJ (sections, matched loudness, filter and echo
+transitions), the cover's colours flowing behind the expanded player, and
+speed or Preserve Pitch changes that no longer drop audio. No new data is
+collected, so App Privacy does not change. Release notes via `/store-notes`.
+**Store screenshots are refreshed AFTER this release**, not as part of it
+(Juan, 2026-11-04). If the build needs a fix, move the tag to the commit
+actually sent to review.
+
 ## 1.0.1 — what to do, in order (steps 1–5 done 2026-10-30; 6–8 done 2026-11-03)
 
 Juan's call (2026-10-18): 1.0.0 ships as reviewed; 1.0.1 is the next version
