@@ -676,3 +676,12 @@ design question rather than a missing branch.
 
 Everything was reverted (`00917b5`). The expanded player keeps its static
 gradient.
+
+**POSTSCRIPT, 2026-11-04: a flow that is NOT audio-reactive shipped.** Juan
+asked again for movement in the background — "tipo wave, tipo gota" — and kept
+Apple Music's idiom: copies of the blurred cover turning slowly, on a clock of
+real time × playback speed that stops on pause. It answers both findings above
+by having no envelope at all, and the scale finding by ROTATING rather than
+scaling. Its first cut repeated attempt 1's mistake anyway — at the wash's 60pt
+blur it moved visible pixels ~1/255 a second and Juan saw nothing; measured
+offline, 30pt blur and 24s / 33s periods fixed it. See `PlayerBackdrop.tsx`.

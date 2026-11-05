@@ -381,18 +381,28 @@ in the file's header; the ones worth knowing before touching it:
   arbitration write-ups above survive inside `ClipTrimFrame` itself,
   which is where that behaviour now lives.
 
-**THE EXPANDED PLAYER HAS NO REACTIVE OR ANIMATED BACKGROUND, and one was
-built three ways before that was settled** (2026-09-11). Juan asked for a
-background that answers to the music — the light strip behind a television as
-the reference — and rejected the result outright: it overcomplicates a screen
-whose whole case is being calm.
+**THE EXPANDED PLAYER'S WASH FLOWS WHILE A SOUND PLAYS — AND IT IS NOT
+AUDIO-REACTIVE** (Juan, 2026-11-04: "está perfecto, tal cual era eso a lo que me
+refería"). Two copies of the blurred cover turn slowly in opposite directions
+(24s / 33s) about off-centre pivots over the still wash, so its colours drift
+and pool — Apple Music's own full-screen idiom. One UI-thread clock advances by
+real time × playback speed only while playing, so pause freezes the colours in
+place. It sits UNDER the unchanged fade, Reduce Motion keeps the still wash, and
+an art-less sound keeps its still stand-in. The numbers, and why the first cut
+was invisible (blur 60, ~1/255 a second), are in `PlayerBackdrop.tsx`; the web
+player runs the same flow (`web/src/ui/Backdrop.tsx`).
+
+What stays rejected is the 2026-09-11 version: a background that ANSWERS TO THE
+MUSIC. Juan asked for that one — the light strip behind a television as the
+reference — and turned it down outright: it overcomplicates a screen whose whole
+case is being calm.
 
 The full post-mortem is in
 [`docs/rejected-experiments.md`](docs/rejected-experiments.md), and
 the two findings worth knowing before anyone reaches for this again are that
-**the wash cannot be the thing that moves** (it is the ground the title,
-transport and cards are read against, so a moving ground reads as instability
-at any amplitude) and that **an instant attack on a level envelope is a
+**the wash cannot be the thing that PULSES** (it is the ground the title,
+transport and cards are read against, so a ground that jumps with the music
+reads as instability; a slow drift that never jumps is what shipped) and that **an instant attack on a level envelope is a
 strobe**. The `AnalyserNode` approach itself was sound and rate-correct by
 construction; it is the surface that was wrong.
 
