@@ -1,10 +1,12 @@
 import { memo, useEffect, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, {
+  type SharedValue,
   useAnimatedStyle,
+  useFrameCallback,
   useReducedMotion,
   useSharedValue,
   withTiming,
@@ -133,9 +135,99 @@ const STANDIN_ALPHA_FAR = 0.02;
  */
 const STANDIN_CROSS_ALPHA = 0.14;
 
+/**
+ * THE WASH FLOWS WHILE THE SOUND PLAYS (Juan, 2026-11-04) — Apple Music's own
+ * full-screen idiom: copies of the blurred cover turning slowly over the
+ * still one, so its colours drift and pool like liquid. It is the one moving
+ * thing the player was missing, and it is built against the three rejected
+ * attempts in docs/rejected-experiments.md rather than in ignorance of them:
+ *
+ * - NOT AUDIO-REACTIVE. A level envelope is what made the last one flash;
+ *   this one has no attack at all. It keeps time with the PLAYBACK SPEED
+ *   only, the way `NowPlayingBars` does — one clock that advances by real
+ *   time × rate while playing and simply stops on pause, so the colours
+ *   freeze where they are instead of snapping back.
+ * - ROTATION, NOT SCALE. A 60pt blur swallows a 12% swell whole; turning it
+ *   moves the lobes themselves, which is the part the eye sees.
+ * - UNDER THE SAME FADE. The flow sits inside the art layer, so the bar-band
+ *   scrim and the steep fall-off under the console still decide what the
+ *   title, transport and footer are read against.
+ *
+ * Two layers in opposite directions at unrelated periods, so the mix never
+ * visibly repeats; each turns about a point off the screen's centre, so the
+ * colour travels rather than spinning in place. Reduce Motion keeps the still
+ * wash. An ART-LESS sound keeps its still stand-in: its ramps are bounded by
+ * the status-bar contrast measured below, and a moving lobe would spend the
+ * headroom they do not have.
+ */
+const FLOW_LAYERS = [
+  { periodS: 38, direction: 1, opacity: 0.6, offset: { x: -0.22, y: -0.16 } },
+  { periodS: 53, direction: -1, opacity: 0.5, offset: { x: 0.24, y: 0.14 } },
+] as const;
+
 type PlayerBackdropProps = {
   artUrl?: string;
+  /** Whether the sound is playing — the flow advances only while it is. */
+  flowing?: boolean;
+  /** Playback speed; the flow keeps time with it. */
+  rate?: number;
 };
+
+/**
+ * One turning copy of the blurred cover. A SQUARE large enough to cover the
+ * whole screen at every angle from its off-centre pivot, so no corner ever
+ * sweeps into view.
+ */
+function FlowLayer({
+  index,
+  phase,
+  uri,
+}: {
+  index: number;
+  phase: SharedValue<number>;
+  uri: string;
+}) {
+  const { height, width } = useWindowDimensions();
+  const layer = FLOW_LAYERS[index];
+  const cx = layer.offset.x * width;
+  const cy = layer.offset.y * height;
+  // From the pivot to the farthest screen corner, both ways.
+  const reach = Math.hypot(width / 2 + Math.abs(cx), height / 2 + Math.abs(cy));
+  const side = Math.ceil(reach * 2);
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      {
+        rotate: `${((phase.value / layer.periodS) * 360 * layer.direction) % 360}deg`,
+      },
+    ],
+  }));
+  return (
+    <Animated.View
+      style={[
+        styles.flow,
+        {
+          height: side,
+          // The bleed is overscanned vertically, so its centre IS the
+          // screen's; place the square's centre on the pivot from there.
+          left: width / 2 + cx - side / 2,
+          marginTop: cy - side / 2,
+          opacity: layer.opacity,
+          width: side,
+        },
+        style,
+      ]}
+    >
+      <Image
+        source={{ uri }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        blurRadius={BACKDROP_BLUR}
+        transition={BACKDROP_FADE_MS}
+        cachePolicy="memory-disk"
+      />
+    </Animated.View>
+  );
+}
 
 /**
  * Warm the wash's own Cloudinary variant into expo-image's disk cache.
@@ -172,9 +264,29 @@ export const prefetchPlayerBackdrop = (artUrl?: string): void => {
  */
 export const PlayerBackdrop = memo(function PlayerBackdrop({
   artUrl,
+  flowing = false,
+  rate = 1,
 }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
   const reduceMotion = useReducedMotion();
+
+  // The flow's clock, in seconds of MUSIC: real time × rate, and only while
+  // playing. Advanced on the UI thread, so React never re-renders for it.
+  const phase = useSharedValue(0);
+  const speed = useSharedValue(rate);
+  useEffect(() => {
+    speed.value = rate;
+  }, [rate, speed]);
+  const clock = useFrameCallback(frame => {
+    const dt = frame.timeSincePreviousFrame ?? 0;
+    // A long gap is the app coming back, not music played: never jump.
+    if (dt > 100) return;
+    phase.value += (dt / 1000) * speed.value;
+  }, false);
+  const flows = !reduceMotion;
+  useEffect(() => {
+    clock.setActive(flowing && flows);
+  }, [clock, flowing, flows]);
 
   /**
    * CROSSFADE THE SOURCES, NOT JUST THE IMAGES. expo-image's `transition`
@@ -218,6 +330,16 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
             transition={BACKDROP_FADE_MS}
             cachePolicy="memory-disk"
           />
+          {flows
+            ? FLOW_LAYERS.map((_, index) => (
+                <FlowLayer
+                  key={index}
+                  index={index}
+                  phase={phase}
+                  uri={thumbUrl(renderUrl, BACKDROP_SOURCE_WIDTH)}
+                />
+              ))
+            : null}
         </Animated.View>
       ) : null}
       {/* THE STAND-IN, always mounted and faded by presence — mounting it on
@@ -392,6 +514,10 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
 });
 
 const styles = StyleSheet.create({
+  flow: {
+    position: 'absolute',
+    top: '50%',
+  },
   bleed: {
     bottom: -OVERSCAN,
     left: 0,

@@ -60,7 +60,6 @@ import {
   PreviousGlyph,
 } from '@/components/player/TransportGlyphs';
 import { EditSoundSheet } from '@/components/sounds/EditSoundSheet';
-import { NowPlayingBars } from '@/components/sounds/NowPlayingBars';
 import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/core';
@@ -121,9 +120,6 @@ const BANNER_INSET = (MINI_PLAYER_HEIGHT - MINI_ART_SIZE) / 2;
 const BANNER_CHROME_FADE = 0.35;
 
 const MINI_ROW_HEIGHT = MINI_PLAYER_HEIGHT;
-
-/** Home's tile badge sits 8pt into a 178pt cover; the player keeps the ratio. */
-const NOW_PLAYING_INSET = 8 / 178;
 // The artwork is ONE element scaled between the two states, so a fixed
 // borderRadius renders ~5x smaller when collapsed. These are the radii we want
 // to SEE at each end; the style divides by the live scale to hit them.
@@ -1004,18 +1000,6 @@ export function PlayerSheet() {
     };
   });
 
-  /**
-   * THE COVER SAYS THE SOUND IS PLAYING, as its tile on home does (Juan,
-   * 2026-11-04: home had the mark, the player did not). The SAME badge, not
-   * a second idea for one fact — and not a moving background, which was built
-   * three ways and rejected (docs/rejected-experiments.md). It belongs to the
-   * expanded cover only: on the banner's 46pt thumb it would be clutter, so
-   * it fades in over the last stretch of the expand.
-   */
-  const badgeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.7, 1], [0, 1], Extrapolation.CLAMP),
-  }));
-
   const miniRowStyle = useAnimatedStyle(() => ({
     // Gone quickly so it never ghosts over the expanded chrome.
     opacity: Math.max(0, 1 - progress.value * 3),
@@ -1186,7 +1170,11 @@ export function PlayerSheet() {
             <Animated.View
               style={[{ height: winH, width: winW }, backdropStyle]}
             >
-              <PlayerBackdrop artUrl={current.artUrl || undefined} />
+              <PlayerBackdrop
+                artUrl={current.artUrl || undefined}
+                flowing={playing}
+                rate={rate}
+              />
             </Animated.View>
           ) : null}
         </Animated.View>
@@ -1354,21 +1342,6 @@ export function PlayerSheet() {
               fadeMs={0}
               style={styles.artMedia}
             />
-            {/* The tile's inset, as a RATIO of the cover (8 of 178): a fixed 8
-                would put the disc on the bigger corner's curve. */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.nowPlaying,
-                {
-                  bottom: Math.round(artFull * NOW_PLAYING_INSET),
-                  left: Math.round(artFull * NOW_PLAYING_INSET),
-                },
-                badgeStyle,
-              ]}
-            >
-              <NowPlayingBars playing={playing} rate={rate} />
-            </Animated.View>
           </Animated.View>
         </GestureDetector>
       </Animated.View>
@@ -1692,5 +1665,4 @@ const styles = StyleSheet.create({
   },
   art: { overflow: 'hidden', position: 'absolute', ...CONTINUOUS_CURVE },
   artMedia: { height: '100%', width: '100%' },
-  nowPlaying: { position: 'absolute' },
 });
