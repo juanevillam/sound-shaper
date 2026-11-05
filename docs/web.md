@@ -84,23 +84,29 @@ Done 2026-11-04, from Juan's browser:
 
 Still to do:
 
-- **Deploy the media Worker's CORS change before the web app's first
-  upload** (`npm run deploy:sound-shaper` in portfolio
-  `services/media-worker`, the deployed source — this repo's `media-worker/`
-  copy is older). Committed 2026-11-04 (portfolio `2ca88b93`) and tested
-  locally with `wrangler dev`, deliberately NOT deployed: nothing in a
-  browser calls the Worker yet, so deploying early only risks the live iOS
-  app. It allows `https://soundshaper.juanevillam.com` and
-  `http://localhost:5173` (`ALLOWED_ORIGINS`); without it every browser call
-  fails its CORS preflight with a 405. Verify after with a preflight
-  (`curl -i -X OPTIONS …/signUpload -H 'Origin: http://localhost:5173'` → 204) and a real upload from the iOS app.
+- ✅ **Media Worker CORS DEPLOYED 2026-11-05** (`npm run deploy:sound-shaper`
+  in portfolio `services/media-worker`; this repo's `media-worker/` copy is
+  older). Preflights from `https://soundshaper.juanevillam.com` and
+  `http://localhost:5173` answer 204 with their origin; any other origin
+  405; a token-less POST still answers 401 `missing-token`, as before.
 - Sign in with Apple on the web: a Services ID and the domain's verification
   in Grostify's Apple Developer account — the Account Holder's call. Google
   sign-in needs nothing extra.
-- Cloudflare Pages: project `soundshaper`, root `web`, build
-  `npm ci && npm run build`, output `dist`; custom domain
-  `soundshaper.juanevillam.com`. Nothing at Namecheap: the zone's DNS is on
-  Cloudflare, so the custom domain writes its own record.
+- ✅ **Cloudflare Pages project `soundshaper` CREATED 2026-11-05** (via the
+  API, git-connected to this repo, deploys every push to `main`, no preview
+  deployments — the API key and reCAPTCHA would refuse their origins anyway).
+  It builds from the REPO ROOT, not `web/`: the web app typechecks the
+  shared `../src`, which needs the root's packages, so
+  `npm ci --ignore-scripts && cd web && npm ci && npm run build`, output
+  `web/dist`, `NODE_VERSION=22`, `SKIP_DEPENDENCY_INSTALL=1` (the command
+  installs; Pages' own install would run the root's postinstall and husky).
+  About 20 s. First build green; `soundshaper.pages.dev` serves it, but sign-in
+  only works on the custom domain (API key and reCAPTCHA are bound to it).
+- **Custom domain `soundshaper.juanevillam.com`: attached, PENDING its DNS
+  record.** wrangler's token cannot write DNS, so the proxied CNAME
+  `soundshaper` → `soundshaper.pages.dev` is added by hand: Cloudflare
+  dashboard → Workers & Pages → soundshaper → Custom domains → Activate
+  domain (or DNS → Add record). The certificate follows on its own.
 - Cloudinary needs nothing: uploads are signed by the Worker and delivery is
   open to any origin.
 
@@ -131,5 +137,6 @@ Still to do:
    and deletes its `soundshaper-*` caches. `npm run brand-art` still writes
    `web/public/`, but only the favicon and the bookmark's
    `apple-touch-icon.png`.
-8. Deploy, then the website's "Powered by Sound Shaper" mini player moves onto
+8. Deploy (2026-11-05: Worker and Pages done, the domain waits on its DNS
+   record), then the website's "Powered by Sound Shaper" mini player moves onto
    this repo's engine, and its link offers both the web app and the App Store.
