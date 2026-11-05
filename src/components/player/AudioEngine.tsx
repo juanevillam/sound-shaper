@@ -9,6 +9,7 @@ import {
 import { audioEngine } from '@/lib/audioEngine';
 import { prioritizeMirror } from '@/lib/offlineAudio';
 import { bankSoundDuration } from '@/services/firebase/sounds';
+import { useAutoDjStore } from '@/store/autoDj';
 import { useOfflineStore } from '@/store/offline';
 import { usePlayerStore } from '@/store/player';
 
@@ -93,6 +94,7 @@ export function AudioEngine() {
   const loadNonce = usePlayerStore(s => s.loadNonce);
   const rate = usePlayerStore(s => s.rate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
+  const djOn = useAutoDjStore(s => s.on);
   const ref = useRef<AudioTagHandle>(null);
   const sourceUri = usePinnedSource(current?.id, current?.audioUrl, loadNonce);
 
@@ -134,7 +136,12 @@ export function AudioEngine() {
       source={{ uri: sourceUri }}
       context={audioEngine.getContext()}
       preload="auto"
-      playbackRate={rate}
+      // AUTO DJ PLAYS THROUGH THE STRETCHER FROM THE FIRST QUANTUM. Any rate
+      // other than exactly 1 engages it (the patched `AudioFileSourceNode`),
+      // and once engaged it stays for the load, so the DJ's speed and pitch
+      // moves never switch paths mid-song — each switch used to skip audio.
+      // 1.0001 is a 0.36 s drift per hour, under any ear.
+      playbackRate={djOn && rate === 1 ? 1.0001 : rate}
       preservesPitch={keepPitch}
       onLoad={onLoad}
       onEnded={onEnded}

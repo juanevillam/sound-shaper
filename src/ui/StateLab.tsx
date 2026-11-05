@@ -1,26 +1,37 @@
 import { useEffect, useState } from 'react';
 
-import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 
 import {
+  Button,
+  HStack,
   Host,
-  SegmentedButton,
-  SingleChoiceSegmentedButtonRow,
-  Text as ComposeText,
-} from '@expo/ui/jetpack-compose';
-import { height, weight } from '@expo/ui/jetpack-compose/modifiers';
-
-import Animated from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useAppTheme } from '@/core';
-
-import { TEXT_VARIANTS } from './createText';
+  Image,
+  Picker,
+  Spacer,
+  Text,
+  useNativeState,
+  VStack,
+} from '@expo/ui/swift-ui';
 import {
-  ICON_PRESS_OPACITY,
-  ICON_PRESS_SCALE,
-  usePressSquash,
-} from './SquashPressable';
+  clipShape,
+  contentShape,
+  font,
+  foregroundStyle,
+  imageScale,
+  lineLimit,
+  padding,
+  pickerStyle,
+  shapes,
+  symbolEffect,
+  tint,
+  tag,
+} from '@expo/ui/swift-ui/modifiers';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnUI } from 'react-native-worklets';
+import type { SFSymbol } from 'sf-symbols-typescript';
+
+import { FLOATING_RADIUS } from './floating';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -81,44 +92,40 @@ export type StateLabGroup = {
   value: string;
 };
 
-type StateLabColors = {
-  card: string;
-  listSeparator: string;
-  onSurface: string;
-  onSurfaceMuted: string;
-  surfaceContainer: string;
-};
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  THE DEV STATE LAB — iOS. SwiftUI, like everything else on this platform.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Same contract as the RN twin (`StateLab.tsx`, which Android still uses); only
+ * the drawing differs. The previous version's comment claimed plain RN was
+ * deliberate — "scaffolding must never be mistakable for the UI it is judging"
+ * — and that argument does not survive contact with the thing it produced: a
+ * bar of hand-drawn pills and text glyphs sitting on an otherwise fully native
+ * screen looked like a bug in the app, not like a tool. A dev surface is still
+ * a surface, and this repo's rule is that the platform's own component is the
+ * default. So the parts are Apple's:
+ *
+ *  - the group switcher is a real segmented `Picker`, which is exactly the
+ *    control iOS uses to swap between two views of the same thing;
+ *  - the steppers are `Button`s carrying SF Symbol chevrons, at `large`
+ *    control size, rather than typographic ‹ › in a padded box;
+ *  - the bar's SURFACE stays an RN card fill, not `glassEffect` — see the
+ *    note on `styles.card`: `@expo/ui` exposes no `background` modifier, and
+ *    Liquid Glass is for chrome that refracts live content, which a dev HUD
+ *    that only needs to be legible is not. (An earlier version of this
+ *    docblock claimed the bar WAS glass; it never shipped that way.)
+ *
+ * WHAT STAYS RN: the positioning shell only — absolute placement, the safe-area
+ * inset and riding the keyboard. Those are layout, not chrome, and RN owns the
+ * frame the `Host` is handed.
+ */
 
-/**
- * CONTROL SIZING — this is a thing you POKE AT, repeatedly, while holding a
- * phone and looking at something else on the screen.
- *
- * The first version sized its controls like text: a 26pt glyph in 20pt of
- * padding, about 28×22 of real target, and stepping through eight states meant
- * aiming at it. Apple's 44pt minimum is the floor for a control tapped ONCE;
- * this one gets tapped dozens of times a minute, so the stepper takes 52 and
- * the group chips 40.
- */
-const STEP_SIZE = 52;
-/** The group switcher's height — deliberately under M3's 40dp default so it
- *  reads as secondary beside the stepper it drives. */
-const GROUPS_HEIGHT = 32;
-/**
- * The note ALWAYS reserves two lines, exactly like the iOS twin's
- * `lineLimit(2, { reservesSpace: true })`: notes are one line for some states
- * and two for others, and without the reservation the bar changed height as
- * you stepped — a picker that shifts under the thumb, on the one tool whose
- * job is finding shifts.
- *
- * Reserved by a GHOST TEXT, not a height. `2 × lineHeight` was tried first
- * and CLIPPED a real two-line note mid-glyph: an Android `Text` renders
- * taller than its stated `lineHeight` (the `SkeletonTextLine` finding), so
- * the described box was ~3dp shorter than the text it was reserving for. An
- * invisible two-line spacer at the note's own style makes the box whatever
- * the platform actually measures.
- */
+/** Two lines of note, always — see `NOTE_LINES`. */
 const NOTE_LINES = 2;
-const NOTE_GHOST = ' \n ';
+/** The bar's corner. Applied inside SwiftUI — see the `clipShape` note. */
+// A floating card over content — the family's corner, not a copy of it.
+const CARD_RADIUS = FLOATING_RADIUS;
 /** Clearance for a floating tab bar, when the caller does not say otherwise. */
 const DEFAULT_BOTTOM_OFFSET = 52;
 
@@ -127,14 +134,17 @@ export function StateLab({
   colors,
   groups,
 }: {
-  /** Height of whatever floats at the bottom of THIS surface — a tab bar on a
-   *  screen, nothing on a sheet. */
   bottomOffset?: number;
-  colors: StateLabColors;
+  colors: {
+    card: string;
+    listSeparator: string;
+    onSurface: string;
+    onSurfaceMuted: string;
+    surfaceContainer: string;
+  };
   groups: readonly StateLabGroup[];
 }) {
   const { bottom } = useSafeAreaInsets();
-  const { scheme } = useAppTheme();
   const [activeKey, setActiveKey] = useState(groups[0]?.key);
 
   /**
@@ -174,141 +184,168 @@ export function StateLab({
   return (
     <View
       style={[
-        styles.bar,
+        styles.shell,
         {
-          backgroundColor: colors.card,
           bottom: (keyboard > 0 ? keyboard : bottom + bottomOffset) + 8,
         },
       ]}
     >
-      {groups.length > 1 ? (
-        // A REAL M3 SegmentedButton row, exactly as the iOS twin uses a real
-        // segmented Picker — the hand-drawn chip row this replaces was the
-        // "scaffolding mistakable for UI" the iOS rewrite already called out
-        // (Juan, 2026-09-04). The Host carries the resolved scheme itself,
-        // the same move EmptyState makes; each button takes an equal share so
-        // the switcher cannot be missed, matching the chips it replaces.
-        <View style={styles.groups}>
-          <Host
-            colorScheme={scheme}
-            matchContents={{ vertical: true }}
-            style={styles.groupsHost}
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        {/* `{ vertical: true }`, never the boolean — the boolean collapses a
+            fill-width child, which is what the picker and the readout row
+            are. */}
+        <Host matchContents={{ vertical: true }} style={styles.host}>
+          <VStack
+            spacing={10}
+            modifiers={[
+              padding({ all: 12 }),
+              // Clipped on BOTH sides of the bridge, deliberately: the RN
+              // wrapper carries the same radius, but an RN parent is not
+              // guaranteed to clip a native subtree to its corners, so the
+              // SwiftUI content rounds itself as well. Same value either way.
+              clipShape('roundedRectangle', CARD_RADIUS),
+            ]}
           >
-            {/* SECONDARY-SIZED: the switcher picks which group the stepper
-                drives, so it must not outweigh the stepper row it serves.
-                At M3's default 40dp it read as the bar's primary control
-                (Juan, 2026-09-04); 32 with a labelMedium label keeps a real
-                target while stepping it back. */}
-            <SingleChoiceSegmentedButtonRow modifiers={[height(GROUPS_HEIGHT)]}>
-              {groups.map(option => (
-                <SegmentedButton
-                  key={option.key}
-                  selected={option.key === group.key}
-                  onClick={() => setActiveKey(option.key)}
-                  modifiers={[weight(1)]}
+            {groups.length > 1 ? (
+              <Picker
+                modifiers={[pickerStyle('segmented')]}
+                selection={group.key}
+                onSelectionChange={setActiveKey}
+              >
+                {groups.map(option => (
+                  <Text key={option.key} modifiers={[tag(option.key)]}>
+                    {option.label}
+                  </Text>
+                ))}
+              </Picker>
+            ) : null}
+
+            <HStack spacing={12}>
+              <Step
+                colors={colors}
+                direction="down"
+                glyph="chevron.left"
+                onPress={() => step(-1)}
+              />
+
+              <VStack alignment="leading" spacing={6}>
+                <Text
+                  modifiers={[
+                    font({ size: 15, weight: 'semibold' }),
+                    foregroundStyle(colors.onSurface),
+                    lineLimit(1),
+                  ]}
                 >
-                  <SegmentedButton.Label>
-                    <ComposeText
-                      maxLines={1}
-                      style={{ typography: 'labelMedium' }}
-                    >
-                      {option.label}
-                    </ComposeText>
-                  </SegmentedButton.Label>
-                </SegmentedButton>
-              ))}
-            </SingleChoiceSegmentedButtonRow>
-          </Host>
-        </View>
-      ) : null}
+                  {`${group.label.toUpperCase()}  ${index + 1}/${group.states.length}  ${entry.label}`}
+                </Text>
+                {/*
+                 * RESERVES SPACE, which is the whole point: notes are one line
+                 * for some states and two for others, and without this the bar
+                 * changed height as you stepped — a picker that shifts under the
+                 * thumb, on the one tool whose job is finding shifts. SwiftUI's
+                 * own answer, so the reserved box is exactly two lines of THIS
+                 * font rather than a height guessed in points.
+                 */}
+                <Text
+                  modifiers={[
+                    font({ size: 13 }),
+                    foregroundStyle(colors.onSurfaceMuted),
+                    lineLimit(NOTE_LINES, { reservesSpace: true }),
+                  ]}
+                >
+                  {entry.note}
+                </Text>
+              </VStack>
 
-      <View style={styles.row}>
-        <Step colors={colors} glyph="‹" onPress={() => step(-1)} />
+              <Spacer />
 
-        <View style={styles.body}>
-          <Text
-            numberOfLines={1}
-            style={[styles.title, { color: colors.onSurface }]}
-          >
-            {`${group.label.toUpperCase()}  ${index + 1}/${group.states.length}  ${entry.label}`}
-          </Text>
-          <View>
-            <Text
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={[styles.note, styles.noteGhost]}
-            >
-              {NOTE_GHOST}
-            </Text>
-            <Text
-              numberOfLines={NOTE_LINES}
-              style={[
-                styles.note,
-                styles.noteOverlay,
-                { color: colors.onSurfaceMuted },
-              ]}
-            >
-              {entry.note}
-            </Text>
-          </View>
-        </View>
-
-        <Step colors={colors} glyph="›" onPress={() => step(1)} />
+              <Step
+                colors={colors}
+                direction="up"
+                glyph="chevron.right"
+                onPress={() => step(1)}
+              />
+            </HStack>
+          </VStack>
+        </Host>
       </View>
     </View>
   );
 }
 
-// THE ICON PRESS (`ICON_PRESS_*`), not a pressed fill. This shipped with a
-// `surfaceContainer` fill under the pressed glyph on the argument that a dim is
-// hard to see under a thumb — which is exactly what `ICON_PRESS_SCALE` +
-// `ICON_PRESS_OPACITY` exist to solve for a lone glyph, and what the iOS twin
-// answers with its SF Symbol bounce. One press language (Juan, 2026-09-04:
-// bring this bar to the iOS one).
+/**
+ * A stepper: a bare chevron in the READOUT'S OWN INK, no fill behind it.
+ *
+ * PRESS FEEDBACK IS AN SF SYMBOL BOUNCE, not a dim, and that is not a
+ * preference — it is the only one of the two that works here. A SwiftUI button
+ * style renders its pressed state by modulating the label, and measuring the
+ * glyph through a 3.5s hold showed NO change under `plain`, `borderless`, the
+ * default style, or with the colour moved from `foregroundStyle` to `tint`.
+ * Taps registered the whole time (the readout stepped), so the control was
+ * live and simply drew nothing.
+ *
+ * `symbolEffect` fires on VALUE CHANGE rather than on press state, which side-
+ * steps that entirely — and a symbol that bounces when you tap it is the iOS 26
+ * idiom for a glyph-only control anyway, so this is the better answer even
+ * where a dim would have worked. The write goes through `scheduleOnUI` because
+ * the trigger is native state living on the UI runtime.
+ *
+ * `padding` + `contentShape` keep the TARGET big now that the fill is gone: a
+ * chrome-less button is otherwise only as tappable as its glyph, and this one
+ * is tapped dozens of times a minute.
+ */
 function Step({
   colors,
+  direction,
   glyph,
   onPress,
 }: {
-  colors: StateLabColors;
-  glyph: string;
+  colors: { onSurface: string };
+  /** Bounce the way the chevron points, so the two steppers do not animate
+   *  identically — the motion says which way you just moved. */
+  direction: 'up' | 'down';
+  glyph: SFSymbol;
   onPress: () => void;
 }) {
-  const squash = usePressSquash({
-    scale: ICON_PRESS_SCALE,
-    opacity: ICON_PRESS_OPACITY,
-  });
+  const trigger = useNativeState(0);
 
   return (
-    <Animated.View style={squash.style}>
-      <Pressable
-        hitSlop={12}
-        onPress={onPress}
-        onPressIn={squash.onPressIn}
-        onPressOut={squash.onPressOut}
-        style={styles.step}
-      >
-        <Text style={[styles.glyph, { color: colors.onSurface }]}>{glyph}</Text>
-      </Pressable>
-    </Animated.View>
+    <Button
+      onPress={() => {
+        scheduleOnUI(() => {
+          'worklet';
+          trigger.value = trigger.value + 1;
+        });
+        onPress();
+      }}
+      modifiers={[contentShape(shapes.rectangle()), tint(colors.onSurface)]}
+    >
+      <Image
+        systemName={glyph}
+        modifiers={[
+          imageScale('large'),
+          symbolEffect({ effect: 'bounce', direction }, { value: trigger }),
+          padding({ horizontal: 12, vertical: 14 }),
+        ]}
+      />
+    </Button>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    borderRadius: 20,
-    // Android's shadow: the `shadow*` props below are iOS-only, so without
-    // this the bar had no float at all and melted into any ground that
-    // resolves to its own card colour (Juan, 2026-09-04) — which after the
-    // card remap is every card it hovers over. 8 was the first value and read
-    // heavier than the iOS twin's soft RN shadow; 4 floats without shouting
-    // (Juan, same day).
-    elevation: 4,
-    gap: 8,
+  /**
+   * THE CARD IS RN, not SwiftUI. `@expo/ui` exposes no `background` modifier —
+   * only `glassEffect`, which is the wrong answer here: a Liquid Glass panel is
+   * for chrome that floats over live content and refracts it, and this is a
+   * plain dev HUD that only needs to be legible. The shell already owns the
+   * frame (absolute placement, safe area, keyboard), so it owns the surface
+   * too, and the `Host` composites over it transparently.
+   */
+  // SHADOW ONLY. It cannot share a view with the corner clip: `overflow:
+  // 'hidden'` clips the shadow off with everything else, so the float and the
+  // rounding have to be two layers.
+  shell: {
     left: 12,
-    paddingBottom: 10,
-    paddingHorizontal: 8,
-    paddingTop: 10,
     position: 'absolute',
     right: 12,
     shadowColor: '#000',
@@ -316,30 +353,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 12,
   },
-  groups: { marginHorizontal: 6 },
-  groupsHost: { width: '100%' },
-  row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  body: { flex: 1, gap: 2 },
-  title: TEXT_VARIANTS.labelLarge,
-  note: TEXT_VARIANTS.bodySmall,
-  // The two-line measuring device the real note draws over (see NOTE_GHOST).
-  noteGhost: { opacity: 0 },
-  noteOverlay: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  step: {
-    alignItems: 'center',
-    borderRadius: 14,
-    height: STEP_SIZE,
-    justifyContent: 'center',
-    width: STEP_SIZE,
-  },
-  // 44, up from 34 (Juan, 2026-09-04): the ‹ › glyphs carry heavy side
-  // bearings, so at 34 their INK was well under the iOS chevron's — size the
-  // ink, not the font box.
-  glyph: { fontSize: 44, lineHeight: 50 },
+  /**
+   * The surface. Radius matches the `clipShape` inside the `Host` — see there.
+   *
+   * NOTE FOR ANYONE EDITING THIS FILE: when this lived in a workspace package,
+   * its edits did not fast-refresh into a running app. If an edit here seems
+   * not to land, relaunch before "fixing" something that was already fixed and
+   * never loaded.
+   */
+  card: { backgroundColor: 'transparent', borderRadius: CARD_RADIUS },
+  host: { width: '100%' },
 });

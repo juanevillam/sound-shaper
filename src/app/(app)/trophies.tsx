@@ -1,42 +1,41 @@
-import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { Screen } from '@/components/ui/Screen';
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { withAlpha, useAppTheme } from '@/core';
-// DEV LAB — these imports and the picker below go with `src/dev`.
+// DEV LAB — delete with `src/dev/uiStateLab`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
-import { UiStateLabBar } from '@/dev/UiStateLabBar';
-import { useHeaderScroll } from '@/hooks/useHeaderScroll';
 import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
 import { useI18n } from '@/i18n';
-import { TrophiesScreen, TrophyDetailSheet, useTrophies } from '@/trophies';
-import { emptyMediaColor } from '@/ui';
+import { TrophiesScreen, useTrophies } from '@/trophies';
 
+/**
+ * iOS trophies — the same screen the Android route renders (the list itself
+ * lives in `src/trophies`) except a trophy's detail presents as the
+ * trophy-detail form-sheet ROUTE instead of Android's in-place Compose sheet.
+ *
+ * IT IS A `SheetScreen`, not this app's `Screen`. The latter paints
+ * `colors.background` — `#000000` in dark against the sheet's own `#1C1C1E` —
+ * which would make this sheet read BLACK while the account sheet it opens from
+ * does not. That is the exact defect `SheetScreenIos` exists to stop being
+ * re-introduced.
+ */
 export default function TrophiesRoute() {
-  const { colors, scheme } = useAppTheme();
+  const { colors } = useAppTheme();
   const { locale } = useI18n();
-  const { copy, screenStrings, trophyCaption } = useTrophyContent();
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const { copy, screenStrings } = useTrophyContent();
   const { trophies, earned, total, hydrated } = useTrophies(copy);
 
   /**
    * DEV LAB — applied to the value the route already derives, so the branch
-   * that renders is the real one. The iOS twin has read this since the lab
-   * landed; this side passed no `loading` at all, so Android never stood the
-   * pre-hydration placeholder and a cold open said a confident "0 of 7".
+   * that renders is the real one.
    */
   const trophiesLab = useUiStateLab(state => state.trophies);
   const lab = UI_STATE_LAB && trophiesLab !== 'live';
   const loading = lab ? trophiesLab === 'skeleton' : !hydrated;
-  // The shared screen owns its scroller — hand it the M3 bar-lift.
-  const { scrollProps } = useHeaderScroll();
-
-  // Tapping a row opens its detail sheet — the objective is worth reading in
-  // full, and the list truncates longer ones.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = trophies.find(trophy => trophy.id === selectedId) ?? null;
 
   // Completion %, locale-formatted (e.g. "43%") — shown opposite the count.
   const percent = new Intl.NumberFormat(locale, { style: 'percent' }).format(
@@ -47,8 +46,12 @@ export default function TrophiesRoute() {
     formatAchievedDate(locale, achievedAt);
 
   return (
-    <Screen>
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SheetScreen screen="trophies">
+      {/* The Host is SHORTENED for the home indicator rather than padded from
+          inside: a native `Form` insets its own CONTENT for the safe area, not
+          its frame, so nothing about the Host's box tells it the indicator is
+          there. */}
+      <View style={[styles.list, { paddingBottom: bottomInset }]}>
         <TrophiesScreen
           trophies={trophies}
           earned={earned}
@@ -68,42 +71,15 @@ export default function TrophiesRoute() {
           }}
           strings={{ percent, ...screenStrings }}
           formatDate={formatDate}
-          scrollProps={scrollProps}
-          onTrophyPress={setSelectedId}
+          onTrophyPress={trophyId =>
+            router.push({ pathname: '/trophy-detail', params: { trophyId } })
+          }
         />
-      </SafeAreaView>
-
-      {/* DEV LAB: state picker. Delete with `src/dev`. */}
-      {UI_STATE_LAB ? <UiStateLabBar screen="trophies" /> : null}
-
-      {selected ? (
-        <TrophyDetailSheet
-          trophy={selected}
-          caption={trophyCaption(selected)}
-          onClose={() => setSelectedId(null)}
-          // `src/trophies` takes the palette and the Host theming as props —
-          // the app's ThemedHost is app code (see the sheet's header).
-          colors={{
-            background: colors.background,
-            surfaceDialog: colors.surfaceDialog,
-            onSurface: colors.onSurface,
-            onSurfaceMuted: colors.onSurfaceMuted,
-            // The disc behind a LOCKED glyph — the empty-media material, the
-            // shared term for an art-less box, distinct from the sheet's own
-            // container.
-            lockedDisc: emptyMediaColor({
-              colors,
-              container: 'sheet',
-              scheme,
-            }),
-          }}
-          colorScheme={scheme}
-        />
-      ) : null}
-    </Screen>
+      </View>
+    </SheetScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  list: { flex: 1 },
 });

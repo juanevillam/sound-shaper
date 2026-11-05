@@ -1,22 +1,62 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-import Svg, { Circle } from 'react-native-svg';
+import { StyleSheet, View } from 'react-native';
 
 import {
-  DisclosureChevron,
-  GROUP_INNER_RADIUS,
-  GROUP_OUTER_RADIUS,
-  GROUP_ROW_GAP,
-  GROUP_SIDE_PADDING,
-  SCREEN_CONTENT_TOP,
-  SkeletonBone,
-  SkeletonTextLine,
-  TEXT_VARIANTS,
-} from '@/ui';
+  Button,
+  Form,
+  Gauge,
+  Host,
+  HStack,
+  RNHostView,
+  Section,
+  Spacer,
+  Text,
+  VStack,
+} from '@expo/ui/swift-ui';
+import {
+  font,
+  foregroundStyle,
+  frame,
+  gaugeStyle,
+  listRowInsets,
+  listRowSeparator,
+  listSectionMargins,
+  scaleEffect,
+  scrollContentBackground,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
+
+import { FormDisclosureIndicatorIos, GROUPED_ROW, SkeletonBone } from '@/ui';
 
 import { tierColor } from './tierColors';
 import { TrophyIcon } from './TrophyIcon';
-import { type ResolvedTrophy, type TrophyTier } from './types';
+import { type TrophyTier } from './types';
+import { type ResolvedTrophy } from './types';
+
+export type TrophiesScreenProps = {
+  /** Resolved, display-ordered trophies (see `useTrophies`). */
+  trophies: ResolvedTrophy[];
+  earned: number;
+  total: number;
+  colors: TrophiesScreenColors;
+  strings: TrophiesScreenStrings;
+  /** Locale-aware date formatter for the achieved date. */
+  formatDate: (achievedAt: number) => string;
+  /** Tapping a row — open the detail sheet. */
+  onTrophyPress?: (id: string) => void;
+
+  /**
+   * The awarded cache has not hydrated yet (`useTrophies().hydrated` is
+   * false), so the lock states and the counts passed above are not yet true:
+   * every trophy resolves LOCKED and the summary reads "0 of N", which is a
+   * wrong answer rather than a pending one.
+   *
+   * While it is set, the parts that WAIT stand bones — the summary's ring and
+   * figures, each row's icon and lines. Read by BOTH platforms (Android
+   * joined 2026-09-04); the row text bones are ghost-measured
+   * (`SkeletonTextLine`), never lineHeight boxes.
+   */
+  loading?: boolean;
+};
 
 /** Material You roles the screen paints with. */
 export type TrophiesScreenColors = {
@@ -44,169 +84,234 @@ export type TrophiesScreenStrings = {
   tierNames: Record<TrophyTier, string>;
 };
 
-export type TrophiesScreenProps = {
-  /** Resolved, display-ordered trophies (see `useTrophies`). */
-  trophies: ResolvedTrophy[];
-  earned: number;
-  total: number;
-  colors: TrophiesScreenColors;
-  strings: TrophiesScreenStrings;
-  /** Locale-aware date formatter for the achieved date. */
-  formatDate: (achievedAt: number) => string;
-  /** Tapping a row — open the detail sheet. */
-  onTrophyPress?: (id: string) => void;
-  /**
-   * Scroll handlers from the host app's app-bar hook, spread onto this
-   * screen's scroller. OPTIONAL: an app that does not lift its bar on scroll
-   * (or a platform that has no such idiom) passes nothing and nothing changes.
-   *
-   * The screen owns the scroller, so the app cannot wire this itself — which
-   * is why Android's Settings and Trophies bars sat permanently at the
-   * SCROLLED colour while every screen with its own `ScrollView` lifted
-   * properly.
-   */
-  scrollProps?: object;
-
-  /**
-   * The awarded cache has not hydrated yet (`useTrophies().hydrated` is
-   * false), so the lock states and the counts passed above are not yet true:
-   * every trophy resolves LOCKED and the summary reads "0 of N", which is a
-   * wrong answer rather than a pending one.
-   *
-   * While it is set, the parts that WAIT stand bones — the summary's ring and
-   * figures, each row's icon and lines. Read by BOTH platforms (Android
-   * joined 2026-09-04); the row text bones are ghost-measured
-   * (`SkeletonTextLine`), never lineHeight boxes.
-   */
-  loading?: boolean;
-};
-
-// Grouped-list geometry is `settingsGroup.ts`'s: the rows share one rounded
-// card split by 2px hairline gaps — the group's first/last rows take the big
-// outer radius, inner edges the small one. This screen is plain RN (a
-// Host-per-row would measure async and lag the scroll), so it imports the
-// CONSTANTS and builds its own radii from them rather than taking that file's
-// Compose shapes.
-const OUTER_RADIUS = GROUP_OUTER_RADIUS;
-const INNER_RADIUS = GROUP_INNER_RADIUS;
-const ICON_SLOT = 40;
-const ICON_SIZE = 26;
-
 /**
- * THE SUMMARY IS THE iOS SHAPE — a centred [earned | ring | available] block,
- * the screen's headline with the list as its body (Juan, 2026-09-04; it was a
- * count + thin linear bar, which read as a caption). Same parts, Material's
- * language: the gauge is an SVG arc on the track/primary roles, the figures
- * take `titleLarge` over a muted `bodySmall` label.
+ * iOS counterpart of `TrophiesScreen` — same prop API. The trophy list is a
+ * REAL SwiftUI inset-grouped `Form` (the exact chrome the shared Settings
+ * screen uses: system cell background, separators, radius, press highlight).
+ * The trophy glyph (react-native-svg) bridges into each row via RNHostView.
  *
- * The iOS block's own proportions carry over where they are ratios of the
- * block rather than SwiftUI facts: two equal-width figure columns so the ring
- * lands on the screen's centre, and the ring as the dominant element.
+ * THE PROGRESS SUMMARY LIVES INSIDE THE FORM, which is what makes this screen
+ * one scroller instead of two stacked boxes. It was a plain RN block ABOVE the
+ * Form, and that cost the sheet its bar: pinned chrome over a scroller slides
+ * under a transparent nav bar, so the route had to carry `pinnedHeader` — an
+ * OPAQUE bar, no scroll-edge effect, and a title that could not collapse, on
+ * the one sheet in the account family that behaved that way. Inside the Form,
+ * UIKit tracks the scroll again and the bar is Liquid Glass like every other
+ * sheet's.
+ *
+ * IT IS THE SCREEN'S OPENING BLOCK, NOT THE LIST'S HEADER. It spent a while as
+ * a `Section` header, and that is precisely why it read as a caption however
+ * large the type got: a grouped header is structurally a LABEL FOR THE THING
+ * BELOW IT, so scale can never promote it. As its own section the same pixels
+ * become page content — the screen's headline, with the list as its body.
+ *
+ * AND IT IS A CARD. This was got wrong once in the other direction: boxing a
+ * WIDE, SHORT summary read as a stray pill, and the row's fill was cleared to
+ * fix it. Once the block became a tall three-column one, the pill reading went
+ * with it and the cleared fill left the only substantive content in the whole
+ * sheet sitting loose on the grouped background. iOS 26 does not do that —
+ * every Settings screen opens with its summary block IN A CARD over the
+ * grouped ground, and what lives on the ground itself is labels and footers.
+ * So the row keeps the grouped default, and the two cards are spaced by the
+ * family's own card-to-card rung (below).
+ *
+ * THE SUMMARY IS A RING, NOT A BAR. It went headline + hand-painted track, then
+ * headline + a real `ProgressView`, and the second was native but still the
+ * wrong SHAPE: a labelled bar is the Material vocabulary for progress, and it
+ * read as one on a screen that is otherwise all grouped iOS chrome. Apple's own
+ * answer to "how much of this is done" is the Activity ring, and SwiftUI ships
+ * it as `Gauge(circularCapacity)`.
+ *
+ * The layout is Fitness's: ring, then the count beside it, then the metrics
+ * under the count. Those metrics are data the screen already held and threw
+ * away — every trophy knows its tier, so "7 of 7" can say WHICH seven. See the
+ * header itself for why they wear tier colour.
  */
-const RING_SIZE = 104;
-const RING_STROKE = 8;
-const FIGURE_WIDTH = 72;
-const SUMMARY_COLUMN_GAP = 14;
-/** Bones for the two figures — a number-sized block over a label-sized line. */
-const FIGURE_BONE_NUMBER = { width: 26, height: 24 };
-const FIGURE_BONE_LABEL = 48;
-/** The supporting line is one sentence at bodySmall, whatever the row. */
-const SUPPORTING_BONE_WIDTH = 160;
-
-const groupRadii = (index: number, count: number) => ({
-  borderTopLeftRadius: index === 0 ? OUTER_RADIUS : INNER_RADIUS,
-  borderTopRightRadius: index === 0 ? OUTER_RADIUS : INNER_RADIUS,
-  borderBottomLeftRadius: index === count - 1 ? OUTER_RADIUS : INNER_RADIUS,
-  borderBottomRightRadius: index === count - 1 ? OUTER_RADIUS : INNER_RADIUS,
-});
+const ICON_SIZE = 26;
+/**
+ * THE LEADING SLOT IS THE SHARED GROUPED-ROW SLOT, not a size of its own.
+ *
+ * This row is structurally the same row a person and a trashed top get: leading
+ * media, a body line over a footnote, a chevron. It ran a 34pt slot against
+ * everyone else's 44 all the same, so its titles started at 80.00 where a trash
+ * row's start at 89.00 — two grouped lists one gesture apart in the same sheet
+ * stack, with different text columns (band-scanned, iPhone 17 / iOS 26.5).
+ *
+ * THE GLYPH DOES NOT GROW WITH IT. 26 is the trophy's own size and the list
+ * reads right at it; what had to be shared is the SLOT, because the slot is
+ * what fixes where every row's text begins. The box is therefore 44 WIDE and
+ * only as tall as the glyph — giving it the slot's 44pt height would push the
+ * row's content past the text's 38 and stretch a pitch that is already correct.
+ */
+const ICON_SLOT = GROUPED_ROW.art;
 
 /**
- * The determinate progress ring — an SVG arc, because Compose's determinate
- * indicator cannot carry the percent INSIDE the way the iOS `Gauge`'s
- * `currentValueLabel` does, and a bridged Host for one arc is not worth its
- * async measurement. Track and fill take the same roles the old linear bar
- * spent (`track` / `primary`); round caps, 12 o'clock start.
+ * THE PROGRESS HEADER WHILE THE AWARD CACHE LOADS.
+ *
+ * The header is a native `Gauge` + `Text` once the counts are real — the
+ * platform primitives, which is the whole reason the summary moved into the
+ * `Section` in the first place. While loading it bones its parts IN PLACE: a
+ * disc for the ring and one bone per figure, each in its own small
+ * `RNHostView`, inside a row whose height is stated. That is three hosts in one
+ * block, above the one-per-row ceiling everywhere else — an earlier header
+ * with a host per figure blew the layout apart, and a single host holding the
+ * whole summary rendered blank here. The `SUMMARY BONES` note in the styles
+ * records why the split version is the one that draws.
+ *
+ * The header content box is 338 wide at a 32pt inset — the grouped header's
+ * inset, not the card's 18. Re-measure if the header's type or
+ * `headerProminence` changes.
  */
-const SummaryRing = ({
-  fraction,
-  percent,
-  colors,
-}: {
-  fraction: number;
-  percent: string;
-  colors: TrophiesScreenColors;
-}) => {
-  const radius = (RING_SIZE - RING_STROKE) / 2;
-  const circumference = 2 * Math.PI * radius;
+/**
+ * The ring. `circularCapacity` is the Activity/Fitness gauge — Apple's own
+ * answer to "how much of this is done", and the reason the summary stopped
+ * being a linear bar: a `ProgressView` under a headline is the Material shape
+ * for progress, and it read as one on a screen that is otherwise all native
+ * grouped chrome.
+ *
+ * An accessory gauge draws small by default, so the frame states the size the
+ * header wants rather than accepting the widget one.
+ */
+/** Between each figure column and the ring. */
+const SUMMARY_COLUMN_GAP = 14;
+/**
+ * BOTH FIGURE COLUMNS TAKE THE SAME WIDTH, so the group is symmetric and the
+ * ring lands on the screen's centre.
+ *
+ * Left to hug their labels they are not: "Available" is wider than "Earned"
+ * (and "Disponibles" wider still), which pulled the whole group left and put
+ * the ring 5.33pt off centre — visible as a horizontal jump against the loading
+ * state, where the columns are absent and the ring centres properly. Wide
+ * enough for the longest label in any shipped locale.
+ */
+const FIGURE_WIDTH = 72;
+/**
+ * BOTH LABEL BONES TAKE ONE WIDTH. Sized to their real labels — 52 for
+ * "Earned", 60 for "Available" — they made the two hosts different widths, and
+ * a bridged host reports its CONTENT rather than the box it was given, so the
+ * asymmetry pushed the ring 8.34pt right of where the settled one sits. Equal
+ * bones, equal hosts, ring on the same centre in both states.
+ */
+const FIGURE_BONE_LABEL = 56;
+/**
+ * THE BOX THE RING SITS IN — and the ring does NOT scale with it.
+ *
+ * `circularCapacity` draws at its own intrinsic size whatever frame it is
+ * given: band-scanned at 58.00 across a 116 frame AND at 58.00 across a 144
+ * one. The frame only pads. So the box is sized to hold the SCALED ring plus
+ * the row's breathing room, and `RING_SCALE` is the only thing that makes the
+ * gauge bigger.
+ */
+const RING_SIZE = 116;
+/**
+ * How much bigger than the gauge draws itself. 58.00 intrinsic × this is the
+ * ink the summary actually shows — and what the bone has to stand.
+ *
+ * 1.4 puts the ring's ink at 81.33 and its top 87.33 below the sheet's own top
+ * edge, within 4pt of where the account sheet opens its first content (83.67).
+ * Bigger read as crowding rather than emphasis — at 1.55 the ink is 90.00 and
+ * the gap under it falls to 22.50, against the 27.00 this leaves.
+ */
+const RING_SCALE = 1.4;
+/** The gauge's intrinsic ink, measured — 58.00 at every frame size tried. */
+const RING_INTRINSIC = 58;
+/** What it ends up drawing, and therefore what the bone stands. */
+const RING_INK = RING_INTRINSIC * RING_SCALE;
+/**
+ * THE GAP BETWEEN THE SUMMARY CARD AND THE TROPHY LIST — the family's own
+ * card-to-card rung, measured rather than chosen.
+ *
+ * While the summary was NAKED on the grouped ground this was a hand-picked
+ * 20.00, argued from the screen's `card 12 < person 20 < section 28` ladder,
+ * because none of the OS's own spacings fit a block that was not in a
+ * container. In a card the question answers itself: two cards in one grouped
+ * list are separated by what iOS 26 separates them by, and the account sheet
+ * one push away band-scans that at 34.67 (iPhone 17 / iOS 26.5).
+ *
+ * `listSectionSpacing` is NOT the lever here — it stopped moving the gap the
+ * moment the row took a background (19.67 at both 20 and 35). `listSectionMargins`
+ * on the bottom edge does move it, and it ADDS to that 19.67 baseline at a
+ * measured slope of ~0.85, so this is solved backwards rather than set: 17.5
+ * lands 34.67 exactly. Re-measure the reference before changing it.
+ */
+const SUMMARY_TO_LIST_GAP = 0;
 
-  return (
-    <View style={styles.ring}>
-      <Svg width={RING_SIZE} height={RING_SIZE}>
-        <Circle
-          cx={RING_SIZE / 2}
-          cy={RING_SIZE / 2}
-          r={radius}
-          stroke={colors.track}
-          strokeWidth={RING_STROKE}
-          fill="none"
-        />
-        <Circle
-          cx={RING_SIZE / 2}
-          cy={RING_SIZE / 2}
-          r={radius}
-          stroke={colors.primary}
-          strokeWidth={RING_STROKE}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - fraction)}
-          // Start at 12 o'clock, like the iOS gauge.
-          transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-        />
-      </Svg>
-      <View style={styles.ringLabel}>
-        <Text style={[styles.percent, { color: colors.onSurface }]}>
-          {percent}
-        </Text>
-      </View>
-    </View>
-  );
-};
+/**
+ * WHERE THE SUMMARY CARD STARTS — 84.00 below the sheet's own top edge, which
+ * is APPLE'S number, not this app's.
+ *
+ * MEASURE THIS RELATIVE TO THE SHEET, NOT THE SCREEN. This sheet is pushed as a
+ * SECOND sheet over the account one, and a stacked sheet's top edge sits 10pt
+ * lower (62.00 → 72.00, band-scanned), so raw screen coordinates say two sheets
+ * agree while one is really 10pt tighter than the other.
+ *
+ * THE REFERENCE IS SETTINGS, and it already had a name in this repo:
+ * `PeopleSheetListIos` band-scanned Settings' own first content at 146.0 from
+ * identical anchors, which on a root sheet (top edge 62.00) is 84.00 — the same
+ * 84 that `SHEET_BONE_TOP` is. The account sheet one push away lands 83.67.
+ *
+ *   Settings (Apple)   84.00      account   83.67      trophies   84.00
+ *
+ * DO NOT PIN THIS TO trash OR blocked. They band-scan at 105.00 because they
+ * never took `PeopleSheetListIos`' `EMPTY_HEADER_SLOT` compensation — a grouped
+ * list reserves room above its first section for a header it does not have, and
+ * those two still carry the empty 21pt slot. This constant was briefly solved
+ * against trash's 105.00 and inherited the bug exactly.
+ */
+const SUMMARY_TOP_MARGIN = 14;
 
+/**
+ * One supporting figure beside the ring — a count over its label, or, while
+ * the counts are not yet true, the same two lines as bones in one bridged
+ * host. Earned and Available are this, twice.
+ */
 const SummaryFigure = ({
+  loading,
   value,
   label,
-  loading,
   colors,
 }: {
+  loading: boolean;
   value: string;
   label: string;
-  loading: boolean;
   colors: TrophiesScreenColors;
 }) =>
   loading ? (
-    <View style={[styles.figure, styles.figureBone]}>
-      <SkeletonBone
-        width={FIGURE_BONE_NUMBER.width}
-        height={FIGURE_BONE_NUMBER.height}
-      />
-      <SkeletonBone width={FIGURE_BONE_LABEL} height={12} />
-    </View>
+    <VStack modifiers={[frame({ width: FIGURE_WIDTH, height: RING_SIZE })]}>
+      <RNHostView>
+        <View style={styles.figureBone}>
+          <SkeletonBone width={26} height={24} />
+          <SkeletonBone
+            width={FIGURE_BONE_LABEL}
+            height={12}
+            style={styles.figureBoneLabel}
+          />
+        </View>
+      </RNHostView>
+    </VStack>
   ) : (
-    <View style={styles.figure}>
-      <Text style={[styles.figureValue, { color: colors.onSurface }]}>
+    <VStack spacing={2} modifiers={[frame({ width: FIGURE_WIDTH })]}>
+      <Text
+        modifiers={[
+          font({ textStyle: 'title2', weight: 'semibold' }),
+          foregroundStyle(colors.onSurface),
+        ]}
+      >
         {value}
       </Text>
-      <Text style={[styles.figureLabel, { color: colors.onSurfaceMuted }]}>
+      <Text
+        modifiers={[
+          font({ textStyle: 'footnote' }),
+          foregroundStyle(colors.onSurfaceMuted),
+        ]}
+      >
         {label}
       </Text>
-    </View>
+    </VStack>
   );
 
 const TrophyRow = ({
   trophy,
-  index,
-  count,
   colors,
   strings,
   formatDate,
@@ -214,8 +319,6 @@ const TrophyRow = ({
   onPress,
 }: {
   trophy: ResolvedTrophy;
-  index: number;
-  count: number;
   colors: TrophiesScreenColors;
   strings: TrophiesScreenStrings;
   formatDate: (achievedAt: number) => string;
@@ -224,113 +327,130 @@ const TrophyRow = ({
 }) => {
   const tierName = strings.tierNames[trophy.tier];
 
-  // One supporting line. Tier rides along as a plain muted word (PlayStation
-  // distinguishes tiers by label; the icon carries the color): earned shows the
-  // date, locked shows the objective (the same description shown when earned).
   const supporting = trophy.unlocked
     ? `${tierName} · ${strings.achievedLabel} ${formatDate(trophy.achievedAt ?? 0)}`
     : `${tierName} · ${trophy.description}`;
 
-  const textColor = trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted;
-  // Earned trophies wear their tier's color; locked ones stay a dim grey
-  // silhouette, so the color is part of the reward.
   const iconColor = trophy.unlocked
     ? tierColor(trophy.tier)
     : colors.onSurfaceMuted;
 
-  // The title bar is sized from the title it stands for — the row already HAS
-  // the string (config and copy, not the network), so the bones vary down the
-  // card the way the real names do. The iOS twin's own trick.
+  /**
+   * The title bar is sized from the title it stands for — the row already HAS
+   * the string (it comes from config and copy, not the network), so the bones
+   * vary down the card the way the real names do instead of reading as a
+   * printed form. An approximation of the settled ink, not a measurement of it:
+   * what has to be exact is the row's HEIGHT, which the line boxes below pin.
+   */
   const titleBoneWidth = Math.min(140, Math.max(56, trophy.title.length * 9));
 
-  // The rounded, clipping background is an OUTER View; the Pressable lives
-  // inside it. The press ripple can't clip itself to the group's asymmetric
-  // (24/4) corners on its own — Android's outline ripple-mask only supports a
-  // uniform radius — so the outer `overflow: 'hidden'` rounded clip is what keeps
-  // the ripple inside the row (the same effect Compose's `clip(shape)` gives the
-  // Settings rows).
   return (
-    <View
-      style={[
-        styles.rowClip,
-        groupRadii(index, count),
-        {
-          backgroundColor: colors.surface,
-          marginBottom: index === count - 1 ? 0 : GROUP_ROW_GAP,
-        },
-      ]}
-    >
-      <Pressable
-        onPress={onPress}
-        android_ripple={{ color: colors.ripple }}
-        style={styles.row}
-      >
-        <View style={styles.iconSlot}>
-          {loading ? (
-            <SkeletonBone
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-              radius={ICON_SIZE / 2}
-            />
-          ) : (
-            <TrophyIcon
-              color={iconColor}
-              size={ICON_SIZE}
-              locked={!trophy.unlocked}
-            />
-          )}
-        </View>
-        <View style={styles.text}>
-          {loading ? (
-            // Ghost-measured bones — the box is whatever the platform draws
-            // for the row's own variants, never a lineHeight constant.
-            <>
-              <SkeletonTextLine
-                variant="titleMedium"
-                barWidth={titleBoneWidth}
-              />
-              <SkeletonTextLine
-                variant="bodySmall"
-                barWidth={SUPPORTING_BONE_WIDTH}
-              />
-            </>
-          ) : (
-            <>
+    <Button onPress={onPress}>
+      <HStack spacing={GROUPED_ROW.artGap}>
+        {loading ? (
+          /**
+           * THE WHOLE ROW'S CONTENT IN ONE HOST — icon, title and supporting
+           * line together, because a row is either loading or it is not.
+           *
+           * This was a half-skeleton: a boned icon beside the REAL title and
+           * subtitle, greyed. It read as broken rather than as loading, and the
+           * subtitle was worse than cosmetic — it says "Earned Jul 16, 2026",
+           * which is exactly the fact the row is waiting on, printed next to a
+           * placeholder claiming to know nothing.
+           *
+           * The reason it ended up that way is the `RNHostView` ceiling: a
+           * SECOND host in this row blows the native layout apart (titles
+           * clipped off the leading edge, the icon slot gone). The answer is
+           * the one the progress header already uses — not fewer bones, but ONE
+           * host holding the whole RN sub-layout. The `Form` still owns the
+           * card, the separators and the insets, so only the row's own content
+           * is hand-sized.
+           *
+           * THE BOX IS RESERVED IN SWIFTUI, NOT MEASURED FROM RN. `matchContents`
+           * makes a host "update its size in the React Native view tree to match
+           * the children's" — an UPDATE, i.e. after the fact — so the row laid
+           * out once without it and again once it arrived, which is a shift on
+           * the frame the placeholder mounts and exactly the intermittent one
+           * Juan saw stepping the states. Framing the wrapper and letting the
+           * host fill it (its default) takes the measurement off the layout path
+           * for good. Same reasoning as `SHEET_BONE_TOP`: never put an async
+           * answer where a static one will do.
+           */
+          <VStack
+            modifiers={[
+              frame({ width: ROW_BONE_WIDTH, height: ROW_BONE_HEIGHT }),
+            ]}
+          >
+            <RNHostView>
+              <View style={styles.rowBone}>
+                <View style={styles.iconSlot}>
+                  <SkeletonBone
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                    radius={ICON_SIZE / 2}
+                  />
+                </View>
+                <View style={styles.rowBoneText}>
+                  {/* Each bar sits in the LINE BOX of the text it stands for, so
+                    the row keeps the height it settles at — a bar is drawn
+                    thinner than its glyphs, which is why the box and the bar
+                    are two numbers. */}
+                  <View style={styles.titleLine}>
+                    <SkeletonBone width={titleBoneWidth} height={15} />
+                  </View>
+                  <View style={styles.supportingLine}>
+                    <SkeletonBone width={SUPPORTING_BONE_WIDTH} height={11} />
+                  </View>
+                </View>
+              </View>
+            </RNHostView>
+          </VStack>
+        ) : (
+          <>
+            <VStack
+              modifiers={[frame({ width: ICON_SLOT, height: ICON_SIZE })]}
+            >
+              <RNHostView>
+                <View style={styles.iconSlot}>
+                  <TrophyIcon
+                    color={iconColor}
+                    size={ICON_SIZE}
+                    locked={!trophy.unlocked}
+                  />
+                </View>
+              </RNHostView>
+            </VStack>
+            <VStack alignment="leading" spacing={2}>
               <Text
-                numberOfLines={1}
-                style={[styles.title, { color: textColor }]}
+                modifiers={[
+                  foregroundStyle(
+                    trophy.unlocked ? colors.onSurface : colors.onSurfaceMuted,
+                  ),
+                ]}
               >
                 {trophy.title}
               </Text>
               <Text
-                numberOfLines={1}
-                style={[styles.supporting, { color: colors.onSurfaceMuted }]}
+                modifiers={[
+                  font({ textStyle: 'footnote' }),
+                  foregroundStyle(colors.onSurfaceMuted),
+                ]}
               >
                 {supporting}
               </Text>
-            </>
-          )}
-        </View>
-        {/* The disclosure chevron every pushed row in this family carries —
-            the shared SVG definition, so it cannot drift from the account
-            screen's rows. It stays through the wait: the row still goes
-            somewhere. */}
-        <DisclosureChevron color={colors.onSurfaceMuted} />
-      </Pressable>
-    </View>
+            </VStack>
+          </>
+        )}
+        <Spacer />
+        {/* The one chevron definition the portfolio has — the same glyph the
+            account sheet's own rows draw, rather than a local size constant
+            that can drift a point away from them. */}
+        <FormDisclosureIndicatorIos color={colors.onSurfaceMuted} />
+      </HStack>
+    </Button>
   );
 };
 
-/**
- * The trophies screen, built in the app's own Material 3 grouped-list idiom (the
- * Settings pattern): the iOS summary block — earned figure, progress ring with
- * the percent inside, available figure — then every trophy as a tappable row in
- * one rounded card. Restrained — earned rows wear their tier color with the
- * achieved date, locked rows recede to a dim silhouette + hint, the secret one
- * stays masked. Tapping a row opens its detail (host-owned via `onTrophyPress`).
- * Fully prop-driven (colors, strings, date formatter injected) so the package
- * stays app-agnostic and localizable.
- */
 export const TrophiesScreen = ({
   trophies,
   earned,
@@ -338,133 +458,272 @@ export const TrophiesScreen = ({
   colors,
   strings,
   formatDate,
-  onTrophyPress,
-  scrollProps,
   loading = false,
+  onTrophyPress,
 }: TrophiesScreenProps) => {
   const fraction = total > 0 ? earned / total : 0;
 
   return (
-    <ScrollView
-      {...scrollProps}
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-    >
-      {/* The summary sits in a CARD, exactly as the iOS Section takes the
-          grouped default fill — page content in the same container language
-          as the list below it, not figures floating on the page. */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <SummaryFigure
-          value={String(earned)}
-          label={strings.earnedLabel}
-          loading={loading}
-          colors={colors}
-        />
-        {loading ? (
-          // The ring is boned too, not drawn empty: an empty track is a real
-          // gauge reading zero — a state, not a placeholder (the iOS rule).
-          <View style={styles.ring}>
-            <SkeletonBone
-              width={RING_SIZE}
-              height={RING_SIZE}
-              radius={RING_SIZE / 2}
-            />
-          </View>
-        ) : (
-          <SummaryRing
-            fraction={fraction}
-            percent={strings.percent}
-            colors={colors}
-          />
-        )}
-        <SummaryFigure
-          value={String(total)}
-          label={strings.availableLabel}
-          loading={loading}
-          colors={colors}
-        />
-      </View>
+    <Host style={styles.host}>
+      {/* NO Form-level `tint`. `SheetFormBodyIos` carries one because its
+          forms hold menu pickers, whose VALUE Apple tints itself; this one
+          holds none, so the tint reached nothing and only stood ready to
+          paint the next control added here. */}
+      <Form modifiers={[scrollContentBackground('hidden')]}>
+        {/**
+         * THE SUMMARY IS THE SCREEN'S OPENING BLOCK, not the list's header.
+         *
+         * It WAS a `Section` header, and that is why it read as a caption no
+         * matter how large the type got: a grouped header is structurally a
+         * LABEL FOR THE THING BELOW IT, so scale alone could never promote it.
+         * As its own section with the row's fill cleared, its insets zeroed and
+         * its separator hidden, the same pixels stop being a label and become
+         * page content — the screen's headline, with the list reading as its
+         * body, and it takes the grouped default fill like every other block of
+         * content in this sheet family (see the note at the top of the file for
+         * why the cleared fill it used to carry was wrong).
+         */}
+        <Section
+          modifiers={[
+            listSectionMargins({ edges: 'top', length: SUMMARY_TOP_MARGIN }),
+            listSectionMargins({
+              edges: 'bottom',
+              length: SUMMARY_TO_LIST_GAP,
+            }),
+          ]}
+        >
+          <VStack
+            modifiers={[
+              listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
+              listRowSeparator('hidden'),
+            ]}
+          >
+            {/**
+             * THE RING AND ITS TWO FIGURES — how many earned, how many there
+             * are, and the fraction between them.
+             *
+             * What it dropped was PlayStation's TIER TALLY, the row of four
+             * trophy glyphs with counts beneath. On a console screen that also
+             * shows the game, the player and a rarity column it earns its
+             * place; here it sat directly above a list that already names every
+             * trophy AND its tier.
+             *
+             * THE RING IS THE SUBJECT AND IS SIZED LIKE ONE. At 96 against two
+             * 84-wide columns 28pt away it read as bullied by its own labels —
+             * three elements of similar weight rather than a headline with
+             * supporting figures. The gauge takes `RING_SIZE`, the columns pull
+             * in to `SUMMARY_COLUMN_GAP` and narrow to what they need.
+             *
+             * BOTH COLUMNS TAKE THE SAME WIDTH so the group is symmetric and the
+             * ring lands on the screen's centre. Left to hug their labels they
+             * are not — "Available" is wider than "Earned", "Disponibles" wider
+             * still — which pulled the group left and put the ring 5.33pt off
+             * centre against the loading state.
+             */}
+            {/* THE ROW'S HEIGHT IS STATED, not left to its content. The ring
+                is the tallest thing in it in both states, so this is a no-op
+                once the gauge is there — but while loading the block is three
+                bridged hosts, and hosts report their size after the fact, so
+                without it the row collapsed and clipped the ring bone to a
+                semicircle. */}
+            <HStack
+              alignment="center"
+              spacing={SUMMARY_COLUMN_GAP}
+              modifiers={[frame({ height: RING_SIZE })]}
+            >
+              <Spacer />
+              <SummaryFigure
+                loading={loading}
+                value={String(earned)}
+                label={strings.earnedLabel}
+                colors={colors}
+              />
 
-      <View>
-        {trophies.map((trophy, index) => (
-          <TrophyRow
-            key={trophy.id}
-            trophy={trophy}
-            index={index}
-            count={trophies.length}
-            colors={colors}
-            strings={strings}
-            formatDate={formatDate}
-            loading={loading}
-            onPress={onTrophyPress ? () => onTrophyPress(trophy.id) : undefined}
-          />
-        ))}
-      </View>
-    </ScrollView>
+              {/* THE RING IS BONED TOO, not drawn empty. An empty track is a
+                  real gauge reading zero, and it read as disabled rather than
+                  as waiting — a state, not a placeholder. A disc on the app's
+                  own sweep says "loading" in the same language every other
+                  surface uses. */}
+              {loading ? (
+                <VStack
+                  modifiers={[frame({ width: RING_SIZE, height: RING_SIZE })]}
+                >
+                  <RNHostView>
+                    <View style={styles.ringBone}>
+                      <SkeletonBone
+                        width={RING_INK}
+                        height={RING_INK}
+                        radius={RING_INK / 2}
+                      />
+                    </View>
+                  </RNHostView>
+                </VStack>
+              ) : (
+                <Gauge
+                  value={fraction}
+                  // The percent lives INSIDE the ring — the `currentValueLabel`
+                  // slot — and scales with it: a `caption` sized for a 64pt
+                  // gauge reads lost in this one.
+                  currentValueLabel={
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'title', weight: 'semibold' }),
+                        foregroundStyle(colors.onSurface),
+                      ]}
+                    >
+                      {strings.percent}
+                    </Text>
+                  }
+                  modifiers={[
+                    gaugeStyle('circularCapacity'),
+                    // THE ACCENT, reversed from monochrome by Juan on sight
+                    // (2026-09-04). The 2026-08-21 audit took this ring's tint
+                    // on the argument that a gauge's information is its arc
+                    // and the number inside it — which is true and was not the
+                    // problem: rendered, an ink-coloured ring reads as an
+                    // INACTIVE track rather than as progress (the same failure
+                    // mode as the grey swipe action — the monochrome rule's
+                    // own opening principle outranks its buckets). A gauge's
+                    // fill is state, and the accent is what iOS spends on it.
+                    tint(colors.primary),
+                    scaleEffect(RING_SCALE),
+                    frame({ width: RING_SIZE, height: RING_SIZE }),
+                  ]}
+                />
+              )}
+
+              <SummaryFigure
+                loading={loading}
+                value={String(total)}
+                label={strings.availableLabel}
+                colors={colors}
+              />
+              <Spacer />
+            </HStack>
+          </VStack>
+        </Section>
+
+        {/* UNTITLED. With one section on the screen a header only labels the
+            obvious — the sheet's own title already says Trophies. */}
+        <Section>
+          {trophies.map(trophy => (
+            <TrophyRow
+              key={trophy.id}
+              trophy={trophy}
+              colors={colors}
+              strings={strings}
+              formatDate={formatDate}
+              loading={loading}
+              onPress={
+                onTrophyPress ? () => onTrophyPress(trophy.id) : undefined
+              }
+            />
+          ))}
+        </Section>
+      </Form>
+    </Host>
   );
 };
 
+/** The supporting line is one sentence at footnote size, whatever the row. */
+const SUPPORTING_BONE_WIDTH = 160;
+/** The native row's own artwork→text gap. */
+const ROW_BONE_GAP = GROUPED_ROW.artGap;
+/** The bone row's own box, reserved in SwiftUI — see the note on the host. */
+const ROW_BONE_WIDTH = ICON_SLOT + 12 + SUPPORTING_BONE_WIDTH;
+/**
+ * THE ROW'S CONTENT HEIGHT — solved from the rendered list, not from the line
+ * boxes it holds.
+ *
+ * Stacking the boxes (22 + 2 + 18 = 42) put every separator 4pt low and the
+ * pitch at 72 against the native 68. Band-scanned on iPhone 17 / iOS 26.5, the
+ * `Form`'s separators sit 68 apart, of which 1 is the separator itself and
+ * 2 × 14.5 is the grouped row's own vertical padding (the same 14.5
+ * `PersonListSkeletonIos` measured for its people rows) — so the content it
+ * wraps is 68 − 1 − 29 = 38, and the two text boxes are simply drawn tighter
+ * than their nominal line heights.
+ *
+ * IT STAYS 38 even though that leaves a third of a point on the table, and the
+ * alternative is the instructive part. Band-scanned separators, live against
+ * the bone:
+ *
+ *   38     261.67 / 329.67 / 397.67 / 465.67   pitch 68.00, a CONSTANT +0.34
+ *   37.67  261.33 / 329.00 / 396.67 / 464.67   row one exact, pitch 67.67
+ *
+ * So 37.67 buys a perfect first row and spends it on a pitch that drifts, which
+ * compounds down the card and is the worse defect by far — the eye reads
+ * accumulating separator error long before it reads one device pixel at the
+ * top. A constant sub-pixel offset with an exact pitch is the trade to take.
+ */
+const ROW_BONE_HEIGHT = 38;
+
 const styles = StyleSheet.create({
-  // The family's shared top — the summary card's fill sits where Settings'
-  // first header box does (see SCREEN_CONTENT_TOP).
-  content: {
-    paddingBottom: 32,
-    paddingHorizontal: GROUP_SIDE_PADDING,
-    paddingTop: SCREEN_CONTENT_TOP,
-  },
-  // The centred summary card: figure | ring | figure on the row surface,
-  // with air below before the trophy card starts.
-  header: {
+  host: { flex: 1 },
+  /**
+   * EXPLICIT BOX, no `gap` and no measuring. `RNHostView`'s `matchContents`
+   * sizes from the RN tree, and handed a nested flex row it dropped the leading
+   * child entirely — the icon bone vanished and the text slid into its slot
+   * (seen on iPhone 17 / iOS 26.5). Stating the row's own width and height, and
+   * spacing with margins rather than `gap`, leaves it nothing to work out.
+   */
+  rowBone: {
     alignItems: 'center',
-    borderRadius: OUTER_RADIUS,
     flexDirection: 'row',
-    gap: SUMMARY_COLUMN_GAP,
-    justifyContent: 'center',
-    marginBottom: 16,
-    paddingVertical: 20,
+    height: ROW_BONE_HEIGHT,
+    width: ICON_SLOT + ROW_BONE_GAP + SUPPORTING_BONE_WIDTH,
   },
-  // Both columns take the SAME width so the block is symmetric and the ring
-  // lands on the screen's centre (the iOS block's own rule — left to hug
-  // their labels, "Available" pulls the group off-centre).
-  figure: { alignItems: 'center', gap: 2, width: FIGURE_WIDTH },
-  figureBone: { gap: 6, justifyContent: 'center', minHeight: 46 },
-  figureValue: { ...TEXT_VARIANTS.titleLarge, fontWeight: '600' },
-  figureLabel: TEXT_VARIANTS.bodySmall,
-  ring: {
+  rowBoneText: { marginLeft: ROW_BONE_GAP },
+  // The body and footnote line boxes the native row stacks.
+  titleLine: { height: 22, justifyContent: 'center' },
+  supportingLine: { height: 18, justifyContent: 'center' },
+  /**
+   * THE SUMMARY BONES. Each sits in its OWN `RNHostView` — three hosts in this
+   * block, which is above the one-per-row ceiling everywhere else, and is why
+   * they are three separate small trees rather than one: a single host holding
+   * the whole summary rendered BLANK here, through eight builds of explicit
+   * boxes, `matchContents` on and off, cleared insets, an opaque row fill and
+   * both `VStack` and `HStack` parents. Split per element they draw.
+   */
+  /**
+   * Each bone box is the ring's HEIGHT, so all three hosts report the same box
+   * and the `HStack`'s centre alignment has something to centre. Left to hug
+   * their content the figure hosts sat at the top of the row while the ring
+   * bone centred, because a host's own height arrives after the fact.
+   */
+  figureBone: {
+    alignItems: 'center',
+    height: RING_SIZE,
+    justifyContent: 'center',
+    width: FIGURE_WIDTH,
+  },
+  figureBoneLabel: { marginTop: 8 },
+  /**
+   * The disc stands the ring's INK, inside a box the size of its FRAME. A
+   * `circularCapacity` gauge draws well inside the frame it is given — band
+   * scanned at 58.00 across a 116 frame — so a bone at `RING_SIZE` came out
+   * twice the ring it replaces. The box keeps the row's height either way.
+   */
+  /**
+   * The disc stands the ring's INK inside a box the size of its FRAME. A
+   * `circularCapacity` gauge draws well inside the frame it is given — band
+   * scanned at 58.00 across a 116 frame — so a bone at `RING_SIZE` came out
+   * twice the ring it replaces.
+   *
+   * The SLOT is reserved in SwiftUI (see the framed `VStack` around the host),
+   * not measured from here: left to report their own size the three hosts gave
+   * the row widths that were neither live's nor each other's, and the ring
+   * landed 8.34 right at one guess and 20.00 left at the next.
+   */
+  ringBone: {
     alignItems: 'center',
     height: RING_SIZE,
     justifyContent: 'center',
     width: RING_SIZE,
   },
-  ringLabel: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  percent: { ...TEXT_VARIANTS.titleLarge, fontWeight: '600' },
-  // Outer wrapper owns the rounded corners + clip so the Pressable's ripple
-  // stays inside them; the Pressable owns the row layout.
-  rowClip: { overflow: 'hidden' },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 56,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
   iconSlot: {
     alignItems: 'center',
+    height: ICON_SIZE,
     justifyContent: 'center',
     width: ICON_SLOT,
   },
-  text: { flex: 1, gap: 2 },
-  // `titleMedium` / `bodySmall` — the ladder's own rungs for a row title and
-  // its supporting line, and what lets the bones ghost-measure the same box.
-  title: TEXT_VARIANTS.titleMedium,
-  supporting: TEXT_VARIANTS.bodySmall,
 });

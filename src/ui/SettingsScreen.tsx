@@ -1,54 +1,39 @@
-import React, { memo, useCallback, useState } from 'react';
+import React from 'react';
 
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import {
-  Column,
+  Button,
+  Form,
   Host,
-  ListItem,
-  RadioButton,
-  Row,
-  Switch,
+  LabeledContent,
+  Picker,
+  Section,
   Text,
-  TextButton,
-} from '@expo/ui/jetpack-compose';
+  Toggle,
+} from '@expo/ui/swift-ui';
 import {
-  clickable,
-  clip,
-  fillMaxWidth,
-  height,
-  padding,
-  selectable,
-  selectableGroup,
-} from '@expo/ui/jetpack-compose/modifiers';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  foregroundStyle,
+  pickerStyle,
+  tag,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
-import { DestructiveConfirmDialog } from './DestructiveConfirmDialog';
 import { Screen } from './Screen';
+import { type SettingsSignOutProps } from './SettingsAccountSection';
+import { type SettingsAccountSectionProps } from './SettingsAccountSection';
+import { type SettingsAccountColors } from './SettingsAccountSection';
 import {
   SettingsAccountSection,
   SettingsSignOutSection,
-  type SettingsAccountColors,
-  type SettingsAccountSectionProps,
-  type SettingsSignOutProps,
 } from './SettingsAccountSection';
-import { SettingsDialog } from './SettingsDialog';
-import {
-  GROUP_ROW_GAP,
-  GROUP_SIDE_PADDING,
-  groupHeaderProps,
-  groupRowColors,
-  groupRowShape,
-} from './settingsGroup';
 
 export type SettingsOption = { value: string; label: string };
 
-/** A single-choice preference, e.g. language or theme. */
-export type SettingsRadioSection = {
-  title: string;
-  options: SettingsOption[];
-  selected: string;
-  onSelect: (value: string) => void;
+/** Trailing read-only block, e.g. "About" with the app version. */
+export type SettingsAboutConfig = {
+  title?: string;
+  rows: SettingsInfoRow[];
 };
 
 /**
@@ -60,21 +45,6 @@ export type SettingsAccountConfig = Omit<
   'colors'
 > &
   SettingsSignOutProps;
-
-/** A read-only label/value row, e.g. the app version. */
-export type SettingsInfoRow = {
-  label: string;
-  /** Optional supporting value; omit for label-only link rows (legal pages). */
-  value?: string;
-  /** Optional tap handler, e.g. the legal pages. */
-  onPress?: () => void;
-};
-
-/** Trailing read-only block, e.g. "About" with the app version. */
-export type SettingsAboutConfig = {
-  title?: string;
-  rows: SettingsInfoRow[];
-};
 
 /**
  * Policy links (privacy policy, terms) that stores require reachable from
@@ -105,6 +75,14 @@ export type SettingsLegalConfig = {
   rows: SettingsInfoRow[];
 };
 
+/** A single-choice preference, e.g. language or theme. */
+export type SettingsRadioSection = {
+  title: string;
+  options: SettingsOption[];
+  selected: string;
+  onSelect: (value: string) => void;
+};
+
 /** App-resolved colors the settings screen paints with. */
 export type SettingsScreenColors = SettingsAccountColors & {
   background?: string;
@@ -115,6 +93,15 @@ export type SettingsScreenColors = SettingsAccountColors & {
    * tint theirs `primary` for the menu-picker values.
    */
   switchOn: string;
+};
+
+/** A read-only label/value row, e.g. the app version. */
+export type SettingsInfoRow = {
+  label: string;
+  /** Optional supporting value; omit for label-only link rows (legal pages). */
+  value?: string;
+  /** Optional tap handler, e.g. the legal pages. */
+  onPress?: () => void;
 };
 
 export type SettingsScreenProps = {
@@ -152,479 +139,187 @@ export type SettingsScreenProps = {
   };
   colors: SettingsScreenColors;
   colorScheme?: 'light' | 'dark';
-  /**
-   * Scroll handlers from the host app's app-bar hook, spread onto this
-   * screen's scroller. OPTIONAL: an app that does not lift its bar on scroll
-   * (or a platform with no such idiom) passes nothing and nothing changes.
-   *
-   * This screen owns the scroller, so the app cannot wire it from outside —
-   * which is why Android's Settings bar sat permanently at the SCROLLED colour
-   * while every screen with its own `ScrollView` lifted properly.
-   */
-  scrollProps?: object;
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  // The 0 here plus the first header's own 16 is `SCREEN_CONTENT_TOP` — the
-  // pushed sheet-family's shared top. Change one and the family drifts. (The
-  // scroller supplied 16 while the family top was 32; the header's own
-  // padding is mid-list rhythm too, so the halving all came off here.)
-  scroll: { paddingTop: 0, paddingBottom: 16 },
-  host: { width: '100%' },
+  host: { flex: 1 },
 });
 
 /**
- * The tappable row alone, memoized so dialog open/close state changes in
- * `RadioPreference` never re-render it.
- */
-const PreferenceRow = memo(
-  ({
-    title,
-    selectedLabel,
-    shape,
-    colors,
-    onOpen,
-  }: {
-    title: string;
-    selectedLabel?: string;
-    shape: ReturnType<typeof groupRowShape>;
-    colors: SettingsScreenColors;
-    /** Stable opener keyed by the row title, so the memo holds. */
-    onOpen: (title: string) => void;
-  }) => (
-    <ListItem
-      colors={{
-        ...groupRowColors(colors),
-        // THE SELECTED VALUE KEEPS THE ACCENT, because here the colour IS the
-        // information: this line is not supporting text about the row, it is
-        // the row's current SELECTION, and it is the only thing on the screen
-        // that says which language and which appearance are in effect.
-        //
-        // That is the monochrome rule's second bucket, not an exception to it,
-        // and iOS has drawn it this way all along — the accent list names "a
-        // form's menu-picker VALUE" explicitly, on the grounds that Apple's own
-        // Settings tints Language and Appearance itself. The 2026-08-29 parity
-        // audit compared the two rows' SHAPE (Android's value is supporting
-        // text, iOS's is a trailing tinted label with a chevron), called the
-        // shape difference correct, and never checked the INK against the rule
-        // — so Android sat at `onSurfaceMuted` and read like disabled text.
-        //
-        // A read-only value does NOT get this: `InfoRow`'s version number stays
-        // muted, because a build number is a fact rather than a choice.
-        supportingContentColor: colors.primary,
-      }}
-      modifiers={[fillMaxWidth(), clip(shape), clickable(() => onOpen(title))]}
-    >
-      <ListItem.HeadlineContent>
-        <Text>{title}</Text>
-      </ListItem.HeadlineContent>
-      {selectedLabel ? (
-        <ListItem.SupportingContent>
-          <Text
-            style={{ typography: 'bodyMedium' }}
-            modifiers={[padding(0, 4, 0, 0)]}
-          >
-            {selectedLabel}
-          </Text>
-        </ListItem.SupportingContent>
-      ) : null}
-    </ListItem>
-  ),
-);
-
-PreferenceRow.displayName = 'PreferenceRow';
-
-/**
- * A read-only row in the Android "About phone" idiom: setting name with the
- * value as supporting text. Rows with an `onPress` run it on tap (the "About
- * phone" rows that lead somewhere look identical to those that don't, so no
- * trailing affordance).
+ * ONE ROW RENDERER FOR BOTH READ-ONLY CARDS — About and Legal.
+ *
+ * They were two nearly identical inline blocks, and the "nearly" was already
+ * costing: About handled a trailing value and Legal did not, so a legal row
+ * that ever grew one would have silently dropped it. One definition also means
+ * the chevron rule below is stated once.
+ *
+ * Two shapes, decided by the row rather than by which card it is in: a row
+ * with `onPress` runs it on tap (the legal rows), and one without is a plain
+ * fact, e.g. a version number.
+ *
+ * `foregroundStyle` keeps the label from picking up the control tint inside a
+ * `Button` — in Apple's Settings blue means "do something", and a policy link
+ * that hands off to Safari is not that.
  */
 const InfoRow = ({
   row,
-  shape,
   colors,
 }: {
   row: SettingsInfoRow;
-  shape: ReturnType<typeof groupRowShape>;
-  colors: SettingsScreenColors;
-}) => (
-  <ListItem
-    colors={groupRowColors(colors)}
-    modifiers={[
-      fillMaxWidth(),
-      clip(shape),
-      ...(row.onPress ? [clickable(row.onPress)] : []),
-    ]}
-  >
-    <ListItem.HeadlineContent>
-      <Text>{row.label}</Text>
-    </ListItem.HeadlineContent>
-    {row.value ? (
-      <ListItem.SupportingContent>
-        <Text
-          style={{ typography: 'bodyMedium' }}
-          modifiers={[padding(0, 4, 0, 0)]}
-        >
-          {row.value}
-        </Text>
-      </ListItem.SupportingContent>
-    ) : null}
-  </ListItem>
-);
-
-/**
- * A HEADED CARD OF READ-ONLY ROWS — About, and Legal. One definition because
- * they are the same object: a `labelLarge` muted subheader over a grouped card
- * whose first and last rows take the outer corners.
- */
-const InfoGroup = ({
-  title,
-  rows,
-  colors,
-}: {
-  title?: string;
-  rows: SettingsInfoRow[];
-  colors: SettingsScreenColors;
-}) =>
-  rows.length ? (
-    <>
-      {/* Ink, not the accent — see the note on `sectionsTitle`. */}
-      {title ? (
-        <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{title}</Text>
-      ) : null}
-      <Column
-        modifiers={[
-          fillMaxWidth(),
-          padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-        ]}
-        verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-      >
-        {rows.map((row, index) => (
-          <InfoRow
-            key={row.label}
-            row={row}
-            shape={groupRowShape(index, rows.length)}
-            colors={colors}
-          />
-        ))}
-      </Column>
-    </>
-  ) : null;
-
-/**
- * DEV-ONLY toggle rows — the Android read of the iOS Dev section (which uses
- * a menu picker only because a `Toggle` in a hosted Form row never delivered
- * touches there; a Compose `Switch` in a `ListItem` trailing slot works, and
- * a switch is Material's own on/off row). The prop was declared here and
- * silently ignored for as long as Android was frozen — Topper's Settings
- * passed it on iOS only, so the lab could not be flipped at runtime on the
- * one platform Phase B runs on (Juan, 2026-09-04).
- */
-const DevTogglesGroup = ({
-  devToggles,
-  colors,
-}: {
-  devToggles: NonNullable<SettingsScreenProps['devToggles']>;
-  colors: SettingsScreenColors;
-}) => (
-  <>
-    {/* Ink, not the accent — see the note on `sectionsTitle`. */}
-    <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{devToggles.title}</Text>
-    <Column
-      modifiers={[
-        fillMaxWidth(),
-        padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-      ]}
-      verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-    >
-      {devToggles.rows.map((row, index) => (
-        <ListItem
-          key={row.label}
-          colors={groupRowColors(colors)}
-          modifiers={[
-            fillMaxWidth(),
-            clip(groupRowShape(index, devToggles.rows.length)),
-          ]}
-        >
-          <ListItem.HeadlineContent>
-            <Text>{row.label}</Text>
-          </ListItem.HeadlineContent>
-          <ListItem.TrailingContent>
-            <Switch value={row.value} onCheckedChange={row.onValueChange} />
-          </ListItem.TrailingContent>
-        </ListItem>
-      ))}
-    </Column>
-  </>
-);
-
-/**
- * The single-choice radio dialog a preference row opens — the shared
- * `SettingsDialog` shell around a selectable radio list. Hosted by the screen
- * in its own `<Host>` — mounting it next to the rows corrupts their modifiers
- * (clip shapes mis-assign on unmount) and flickers sibling icons.
- */
-const RadioOptionsDialog = ({
-  section,
-  cancelLabel,
-  colors,
-  onDismiss,
-}: {
-  section: SettingsRadioSection;
-  cancelLabel: string;
-  colors: SettingsScreenColors;
-  onDismiss: () => void;
+  colors: SettingsScreenProps['colors'];
 }) => {
-  const handleSelect = (value: string) => {
-    onDismiss();
-    if (value !== section.selected) section.onSelect(value);
-  };
-
-  return (
-    <SettingsDialog
-      title={section.title}
-      colors={colors}
-      onDismissRequest={onDismiss}
-      actions={
-        /* A Compose control themes itself from the NATIVE scheme, which on
-           a One UI palette is the untuned accent `schemePrimary` exists to
-           repair — so every text button in a dialog states its content
-           colour rather than inheriting one the rest of the app no longer
-           uses. Measured: inherited #4979F6 against the app's #B1C5FF. */
-        <TextButton
-          colors={{ contentColor: colors.primary }}
-          onClick={onDismiss}
-        >
-          <Text>{cancelLabel}</Text>
-        </TextButton>
-      }
-    >
-      <Column modifiers={[fillMaxWidth(), selectableGroup()]}>
-        {section.options.map(option => {
-          const isSelected = option.value === section.selected;
-
-          return (
-            <Row
-              key={option.value}
-              verticalAlignment="center"
-              modifiers={[
-                fillMaxWidth(),
-                height(48),
-                selectable(
-                  isSelected,
-                  () => handleSelect(option.value),
-                  'radioButton',
-                ),
-                padding(24, 0, 24, 0),
-              ]}
-            >
-              <RadioButton selected={isSelected} />
-              <Text color={colors.onSurface} modifiers={[padding(16, 0, 0, 0)]}>
-                {option.label}
-              </Text>
-            </Row>
-          );
-        })}
-      </Column>
-    </SettingsDialog>
+  // Valueless rows (the legal links) render as a plain label — LabeledContent
+  // with empty trailing text reads as a broken row.
+  const content = row.value ? (
+    <LabeledContent label={row.label}>
+      {/* SwiftUI dims a LabeledContent's trailing text to the secondary style,
+          which reads as "disabled" next to the link rows — those sit inside a
+          `foregroundStyle` wrapper, so their value stays full-strength. Match
+          them: a read-only value is not a disabled one. */}
+      <Text modifiers={[foregroundStyle(colors.onSurface)]}>{row.value}</Text>
+    </LabeledContent>
+  ) : (
+    <Text>{row.label}</Text>
   );
+
+  if (row.onPress)
+    return (
+      <Button
+        onPress={row.onPress}
+        modifiers={[foregroundStyle(colors.onSurface)]}
+      >
+        {content}
+      </Button>
+    );
+
+  return content;
 };
 
 /**
- * Shared settings screen in the Android (Google apps) settings idiom — a
- * category of preference rows (supporting text shows the current value, tap
- * opens a single-choice radio dialog), led by an optional account banner and
- * closed by its sign-out card.
- * Every label, value, handler, and color is supplied by the host app so each
- * app reuses the same layout and interaction model while owning its own copy,
- * state, and palette.
+ * iOS counterpart of `SettingsScreen` — same prop API as the Android variant,
+ * rendered as a native inset-grouped `Form`, the standard Apple Settings
+ * layout. Each single-choice section maps to a menu `Picker` row (label on the
+ * left, current value plus chevron on the right) grouped under the
+ * `sectionsTitle` header; the account block LEADS the form (see below) and its
+ * red destructive sign-out row closes it — the same order the Compose screen
+ * draws. Rows stay icon-free — Apple Settings rows either carry
+ * colored tile icons or none at all, and bare SF symbols read as neither.
+ * The `Form` scrolls and insets itself natively, so the RN
+ * `ScrollView`/`SafeAreaView` chrome the Android variant needs is omitted.
+ * `cancelLabel` and per-section `icon` are unused here — the native menu
+ * dismisses itself; this variant tints from `colors.primary`.
  */
 export const SettingsScreen = ({
   account,
   sections,
   sectionsTitle,
-  cancelLabel,
   about,
   legal,
   devToggles,
   colors,
   colorScheme,
-  scrollProps,
-}: SettingsScreenProps) => {
-  const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
-  const [signOutConfirmVisible, setSignOutConfirmVisible] = useState(false);
+}: SettingsScreenProps) => (
+  <Screen>
+    <Host style={styles.host} colorScheme={colorScheme}>
+      {/* No top `padding` on the Form: `padding` sits OUTSIDE its background,
+          so any top inset leaves a strip of whatever is behind the Form above
+          its grouped background — a visible seam, most obvious in a sheet
+          where the strip reads as the flat sheet colour above the elevated
+          one. The Form's own section spacing is the breathing room. */}
+      <Form modifiers={[tint(colors.primary)]}>
+        {/* THE ACCOUNT BLOCK LEADS THE SHEET — Apple puts the person first.
+            Settings opens on the Apple Account banner above every other group,
+            and the App Store's Apple Account sheet does the same; nothing of
+            Apple's puts an identity card below a preferences group.
 
-  const openPreference = useCallback(
-    (title: string) => setOpenSectionTitle(title),
-    [],
-  );
-  const closePreference = useCallback(() => setOpenSectionTitle(null), []);
-  const openSignOutConfirm = useCallback(
-    () => setSignOutConfirmVisible(true),
-    [],
-  );
-  const closeSignOutConfirm = useCallback(
-    () => setSignOutConfirmVisible(false),
-    [],
-  );
+            It renders NOTHING when the caller passes no account block, and
+            the sheet starts at General. That was Topper's case (its account
+            entry is on its Profile tab) and the deleted expo-ui-starter's;
+            this app always passes one. */}
+        {account ? (
+          <SettingsAccountSection
+            profile={account.profile}
+            profileLink={account.profileLink}
+            colors={colors}
+          />
+        ) : null}
 
-  const openSection = sections.find(
-    section => section.title === openSectionTitle,
-  );
-
-  return (
-    <Screen backgroundColor={colors.background}>
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-        <ScrollView {...scrollProps} contentContainerStyle={styles.scroll}>
-          <Host
-            matchContents={{ vertical: true }}
-            colorScheme={colorScheme}
-            style={styles.host}
-          >
-            <Column
-              modifiers={[fillMaxWidth()]}
-              verticalArrangement={{ spacedBy: 8 }}
+        <Section title={sectionsTitle}>
+          {sections.map(section => (
+            <Picker
+              key={section.title}
+              label={section.title}
+              selection={section.selected}
+              onSelectionChange={value => section.onSelect(String(value))}
+              modifiers={[pickerStyle('menu')]}
             >
-              {/* THE ACCOUNT BANNER LEADS THE SCREEN — the iOS Form's order
-                  ("Apple puts the person first"), and One UI's: Samsung's own
-                  Settings opens on its account banner above every group. No
-                  header, as on iOS — the avatar and the name say what it is. */}
-              {account ? (
-                <SettingsAccountSection
-                  profile={account.profile}
-                  profileLink={account.profileLink}
-                  colors={colors}
-                />
-              ) : null}
-
-              {/* A GROUP HEADER IS A LABEL, SO IT TAKES THE INK.
-                  It used to be `colors.primary`, which on a wallpaper-derived
-                  palette rendered #4979F6 on the A54 — the same accent in both
-                  appearances — for three static strings that carry no state, no
-                  selection and no action. Google's own Settings does tint its
-                  category headers, so this was a defensible Material reading;
-                  it is not the house one. The monochrome rule crossed to
-                  Android on 2026-08-29 and its first bucket is exactly this
-                  case: colour a thing was given because the framework tints it
-                  by default, saying nothing. `onSurfaceVariant` is what M3
-                  spends on a list subheader anyway.
-
-                  What KEEPS its colour on this screen is what means something:
-                  the destructive sign-out row stays `danger`, and the radio
-                  dialog's selected button stays the accent — that one IS the
-                  selection. */}
-              {sectionsTitle ? (
-                <Text {...groupHeaderProps(colors.onSurfaceMuted)}>
-                  {sectionsTitle}
+              {section.options.map(option => (
+                <Text key={option.value} modifiers={[tag(option.value)]}>
+                  {option.label}
                 </Text>
-              ) : null}
+              ))}
+            </Picker>
+          ))}
+        </Section>
 
-              <Column
-                modifiers={[
-                  fillMaxWidth(),
-                  padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                ]}
-                verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-              >
-                {sections.map((section, index) => (
-                  <PreferenceRow
-                    key={section.title}
-                    title={section.title}
-                    selectedLabel={
-                      section.options.find(
-                        option => option.value === section.selected,
-                      )?.label
-                    }
-                    shape={groupRowShape(index, sections.length)}
-                    colors={colors}
-                    onOpen={openPreference}
-                  />
-                ))}
-              </Column>
+        {/* DEV-ONLY — the host passes this under `__DEV__` alone, so a release
+            build never renders the section.
 
-              {/* Dev sits directly under General — the iOS variant's order
-                  (General → Dev → About), matched so the two twins read the
-                  same way down. It rendered LAST here for as long as Android
-                  was frozen, which was a leftover rather than a Material
-                  argument: Material has no idiom for where dev chrome goes,
-                  so the shared order wins. */}
-              {devToggles ? (
-                <DevTogglesGroup devToggles={devToggles} colors={colors} />
-              ) : null}
+            A REAL SWITCH, matching the Android twin (Juan, 2026-09-05 — the
+            menu picker it replaced was a written-down workaround for 57's
+            Toggle tap-dead bug, from the expo-ui-starter SIMULATOR
+            verification). TAP VERIFIED WORKING on Juan's real iPhone the
+            same day — so that bug is a simulator artefact, fixed upstream,
+            or both; if a future bump regresses it, the workaround to revert
+            to was menu `Picker` rows (On / Off).
 
-              {about ? (
-                <InfoGroup
-                  title={about.title}
-                  rows={about.rows}
-                  colors={colors}
-                />
-              ) : null}
-
-              {/* LEGAL IS ITS OWN CARD, not two more About rows.
-                  It used to be appended to About, on a reason that read
-                  "exactly where they rendered before they became their own
-                  prop — Material's grouping keeps them there": the first half
-                  is history and the second was asserted, which is the same
-                  shape as the freeze clauses retired on 2026-08-29. What
-                  Android actually does is put ONE "Legal information" row under
-                  About phone that opens a sub-screen — not two flat links
-                  sitting beside a version number. Merged, this was also the
-                  only content card on the screen with no header of its own,
-                  while General and About both had one (Sign Out is bare on
-                  purpose: it is an action, not a group). */}
-              {legal ? (
-                <InfoGroup
-                  title={legal.title}
-                  rows={legal.rows}
-                  colors={colors}
-                />
-              ) : null}
-
-              {/* Sign-out closes the screen, headerless — it is an action, not
-                  a group. See `SettingsSignOutSection`. */}
-              {account ? (
-                <SettingsSignOutSection
-                  signOutLabel={account.signOutLabel}
-                  signOutDialog={account.signOutDialog}
-                  onSignOut={account.onSignOut}
-                  colors={colors}
-                  onOpenSignOutConfirm={openSignOutConfirm}
-                />
-              ) : null}
-            </Column>
-          </Host>
-        </ScrollView>
-
-        {/* Dialogs live in their own Hosts: mounting them inside the scroll
-            Host corrupts the sibling rows' clip shapes on unmount and
-            flickers their icons. */}
-        {openSection ? (
-          <Host matchContents colorScheme={colorScheme}>
-            <RadioOptionsDialog
-              section={openSection}
-              cancelLabel={cancelLabel}
-              colors={colors}
-              onDismiss={closePreference}
-            />
-          </Host>
+            `switchOn`, not the Form's `primary` tint: green-means-on is a
+            platform semantic (the monochrome rules' own carve-out), and a
+            SwiftUI Toggle has to be told because it inherits the ambient
+            accent. */}
+        {devToggles ? (
+          <Section title={devToggles.title}>
+            {devToggles.rows.map(row => (
+              <Toggle
+                key={row.label}
+                label={row.label}
+                isOn={row.value}
+                onIsOnChange={row.onValueChange}
+                modifiers={[tint(colors.switchOn)]}
+              />
+            ))}
+          </Section>
         ) : null}
 
-        {signOutConfirmVisible && account ? (
-          <Host matchContents colorScheme={colorScheme}>
-            <DestructiveConfirmDialog
-              dialog={account.signOutDialog}
-              colors={colors}
-              onConfirm={() => {
-                closeSignOutConfirm();
-                account.onSignOut();
-              }}
-              onDismiss={closeSignOutConfirm}
-            />
-          </Host>
+        {about ? (
+          <Section title={about.title}>
+            {about.rows.map(row => (
+              <InfoRow key={row.label} row={row} colors={colors} />
+            ))}
+          </Section>
         ) : null}
-      </SafeAreaView>
-    </Screen>
-  );
-};
+
+        {/* Policy links in a card of their own, between About and Sign Out —
+            Apple's grouping. They are policy, not build info, so they don't
+            belong beside version numbers. (Android agreed on 2026-08-29 —
+            its twin gives `legal` its own headed group too; the "Material
+            groups legal with About" argument is retired in its file.) */}
+        {legal?.rows.length ? (
+          <Section title={legal.title}>
+            {legal.rows.map(row => (
+              <InfoRow key={row.label} row={row} colors={colors} />
+            ))}
+          </Section>
+        ) : null}
+
+        {account ? (
+          <SettingsSignOutSection
+            signOutLabel={account.signOutLabel}
+            signOutDialog={account.signOutDialog}
+            onSignOut={account.onSignOut}
+          />
+        ) : null}
+      </Form>
+    </Host>
+  </Screen>
+);

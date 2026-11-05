@@ -1,15 +1,18 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Column, Host, Text } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth, padding } from '@expo/ui/jetpack-compose/modifiers';
-
+import {
+  Button,
+  ContentUnavailableView,
+  Host,
+  VStack,
+} from '@expo/ui/swift-ui';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { useAppTheme } from '@/core';
 
-import { AppIcon } from './AppIcon';
+import { type IconName } from './icons';
 
-import type { IconName } from './icons';
+import { actionButtonModifiersIos } from './SheetFormIos';
 
 /**
  * THE EMPTY STATE'S OWN STEPS, exported for the one case that may not mount
@@ -65,89 +68,89 @@ export type EmptyStateProps = {
 };
 
 /**
- * THE EMPTY / ERROR STATE — one component for every screen that has one.
+ * EXTRA spacing above the CTA — deliberately NONE.
  *
- * It lived in Topper and was PORTED into Sound Shaper on 2026-08-20, which is
- * exactly the drift `docs/standards.md`'s "a surface solved in one app must be
- * THE SAME COMPONENT in the others" rule exists to end — the two copies were
- * already 87% identical on iOS and 96% on Android before either had been
- * touched twice.
+ * The button cannot go in `ContentUnavailableView`'s own `actions` slot: the
+ * wrapper exposes only title / systemImage / description (see
+ * `docs/pending-upstream.md`), so it sits in a `VStack` BESIDE the view. That
+ * means anything here is added ON TOP of the view's own trailing inset rather
+ * than replacing it, and a `VStack` gap is the wrong tool for a relationship
+ * Apple already spaces.
  *
- * It hosts its own Compose embed rather than taking the app's `ThemedHost`, and
- * reads the palette from `useAppTheme` (`@/core`) — the one theme every screen
- * resolves, not a second one.
+ * MEASURED on iPhone 17 / iOS 26.5, description-ink to button-edge:
  *
- * The Host matches contents only VERTICALLY: a boolean `matchContents` sizes it
- * to the text's intrinsic single-line width, which can exceed the screen (text
- * never wraps, it just clips at the edges) — vertical-only keeps the width
- * constrained so subtitles wrap.
+ *   this at 20  →  57.0pt   the button read as detached from the message
+ *   this at  0  →  37.0pt   the floor: the view's trailing inset plus the
+ *                           button capsule's own padding, neither ours
+ *
+ * For scale, the view's LARGEST internal gap is icon→title at 23.7pt (and
+ * title→description is 7.7). At 57 the CTA sat 2.4× the widest rhythm Apple
+ * uses inside the view, which is what made it read as floating.
+ *
+ * So: add nothing, and let Apple's inset be the spacing. Kept as a named
+ * constant rather than a bare `0` because the zero is a DECISION — the number
+ * to change if the `actions` slot ever lands, at which point this whole VStack
+ * goes away.
  */
-export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps) {
-  const { colors, scheme } = useAppTheme();
+const CTA_SPACING = 0;
+
+/**
+ * iOS empty / error state — SwiftUI's own `ContentUnavailableView`, which is
+ * exactly this surface; the Android twin's header says why it is one shared
+ * component. Apple's typography, spacing, symbol weight and
+ * secondary colours, plus Dynamic Type, instead of the RN column of emoji +
+ * title + subtitle this used to hand-build with app type styles.
+ *
+ * THE CTA SITS BESIDE IT, NOT INSIDE IT. Real `ContentUnavailableView` takes an
+ * `actions` ViewBuilder; the @expo/ui 57.0.7 wrapper exposes only `title`,
+ * `systemImage` and `description` (checked in
+ * `build/swift-ui/ContentUnavailableView/index.d.ts`; nor does any example
+ * in the @expo/ui docs pass children). So the CTA is a sibling `Button` in the
+ * same `VStack` — still a real SwiftUI control, and visually where Apple puts it,
+ * just not slotted into the view. Tracked in docs/pending-upstream.md; when
+ * `actions` lands, move the button inside and drop the VStack.
+ *
+ * THE EMOJI IS GONE on iOS, and that is the deliberate cost: `systemImage` is
+ * typed `SFSymbol`, so 🗑️ / 🎉 / 🚫 cannot be shown. Each call site names the
+ * symbol that carries the same meaning. The one that looked like a real loss —
+ * an empty top showing the top's OWN emoji — is not: that emoji is already in
+ * the nav-bar title right above it ("🎮 Games"), so it was decoration there,
+ * not information. Android names a Material Symbol (`icon`) the same way.
+ */
+export function EmptyState({
+  systemImage,
+  title,
+  subtitle,
+  action,
+}: EmptyStateProps) {
+  const { colors } = useAppTheme();
 
   return (
     <View style={styles.centered}>
-      {/* The app-side `ThemedHost` this used to take is a `Host` with the
-          resolved scheme forwarded; a package component can ask for the scheme
-          itself. There is NO brand seed (the app rides the platform-default
-          palette); forwarding the scheme is what keeps the Compose embed's
-          appearance in step with the app's. */}
-      <Host
-        colorScheme={scheme}
-        style={styles.host}
-        matchContents={{ vertical: true }}
-      >
-        <Column
-          horizontalAlignment="center"
-          verticalArrangement={{ spacedBy: EMPTY_STATE_STEPS.gap }}
-          modifiers={[fillMaxWidth()]}
-        >
-          {icon ? (
-            <AppIcon
-              name={icon}
-              size={EMPTY_STATE_STEPS.iconSize}
-              tint={colors.onSurfaceMuted}
-              modifiers={[padding(0, 0, 0, EMPTY_STATE_STEPS.iconGap)]}
+      <Host matchContents={{ vertical: true }} style={styles.host}>
+        <VStack spacing={CTA_SPACING}>
+          <ContentUnavailableView
+            title={title}
+            systemImage={systemImage}
+            description={subtitle}
+          />
+          {action ? (
+            <Button
+              label={action.label}
+              onPress={action.onPress}
+              // The portfolio's own button, minus its Host — this CTA has to
+              // live in the VStack beside the view, and a Host cannot nest.
+              modifiers={actionButtonModifiersIos({
+                // Monochrome — see `actionButtonModifiersIos`, and
+                // `labelColor` for why a filled capsule has to be told what
+                // colour its own label is.
+                tintColor: colors.onSurface,
+                labelColor: colors.background,
+                variant: 'prominent',
+              })}
             />
           ) : null}
-          <Text
-            color={colors.onSurface}
-            style={{
-              typography: EMPTY_STATE_STEPS.title,
-              textAlign: 'center',
-            }}
-          >
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text
-              color={colors.onSurfaceMuted}
-              style={{
-                typography: EMPTY_STATE_STEPS.subtitle,
-                textAlign: 'center',
-              }}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-          {action ? (
-            // MONOCHROME, the same mapping the welcome CTA and the iOS twin
-            // carry: a filled button's colour is inherited (Material fills it
-            // with the accent because that is the default), so it takes the
-            // ink. Material inverts the label itself — `contentColor` is a
-            // real role on the container, no `labelColor` trap here.
-            <Button
-              onClick={action.onPress}
-              colors={{
-                containerColor: colors.onSurface,
-                contentColor: colors.background,
-              }}
-              modifiers={[padding(0, EMPTY_STATE_STEPS.ctaGap, 0, 0)]}
-            >
-              <Text>{action.label}</Text>
-            </Button>
-          ) : null}
-        </Column>
+        </VStack>
       </Host>
     </View>
   );
@@ -155,10 +158,12 @@ export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps) {
 
 const styles = StyleSheet.create({
   centered: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  // `ContentUnavailableView` centres itself in whatever width it gets, so the
+  // host takes the full one.
   host: { width: '100%' },
 });

@@ -1,11 +1,32 @@
+import { useCallback, useState } from 'react';
+
+import { useI18n } from '@/i18n';
+import { signInWithApple } from '@/services/firebase/appleAuth';
+
+import { useSnackbar } from '@/ui';
 export type UseAppleSignInReturn = {
   isSigningIn: boolean;
   signIn: () => Promise<void>;
 };
 
-// Non-iOS stub — the welcome screen only offers Apple sign-in on iOS, so this
-// never runs; it exists so the import resolves on every platform.
-export const useAppleSignIn = (): UseAppleSignInReturn => ({
-  isSigningIn: false,
-  signIn: async () => {},
-});
+export const useAppleSignIn = (): UseAppleSignInReturn => {
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const { t } = useI18n();
+  const { showSnackbar } = useSnackbar();
+
+  const signIn = useCallback(async () => {
+    setIsSigningIn(true);
+
+    try {
+      // Resolves null on user dismissal — no feedback needed for that.
+      // Navigation happens via the auth listener once Firebase confirms.
+      await signInWithApple();
+    } catch {
+      showSnackbar(t('snackbar.apple-sign-in-failed'));
+    } finally {
+      setIsSigningIn(false);
+    }
+  }, [showSnackbar, t]);
+
+  return { isSigningIn, signIn };
+};

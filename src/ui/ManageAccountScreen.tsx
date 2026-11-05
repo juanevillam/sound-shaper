@@ -1,44 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { Button, Form, Host, Section, Text } from '@expo/ui/swift-ui';
 import {
-  Box,
-  Column,
-  Host,
-  Icon,
-  ListItem,
-  RNHostView,
-  Row,
-  Text,
-} from '@expo/ui/jetpack-compose';
-import {
-  clickable,
-  clip,
-  fillMaxWidth,
-  padding,
-  size,
-  weight,
-} from '@expo/ui/jetpack-compose/modifiers';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  disabled as disabledModifier,
+  foregroundStyle,
+  scrollContentBackground,
+} from '@expo/ui/swift-ui/modifiers';
 
-import { iconSource } from './icons';
+import { FormDisclosureRowIos, FormValueRowIos } from './FormDisclosureRowIos';
 import { Screen } from './Screen';
-import {
-  UsernameDialog,
-  type SettingsUsernameEditor,
-} from './SettingsAccountSection';
-import {
-  GROUP_HEADERLESS_TOP_GAP,
-  GROUP_ROW_GAP,
-  GROUP_SIDE_PADDING,
-  groupHeaderProps,
-  groupRowColors,
-  groupRowShape,
-  VALUE_BONE_HEIGHT,
-  VALUE_BONE_WIDTH,
-} from './settingsGroup';
-import { SkeletonBone } from './SkeletonBone';
+import { type SettingsUsernameEditor } from './SettingsAccountSection';
+import { SheetFormMediaIos } from './SheetFormIos';
+import { TextEditRowIos } from './TextEditRowIos';
 
 /**
  * App-resolved colors the manage-account screen paints with.
@@ -175,327 +150,158 @@ export type ManageAccountScreenProps = {
 };
 
 /**
- * Account management, pushed from Settings: the read-only facts of the account
- * with the delete-account flow at the bottom. Exists partly to keep that
- * delete entry OFF the main settings surface — the platform idiom
- * (WhatsApp/Google) buries irreversible account actions one level deeper so
- * nobody gets CTA'd into them next to everyday rows like Log out.
+ * iOS counterpart of `ManageAccountScreen` — same prop API, rendered as a
+ * native inset-grouped `Form`, the same control the shared `SettingsScreen.ios`
+ * uses. That matters: the alternative is hand-rolling grouped rows out of RN
+ * views and a hardcoded corner radius, which is what one app had drifted into
+ * and it read as an imitation of the real thing.
  *
- * Configured by props, exactly like `SettingsScreen`. Before it was lifted
- * into the shared kit, each portfolio app had written its own — and they had
- * already drifted onto different layouts AND different delete flows.
+ * `danger.rowDescription` is the danger card's FOOTER on BOTH platforms now:
+ * here the `Section` footer under a bare red destructive row, and since
+ * ac55af5 (2026-09-04) Android draws the same shape — legend outside the
+ * pressable row, under a headerless card. The rows carry no icons on either
+ * platform — Settings rows either carry colored tile icons or none at all,
+ * and Android followed 2026-09-04.
+ *
+ * THE `Screen` TAKES NO COLOUR AND NO EDGES, and both halves of that are the
+ * corrections its twin already carried:
+ *
+ *  - NO `backgroundColor`. This screen presents as a form SHEET (and was a
+ *    pushed screen elsewhere in the portfolio), and in BOTH cases the
+ *    navigator has already painted the right surface (`contentStyle` — `colors.sheet` for a
+ *    sheet, `colors.background` for a push). Painting `background` here was
+ *    invisible in light, where the two are the same `#F2F2F7`, and in dark it
+ *    covered the sheet's `#1C1C1E` with `#000000` — so the account sheet read
+ *    BLACK beside Settings, its own twin, one gesture away in the same stack.
+ *    `SettingsScreen.ios` states the rule; `SheetScreenIos`
+ *    (`src/components/ui`) states it again for the app's own sheets.
+ *  - NO `edges`. The `Form` scrolls and insets itself natively; a `SafeAreaView`
+ *    around it only insets the box the Form is already insetting inside.
  */
 export const ManageAccountScreen = ({
-  colors,
   colorScheme,
+  colors,
+  hero,
   info,
   sections,
   danger,
   children,
-}: ManageAccountScreenProps) => {
-  const [usernameDialogVisible, setUsernameDialogVisible] = useState(false);
+}: ManageAccountScreenProps) => (
+  <Screen>
+    <Host style={styles.host} colorScheme={colorScheme}>
+      {/* No top `padding` on the Form — the rule `SettingsScreen.ios` records:
+          `padding` sits OUTSIDE a Form's background, so a top inset leaves a
+          strip of whatever is behind it above the grouped card. In a sheet that
+          strip reads as the flat sheet colour above the elevated one, and this
+          file carried a 16pt one. The Form's own section spacing is the air. */}
+      {/* NO Form-level `tint`. `SheetFormBodyIos` carries one because its
+          forms hold menu pickers, whose VALUE Apple tints itself; this one
+          holds none, so the tint reached nothing and only stood ready to
+          paint the next control added here. */}
+      <Form modifiers={[scrollContentBackground('hidden')]}>
+        {hero ? (
+          // The editor sheets' media slot — a transparent, separator-less row
+          // centring the control, so the photo stands free above the cards.
+          <Section>
+            <SheetFormMediaIos>{hero}</SheetFormMediaIos>
+          </Section>
+        ) : null}
+        {info ? (
+          /**
+           * ONLY THE VALUES WAIT. The labels — "Name", "Email" — are static
+           * strings, so they render on the first frame and the card is its
+           * settled height immediately; each unknown value stands the shared
+           * `SkeletonBone` in its slot (see `ValueSlot`). The caller still
+           * passes the settled row SET while loading, so the row COUNT is right
+           * too.
+           *
+           * What this replaced was rows appearing one at a time as each fact
+           * resolved: Member Since arriving late grew the card under the
+           * reader's finger, and Username stated "Not Set" before flipping to
+           * the real handle — a wrong answer rather than no answer yet.
+           */
+          <Section title={info.title}>
+            {info.rows.map(row =>
+              // An editable fact (Topper's Username) opens the shared native
+              // alert and takes the disclosure chevron that marks it tappable
+              // — the Name / Phone / Email rows in Apple's own Apple Account
+              // screen. Everything else is the SAME ROW without the chevron,
+              // which is the point of the two coming from one file: the label
+              // colour, the value's colour and its one-line truncation cannot
+              // drift between a fact and a destination sitting in one card.
+              row.editor ? (
+                <TextEditRowIos key={row.label} editor={row.editor}>
+                  <FormDisclosureRowIos
+                    label={row.label}
+                    value={row.value}
+                    loading={info.loading}
+                    colors={colors}
+                  />
+                </TextEditRowIos>
+              ) : (
+                <FormValueRowIos
+                  key={row.label}
+                  label={row.label}
+                  value={row.value}
+                  loading={info.loading}
+                  colors={colors}
+                />
+              ),
+            )}
+          </Section>
+        ) : null}
 
-  // At most one row is editable (the username), so the dialog binds to the
-  // first editor it finds rather than tracking which row was tapped.
-  const editor = info?.rows.find(row => row.editor)?.editor;
-
-  const rowColors = groupRowColors(colors);
-
-  // Ink, not the accent — a group header is a label. These were
-  // `colors.primary` for as long as this screen was frozen; the monochrome
-  // rule crossed to Android on 2026-08-29 and its first bucket is exactly a
-  // header tinted because the framework's own apps tint theirs. The full
-  // argument is on `sectionsTitle` in `SettingsScreen`, whose headers made
-  // the same move.
-  // The same padding for EVERY header, first included — SettingsScreen's own
-  // shape. The first header used to drop its top 16, which is what stood
-  // "Account Information" visibly higher than Settings' "General" one push
-  // away: the scroller's 16 plus the header's 16 is the shared 32.
-  const sectionHeader = (title: string) => (
-    <Text {...groupHeaderProps(colors.onSurfaceMuted)}>{title}</Text>
-  );
-
-  /**
-   * One grouped card of push rows — a destination section. A HEADERLESS
-   * card asks for the headerless top gap, exactly as the trailing sign-out
-   * card does on the Settings screen: without it the bare card lands hard
-   * against the group above and reads as more rows of it.
-   */
-  const navGroup = (rows: ManageAccountNavRow[], headerless = false) => (
-    <Column
-      modifiers={[
-        fillMaxWidth(),
-        padding(
-          GROUP_SIDE_PADDING,
-          headerless ? GROUP_HEADERLESS_TOP_GAP : 0,
-          GROUP_SIDE_PADDING,
-          0,
-        ),
-      ]}
-      verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-    >
-      {rows.map((row, index) => (
-        <ListItem
-          key={row.id}
-          colors={rowColors}
-          modifiers={[
-            fillMaxWidth(),
-            clip(groupRowShape(index, rows.length)),
-            clickable(row.onPress),
-          ]}
-        >
-          <ListItem.HeadlineContent>
-            <Text color={colors.onSurface}>{row.label}</Text>
-          </ListItem.HeadlineContent>
-          <ListItem.TrailingContent>
-            <Icon
-              source={iconSource('chevron')}
-              size={24}
-              tint={colors.onSurfaceMuted}
-            />
-          </ListItem.TrailingContent>
-        </ListItem>
-      ))}
-    </Column>
-  );
-
-  return (
-    <Screen backgroundColor={colors.background} edges={['left', 'right']}>
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-        {/* The SCROLLER IS SettingsScreen's, verbatim — an RN ScrollView over a
-            vertically-matched Host, with the same paddingVertical 16. It was
-            missing entirely: the Host stood unscrollable, the content taller
-            than the screen was simply clipped, and the Delete Account card
-            ended under the OS navigation bar with no way to bring it up. The
-            bottom 16 is also what stands the last card off the gesture strip,
-            exactly as Settings' Sign Out card is. */}
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <Host
-            matchContents={{ vertical: true }}
-            colorScheme={colorScheme}
-            style={styles.host}
+        {sections?.map((section, index) => (
+          <Section
+            key={section.title ?? `section-${index}`}
+            title={section.title}
           >
-            <Column
-              modifiers={[fillMaxWidth()]}
-              verticalArrangement={{ spacedBy: 8 }}
+            {section.rows.map(row => (
+              <Button key={row.id} onPress={row.onPress}>
+                <FormDisclosureRowIos label={row.label} colors={colors} />
+              </Button>
+            ))}
+          </Section>
+        ))}
+
+        {danger ? (
+          /**
+           * NO HEADER, A FOOTER — Apple's shape for a destructive group.
+           *
+           * The header was rendering the SAME WORDS as the only row beneath it
+           * ("Delete Account" over Delete Account), which is a category label
+           * naming a single item. iOS reserves the space under an irreversible
+           * row for what it will DO instead — Settings' own Erase All Content
+           * and Reset sections both read that way — so the description
+           * explains the row rather than repeating it. Android draws the same
+           * shape now (headerless card, legend outside the row), which is why
+           * the shared prop no longer carries a `title` at all.
+           */
+          <Section
+            footer={
+              danger.rowDescription ? (
+                <Text>{danger.rowDescription}</Text>
+              ) : undefined
+            }
+          >
+            <Button
+              role="destructive"
+              modifiers={danger.disabled ? [disabledModifier(true)] : []}
+              onPress={danger.onPress}
             >
-              {/* `info` / `danger` are optional on the shared type only so the
-                  iOS Account sheet can omit them in a session-less app. Every
-                  ANDROID caller passes both. */}
-              {info ? (
-                <>
-                  {sectionHeader(info.title)}
-                  <Column
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(GROUP_SIDE_PADDING, 0, GROUP_SIDE_PADDING, 0),
-                    ]}
-                    verticalArrangement={{ spacedBy: GROUP_ROW_GAP }}
-                  >
-                    {info.rows.map((row, index) => (
-                      <ListItem
-                        key={row.label}
-                        colors={rowColors}
-                        modifiers={[
-                          fillMaxWidth(),
-                          clip(groupRowShape(index, info.rows.length)),
-                          // The editable fact (the username) opens its dialog
-                          // from the row itself, the same tap the Settings
-                          // profile row used to carry.
-                          ...(row.editor
-                            ? [clickable(() => setUsernameDialogVisible(true))]
-                            : []),
-                        ]}
-                      >
-                        {/* The VALUE sits trailing on the SAME line — the iOS
-                          twin's `LabeledContent` shape (label left, fact
-                          right), taken here too so a fact is one row tall
-                          and the Delete Account card comes up without a
-                          scroll. Label and value share the HEADLINE slot as
-                          one Row, with the value taking `weight(1)`: that is
-                          what CONSTRAINS it, so a long value (the email)
-                          truncates with an ellipsis instead of winning the
-                          width fight — put in the trailing slot it measured
-                          at its full desired width and wrapped the LABEL
-                          onto two lines. The editable fact keeps the
-                          disclosure chevron in the trailing slot, the
-                          statement `FormDisclosureRowIos` makes; a plain
-                          fact stays chevron-free. */}
-                        <ListItem.HeadlineContent>
-                          <Row
-                            verticalAlignment="center"
-                            horizontalArrangement={{ spacedBy: 16 }}
-                            modifiers={[fillMaxWidth()]}
-                          >
-                            <Text color={colors.onSurface}>{row.label}</Text>
-                            {/* The chevron sits INSIDE this Row at spacedBy 0,
-                              not in the ListItem's trailing slot: the slot
-                              adds M3's 16dp on top of the 24-box glyph's own
-                              ~8dp left bearing, which put the chevron a
-                              visual ~23dp off the value where the iOS row's
-                              HStack spacing is 8. At 0 the glyph's bearing
-                              IS the gap — ~8dp, the iOS number. */}
-                            <Row
-                              verticalAlignment="center"
-                              modifiers={[weight(1)]}
-                            >
-                              {info.loading ? (
-                                /* ONLY THE VALUE WAITS — the iOS rule, drawn
-                                   with the same shared bone at the same
-                                   shared box (`VALUE_BONE_*`), bridged in
-                                   through this row's one allowed
-                                   `RNHostView`. The label is static and pins
-                                   the row's height; the spacer Box keeps the
-                                   bone trailing where the value will land.
-                                   The host's box is RESERVED by the sized
-                                   Box, never asked of the bone — the iOS
-                                   row's fix: a `matchContents` host in a
-                                   native row lays the row out once without
-                                   its size and again when it lands. */
-                                <>
-                                  <Box modifiers={[weight(1)]} />
-                                  <Box
-                                    modifiers={[
-                                      size(VALUE_BONE_WIDTH, VALUE_BONE_HEIGHT),
-                                    ]}
-                                  >
-                                    <RNHostView>
-                                      <SkeletonBone
-                                        width={VALUE_BONE_WIDTH}
-                                        height={VALUE_BONE_HEIGHT}
-                                      />
-                                    </RNHostView>
-                                  </Box>
-                                </>
-                              ) : (
-                                <Text
-                                  color={colors.onSurfaceMuted}
-                                  style={{ textAlign: 'end' }}
-                                  maxLines={1}
-                                  overflow="ellipsis"
-                                  modifiers={[weight(1)]}
-                                >
-                                  {row.value}
-                                </Text>
-                              )}
-                              {/* The chevron stays through the wait: the row
-                                  still goes somewhere. */}
-                              {row.editor ? (
-                                <Icon
-                                  source={iconSource('chevron')}
-                                  size={24}
-                                  tint={colors.onSurfaceMuted}
-                                />
-                              ) : null}
-                            </Row>
-                          </Row>
-                        </ListItem.HeadlineContent>
-                      </ListItem>
-                    ))}
-                  </Column>
-                </>
-              ) : null}
+              <Text modifiers={[foregroundStyle(colors.danger)]}>
+                {danger.rowLabel}
+              </Text>
+            </Button>
+          </Section>
+        ) : null}
+      </Form>
+    </Host>
 
-              {sections?.map((section, index) => (
-                <React.Fragment key={section.title ?? index}>
-                  {section.title ? sectionHeader(section.title) : null}
-                  {navGroup(section.rows, !section.title)}
-                </React.Fragment>
-              ))}
-
-              {/* NO HEADER, A FOOTER — Apple's shape for a destructive group,
-                  taken by Android too (Juan, 2026-09-04). The header was a
-                  category label saying the row's own words ("Delete Account"
-                  over Delete Account); the space under an irreversible row
-                  belongs to what it will DO. So the card is headerless like
-                  the Trophies card above — it asks for the same headerless
-                  top gap — and `rowDescription` renders OUTSIDE the pressable
-                  row, as the card's legend, exactly where the iOS `Section`
-                  footer puts it. */}
-              {danger ? (
-                <>
-                  <Column
-                    modifiers={[
-                      fillMaxWidth(),
-                      padding(
-                        GROUP_SIDE_PADDING,
-                        GROUP_HEADERLESS_TOP_GAP,
-                        GROUP_SIDE_PADDING,
-                        0,
-                      ),
-                    ]}
-                  >
-                    <ListItem
-                      colors={{ ...rowColors, contentColor: colors.danger }}
-                      modifiers={[
-                        fillMaxWidth(),
-                        clip(groupRowShape(0, 1)),
-                        ...(danger.disabled ? [] : [clickable(danger.onPress)]),
-                      ]}
-                    >
-                      {/* No leading glyph and no chevron — a destructive row is
-                        a bare red label on both platforms (Apple's own shape;
-                        Android followed 2026-09-04). */}
-                      <ListItem.HeadlineContent>
-                        <Text color={colors.danger}>{danger.rowLabel}</Text>
-                      </ListItem.HeadlineContent>
-                    </ListItem>
-                  </Column>
-                  {danger.rowDescription ? (
-                    /* The footer's ink lines up with the ROW'S OWN text (the
-                       card inset plus the ListItem's 16dp padding), which is
-                       iOS's rule for a section footer — it explains the row,
-                       so it stands under the row's words rather than under
-                       the card's edge. `bodySmall` — a LEGEND, a step below
-                       the rows it explains, the same drop the iOS footnote
-                       footer takes from its rows (`bodyMedium` rendered as
-                       one more label; Juan called it). The parent Column's
-                       spacedBy 8 is the card-to-footer gap. */
-                    <Text
-                      color={colors.onSurfaceMuted}
-                      style={{ typography: 'bodySmall' }}
-                      modifiers={[
-                        padding(
-                          GROUP_SIDE_PADDING + 16,
-                          0,
-                          GROUP_SIDE_PADDING + 16,
-                          0,
-                        ),
-                      ]}
-                    >
-                      {danger.rowDescription}
-                    </Text>
-                  ) : null}
-                </>
-              ) : null}
-            </Column>
-          </Host>
-        </ScrollView>
-      </SafeAreaView>
-
-      {/* Own Host — a dialog mounted inside the rows' Host corrupts their
-          clip shapes on unmount (the same rule SettingsScreen documents). */}
-      {usernameDialogVisible && editor ? (
-        <Host matchContents colorScheme={colorScheme}>
-          <UsernameDialog
-            editor={editor}
-            colors={colors}
-            onDismiss={() => setUsernameDialogVisible(false)}
-          />
-        </Host>
-      ) : null}
-
-      {children}
-    </Screen>
-  );
-};
+    {children}
+  </Screen>
+);
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  // The 0 here plus the first header's own 16 is `SCREEN_CONTENT_TOP` — the
-  // pushed sheet-family's shared top. Change one and the family drifts. (The
-  // scroller supplied 16 while the family top was 32; the header's own
-  // padding is mid-list rhythm too, so the halving all came off here.)
-  scroll: { paddingTop: 0, paddingBottom: 16 },
-  host: { width: '100%' },
+  host: { flex: 1 },
 });

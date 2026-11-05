@@ -1,8 +1,13 @@
-# react-native-audio-api — music-grade Preserve Pitch, an Android stream that can carry it, and a now-playing artwork that can be CLEARED
+# react-native-audio-api — music-grade Preserve Pitch, speed changes that don't drop audio, and a now-playing artwork that can be CLEARED
 
-Three changes, two unrelated subjects. The first two are halves of one feature
-(Preserve Pitch on music) and are described together below; the third is a
-plain defect in the now-playing surface and has its own section at the end.
+Three changes. The first two are both about the time-stretcher (its sound, and
+how it is switched); the third is a plain defect in the now-playing surface and
+has its own section at the end.
+
+> **iOS ONLY since 2026-11-04.** Sound Shaper has no Android build any more, so
+> the overlay's two Android files (`AudioPlayer.cpp`'s stream mode and
+> `PlaybackNotification.kt`) were deleted. Their write-ups below are kept as
+> the record of why they existed; nothing here compiles for Android.
 
 Replaces the library's `WsolaTimeStretcher` implementation (the path behind
 `preservesPitch` at any rate ≠ 1×) with a phase-vocoder backend —
@@ -80,14 +85,6 @@ Juan confirmed by ear on the A54 the same day.
 
 ## What changed
 
-- `android/src/main/cpp/audioapi/android/core/AudioPlayer.cpp` — the output
-  stream is opened `SharingMode::Shared` + `PerformanceMode::None`, and
-  `setFramesPerDataCallback(RENDER_QUANTUM_SIZE)` is dropped (128 does not
-  divide the hardware burst, so callbacks never aligned with it; `onAudioReady()`
-  already loops in `RENDER_QUANTUM_SIZE` chunks with a `std::min` clamp, so any
-  `numFrames` is safe). **No `setBufferSizeInFrames()` call** — Oboe already
-  defaults the buffer to the full capacity on this path, so an explicit one
-  measured as a no-op and would only be a number that looks meaningful.
 - `common/cpp/audioapi/dsp/WsolaTimeStretcher.h` — same API, pimpl over the
   vendored stretcher. Latency constants updated (60/60 ms: the default preset's
   120 ms analysis block, half on each side).
@@ -97,6 +94,28 @@ Juan confirmed by ear on the A54 the same day.
   `drainOutput()` call.
 - `common/cpp/audioapi/dsp/signalsmith/**` — vendored MIT headers, licenses
   alongside.
+- `common/cpp/audioapi/core/sources/AudioFileSourceNode.cpp` — speed and
+  Preserve Pitch changes no longer drop audio (2026-11-04, below).
+
+## Speed and pitch changes that don't eat words (2026-11-04)
+
+Juan heard a skip and a short gap whenever Playback Speed or Preserve Pitch
+changed — "se come palabras". Upstream switches FILL MODE on every such change
+(Passthrough at 1×, Resample with pitch off, Wsola with pitch on at rate ≠ 1×),
+and every switch into or out of `Wsola` drains or resets the stretcher, which
+holds ~120 ms of audio (60 ms in, 60 ms out). That 120 ms is what went missing.
+
+The overlay keeps the stretcher running once it is in use:
+
+- `handlePitchPreservationModeChanged()` is empty — no drain, no reset.
+- `chooseFillMode` sends pitch-off playback through `Wsola` too (transposing by
+  the rate, so it still sounds like varispeed) instead of `Resample`.
+- Once a source is in `Wsola` it stays there, even back at 1× with pitch on.
+
+The cost: pitch-off playback is the vocoder transposing rather than the clean
+resampler, and a source that has ever left 1× keeps the ~120 ms stretcher
+latency until it is reloaded. Auto DJ nudges the rate to 1.0001 so it is always
+on the stretcher and never switches mid-set (`AudioEngine.tsx`).
 
 ## The third change: a now-playing artwork nothing could clear
 
@@ -146,13 +165,7 @@ appear not to work.
   new helper. An `_artworkGeneration` counter stamps each load; the completion
   block drops itself when the session has moved past it, and `hide` and every
   clear move the counter on.
-- `android/src/main/java/com/swmansion/audioapi/system/notification/PlaybackNotification.kt`
-  — the same, in Kotlin, lifted out of `updateInternal` into an `updateArtwork`
-  of its own: an empty uri nulls the `artwork` field and calls
-  `setLargeIcon(null as Bitmap?)`, and an `artworkGeneration` counter guards the
-  `runOnUiQueueThread` block.
-
-Two smaller things came with the Android half, both of which iOS already had:
+  Two smaller things came with the Android half, both of which iOS already had:
 
 - **An unchanged cover is no longer re-fetched.** Upstream interrupted the
   thread and started a fresh network read on EVERY publish, and a player
@@ -187,7 +200,7 @@ is the race: the settled session names the sound the app is actually playing.
 
 ### Who asks for it
 
-`apps/sound-shaper/src/components/player/NowPlayingBridge.tsx` publishes
+`src/components/player/NowPlayingBridge.tsx` publishes
 `artwork: ''` for a sound with no `artUrl`, where it used to omit the key. What
 the emptied slot falls back to is each platform's own art-less placeholder —
 which is what Music and Podcasts show, and what this app already showed for a
@@ -196,17 +209,16 @@ sound that never had a cover, so both cover-less cases now agree.
 ## Verifying after a version bump
 
 `scripts/apply-patches.mjs` fails the install when the installed version is no
-longer the one in `patch.json`. For the two `PlaybackNotification` files, check
+longer the one in `patch.json`. For `PlaybackNotification.mm`, check
 whether upstream has given `artwork` a removal of its own (a nullable metadata
 setter, an explicit `clearArtwork`, or a merge that honours an absent key) and
 whether the load has grown a cancellation or a session token — if BOTH are
-there, delete those two files from the overlay; if only one is,
+there, delete that file from the overlay; if only one is,
 `NowPlayingBridge.tsx` still needs the other, so rebase the half that is still
 missing. Nothing else in either file is ours, so a rebase is a re-apply of the
-blocks marked `PATCH:`. For `AudioPlayer.cpp`, re-check whether upstream
-still opens the stream `LowLatency` — if it has switched to a playback-shaped
-stream, or exposed the performance mode as an option, **delete that file from the
-overlay** rather than rebasing it. For the stretcher: diff the new version's
+blocks marked `PATCH:`. For `AudioFileSourceNode.cpp`, re-apply the three
+changes above to the new upstream file, or delete it from the overlay if
+upstream has stopped draining the stretcher on a mode switch. For the stretcher: diff the new version's
 `WsolaTimeStretcher.{h,cpp}` against 0.13.2's (if upstream's stretcher grew a
 music-grade path, retire this patch — that is the preferred outcome), re-check
 the call sites listed above for API drift, then update `patch.json`. The

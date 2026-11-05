@@ -1,124 +1,44 @@
-import React, { useCallback } from 'react';
+import React from 'react';
+
+import { ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
 
 import {
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text as RNText,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import { Column, Host, Row, Spacer, Text } from '@expo/ui/jetpack-compose';
+  HStack,
+  Host,
+  Image,
+  Link,
+  Spacer,
+  Text,
+  VStack,
+  type ImageProps,
+} from '@expo/ui/swift-ui';
 import {
-  fillMaxWidth,
-  weight,
-  width,
-} from '@expo/ui/jetpack-compose/modifiers';
+  font,
+  foregroundStyle,
+  frame,
+  multilineTextAlignment,
+} from '@expo/ui/swift-ui/modifiers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedEntrance } from './AnimatedEntrance';
-import { AppIcon } from './AppIcon';
+import { AppleSignInButton } from './AppleSignInButton';
+import { authButtonPoleKey } from './AuthButtonIos';
 import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
 import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { type IconName } from './icons';
-import { LegalFooter, type WelcomeLegal } from './LegalFooter';
+import { type WelcomeLegal } from './LegalFooter';
+import { LegalFooter } from './LegalFooter';
 import { Screen } from './Screen';
-import { TextLink } from './TextLink';
 import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 
-const LOGO_SIZE = 96;
-/** Glyph box for the brand mark inside the hero tile — sized so the mark reads
- *  like the app icon (mirrors its foreground proportions). */
-const LOGO_GLYPH_SIZE = 90;
 /**
- * Tile-to-title spacing. This was `spacing.lg`, which was a default rather than
- * a decision, and it rendered a 27.38dp ink gap under a 96dp tile — measured on
- * a Galaxy A54. Apple's own welcome template (the Passwords first-run screen,
- * band-scanned for the iOS variant's docblock) leaves 40.3pt under an 82pt
- * icon, a ratio of 0.49; the same ratio on a 96dp tile asks for about 47.
- *
- * `spacing.xxl` lands 43.4dp of ink — between Apple's absolute number and its
- * proportional one, and ON Material's 8dp grid rather than off it. The point is
- * not to match iOS: a hero mark needs room to read as a hero on either
- * platform, and 16 was simply not giving it any.
- *
- * NOTE this is spacing, not the rendered gap — a text view carries ascent
- * padding beyond its glyphs, measured at 11.4dp for `displaySmall` here. Same
- * caveat as the iOS variant's `LOGO_TITLE_GAP`; re-measure rather than
- * re-derive if the type scale moves.
+ * The two sign-in buttons, each drawn to its brand's own spec. `apple` exists
+ * only in the iOS variant — the Android screen has no Apple sign-in and draws
+ * nothing for it, so don't pass it there.
  */
-const LOGO_TITLE_GAP = spacing.xxl;
-/**
- * The hero title's weight. M3 ships the display styles at Regular (400), which
- * is Material's default voice for body-of-the-scale type — but this is a hero,
- * and Material 3 Expressive added the `*Emphasized` styles for exactly that
- * moment: the same size and tracking at a heavier weight. `@expo/ui` 57 does
- * not expose the emphasized tokens (`TypographyStyle` is the 15 baseline
- * names), so the recipe is spelled out — `TextStyle` documents that "other
- * properties in this style object will override specific values from the
- * typography", which is what makes this `displaySmallEmphasized` rather than a
- * font size picked by hand.
- *
- * NOT a port of iOS's `largeTitle` + bold. That screen reads heavier for its
- * own reason and this one lands on Material's own answer to the same problem.
- */
-const TITLE_WEIGHT = '700';
-/**
- * The author credit's type and the air around it. RN rather than Compose — see
- * `TextLink` for why the Material `TextButton` was dropped and what it cost.
- *
- * The metrics ARE Material's `bodyMedium` (14sp on a 20sp line), restated here
- * because an RN `Text` cannot read the M3 type scale; they must move together
- * with the Compose `bodyMedium` the feature subtitles use, or the two stop
- * matching.
- *
- * THE GAPS ARE THE NOMINAL SPACING, NOT A RENDER BACK-SOLVED FROM THE OLD ONE,
- * and that distinction is the whole bug this replaced. When the credit came out
- * of the `Host` these were solved to reproduce the rhythm the screen had — but
- * that rhythm was inflated by the `TextButton`'s `ButtonDefaults.MinHeight`,
- * which centred one 20sp line inside a 36dp box, and the button was the thing
- * being deleted. Preserving it preserved the artifact: measured on a Galaxy
- * A54, the credit sat 28.09dp under the title and the feature list 63.29dp
- * under the credit, against the 31.0pt the iOS twin renders in the same place.
- * Juan spotted both by eye against his iPhone before any of it was measured.
- *
- * So they are tokens again — `xs` above, because the byline belongs to the
- * title, and `xl` below, Material's own step between content groups. Matching
- * iOS exactly is neither possible nor wanted: the ladders differ, and Android's
- * `displaySmall` carries more descent than a `largeTitle`.
- *
- * WHEN A BOX IS REMOVED, RESTORE THE INTENT — do not preserve what the box was
- * doing.
- */
-/**
- * The feature row's leading glyph and the air before its text.
- *
- * COMPARE RENDERED INK, NOT NOMINAL BOXES — that mistake is what made the first
- * two attempts at this too small. Material Symbols carry padding inside their
- * viewBox and SF Symbols barely do, so a 28dp Material box draws only 21.33dp
- * of ink while a 30pt SF Symbol draws close to its nominal size. Matching the
- * numbers, or even matching the glyph-to-title RATIO, still leaves Android
- * visibly smaller, which is what Juan kept seeing.
- *
- * Measured ink on a Galaxy A54: 24 -> 17.78, 28 -> 21.33, 32 -> 24.53,
- * 36 -> 27.38. 36 is the one that puts real ink in the range an SF Symbol at
- * iOS's 30pt occupies.
- *
- * 24 was Material's LIST-item icon, and this is not a list — it is an
- * onboarding summary where the glyph carries a whole feature rather than
- * labelling a row.
- */
-const FEATURE_ICON_SIZE = 36;
-const FEATURE_ICON_GAP = 12;
-const CREDIT_FONT_SIZE = 14;
-const CREDIT_LINE_HEIGHT = 20;
-const CREDIT_TOP_GAP = spacing.xs;
-const CREDIT_BOTTOM_GAP = spacing.xl;
-const HERO_ENTRY_DURATION = duration.slow;
-const FOOTER_ENTRY_DELAY = 120;
+export type AuthActionProvider = 'google' | 'apple';
 
 export type WelcomeFeatureItem = {
   /** The Material Symbol the Android row leads with. */
@@ -128,13 +48,6 @@ export type WelcomeFeatureItem = {
   title: string;
   subtitle: string;
 };
-
-/**
- * The two sign-in buttons, each drawn to its brand's own spec. `apple` exists
- * only in the iOS variant — the Android screen has no Apple sign-in and draws
- * nothing for it, so don't pass it there.
- */
-export type AuthActionProvider = 'google' | 'apple';
 
 export type AuthAction = {
   provider: AuthActionProvider;
@@ -167,21 +80,78 @@ export type WelcomeScreenProps = {
   logo: (opts: { size: number; color?: string }) => React.ReactNode;
 };
 
+/**
+ * Layout constants, MEASURED off Apple's own welcome template — the Passwords
+ * app's first-run screen, which carries exactly this content (app icon, title,
+ * three icon+title+subtitle rows, one pinned CTA). Captured on iPhone 17 /
+ * iOS 26.5 at 3x and band-scanned; see `docs/dev-workflow.md` for the method.
+ * Don't round these back to the 4pt grid — 38 and 19 are Apple's, not ours.
+ *
+ *   content inset       38.0pt (the CTA's own margins measure 38.0 too)
+ *   app icon            82 x 82pt, centred
+ *   icon → title        40.3pt   title → first row   31.0pt
+ *   row → row           19.0pt   title → subtitle     9.7pt
+ *   icon column         text starts 48.6pt in from the content edge
+ *   CTA                 50.3pt tall, 38.3pt above the screen's bottom edge
+ *
+ * Two deliberate divergences. Apple centres nothing but the icon, and we keep
+ * an author credit line under the title that their template has no equivalent
+ * for. And the CTA is 44pt, not Apple's 50.3: this stack can also hold the
+ * Google and Apple sign-in buttons, whose contents are pinned by brand specs,
+ * and the family standardises on that constrained button — see
+ * `layout.authButtonHeight`.
+ */
+const CONTENT_INSET = 38;
+const LOGO_SIZE = 82;
+/** Glyph box for the brand mark inside the hero tile — sized so the mark reads
+ *  like the app icon (mirrors its foreground proportions: 0.9375 of the tile). */
+const LOGO_GLYPH_SIZE = 77;
+/* The next three are SPACING values, not the rendered gaps above: a text view
+ * carries ascent/descent padding beyond its glyphs, so each is the target gap
+ * minus that overhead, back-solved from a render (40.3 needed 32, 31.0 needed
+ * 20). Re-measure rather than re-derive if the type scale ever moves. */
+const LOGO_TITLE_GAP = 32;
+const TITLE_FEATURES_GAP = 20;
+/* Left at Apple's number because it already lands: with three-line rows our
+ * row-start pitch measures 79.3/79.7pt against Apple's 79.0/80.6. */
+const FEATURE_ROW_GAP = 19;
+const FEATURE_TEXT_GAP = 2;
+const FEATURE_ICON_SIZE = 30;
+const FEATURE_ICON_SLOT = 40;
+/** Icon slot + this gap = the 48.6pt Apple leaves before a row's text column. */
+const FEATURE_ICON_GAP = 9;
+/** Apple's CTA sits 38.3pt off the bottom edge; the home indicator owns 34 of
+ *  it, so the screen adds the remainder. */
+const CTA_BOTTOM_GAP = 4;
+/** Breathing room above the pinned CTA block. Invisible while the hero fits
+ *  (the flex-grown scroll area simply gives the height back), and load-bearing
+ *  once it doesn't: it keeps the last feature row from running into the button
+ *  when the content scrolls — at a large Dynamic Type size, in a wordier
+ *  locale, or on a shorter device. */
+const FOOTER_TOP_GAP = spacing.lg;
+const HERO_ENTRY_DURATION = duration.slow;
+const FOOTER_ENTRY_DELAY = 120;
+// SwiftUI `.infinity` stand-in — `frame` only takes numbers, so an
+// over-large max width lets the CTA label stretch to the button's edges.
+const FILL_WIDTH = 10_000;
+
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   actions: { gap: spacing.sm },
   logoSlot: { marginBottom: LOGO_TITLE_GAP, alignSelf: 'center' },
-  credit: {
-    fontSize: CREDIT_FONT_SIZE,
-    lineHeight: CREDIT_LINE_HEIGHT,
-    marginTop: CREDIT_TOP_GAP,
-    marginBottom: CREDIT_BOTTOM_GAP,
-  },
-  scroll: { flexGrow: 1, justifyContent: 'space-between' },
+  scroll: { flexGrow: 1 },
 });
 
 const anyLoading = (actions: readonly AuthAction[]) =>
   actions.some(action => action.isLoading);
 
+/**
+ * iOS counterpart of `WelcomeScreen` — same prop API as the Android (Jetpack
+ * Compose) variant, laid out as Apple's standard onboarding/welcome template:
+ * centered logo and large bold title up top, leading-aligned feature rows with
+ * tinted SF Symbol icons, and the Apple and Google sign-in buttons pinned to
+ * the bottom.
+ */
 export const WelcomeScreen = ({
   appName,
   features,
@@ -198,117 +168,141 @@ export const WelcomeScreen = ({
   const deviceScheme = useColorScheme();
   const scheme = (colorScheme ?? deviceScheme) === 'dark' ? 'dark' : 'light';
 
-  const openCredit = useCallback(() => {
-    Linking.openURL(authorUrl(appName));
-  }, [appName]);
-
   const someLoading = anyLoading(authActions);
+  const hasApple = authActions.some(action => action.provider === 'apple');
 
   return (
     <Screen backgroundColor={colors?.background}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          {
-            paddingTop: top + spacing.xxxl,
-            paddingBottom: bottom + spacing.lg,
-            paddingLeft: left + spacing.xl,
-            paddingRight: right + spacing.xl,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <AnimatedEntrance
-          duration={HERO_ENTRY_DURATION}
-          isVisible={isSplashHidden}
+      {/* The CTA block is a SIBLING of the scroll view, not its last child —
+          Apple pins it with `.safeAreaInset(edge: .bottom)`, which @expo/ui 57
+          does not expose. Keeping it outside is the honest equivalent: the
+          button never scrolls out of reach on a small screen or at a large
+          Dynamic Type size, which is exactly what the inset guarantees. */}
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingTop: top + spacing.xxxl,
+              paddingBottom: spacing.xl,
+              paddingLeft: left + CONTENT_INSET,
+              paddingRight: right + CONTENT_INSET,
+            },
+          ]}
         >
-          {/* Brand mark on its tile — the app's vector glyph via `logo`. */}
-          <View style={styles.logoSlot}>
-            <BrandTile
-              size={LOGO_SIZE}
-              glyphSize={LOGO_GLYPH_SIZE}
-              scheme={scheme}
-              logo={logo}
-            />
-          </View>
-          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
-            <Column modifiers={[fillMaxWidth()]}>
-              <Text
-                color={colors?.onSurface}
-                style={{ typography: 'displaySmall', fontWeight: TITLE_WEIGHT }}
+          <AnimatedEntrance
+            duration={HERO_ENTRY_DURATION}
+            isVisible={isSplashHidden}
+          >
+            {/* Brand mark on a themed tile — the app's vector glyph via
+              `logo`. */}
+            <View style={styles.logoSlot}>
+              <BrandTile
+                size={LOGO_SIZE}
+                glyphSize={LOGO_GLYPH_SIZE}
+                scheme={scheme}
+                logo={logo}
+              />
+            </View>
+            <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
+              {/* Leading, not centred: Apple centres the app icon and then runs
+                the title, the rows and the CTA off one shared left edge. The
+                `frame` is what makes `alignment` mean anything — a VStack
+                sizes to its content, so without it the column would hug its
+                widest line and sit centred in the Host. */}
+              <VStack
+                alignment="leading"
+                spacing={spacing.xs}
+                modifiers={[frame({ maxWidth: FILL_WIDTH })]}
               >
-                {appName}
-              </Text>
-            </Column>
-          </Host>
-
-          {/* Only the name is the link. It is RN rather than a Material
-              `TextButton`, which departs from native-primitive-first and is
-              argued — with the measurements that forced it — in `TextLink`.
-              Living outside the `Host` is what it costs: the hero is two Hosts
-              now, with this one line of prose between them. iOS keeps a native
-              SwiftUI `Link` and needs none of this. */}
-          <RNText style={[styles.credit, { color: colors?.onSurfaceMuted }]}>
-            {`${AUTHOR_CREDIT_PREFIX} `}
-            <TextLink
-              label={AUTHOR_NAME}
-              color={colors?.primary}
-              onPress={openCredit}
-            />
-          </RNText>
-
-          <Host matchContents={{ vertical: true }} colorScheme={colorScheme}>
-            <Column modifiers={[fillMaxWidth()]}>
-              {/* Plain rows instead of ListItem (its leading slot floats on
-                  two-line items). Top alignment lines the 24dp icon up with
-                  the title's 24sp line box, the Material multi-line idiom. */}
-              <Column
-                modifiers={[fillMaxWidth()]}
-                verticalArrangement={{ spacedBy: spacing.lg }}
-              >
-                {features.map(feature => (
-                  <Row
-                    key={feature.title}
-                    verticalAlignment="top"
-                    modifiers={[fillMaxWidth()]}
+                <Text
+                  modifiers={[
+                    font({ textStyle: 'largeTitle', weight: 'bold' }),
+                    multilineTextAlignment('leading'),
+                    ...(colors?.onSurface
+                      ? [foregroundStyle(colors.onSurface)]
+                      : []),
+                  ]}
+                >
+                  {appName}
+                </Text>
+                {/* Only the name is the link — a native SwiftUI `Link`, so it
+                  gets the system's link affordances (tint, press feedback,
+                  long-press preview/share menu) for free. */}
+                <HStack spacing={spacing.xs}>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'subheadline' }),
+                      ...(colors?.onSurfaceMuted
+                        ? [foregroundStyle(colors.onSurfaceMuted)]
+                        : []),
+                    ]}
                   >
-                    {/* The glyph is TOP-aligned with the title's line box and
-                       then nudged, because the title's ink sits low in that
-                       box (ascent gap). The nudge is a function of the icon's
-                       size — a taller box already reaches further down — so
-                       it went to 0 when the glyph grew to 36. Measured on a
-                       Galaxy A54: icon centre 320.7 against the title ink's
-                       318.9, where 2dp of padding put it at 321.8. */}
-                    <AppIcon
-                      name={feature.icon}
-                      size={FEATURE_ICON_SIZE}
-                      tint={colors?.primary}
-                    />
-                    <Spacer modifiers={[width(FEATURE_ICON_GAP)]} />
-                    <Column modifiers={[weight(1)]}>
-                      <Text
-                        color={colors?.onSurface}
-                        style={{
-                          typography: 'titleMedium',
-                        }}
-                      >
-                        {feature.title}
-                      </Text>
-                      <Text
-                        color={colors?.onSurfaceMuted}
-                        style={{
-                          typography: 'bodyMedium',
-                        }}
-                      >
-                        {feature.subtitle}
-                      </Text>
-                    </Column>
-                  </Row>
-                ))}
-              </Column>
-            </Column>
-          </Host>
-        </AnimatedEntrance>
+                    {AUTHOR_CREDIT_PREFIX}
+                  </Text>
+                  <Link destination={authorUrl(appName)}>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'subheadline' }),
+                        ...(colors?.primary
+                          ? [foregroundStyle(colors.primary)]
+                          : []),
+                      ]}
+                    >
+                      {AUTHOR_NAME}
+                    </Text>
+                  </Link>
+                </HStack>
+
+                <Spacer minLength={TITLE_FEATURES_GAP} />
+
+                <VStack alignment="leading" spacing={FEATURE_ROW_GAP}>
+                  {features.map((feature, index) => (
+                    <HStack
+                      key={`${feature.title}-${index}`}
+                      alignment="top"
+                      spacing={FEATURE_ICON_GAP}
+                    >
+                      <Image
+                        systemName={
+                          feature.systemImage as NonNullable<
+                            ImageProps['systemName']
+                          >
+                        }
+                        size={FEATURE_ICON_SIZE}
+                        color={colors?.primary}
+                        modifiers={[frame({ width: FEATURE_ICON_SLOT })]}
+                      />
+                      <VStack alignment="leading" spacing={FEATURE_TEXT_GAP}>
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'headline' }),
+                            ...(colors?.onSurface
+                              ? [foregroundStyle(colors.onSurface)]
+                              : []),
+                          ]}
+                        >
+                          {feature.title}
+                        </Text>
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'subheadline' }),
+                            ...(colors?.onSurfaceMuted
+                              ? [foregroundStyle(colors.onSurfaceMuted)]
+                              : []),
+                          ]}
+                        >
+                          {feature.subtitle}
+                        </Text>
+                      </VStack>
+                      <Spacer />
+                    </HStack>
+                  ))}
+                </VStack>
+              </VStack>
+            </Host>
+          </AnimatedEntrance>
+        </ScrollView>
 
         <AnimatedEntrance
           delay={FOOTER_ENTRY_DELAY}
@@ -316,36 +310,61 @@ export const WelcomeScreen = ({
           duration={duration.slow}
           isVisible={isSplashHidden}
         >
-          <View style={styles.actions}>
-            {authActions.map(action => {
-              const label =
-                action.isLoading && action.loadingLabel
-                  ? action.loadingLabel
-                  : action.label;
-              const isDisabled = someLoading && !action.isLoading;
+          <View
+            style={{
+              paddingTop: FOOTER_TOP_GAP,
+              paddingLeft: left + CONTENT_INSET,
+              paddingRight: right + CONTENT_INSET,
+              paddingBottom: bottom + CTA_BOTTOM_GAP,
+            }}
+          >
+            <View style={styles.actions}>
+              {authActions.map(action => {
+                const label =
+                  action.isLoading && action.loadingLabel
+                    ? action.loadingLabel
+                    : action.label;
+                const isDisabled = someLoading && !action.isLoading;
 
-              // Google's branding rules pin this button's colors, logo, and
-              // type — it brings its own Host with spec colors instead of the
-              // seeded palette.
-              if (action.provider === 'google') {
-                return (
-                  <GoogleSignInButton
-                    key={action.label}
-                    label={label}
-                    scheme={colorScheme}
-                    disabled={isDisabled || Boolean(action.isLoading)}
-                    onPress={action.onPress}
-                  />
-                );
-              }
+                // Google's branding rules pin this button's colors, logo, and
+                // type, so it renders RN-side with spec colors instead of the
+                // system tint. BESIDE APPLE'S the two share one pole and one
+                // mold — see `AuthButtonIos` (Juan, 2026-10-16: the pair read
+                // as two products).
+                if (action.provider === 'google') {
+                  return (
+                    <GoogleSignInButton
+                      key={action.label}
+                      label={label}
+                      scheme={scheme}
+                      variant={hasApple ? authButtonPoleKey(scheme) : undefined}
+                      disabled={isDisabled || Boolean(action.isLoading)}
+                      onPress={action.onPress}
+                    />
+                  );
+                }
 
-              // No Apple sign-in on Android: the screen draws nothing else.
-              return null;
-            })}
+                // Drawn from the same mold as Google's — see
+                // `AppleSignInButton` and `AuthButtonIos`.
+                if (action.provider === 'apple') {
+                  return (
+                    <AppleSignInButton
+                      key={action.label}
+                      label={label}
+                      scheme={scheme}
+                      disabled={isDisabled || Boolean(action.isLoading)}
+                      onPress={action.onPress}
+                    />
+                  );
+                }
+
+                return null;
+              })}
+            </View>
+            {legal ? <LegalFooter legal={legal} colors={colors} /> : null}
           </View>
-          {legal ? <LegalFooter legal={legal} colors={colors} /> : null}
         </AnimatedEntrance>
-      </ScrollView>
+      </View>
     </Screen>
   );
 };

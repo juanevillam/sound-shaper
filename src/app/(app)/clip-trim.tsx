@@ -1,14 +1,95 @@
-import { iosOnlyRoute } from '@/components/util/iosOnlyRoute';
+import { View } from 'react-native';
 
-// ANDROID DOES NOT NAVIGATE HERE ANY MORE — the clip editor is a Compose
-// SHEET (`ClipTrimSheet`, stacked over the Clips sheet that mounts it), not a
-// pushed screen: a full route replaced the whole player mid-flow, which broke the sheet-over-player
-// rhythm every other clip surface keeps (Juan, 2026-09-08). It lived as a
-// pushed full-screen dialog for exactly one day; the iOS presentation is the
-// `.ios.tsx` twin. This stub only guards the external deep link, exactly as
-// `iosOnlyRoute` does for the other sheet routes.
-function ClipTrimRouteStub() {
-  return null;
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+
+import { ClipTrimEditor } from '@/components/player/ClipTrimEditor';
+import { useClipTrimScreen } from '@/components/player/useClipTrimScreen';
+import { SheetScreen } from '@/components/ui/SheetScreenIos';
+import { useAppTheme } from '@/core';
+import { useI18n } from '@/i18n';
+import { HeaderGlyphButtonIos, HeaderGlyphGroupIos } from '@/ui';
+
+// The Voice Memos-style clip editor, pushed as its own full-height sheet over
+// the Clips list (the trophies-over-account stacking). It OWNS the committed
+// selection; the editor draws and edits it. Entry mirrors what in-player
+// framing did: pause (a trim surface opens quiet — Photos, Voice Memos),
+// default the selection around the playhead. Everything but this bar is the
+// shared `useClipTrimScreen` + `ClipTrimEditor`; on Android `ClipTrimSheet`
+// wraps the same pair in a Compose sheet with a `SheetBar`.
+export default function ClipTrimScreen() {
+  const { t } = useI18n();
+  const { colors } = useAppTheme();
+  // The route door: search params in, router.back out — the Android sheet
+  // passes the same two as props (see `useClipTrimScreen`).
+  const params = useLocalSearchParams<{
+    clipId?: string;
+    startMs?: string;
+    endMs?: string;
+  }>();
+  const editing =
+    typeof params.clipId === 'string' && params.clipId.length > 0
+      ? {
+          clipId: params.clipId,
+          endMs: Number(params.endMs),
+          startMs: Number(params.startMs),
+        }
+      : null;
+  const { current, editingClipId, onSave, range, saving, setRange } =
+    useClipTrimScreen({ editing, onDone: () => router.back() });
+
+  if (!current) return <View style={{ backgroundColor: colors.sheet }} />;
+
+  return (
+    // `SheetScreen` for the toast — the save/failure snackbars must draw over
+    // this native presentation, not behind it.
+    <SheetScreen>
+      {/* ✕ | title | [shape ✓] — the trailing slot is ONE merged pill
+          (HeaderGlyphGroupIos, home's own arrangement; Calendar carries
+          three glyphs the same way). Shape moved up here from a content
+          pill: the bar is where a sheet's primary actions live, and the
+          content column below reads as two calm groups instead of five
+          objects (Juan, 2026-08-26). The commit is a plain checkmark glyph
+          here — the group's language — disabled while the save runs. */}
+      <Stack.Screen
+        options={{
+          title: t(editingClipId ? 'player.clips.edit' : 'player.clips.new'),
+          headerLeft: () => (
+            <HeaderGlyphButtonIos
+              systemName="xmark"
+              label={t('common.cancel')}
+              onPress={() => router.back()}
+            />
+          ),
+          headerRight: () => (
+            <HeaderGlyphGroupIos
+              glyphs={[
+                {
+                  systemName: 'slider.horizontal.3',
+                  label: t('player.shape.title'),
+                  onPress: () => router.push('/shaper'),
+                },
+                {
+                  systemName: 'checkmark',
+                  label: t('player.clips.saveClip'),
+                  onPress: onSave,
+                  // The save's spinner takes the ✓'s own slot, as on every
+                  // editor sheet (`SheetCommitGlyphIos`).
+                  busy: saving,
+                  // The commit ✓ is tinted exactly as `SheetCommitGlyphIos`
+                  // tints it on every editor sheet — the accent that says
+                  // "this one acts" (Juan, 2026-08-26: same ✓, same blue,
+                  // whichever capsule it stands in).
+                  tint: colors.primary,
+                },
+              ]}
+            />
+          ),
+        }}
+      />
+      <ClipTrimEditor
+        range={range}
+        onRangeChange={(startS, endS) => setRange({ startS, endS })}
+      />
+    </SheetScreen>
+  );
 }
-
-export default iosOnlyRoute(ClipTrimRouteStub);

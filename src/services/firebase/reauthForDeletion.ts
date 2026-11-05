@@ -1,38 +1,80 @@
-import { GoogleAuthProvider, getAuth } from '@react-native-firebase/auth';
+import {
+  AppleAuthProvider,
+  GoogleAuthProvider,
+  getAuth,
+} from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 
 export type DeletionReauth = {
   /**
    * Fresh Apple authorizationCode when the reauth ran through Sign in with
-   * Apple (iOS twin) — consumed by the token revocation. Always null on
-   * Android, where Google is the only provider.
+   * Apple — consumed by the token revocation. Null after a Google reauth.
    */
   appleAuthorizationCode: string | null;
 };
 
 /**
- * Re-authenticate the CURRENT provider before account deletion. It runs before
- * the irreversible sweep: Firebase's recent-login window is ~5 minutes, so the
- * final auth delete would otherwise fail with `auth/requires-recent-login`
- * AFTER the data was already gone. Throws when the person dismisses the sheet —
- * the deletion aborts with everything intact.
+ * It branches on the USER'S OWN sign-in
+ * provider, not on which providers the welcome screen currently offers. An
+ * account that signed in with Apple must be re-authenticated with Apple, even
+ * on a build that stopped offering it: a Google credential
+ * cannot reauthenticate an Apple-linked user, and the failure would land AFTER
+ * the sweep, leaving them data-swept and undeletable. Topper hit exactly that.
  *
- * Android build: Google is the only sign-in provider. The iOS twin
- * (`reauthForDeletion.ios.ts`) branches per provider and adds Apple.
+ * The Apple branch also captures the fresh authorizationCode the token
+ * revocation needs (App Store 5.1.1(v)).
  */
 export const reauthenticateForDeletion = async (): Promise<DeletionReauth> => {
   const user = getAuth().currentUser;
 
   if (!user) throw new Error('reauth-without-user');
 
-  const response = await GoogleSignin.signIn();
-
-  if (response.type !== 'success' || !response.data.idToken)
-    throw new Error('reauth-cancelled');
-
-  await user.reauthenticateWithCredential(
-    GoogleAuthProvider.credential(response.data.idToken),
+  const isApple = user.providerData.some(
+    provider => provider.providerId === 'apple.com',
   );
 
-  return { appleAuthorizationCode: null };
+  if (!isApple) {
+    const response = await GoogleSignin.signIn();
+
+    if (response.type !== 'success' || !response.data.idToken)
+      throw new Error('reauth-cancelled');
+
+    await user.reauthenticateWithCredential(
+      GoogleAuthProvider.credential(response.data.idToken),
+    );
+
+    return { appleAuthorizationCode: null };
+  }
+
+  // Same nonce round-trip as signInWithApple. No scopes: a reauth needs no
+  // name or email, so the consent sheet stays minimal.
+  const rawNonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    rawNonce,
+  );
+
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [],
+      nonce: hashedNonce,
+    });
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED')
+      throw new Error('reauth-cancelled');
+    throw error;
+  }
+
+  if (!credential.identityToken)
+    throw new Error('Apple reauth returned no identityToken');
+
+  await user.reauthenticateWithCredential(
+    AppleAuthProvider.credential(credential.identityToken, rawNonce),
+  );
+
+  return { appleAuthorizationCode: credential.authorizationCode ?? null };
 };

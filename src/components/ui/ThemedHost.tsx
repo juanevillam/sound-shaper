@@ -1,11 +1,8 @@
-import { Host, type HostProps } from '@expo/ui/jetpack-compose';
-
-import { useAppTheme } from '@/core';
-
-// Every Compose embed point goes through here so the whole native side follows
-// the app's resolved light/dark scheme. There is NO brand seed: the app rides
-// the platform-default palette (wallpaper-derived Material You on Android).
-export function ThemedHost(props: HostProps) {
-  const { scheme } = useAppTheme();
-  return <Host colorScheme={scheme} {...props} />;
-}
+// iOS counterpart of `ThemedHost`. The themed SwiftUI embed point lives in
+// `src/ui` (`SwiftUIHost`); re-exported under this name so cross-platform call
+// sites import `ThemedHost` and get the right native layer per platform.
+//
+// SwiftUI has no palette extraction (`getMaterialColors` is Android-only — calling it on iOS
+// is what crashed the first launch), so the iOS theme resolves to core's
+// Apple system colors and only `colorScheme` crosses over.
+export { SwiftUIHost as ThemedHost } from '@/ui';
