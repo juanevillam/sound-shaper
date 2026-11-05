@@ -13,7 +13,7 @@ import { ANALYSIS_SAMPLE_RATE, analyzeSamples, type SongMap } from './analysis';
 // ---------------------------------------------------------------------------
 
 /** Bumps with `SongMap.version` or the analysis recipe. */
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 
 const memory = new Map<string, Promise<SongMap | null>>();
 
@@ -43,6 +43,29 @@ export function clearSongMaps(): Promise<void> {
   );
 }
 
+/**
+ * A versioned cache has to DELETE what it superseded, not only refuse to read
+ * it — once per session, off the first read, the way `waveform.ts` does.
+ */
+let pruned = false;
+function pruneOnce(): void {
+  if (pruned) return;
+  pruned = true;
+  FileSystem.readDirectoryAsync(cacheDir())
+    .then(names =>
+      Promise.all(
+        names
+          .filter(name => !name.startsWith(`${CACHE_VERSION}-`))
+          .map(name =>
+            FileSystem.deleteAsync(`${cacheDir()}${name}`, {
+              idempotent: true,
+            }),
+          ),
+      ),
+    )
+    .catch(() => {});
+}
+
 export function forgetSongMap(soundId: string): void {
   memory.delete(soundId);
   FileSystem.deleteAsync(mapPath(soundId), { idempotent: true }).catch(
@@ -57,6 +80,7 @@ async function compute(
   await FileSystem.makeDirectoryAsync(cacheDir(), {
     intermediates: true,
   }).catch(() => {});
+  pruneOnce();
 
   const path = mapPath(soundId);
   const cached = await readCached(path);
@@ -80,7 +104,13 @@ async function readCached(path: string): Promise<SongMap | null> {
     const parsed = JSON.parse(
       await FileSystem.readAsStringAsync(path),
     ) as SongMap;
-    if (parsed.version === 1 && Array.isArray(parsed.bars)) return parsed;
+    if (
+      parsed.version === 2 &&
+      Array.isArray(parsed.bars) &&
+      Array.isArray(parsed.bass) &&
+      Array.isArray(parsed.bright)
+    )
+      return parsed;
   } catch {
     // A file that does not parse is a miss, never a verdict.
   }

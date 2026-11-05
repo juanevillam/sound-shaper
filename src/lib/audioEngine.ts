@@ -42,7 +42,7 @@ export {
 // shaper settings (which live in the shaper store) to them live.
 //
 //   mediaSource → trim → band₀ … bandₙ → wall₀ wall₁ wall₂ → wallTrim
-//     → echo (convolver) → echoTrim → destination
+//     → echo (convolver) → echoTrim → fade → destination
 //
 // Band gains are in dB (Web Audio biquad `gain` is dB for peaking/shelf). The
 // trim is a linear gain converted from dB, and it is DERIVED, never chosen —
@@ -148,6 +148,8 @@ type Graph = {
   /** Null while Echo is off — a convolver exists only while it is wired. */
   echo: ConvolverNode | null;
   echoTrim: GainNode;
+  /** Unity, except while a load fades in — see `fadeInNextLoad`. */
+  fade: GainNode;
   /**
    * The level the convolver is WIRED FOR — connected and holding that level's
    * impulse when not 'off', absent from the chain when 'off'. See `applyEcho`.
@@ -162,6 +164,14 @@ let graph: Graph | null = null;
 /** Guards the deferred convolver rewire — see `applyEcho`. */
 let echoRewireTimer: ReturnType<typeof setTimeout> | null = null;
 let echoGeneration = 0;
+
+/** How long the NEXT graph fades in over — see `fadeInNextLoad`. */
+let pendingFadeS = 0;
+
+/** The output level, linear — unity except under Auto DJ (`setLevelDb`). */
+let outputLevel = 1;
+/** Context time a load's fade-in lands, so a level change waits for it. */
+let fadeUntil = 0;
 
 // The last-applied settings, so a freshly-built graph (new sound) inherits the
 // current shaping instead of resetting to flat.
@@ -458,7 +468,19 @@ export const audioEngine = {
     } else {
       wallTrim.connect(echoTrim);
     }
-    echoTrim.connect(ctx.destination);
+    // The last node: unity, or a short fade-in when Auto DJ asked for one.
+    const fade = ctx.createGain();
+    echoTrim.connect(fade);
+    fade.connect(ctx.destination);
+    if (pendingFadeS > 0) {
+      const now = ctx.currentTime;
+      fade.gain.setValueAtTime(0, now);
+      fade.gain.linearRampToValueAtTime(outputLevel, now + pendingFadeS);
+      fadeUntil = now + pendingFadeS;
+      pendingFadeS = 0;
+    } else {
+      fade.gain.setValueAtTime(outputLevel, ctx.currentTime);
+    }
 
     graph = {
       mediaSource,
@@ -468,6 +490,7 @@ export const audioEngine = {
       wallTrim,
       echo,
       echoTrim,
+      fade,
       // Seeded from the live setting, so a graph rebuilt mid-session (a new
       // sound) keeps the echo the person already chose.
       echoLevel: settings.echo,
@@ -492,6 +515,7 @@ export const audioEngine = {
       graph.wallTrim.disconnect();
       graph.echo?.disconnect();
       graph.echoTrim.disconnect();
+      graph.fade.disconnect();
     } catch {
       // The old media source rides a disposed <Audio>; ignore if already gone.
     }
@@ -528,6 +552,44 @@ export const audioEngine = {
   setEcho(level: EffectLevel): void {
     settings.echo = level;
     pushSettings(false);
+  },
+
+  /**
+   * AUTO DJ'S SOFT LANDING: the next sound to load comes in over `seconds`
+   * rather than at full level on its first sample, so a cut lands as a
+   * mix-in instead of a jolt. One-shot — the load after it is unaffected.
+   */
+  fadeInNextLoad(seconds: number): void {
+    pendingFadeS = Math.max(0, seconds);
+  },
+
+  /**
+   * AUTO DJ'S LEVELLER: the whole output set to `db` (never above 0 — it
+   * only ever takes level away, so it can never clip), sliding there over
+   * `seconds`. Rides the last node, after every trim. Survives a graph
+   * rebuild, so a cut lands at the level the set is at. 0 dB off Auto DJ.
+   */
+  /** The level `setLevelDb` last asked for, linear. */
+  levelLinear(): number {
+    return outputLevel;
+  },
+
+  setLevelDb(db: number, seconds: number): void {
+    outputLevel = dbToLinear(Math.min(0, db));
+    if (!graph || !context) return;
+    const gain = graph.fade.gain;
+    const now = context.currentTime;
+    // A load still fading in keeps its ramp; the new level follows it.
+    if (now < fadeUntil) {
+      gain.linearRampToValueAtTime(
+        outputLevel,
+        fadeUntil + Math.max(0.01, seconds),
+      );
+      return;
+    }
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(outputLevel, now + Math.max(0.01, seconds));
   },
 
   // --- Transport (delegates to the streaming <Audio> handle) ---------------

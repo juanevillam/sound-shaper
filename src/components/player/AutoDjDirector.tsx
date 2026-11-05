@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 
+import { audioEngine } from '@/lib/audioEngine';
 import { type SongMap } from '@/lib/autoDj/analysis';
+import { djLevelDb } from '@/lib/autoDj/loudness';
 import {
   AUTO_DJ_STYLES,
   nextMoveIndex,
@@ -10,13 +12,18 @@ import {
   type DjMove,
 } from '@/lib/autoDj/plan';
 import {
-  chooseNext,
+  firstPeakBar,
   joinSegment,
+  planOrder,
   planSegment,
+  transitionFx,
+  type Part,
   type PoolSound,
   type Segment,
+  type TransitionFx,
 } from '@/lib/autoDj/set';
 import { getSongMap } from '@/lib/autoDj/songMap';
+import { djFx } from '@/lib/djFx';
 import { type Sound } from '@/services/firebase/sounds';
 import { useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
@@ -27,15 +34,26 @@ import { useSoundsStore } from '@/store/sounds';
 // AUTO DJ — the hand on the controls and on the decks. Headless, mounted beside
 // <AudioEngine> so it runs whether or not the player or the Shape sheet is open.
 //
-// WHAT IT RUNS is a SET (`lib/autoDj/set.ts`): stretches of the library's
-// sounds, cut together on downbeats. Switched on, it
+// WHAT IT RUNS is a SET (`lib/autoDj/set.ts`): the best parts of the
+// library's sounds, cut together on downbeats. Switched on, it
 //   1. reads every sound in the library, the playing one first (`getSongMap`,
 //      cached after the first time), publishing how far it has got;
-//   2. JOINS the sound that is playing, from the playhead to the end of a
-//      phrase, and picks the segment after it the moment there is a pool;
-//   3. plays each segment's moves against the transport, and at the segment's
+//   2. JOINS the sound that is playing, from the playhead through its next
+//      peak, so the music never stops while the rest is read;
+//   3. once EVERY sound is read, PLANS THE RUN — the whole order through the
+//      library, shaped like a night (`planOrder`) — and from then on takes
+//      each next sound from that plan, the last one played out to its end;
+//   4. plays each segment's moves against the transport, and at the segment's
 //      end CUES the next one — the next sound loaded and started on its own
-//      bar line (`cueSound`).
+//      bar line (`cueSound`), with the DJ's own sounds between the two
+//      (`transitionFx`, `djFx`): a riser into the cut, a hit on it.
+//
+// A SONG CAN BE VISITED MORE THAN ONCE. A new record often comes in on its
+// OPENING and leaves before its chorus; the set then plays something else and
+// COMES BACK for the rest of it later (Juan, 2026-11-04: "las primeras partes,
+// después el coro de esa misma canción o de otra, y después vuelve a las
+// últimas partes de la canción anterior"). Songs left with a peak still ahead
+// wait in `returns` until the set picks them up again.
 //
 // A SOUND IT DID NOT CUE IS JOINED, NOT FOUGHT. Picking a sound by hand, the
 // transport's next / previous, a clip, the sound running out — any load the
@@ -77,7 +95,20 @@ function applyMove(move: Partial<DjMove>): void {
   if (move.keepPitch !== undefined && move.keepPitch !== player.keepPitch) {
     player.setKeepPitch(move.keepPitch);
   }
+  // ONE LEVEL FOR THE WHOLE SET: whatever the move did to the loudness, the
+  // leveller takes back — gradually, so it never reads as a jump.
+  const now = useShaperStore.getState();
+  audioEngine.setLevelDb(
+    djLevelDb({ gains: now.gains, nextRoom: now.nextRoom, echo: now.echo }),
+    levelRampS,
+  );
+  levelRampS = LEVEL_RAMP_S;
 }
+
+/** How long the leveller slides over: slow on the way in, then per move. */
+const LEVEL_RAMP_S = 0.35;
+const LEVEL_ENTER_S = 1.5;
+let levelRampS = LEVEL_ENTER_S;
 
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31);
 
@@ -125,6 +156,14 @@ export function AutoDjDirector() {
     let landed = false;
     /** The segment the set cuts to next. */
     let upNext: Segment | null = null;
+    /** The run through the library, planned once it is all read. */
+    let order: string[] = [];
+    /** Songs left with a peak still ahead: where, and how many cuts ago. */
+    const returns = new Map<string, { bar: number; at: number }>();
+    let cuts = 0;
+    /** The glue chosen for the cut into `upNext`, and whether it rose yet. */
+    let fx: TransitionFx | null = null;
+    let rose = false;
     /** A cue in flight: the segment whose sound is loading. */
     let cued: Segment | null = null;
     let next = 0;
@@ -160,22 +199,115 @@ export function AutoDjDirector() {
       lastPosition = position;
     };
 
+    const allRead = () =>
+      library().every(s => maps.has(s.id) || failed.has(s.id));
+
+    /** Plan the run from `fromId`: what has not played yet, else everything. */
+    const planRun = (fromId: string | null) => {
+      const all = pool();
+      const fresh = all.filter(p => !played.has(p.soundId));
+      if (fresh.filter(p => p.soundId !== fromId).length === 0) played.clear();
+      const base = fresh.filter(p => p.soundId !== fromId).length ? fresh : all;
+      order = planOrder(base, fromId, setTempo, random);
+    };
+
+    const barOf = (seg: Segment): number => {
+      const map = maps.get(seg.soundId);
+      if (!map) return 2;
+      return map.bpm > 0 ? map.beatS * 4 : map.blockS;
+    };
+
+    const setUpNext = (seg: Segment | null) => {
+      upNext = seg;
+      rose = false;
+      fx =
+        seg && segment
+          ? transitionFx(segment, seg, random, barOf(segment))
+          : null;
+    };
+
     const chooseUpNext = () => {
       if (!segment || upNext || cued) return;
-      const candidate = chooseNext(
-        pool(),
-        played,
-        segment.soundId,
-        setTempo,
-        random,
-      );
-      if (!candidate) return;
-      upNext = planSegment({
-        next: candidate,
-        style: nextStyle(),
-        seed: Math.floor(random() * 2 ** 31),
-        setTempo,
-      });
+      const all = pool();
+      if (all.length < 2) return;
+      const plan = (
+        nextId: string | undefined,
+        part: Part,
+        fromBar = 0,
+        finale = false,
+      ) => {
+        const nextSound = all.find(p => p.soundId === nextId);
+        if (!nextSound || !segment) return;
+        setUpNext(
+          planSegment({
+            next: nextSound,
+            style: nextStyle(),
+            seed: Math.floor(random() * 2 ** 31),
+            setTempo,
+            after: segment.endsOn,
+            part,
+            fromBar,
+            finale,
+          }),
+        );
+      };
+
+      // THE SAME SONG, AHEAD: an opening left on its build now and then
+      // jumps straight to that song's best chorus instead of another's.
+      if (
+        segment.part === 'opening' &&
+        segment.endsOn === 'build' &&
+        segment.resumeBar !== undefined &&
+        random() < 0.2
+      ) {
+        plan(segment.soundId, 'later', segment.resumeBar);
+        return;
+      }
+
+      if (allRead()) {
+        // Drop what left the library or played since the plan was made.
+        order = order.filter(
+          id => id !== segment?.soundId && maps.has(id) && !played.has(id),
+        );
+        // A RETURN: a song the set left a couple of cuts ago, picked up
+        // where it stopped — always, once no new song is left.
+        const waiting = [...returns.entries()].filter(
+          ([id, r]) =>
+            id !== segment?.soundId && maps.has(id) && cuts - r.at >= 2,
+        );
+        if (waiting.length && (!order.length || random() < 0.35)) {
+          const [id, r] = waiting.sort((x, y) => x[1].at - y[1].at)[0];
+          returns.delete(id);
+          const last = !order.length && returns.size === 0;
+          plan(id, 'later', r.bar, last);
+          return;
+        }
+        if (!order.length) planRun(segment.soundId);
+        const nextId = order.shift();
+        const map = nextId ? maps.get(nextId) : undefined;
+        // A NEW SONG: in on its opening a third of the time, when it has
+        // one worth playing; otherwise on its best part.
+        const opening = !!map && firstPeakBar(map) >= 16 && random() < 0.35;
+        plan(
+          nextId,
+          opening ? 'opening' : 'peak',
+          0,
+          !order.length && returns.size === 0,
+        );
+        return;
+      } else {
+        // Still reading: the best of what is read, without a plan to keep.
+        const fresh = all.filter(
+          p => p.soundId !== segment?.soundId && !played.has(p.soundId),
+        );
+        const nextId = planOrder(
+          fresh.length ? fresh : all,
+          segment.soundId,
+          setTempo,
+          random,
+        )[0];
+        plan(nextId, 'peak');
+      }
     };
 
     const begin = (seg: Segment, position: number) => {
@@ -217,8 +349,25 @@ export function AutoDjDirector() {
         return;
       }
       clearTimers();
+      // The song being left waits for the set to come back for its later
+      // parts — always after an opening, now and then after a peak.
+      const leaving = segment;
+      if (
+        leaving?.resumeBar !== undefined &&
+        (leaving.part === 'opening' || random() < 0.4)
+      ) {
+        returns.set(leaving.soundId, { bar: leaving.resumeBar, at: cuts });
+        if (returns.size > 3) returns.delete(returns.keys().next().value!);
+      }
+      returns.delete(target.soundId);
+      cuts += 1;
       cued = target;
       segment = null;
+      // The hit lands on the cut and the next sound eases in under it.
+      const { rate } = usePlayerStore.getState();
+      if (fx?.on) djFx.play(fx.on, CUE_LEAD_S / rate);
+      audioEngine.fadeInNextLoad(fx?.fadeInS ?? 0.03);
+      fx = null;
       // The incoming state goes on as the cut is made, so the next sound
       // starts already shaped — including Echo, whose rewire the load hides.
       applyMove(stateAt(target.mix, target.startS));
@@ -243,7 +392,13 @@ export function AutoDjDirector() {
           else failed.add(todo.id);
           publishProgress();
           if (!segment && !cued) join();
-          else chooseUpNext();
+          else if (allRead() && !order.length) {
+            // The whole library is read: plan the run, and re-pick what
+            // comes next from it unless the cut is already on its way.
+            planRun(segment?.soundId ?? null);
+            if (!cued) setUpNext(null);
+            chooseUpNext();
+          } else chooseUpNext();
         }
       } finally {
         pumping = false;
@@ -263,6 +418,8 @@ export function AutoDjDirector() {
       const jumped =
         position < lastPosition - 0.05 || position - lastPosition > JUMP_S;
       if (jumped) {
+        djFx.stopAll();
+        rose = false;
         foldTo(position);
       }
       lastPosition = position;
@@ -274,6 +431,15 @@ export function AutoDjDirector() {
       }
 
       const { rate } = usePlayerStore.getState();
+      // THE RISE INTO THE CUT, started so it ends exactly on it.
+      if (upNext && fx?.before && fx.beforeS && !rose) {
+        const toCut = (segment.endS - position) / rate;
+        const lengthS = Math.round((fx.beforeS / rate) * 20) / 20;
+        if (toCut <= lengthS + 0.2 && toCut > 0.05) {
+          rose = true;
+          djFx.play(fx.before, toCut, lengthS);
+        }
+      }
       const { moves } = segment.mix;
       while (next < moves.length) {
         const move = moves[next];
@@ -305,10 +471,13 @@ export function AutoDjDirector() {
           chooseUpNext();
           return;
         }
-        // A load the set did not ask for: join it once it is playing.
+        // A load the set did not ask for: join it once it is playing, and
+        // plan the rest of the run from there.
         cued = null;
         segment = null;
-        upNext = null;
+        setUpNext(null);
+        djFx.stopAll();
+        order = [];
         if (state.current) {
           if (maps.has(state.current.id)) {
             // Join on the next tick, once the new stream reports.
@@ -327,6 +496,8 @@ export function AutoDjDirector() {
       // A pause stops the clock; whatever was on a timer would land late.
       if (!state.playing && previous.playing) {
         clearTimers();
+        djFx.stopAll();
+        rose = false;
         if (segment) next = nextMoveIndex(segment.mix, state.position);
       }
     });
@@ -338,6 +509,10 @@ export function AutoDjDirector() {
     return () => {
       cancelled = true;
       clearTimers();
+      djFx.stopAll();
+      // Back to the person's own level, as gently as the set came in.
+      audioEngine.setLevelDb(0, LEVEL_ENTER_S);
+      levelRampS = LEVEL_ENTER_S;
       unsubscribe();
       dj.setProgress(0, 0);
     };

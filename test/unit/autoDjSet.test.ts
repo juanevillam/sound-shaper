@@ -1,46 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
-import { type SongMap } from '../../src/lib/autoDj/analysis';
-import { rng, stateAt } from '../../src/lib/autoDj/plan';
+import { songOf } from './autoDjSong';
+import { AUTO_DJ_STYLES, rng, stateAt } from '../../src/lib/autoDj/plan';
 import {
-  chooseNext,
-  chooseWindow,
+  firstPeakBar,
   joinSegment,
   matchRate,
+  planOrder,
   planSegment,
   tempoDistance,
+  transitionFx,
   type PoolSound,
+  type Segment,
 } from '../../src/lib/autoDj/set';
-
-const song = (bpm: number, firstBarS = 0.2): SongMap => {
-  const bars = [
-    ...Array(8).fill(0.3),
-    ...Array(16).fill(0.9),
-    ...Array(8).fill(0.35),
-    ...Array(16).fill(1),
-    ...Array(8).fill(0.6),
-  ];
-  const beatS = bpm > 0 ? 60 / bpm : 0;
-  const blockS = bpm > 0 ? beatS * 4 : 2;
-  return {
-    version: 1,
-    durationS: firstBarS + bars.length * blockS + 1,
-    bpm,
-    beatS,
-    firstBarS,
-    confidence: bpm > 0 ? 0.8 : 0,
-    bars,
-    blockS,
-  };
-};
+import { EQ_MAX_DB, EQ_MIN_DB } from '../../src/lib/shapeDsp';
 
 const pool: PoolSound[] = [
-  { soundId: 'a', map: song(128) },
-  { soundId: 'b', map: song(126) },
-  { soundId: 'c', map: song(89) },
-  { soundId: 'd', map: song(140) },
-  { soundId: 'e', map: song(0) },
+  { soundId: 'a', map: songOf(128) },
+  { soundId: 'b', map: songOf(126) },
+  { soundId: 'c', map: songOf(89) },
+  { soundId: 'd', map: songOf(140) },
+  { soundId: 'e', map: songOf(0) },
 ];
+
+const song = pool[0].map;
+const BAR = song.beatS * 4;
+const bar = (s: number) => (s - song.firstBarS) / BAR;
+
+const segments = (
+  opts: Partial<Parameters<typeof planSegment>[0]> = {},
+): Segment[] =>
+  Array.from({ length: 60 }, (_, i) =>
+    planSegment({
+      next: pool[0],
+      style: AUTO_DJ_STYLES[i % 3],
+      seed: i + 1,
+      setTempo: 128,
+      ...opts,
+    }),
+  );
 
 describe('tempo', () => {
   it('counts half and double time as the same tempo', () => {
@@ -53,98 +51,153 @@ describe('tempo', () => {
     const close = matchRate(128, 124, 'club');
     expect(close.matched).toBe(true);
     expect(close.rate).toBe(1.05);
-    // 89 folds to 178 or 89: 128 is too far from either for a club set.
     expect(matchRate(128, 89, 'club')).toEqual({ rate: 1, matched: false });
     expect(matchRate(0, 120, 'slowed')).toEqual({ rate: 0.85, matched: false });
   });
 });
 
-describe('chooseNext', () => {
-  it('never repeats a sound until every one has played', () => {
-    const random = rng(3);
-    const played = new Set<string>(['a']);
-    let current = 'a';
-    for (let i = 0; i < pool.length - 1; i += 1) {
-      const next = chooseNext(pool, played, current, 128, random);
-      expect(next).not.toBeNull();
-      expect(played.has(next!.soundId)).toBe(false);
-      played.add(next!.soundId);
-      current = next!.soundId;
-    }
-    expect(played.size).toBe(pool.length);
-    expect(chooseNext(pool, played, current, 128, random)).not.toBeNull();
+describe('planOrder', () => {
+  it('plans every other sound exactly once', () => {
+    const order = planOrder(pool, 'a', 128, rng(3));
+    expect([...order].sort()).toEqual(['b', 'c', 'd', 'e']);
+  });
+
+  it('is a different run for a different seed', () => {
+    const runs = new Set(
+      Array.from({ length: 12 }, (_, i) =>
+        planOrder(pool, 'a', 128, rng(i + 1)).join(),
+      ),
+    );
+    expect(runs.size).toBeGreaterThan(1);
   });
 });
 
-describe('segments', () => {
-  it('cut on bar lines, inside the sound', () => {
-    for (let seed = 1; seed <= 40; seed += 1) {
-      for (const p of pool) {
-        const seg = planSegment({
-          next: p,
-          style: 'club',
-          seed,
-          setTempo: 128,
-        });
-        const barS = p.map.bpm > 0 ? p.map.beatS * 4 : p.map.blockS;
-        const bars = (t: number) => (t - p.map.firstBarS) / barS;
-        const at = bars(seg.startS);
-        expect(Math.abs(at - Math.round(at))).toBeLessThan(1e-6);
-        expect(seg.endS).toBeGreaterThan(seg.startS + 8 * barS - 1e-6);
-        expect(seg.endS).toBeLessThanOrEqual(p.map.durationS);
-        expect(seg.mix.moves[0].atS).toBe(seg.startS);
-        for (const move of seg.mix.moves) {
-          expect(move.atS).toBeGreaterThanOrEqual(seg.startS);
-          expect(move.atS).toBeLessThan(seg.endS);
+describe('planSegment', () => {
+  it('cues the good part, never the first bar of the song', () => {
+    for (const seg of segments()) {
+      expect(bar(seg.startS)).toBeGreaterThan(0.5);
+      // On a drop, a phrase into one, or the build before one.
+      expect([24, 32, 40, 56, 64, 72]).toContain(Math.round(bar(seg.startS)));
+    }
+  });
+
+  it('cues the bigger drop more often than the first', () => {
+    const late = segments().filter(s => bar(s.startS) >= 56).length;
+    expect(late).toBeGreaterThan(30);
+  });
+
+  it('leaves where the song lets go, never inside a drop', () => {
+    for (const seg of segments()) {
+      // End of a drop, a phrase into the part after, or the song's end.
+      expect([48, 56, 80, 88]).toContain(Math.round(bar(seg.endS)));
+      expect(seg.endsOn).toBe(
+        [48, 80].includes(Math.round(bar(seg.endS))) ? 'peak' : 'fall',
+      );
+    }
+  });
+
+  it('comes in on the drop more often after a peak than after a fall', () => {
+    const drops = (after: 'peak' | 'fall' | 'build') =>
+      segments({ after }).filter(s => s.entry === 'drop').length;
+    expect(drops('peak')).toBeGreaterThan(drops('fall'));
+    expect(drops('build')).toBeGreaterThan(drops('peak'));
+  });
+
+  it('opens the wall on the drop when walking in over the build', () => {
+    let seen = 0;
+    for (const seg of segments()) {
+      if (seg.entry !== 'walk-in') continue;
+      seen += 1;
+      const dropS = seg.startS + 8 * BAR;
+      expect(stateAt(seg.mix, seg.startS).nextRoom).not.toBe('off');
+      expect(stateAt(seg.mix, dropS - 0.01).nextRoom).not.toBe('off');
+      expect(stateAt(seg.mix, dropS).nextRoom).toBe('off');
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
+  it('closes the filter through a build it plays', () => {
+    for (const seg of segments()) {
+      for (const drop of [32, 64]) {
+        const dropS = song.firstBarS + drop * BAR;
+        if (dropS <= seg.startS + BAR || dropS >= seg.endS - 4 * BAR) continue;
+        const going = stateAt(seg.mix, dropS - 0.01);
+        expect(going.gains[4]).toBeLessThan(going.gains[0] - 6);
+        const open = stateAt(seg.mix, dropS);
+        expect(open.gains[4]).toBeGreaterThan(going.gains[4]);
+      }
+    }
+  });
+
+  it('plays the controls, more than a move a phrase', () => {
+    const segs = segments();
+    const perPhrase =
+      segs.reduce(
+        (n, s) => n + s.mix.moves.length / ((s.endS - s.startS) / (8 * BAR)),
+        0,
+      ) / segs.length;
+    expect(perPhrase).toBeGreaterThan(1);
+  });
+
+  it('only asks for values the controls can show', () => {
+    for (const seg of [
+      ...segments(),
+      ...segments({ after: 'fall' }),
+      ...segments({ part: 'opening' }),
+    ]) {
+      expect(seg.mix.moves[0].atS).toBe(seg.startS);
+      for (const move of seg.mix.moves) {
+        expect(move.atS).toBeGreaterThanOrEqual(seg.startS);
+        expect(move.atS).toBeLessThan(seg.endS);
+        for (const g of move.gains ?? []) {
+          expect(Number.isInteger(g)).toBe(true);
+          expect(g).toBeGreaterThanOrEqual(EQ_MIN_DB);
+          expect(g).toBeLessThanOrEqual(EQ_MAX_DB);
+        }
+        if (move.rate !== undefined) {
+          expect(move.rate).toBeGreaterThanOrEqual(0.75);
+          expect(move.rate).toBeLessThanOrEqual(1.25);
         }
       }
     }
   });
 
-  it('take the window on a drop most of the time', () => {
-    const random = rng(11);
-    const entries = Array.from(
-      { length: 50 },
-      () => chooseWindow(song(128), 'club', random).entry,
-    );
-    expect(entries.filter(e => e === 'drop').length).toBeGreaterThan(25);
-  });
-
-  it('come in open on a drop, and go out closed or next door', () => {
-    for (let seed = 1; seed <= 40; seed += 1) {
-      const seg = planSegment({
-        next: pool[0],
-        style: 'hyper',
-        seed,
-        setTempo: 128,
-      });
-      if (seg.entry === 'drop') {
-        expect(stateAt(seg.mix, seg.startS).nextRoom).toBe('off');
-      }
+  it('brakes like a record: slower every beat, pitch and all', () => {
+    const brakes = segments().filter(s => s.exit === 'brake');
+    expect(brakes.length).toBeGreaterThan(0);
+    for (const seg of brakes) {
       const last = stateAt(seg.mix, seg.endS - 0.01);
-      if (seg.exit === 'room') expect(last.nextRoom).toBe('high');
-      if (seg.exit === 'sweep') {
-        expect(last.gains[4]).toBeLessThan(last.gains[0] - 6);
-      }
-    }
-  });
-
-  it('never move Echo inside a segment', () => {
-    for (let seed = 1; seed <= 30; seed += 1) {
-      const seg = planSegment({
-        next: pool[1],
-        style: 'slowed',
-        seed,
-        setTempo: 120,
-      });
-      const late = seg.mix.moves.filter(
-        m => m.atS > seg.startS && m.echo !== undefined,
+      expect(last.keepPitch).toBe(false);
+      expect(last.rate).toBeLessThan(
+        stateAt(seg.mix, seg.endS - BAR - 0.01).rate,
       );
-      expect(late).toEqual([]);
     }
   });
 
-  it('play a joined sound on from the playhead to a phrase end', () => {
+  it('plays the last record of a run out to its end', () => {
+    const seg = planSegment({
+      next: pool[0],
+      style: 'club',
+      seed: 4,
+      setTempo: 128,
+      finale: true,
+    });
+    expect(seg.endS).toBeCloseTo(song.firstBarS + 88 * BAR);
+  });
+
+  it('handles a sound with no pulse', () => {
+    const seg = planSegment({
+      next: pool[4],
+      style: 'club',
+      seed: 2,
+      setTempo: 128,
+    });
+    expect(seg.endS).toBeGreaterThan(seg.startS + 20);
+  });
+});
+
+describe('joinSegment', () => {
+  it('plays on from the playhead through the next drop', () => {
     const seg = joinSegment({
       sound: pool[0],
       style: 'club',
@@ -154,6 +207,156 @@ describe('segments', () => {
     });
     expect(seg.startS).toBe(13.7);
     expect(seg.endS).toBeGreaterThanOrEqual(13.7 + 40);
+    expect([48, 56, 80, 88]).toContain(Math.round(bar(seg.endS)));
     expect(seg.mix.moves[0].atS).toBe(13.7);
+  });
+});
+
+describe('a song that stays loud from the first bar', () => {
+  const loud: PoolSound = {
+    soundId: 'loud',
+    map: songOf(95, [
+      [32, 1, 1, 0.6],
+      [32, 0.95, 0.95, 0.65],
+      [24, 1, 1, 0.6],
+      [8, 0.4, 0.5, 0.4],
+    ]),
+  };
+
+  it('is still not started from its first bar', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const seg = planSegment({
+        next: loud,
+        style: 'club',
+        seed,
+        setTempo: 95,
+      });
+      expect(seg.startS).toBeGreaterThan(loud.map.firstBarS + 1);
+      expect(seg.endS).toBeGreaterThan(seg.startS + 20);
+    }
+  });
+});
+
+describe('openings and returns', () => {
+  it('opens a song on its first parts and leaves before the chorus', () => {
+    expect(firstPeakBar(song)).toBe(32);
+    let onBuild = 0;
+    for (const seg of segments({ part: 'opening' })) {
+      expect(seg.part).toBe('opening');
+      expect(bar(seg.startS)).toBeLessThan(32);
+      if (seg.endsOn === 'build') {
+        onBuild += 1;
+        expect(Math.round(bar(seg.endS))).toBe(32);
+        // The chorus is still ahead, so the set can come back for it.
+        expect(seg.resumeBar).toBe(32);
+      }
+    }
+    expect(onBuild).toBeGreaterThan(20);
+  });
+
+  it('comes back for a song from where it left it', () => {
+    for (const seg of segments({ part: 'later', fromBar: 48 })) {
+      expect(bar(seg.startS)).toBeGreaterThanOrEqual(47.5);
+      expect(Math.round(bar(seg.endS))).toBeGreaterThan(56);
+    }
+  });
+
+  it('opens straight on the best part when there is nothing before it', () => {
+    const seg = planSegment({
+      next: {
+        soundId: 'x',
+        map: songOf(128, [
+          [8, 1, 1, 0.6],
+          [24, 0.4, 0.3, 0.5],
+          [16, 1, 1, 0.6],
+        ]),
+      },
+      style: 'club',
+      seed: 3,
+      setTempo: 128,
+      part: 'opening',
+    });
+    expect(seg.part).toBe('peak');
+  });
+});
+
+describe('transitionFx', () => {
+  const segs = segments();
+
+  it('never lets a record simply appear', () => {
+    const random = rng(9);
+    for (let i = 0; i + 1 < segs.length; i += 1) {
+      const fx = transitionFx(segs[i], segs[i + 1], random, BAR);
+      expect(fx.before ?? fx.on).toBeDefined();
+      if (fx.beforeS !== undefined) {
+        expect(fx.beforeS).toBeGreaterThanOrEqual(1);
+        expect(fx.beforeS).toBeLessThanOrEqual(6);
+      }
+    }
+  });
+
+  it('rises into the drop a build was left hanging for', () => {
+    const opening = segments({ part: 'opening' }).find(
+      s => s.endsOn === 'build',
+    )!;
+    const drop = segs.find(s => s.entry === 'drop')!;
+    const random = rng(2);
+    const rising = Array.from(
+      { length: 20 },
+      () => transitionFx(opening, drop, random, BAR).before,
+    ).filter(Boolean).length;
+    expect(rising).toBeGreaterThan(15);
+  });
+});
+
+describe("Juan's hands — the live gestures from his DÁKITI session", () => {
+  const all = segments();
+  const moves = all.flatMap(s => s.mix.moves.map(m => ({ s, m })));
+
+  it('walks the speed a twentieth at a time and never past the slider', () => {
+    for (const { m } of moves) {
+      if (m.rate === undefined) continue;
+      expect(m.rate).toBeGreaterThanOrEqual(0.75);
+      expect(m.rate).toBeLessThanOrEqual(1.25);
+      expect(Math.round(m.rate * 100) % 5).toBe(0);
+    }
+  });
+
+  it('turns Preserve Pitch off somewhere across a set, and back', () => {
+    const club = all.filter(s => s.mix.style === 'club');
+    const offs = club.flatMap(s =>
+      s.mix.moves.filter(m => m.keepPitch === false),
+    );
+    expect(offs.length).toBeGreaterThan(0);
+  });
+
+  it('flicks presets in bursts', () => {
+    const bursty = all.some(s => {
+      const g = s.mix.moves.filter(m => m.gains);
+      return g.some(
+        (m, i) =>
+          i + 2 < g.length && g[i + 2].atS - m.atS <= 4 * (BAR / 4) + 1e-6,
+      );
+    });
+    expect(bursty).toBe(true);
+  });
+
+  it('only changes Echo off a downbeat once a segment is playing', () => {
+    for (const s of all) {
+      const [first, ...rest] = s.mix.moves;
+      expect(first.echo).toBeDefined();
+      for (const m of rest) {
+        if (m.echo === undefined) continue;
+        const beat = Math.round((m.atS - song.firstBarS) / (BAR / 4));
+        expect(((beat % 4) + 4) % 4).toBe(3);
+      }
+    }
+  });
+
+  it('leaves a played segment back on its own speed at its peak entries', () => {
+    for (const s of all) {
+      const state = stateAt(s.mix, s.endS - 1e-3);
+      expect(state.rate).toBeGreaterThanOrEqual(0.75);
+    }
   });
 });

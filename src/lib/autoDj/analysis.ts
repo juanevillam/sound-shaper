@@ -12,14 +12,16 @@
 // its beat grid is exact rather than polled at a JS timer's resolution.
 //
 // No model and no server: an onset envelope, an autocorrelation for the tempo,
-// a comb for the phase. The classic recipe, and enough for music with a steady
-// pulse — which is why the Shape sheet says it works best with electronic music
-// and reggaeton.
+// a comb for the phase. The classic recipe. Beside loudness, each bar carries
+// how much BASS it has (the kick and the bass line — what a breakdown takes
+// away) and how BRIGHT it is (what a build adds), which is what lets the set
+// tell a song's sections apart (`sections.ts`). A sound with no steady pulse
+// is measured in time blocks instead, and the same three readings hold.
 // ---------------------------------------------------------------------------
 
 export type SongMap = {
   /** Bump when the shape changes, so a cached map is never misread. */
-  version: 1;
+  version: 2;
   durationS: number;
   /** 0 when no steady pulse was found — the DJ then moves on time alone. */
   bpm: number;
@@ -37,6 +39,16 @@ export type SongMap = {
    * With no pulse, per 2-second block instead (see `blockS`).
    */
   bars: number[];
+  /**
+   * Low-band (< 150 Hz) level per bar, normalised like `bars`: the kick and
+   * the bass line. A breakdown is a stretch where this falls away.
+   */
+  bass: number[];
+  /**
+   * How much of each bar sits above ~2.5 kHz, normalised so the song's
+   * brightest passages sit near 1: hats, risers, the top of a build.
+   */
+  bright: number[];
   /** With no pulse, the length of each `bars` block; otherwise 4 × beatS. */
   blockS: number;
 };
@@ -45,6 +57,7 @@ export type SongMap = {
 export const ANALYSIS_SAMPLE_RATE = 11025;
 const HOP = 256; // ~23 ms frames at 11025 Hz
 const LOW_HZ = 150; // the kick's band
+const HIGH_HZ = 2500; // where a build's hats and risers live
 const BPM_MIN = 70;
 const BPM_MAX = 180;
 /**
@@ -65,27 +78,35 @@ const NO_PULSE_BLOCK_S = 2;
 
 const log = (x: number) => Math.log(x + 1e-9);
 
-/** Frame-level energies: the kick band and the whole signal. */
+/** Frame-level energies: the kick band, the top band and the whole signal. */
 function frameEnergies(samples: Float32Array, sampleRate: number) {
   const frames = Math.floor(samples.length / HOP);
   const low = new Float32Array(frames);
+  const high = new Float32Array(frames);
   const full = new Float32Array(frames);
   const a = 1 - Math.exp((-2 * Math.PI * LOW_HZ) / sampleRate);
+  const h = 1 - Math.exp((-2 * Math.PI * HIGH_HZ) / sampleRate);
   let y = 0;
+  let below = 0;
   for (let f = 0; f < frames; f += 1) {
     let lowSum = 0;
+    let highSum = 0;
     let fullSum = 0;
     const base = f * HOP;
     for (let i = 0; i < HOP; i += 1) {
       const x = samples[base + i];
       y += a * (x - y);
+      below += h * (x - below);
+      const top = x - below;
       lowSum += y * y;
+      highSum += top * top;
       fullSum += x * x;
     }
     low[f] = lowSum / HOP;
+    high[f] = highSum / HOP;
     full[f] = fullSum / HOP;
   }
-  return { low, full, frames };
+  return { low, high, full, frames };
 }
 
 /**
@@ -245,23 +266,48 @@ const percentile = (values: number[], q: number): number => {
   return sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
 };
 
-/** Mean RMS of `full` over [startS, endS), per block. */
-function blockLoudness(
-  full: Float32Array,
+/** Mean RMS of `energy` over each block [start, start + lengthS). */
+function blockRms(
+  energy: Float32Array,
   frameRate: number,
   starts: number[],
   lengthS: number,
 ): number[] {
-  const raw = starts.map(start => {
+  return starts.map(start => {
     const a = Math.max(0, Math.floor(start * frameRate));
-    const b = Math.min(full.length, Math.floor((start + lengthS) * frameRate));
+    const b = Math.min(
+      energy.length,
+      Math.floor((start + lengthS) * frameRate),
+    );
     if (b <= a) return 0;
     let sum = 0;
-    for (let f = a; f < b; f += 1) sum += full[f];
+    for (let f = a; f < b; f += 1) sum += energy[f];
     return Math.sqrt(sum / (b - a));
   });
+}
+
+/** Scaled so the 90th percentile sits at 1, to three decimals. */
+const normalise = (raw: number[]): number[] => {
   const ref = percentile(raw, 0.9) || 1;
   return raw.map(v => Math.round((v / ref) * 1000) / 1000);
+};
+
+/** Loudness, bass and brightness per block. */
+function blockReadings(
+  energies: { low: Float32Array; high: Float32Array; full: Float32Array },
+  frameRate: number,
+  starts: number[],
+  lengthS: number,
+): Pick<SongMap, 'bars' | 'bass' | 'bright'> {
+  const full = blockRms(energies.full, frameRate, starts, lengthS);
+  const low = blockRms(energies.low, frameRate, starts, lengthS);
+  const high = blockRms(energies.high, frameRate, starts, lengthS);
+  return {
+    bars: normalise(full),
+    bass: normalise(low),
+    // A RATIO, so a quiet bright passage still reads bright.
+    bright: normalise(high.map((v, i) => (full[i] > 1e-6 ? v / full[i] : 0))),
+  };
 }
 
 /**
@@ -274,19 +320,20 @@ export function analyzeSamples(
 ): SongMap {
   const durationS = samples.length / sampleRate;
   const frameRate = sampleRate / HOP;
-  const { low, full, frames } = frameEnergies(samples, sampleRate);
+  const energies = frameEnergies(samples, sampleRate);
+  const { low, full, frames } = energies;
 
   const noPulse = (): SongMap => {
     const starts: number[] = [];
     for (let s = 0; s < durationS; s += NO_PULSE_BLOCK_S) starts.push(s);
     return {
-      version: 1,
+      version: 2,
       durationS,
       bpm: 0,
       beatS: 0,
       firstBarS: 0,
       confidence: 0,
-      bars: blockLoudness(full, frameRate, starts, NO_PULSE_BLOCK_S),
+      ...blockReadings(energies, frameRate, starts, NO_PULSE_BLOCK_S),
       blockS: NO_PULSE_BLOCK_S,
     };
   };
@@ -352,13 +399,13 @@ export function analyzeSamples(
   for (let s = firstBarS; s < durationS; s += barS) starts.push(s);
 
   return {
-    version: 1,
+    version: 2,
     durationS,
     bpm: Math.round((60 / beatS) * 100) / 100,
     beatS,
     firstBarS,
     confidence: Math.round(confidence * 1000) / 1000,
-    bars: blockLoudness(full, frameRate, starts, barS),
+    ...blockReadings(energies, frameRate, starts, barS),
     blockS: barS,
   };
 }

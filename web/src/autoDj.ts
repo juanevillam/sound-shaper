@@ -14,14 +14,20 @@ import {
   type DjMove,
 } from '@app/lib/autoDj/plan';
 import {
-  chooseNext,
+  firstPeakBar,
   joinSegment,
+  planOrder,
   planSegment,
+  transitionFx,
+  type Part,
   type PoolSound,
   type Segment,
+  type TransitionFx,
 } from '@app/lib/autoDj/set';
+import { audioEngine } from '@app/lib/audioEngine';
 import type { EffectLevel } from '@app/lib/shapeDsp';
 
+import { djFx } from './djFx';
 import type { Sound } from './library';
 import {
   applyGains,
@@ -126,18 +132,44 @@ export const byHand =
 /**
  * The app decodes the mirrored mp3 at the analysis rate; a browser does the
  * same by decoding through an OfflineAudioContext AT that rate — decodeAudioData
- * resamples to its context's rate. The fetch usually comes out of the service
- * worker's media cache. Maps are small JSON, kept in localStorage.
+ * resamples to its context's rate. Each sound is fetched once, then its map
+ * — small JSON — is kept in localStorage.
  */
-const MAP_KEY = 'soundshaper.songmap.v1.';
+const MAP_KEY = 'soundshaper.songmap.v2.';
 const memory = new Map<string, Promise<SongMap | null>>();
 
+/**
+ * A versioned cache has to DELETE what it superseded, not only refuse to read
+ * it — once per visit, as the app's `songMap.ts` does.
+ */
+let pruned = false;
+const pruneOnce = () => {
+  if (pruned) return;
+  pruned = true;
+  try {
+    Object.keys(localStorage)
+      .filter(
+        key =>
+          key.startsWith('soundshaper.songmap.') && !key.startsWith(MAP_KEY),
+      )
+      .forEach(key => localStorage.removeItem(key));
+  } catch {
+    // Nothing stored.
+  }
+};
+
 const readCached = (soundId: string): SongMap | null => {
+  pruneOnce();
   try {
     const raw = localStorage.getItem(MAP_KEY + soundId);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SongMap;
-    return parsed.version === 1 && Array.isArray(parsed.bars) ? parsed : null;
+    return parsed.version === 2 &&
+      Array.isArray(parsed.bars) &&
+      Array.isArray(parsed.bass) &&
+      Array.isArray(parsed.bright)
+      ? parsed
+      : null;
   } catch {
     return null;
   }
@@ -224,9 +256,18 @@ const direct = (): (() => void) => {
   const failed = new Set<string>();
   const played = new Set<string>();
   const random = rng(freshSeed());
+
   let setTempo = 0;
 
+  /**
+   * THE SET'S MOOD — Club, Slowed or Hyper — is the DJ's to choose, not a
+   * setting (Juan, 2026-11-04: Auto DJ is on or off, and the set is a
+   * combination of them). A mood holds for one to three segments and then
+   * moves on, so a set has passages rather than a coin flip per song; Club
+   * is the home it comes back to most.
+   */
   let mood: AutoDjStyle = 'club';
+  // The sound already playing is joined in Club, before the first change.
   let moodLeft = 1;
   const nextStyle = (): AutoDjStyle => {
     if (moodLeft <= 0) {
@@ -241,10 +282,21 @@ const direct = (): (() => void) => {
     moodLeft -= 1;
     return mood;
   };
-
+  /** The segment sounding now. */
   let segment: Segment | null = null;
+  /** Whether the playhead has reached `segment` yet after its cue. */
   let landed = false;
+  /** The segment the set cuts to next. */
   let upNext: Segment | null = null;
+  /** The run through the library, planned once it is all read. */
+  let order: string[] = [];
+  /** Songs left with a peak still ahead: where, and how many cuts ago. */
+  const returns = new Map<string, { bar: number; at: number }>();
+  let cuts = 0;
+  /** The glue chosen for the cut into `upNext`, and whether it rose yet. */
+  let fx: TransitionFx | null = null;
+  let rose = false;
+  /** A cue in flight: the segment whose sound is loading. */
   let cued: Segment | null = null;
   let next = 0;
   let lastPosition = 0;
@@ -270,6 +322,7 @@ const direct = (): (() => void) => {
       return map ? [{ soundId: s.id, map }] : [];
     });
 
+  /** Bring the transport onto `segment` at `position`. */
   const foldTo = (position: number) => {
     if (!segment) return;
     clearTimers();
@@ -279,22 +332,115 @@ const direct = (): (() => void) => {
     lastPosition = position;
   };
 
+  const allRead = () =>
+    library().every(s => maps.has(s.id) || failed.has(s.id));
+
+  /** Plan the run from `fromId`: what has not played yet, else everything. */
+  const planRun = (fromId: string | null) => {
+    const all = pool();
+    const fresh = all.filter(p => !played.has(p.soundId));
+    if (fresh.filter(p => p.soundId !== fromId).length === 0) played.clear();
+    const base = fresh.filter(p => p.soundId !== fromId).length ? fresh : all;
+    order = planOrder(base, fromId, setTempo, random);
+  };
+
+  const barOf = (seg: Segment): number => {
+    const map = maps.get(seg.soundId);
+    if (!map) return 2;
+    return map.bpm > 0 ? map.beatS * 4 : map.blockS;
+  };
+
+  const setUpNext = (seg: Segment | null) => {
+    upNext = seg;
+    rose = false;
+    fx =
+      seg && segment
+        ? transitionFx(segment, seg, random, barOf(segment))
+        : null;
+  };
+
   const chooseUpNext = () => {
     if (!segment || upNext || cued) return;
-    const candidate = chooseNext(
-      pool(),
-      played,
-      segment.soundId,
-      setTempo,
-      random,
-    );
-    if (!candidate) return;
-    upNext = planSegment({
-      next: candidate,
-      style: nextStyle(),
-      seed: Math.floor(random() * 2 ** 31),
-      setTempo,
-    });
+    const all = pool();
+    if (all.length < 2) return;
+    const plan = (
+      nextId: string | undefined,
+      part: Part,
+      fromBar = 0,
+      finale = false,
+    ) => {
+      const nextSound = all.find(p => p.soundId === nextId);
+      if (!nextSound || !segment) return;
+      setUpNext(
+        planSegment({
+          next: nextSound,
+          style: nextStyle(),
+          seed: Math.floor(random() * 2 ** 31),
+          setTempo,
+          after: segment.endsOn,
+          part,
+          fromBar,
+          finale,
+        }),
+      );
+    };
+
+    // THE SAME SONG, AHEAD: an opening left on its build now and then
+    // jumps straight to that song's best chorus instead of another's.
+    if (
+      segment.part === 'opening' &&
+      segment.endsOn === 'build' &&
+      segment.resumeBar !== undefined &&
+      random() < 0.2
+    ) {
+      plan(segment.soundId, 'later', segment.resumeBar);
+      return;
+    }
+
+    if (allRead()) {
+      // Drop what left the library or played since the plan was made.
+      order = order.filter(
+        id => id !== segment?.soundId && maps.has(id) && !played.has(id),
+      );
+      // A RETURN: a song the set left a couple of cuts ago, picked up
+      // where it stopped — always, once no new song is left.
+      const waiting = [...returns.entries()].filter(
+        ([id, r]) =>
+          id !== segment?.soundId && maps.has(id) && cuts - r.at >= 2,
+      );
+      if (waiting.length && (!order.length || random() < 0.35)) {
+        const [id, r] = waiting.sort((x, y) => x[1].at - y[1].at)[0];
+        returns.delete(id);
+        const last = !order.length && returns.size === 0;
+        plan(id, 'later', r.bar, last);
+        return;
+      }
+      if (!order.length) planRun(segment.soundId);
+      const nextId = order.shift();
+      const map = nextId ? maps.get(nextId) : undefined;
+      // A NEW SONG: in on its opening a third of the time, when it has
+      // one worth playing; otherwise on its best part.
+      const opening = !!map && firstPeakBar(map) >= 16 && random() < 0.35;
+      plan(
+        nextId,
+        opening ? 'opening' : 'peak',
+        0,
+        !order.length && returns.size === 0,
+      );
+      return;
+    } else {
+      // Still reading: the best of what is read, without a plan to keep.
+      const fresh = all.filter(
+        p => p.soundId !== segment?.soundId && !played.has(p.soundId),
+      );
+      const nextId = planOrder(
+        fresh.length ? fresh : all,
+        segment.soundId,
+        setTempo,
+        random,
+      )[0];
+      plan(nextId, 'peak');
+    }
   };
 
   const begin = (seg: Segment, position: number) => {
@@ -307,11 +453,12 @@ const direct = (): (() => void) => {
     chooseUpNext();
   };
 
+  /** Make the playing sound the set's segment, from where it is. */
   const join = () => {
     const { current, position } = playerState();
     if (!current) return;
     const map = maps.get(current.id);
-    if (!map) return;
+    if (!map) return; // read first; `pump` joins when it lands
     begin(
       joinSegment({
         sound: { soundId: current.id, map },
@@ -324,6 +471,7 @@ const direct = (): (() => void) => {
     );
   };
 
+  /** Cut to `upNext`. */
   const cue = () => {
     if (!upNext) return;
     const target = upNext;
@@ -334,12 +482,32 @@ const direct = (): (() => void) => {
       return;
     }
     clearTimers();
+    // The song being left waits for the set to come back for its later
+    // parts — always after an opening, now and then after a peak.
+    const leaving = segment;
+    if (
+      leaving?.resumeBar !== undefined &&
+      (leaving.part === 'opening' || random() < 0.4)
+    ) {
+      returns.set(leaving.soundId, { bar: leaving.resumeBar, at: cuts });
+      if (returns.size > 3) returns.delete(returns.keys().next().value!);
+    }
+    returns.delete(target.soundId);
+    cuts += 1;
     cued = target;
     segment = null;
+    // The hit lands on the cut and the next sound eases in under it.
+    const { rate } = playerState();
+    if (fx?.on) djFx.play(fx.on, CUE_LEAD_S / rate);
+    audioEngine.fadeInNextLoad(fx?.fadeInS ?? 0.03);
+    fx = null;
+    // The incoming state goes on as the cut is made, so the next sound
+    // starts already shaped — including Echo, whose rewire the load hides.
     applyMove(stateAt(target.mix, target.startS));
     void cueSound(sound, target.startS);
   };
 
+  /** Read the library, the playing sound first, one at a time. */
   let pumping = false;
   const pump = async () => {
     if (pumping) return;
@@ -357,7 +525,13 @@ const direct = (): (() => void) => {
         else failed.add(todo.id);
         publishProgress();
         if (!segment && !cued) join();
-        else chooseUpNext();
+        else if (allRead() && !order.length) {
+          // The whole library is read: plan the run, and re-pick what
+          // comes next from it unless the cut is already on its way.
+          planRun(segment?.soundId ?? null);
+          if (!cued) setUpNext(null);
+          chooseUpNext();
+        } else chooseUpNext();
       }
     } finally {
       pumping = false;
@@ -366,6 +540,8 @@ const direct = (): (() => void) => {
 
   const onPosition = (position: number, playing: boolean) => {
     if (!segment) return;
+    // After a cue, the reports before the new sound lands belong to the
+    // reset, not to the segment.
     if (!landed) {
       if (position < segment.startS - 0.3) return;
       landed = true;
@@ -374,7 +550,11 @@ const direct = (): (() => void) => {
     }
     const jumped =
       position < lastPosition - 0.05 || position - lastPosition > JUMP_S;
-    if (jumped) foldTo(position);
+    if (jumped) {
+      djFx.stopAll();
+      rose = false;
+      foldTo(position);
+    }
     lastPosition = position;
     if (!playing) return;
 
@@ -384,32 +564,39 @@ const direct = (): (() => void) => {
     }
 
     const { rate } = playerState();
+    // THE RISE INTO THE CUT, started so it ends exactly on it.
+    if (upNext && fx?.before && fx.beforeS && !rose) {
+      const toCut = (segment.endS - position) / rate;
+      const lengthS = Math.round((fx.beforeS / rate) * 20) / 20;
+      if (toCut <= lengthS + 0.2 && toCut > 0.05) {
+        rose = true;
+        djFx.play(fx.before, toCut, lengthS);
+      }
+    }
     const { moves } = segment.mix;
     while (next < moves.length) {
       const move = moves[next];
       const ahead = move.atS - position;
       if (ahead > LOOKAHEAD_S) break;
       next += 1;
-      const timer = setTimeout(
-        () => {
-          timers.delete(timer);
-          if (!cancelled) applyMove(move);
-        },
-        Math.max(0, (ahead / rate) * 1000),
-      );
+      const delayMs = Math.max(0, (ahead / rate) * 1000);
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        if (!cancelled) applyMove(move);
+      }, delayMs);
       timers.add(timer);
     }
   };
 
-  let previous: PlayerState = playerState();
+  let before: PlayerState = playerState();
   const unsubscribe = subscribePlayer(() => {
     const state = playerState();
-    const before = previous;
-    previous = state;
-
-    if (state.loadNonce !== before.loadNonce) {
+    const previous = before;
+    before = state;
+    if (state.loadNonce !== previous.loadNonce) {
       clearTimers();
       if (cued && state.current?.id === cued.soundId) {
+        // The cut the set asked for.
         const seg = cued;
         cued = null;
         segment = seg;
@@ -421,22 +608,33 @@ const direct = (): (() => void) => {
         chooseUpNext();
         return;
       }
+      // A load the set did not ask for: join it once it is playing, and
+      // plan the rest of the run from there.
       cued = null;
       segment = null;
-      upNext = null;
+      setUpNext(null);
+      djFx.stopAll();
+      order = [];
       if (state.current) {
-        if (maps.has(state.current.id))
+        if (maps.has(state.current.id)) {
+          // Join on the next tick, once the new stream reports.
           queueMicrotask(() => {
             if (!cancelled && !segment && !cued) join();
           });
-        else void pump();
+        } else {
+          void pump();
+        }
       }
       return;
     }
-    if (state.position !== before.position)
+    if (state.position !== previous.position) {
       onPosition(state.position, state.playing);
-    if (!state.playing && before.playing) {
+    }
+    // A pause stops the clock; whatever was on a timer would land late.
+    if (!state.playing && previous.playing) {
       clearTimers();
+      djFx.stopAll();
+      rose = false;
       if (segment) next = nextMoveIndex(segment.mix, state.position);
     }
   });
@@ -448,6 +646,7 @@ const direct = (): (() => void) => {
   return () => {
     cancelled = true;
     clearTimers();
+    djFx.stopAll();
     unsubscribe();
     setDj({ ready: 0, total: 0 });
   };

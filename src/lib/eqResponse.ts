@@ -32,7 +32,7 @@ export type ResponseBand = {
   q?: number;
 };
 
-type Coefficients = {
+export type Coefficients = {
   b0: number;
   b1: number;
   b2: number;
@@ -144,7 +144,7 @@ const peaking = (frequency: number, q: number, gain: number): Coefficients => {
   );
 };
 
-const coefficientsFor = (
+export const coefficientsFor = (
   band: ResponseBand,
   gain: number,
   nyquist: number,
@@ -156,7 +156,7 @@ const coefficientsFor = (
 };
 
 /** |H(f)| of one biquad, as `BiquadFilterNode::getFrequencyResponse` computes it. */
-const magnitudeAt = (c: Coefficients, normalizedHz: number): number => {
+export const magnitudeAt = (c: Coefficients, normalizedHz: number): number => {
   const omega = -Math.PI * normalizedHz;
   const zReal = Math.cos(omega);
   const zImaginary = Math.sin(omega);
