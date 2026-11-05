@@ -25,6 +25,10 @@ jobs:
       # and don't exist in CI, so Href checking is looser here than locally.
       - run: npm run typecheck
       - run: npm run test:unit
+      # The web app (soundshaper.juanevillam.com) is its own package too, and
+      # imports the app's src/, so a change to either must still build it.
+      - run: npm ci && npm run build
+        working-directory: web
       # The Worker is its own package with its own lockfile.
       - run: npm ci && npm run typecheck
         working-directory: media-worker

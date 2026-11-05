@@ -287,3 +287,17 @@ to _checking_ them. When authored RN imitates a native surface:
 - The state lab (`STATE_LAB` in each app's `dev/flags.ts`) is how you get a
   loading or error state to hold still long enough to band-scan. Racing a
   screenshot against a real 400ms skeleton does not work.
+
+## The lockfile must satisfy npm 10 AND npm 11
+
+CI (and EAS) run Node 22, whose npm 10 `npm ci` refuses a lockfile that this
+Mac's npm 11 accepts: npm 11 leaves out the top-level `@emnapi/core` and
+`@emnapi/runtime` entries that the optional `@napi-rs/wasm-runtime` peers on,
+and npm 10 reports them `Missing … from lock file` (CI failed on v1.1.0 for
+exactly this, 2026-11-05). After any install that rewrites
+`package-lock.json`, regenerate it with npm 10 and check both:
+
+```bash
+npx -y npm@10 install --package-lock-only --ignore-scripts
+npx -y npm@10 ci --dry-run --ignore-scripts && npm ci --dry-run --ignore-scripts
+```
