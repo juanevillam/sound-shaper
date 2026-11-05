@@ -833,11 +833,19 @@ button {
 }
 
 .now-art {
+  position: relative;
   aspect-ratio: 1;
   border-radius: 15%;
   box-shadow:
     0 1.5rem 3.5rem rgb(0 0 0 / 0.55),
     0 0.375rem 1rem rgb(0 0 0 / 0.35);
+}
+
+/* The tile's 8-of-178 inset, kept as a ratio so the disc clears the
+   bigger cover's corner curve. */
+.now-art .bars {
+  left: 4.5%;
+  bottom: 4.5%;
 }
 
 .now-copy {

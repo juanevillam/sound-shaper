@@ -9,6 +9,7 @@ import { Artwork } from './Artwork';
 import { useClipsSummary } from './ClipsForm';
 import { useShapeSummary } from './ShapePanel';
 import {
+  Bars,
   ChevronDownGlyph,
   ClipGlyph,
   NextGlyph,
@@ -38,6 +39,7 @@ export function NowPlaying({
 }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
+  const rate = usePlayer(s => s.rate);
   const position = usePlayer(s => s.position);
   const duration = usePlayer(s => s.duration);
   const summary = useShapeSummary();
@@ -67,6 +69,9 @@ export function NowPlaying({
           quickWidth={220}
           eager
         />
+        {/* The cover says the sound is playing, as its tile does — the app's
+            badge, at the tile's inset as a ratio of the cover. */}
+        <Bars live={playing} rate={rate} />
       </div>
 
       <div className="now-copy">
