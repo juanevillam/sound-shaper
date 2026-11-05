@@ -97,6 +97,7 @@ export function SidePanel({
     <aside
       className={[
         'side',
+        index === 0 ? 'is-base' : '',
         open && raised ? 'is-open' : '',
         depth > 0 ? 'is-under' : '',
         depth > 1 ? 'is-deep' : '',

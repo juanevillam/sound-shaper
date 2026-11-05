@@ -1858,8 +1858,9 @@ button {
      two alone): they are worked WITH the player, so they open in a third
      column beside it, and whatever stacks over them stacks there, nested. */
   .home {
-    /* The leading corner every column after the library takes. */
-    --col-r: 2.125rem;
+    /* How far a column MELTS into the one before it: its leading edge fades
+       in over this width, laid over the neighbour's trailing edge. */
+    --melt: clamp(3rem, 5vw, 5rem);
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
     /* The phone's proportions: about half as wide as the window is tall. */
     --stage-w: clamp(24rem, min(30vw, 56svh), 30rem);
@@ -1877,7 +1878,10 @@ button {
   }
 
   .home.is-staged.is-tooled {
-    grid-template-columns: minmax(0, 1fr) var(--stage-w) var(--tools-w);
+    /* The player gains the tools' melt back, so its cover keeps its size. */
+    grid-template-columns:
+      minmax(0, 1fr) calc(var(--stage-w) + var(--melt))
+      var(--tools-w);
   }
 
   .library {
@@ -1885,6 +1889,12 @@ button {
     height: 100svh;
     overflow-y: auto;
     padding: 0 var(--pad) 3rem;
+  }
+
+  /* The player's melt lies over the library's trailing edge, so the grid
+     stops short of it: the gap between the columns is the melt itself. */
+  .home.is-staged .library {
+    padding-right: calc(var(--pad) + var(--melt));
   }
 
   /* The bar's glyph sits 1rem off the column's edge, as a toolbar's does —
@@ -1898,19 +1908,27 @@ button {
     grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
   }
 
-  /* THE COLUMNS ARE ONE SURFACE, NOT THREE PANES (Juan, 2026-11-05): each
-     after the library rounds its leading corners instead of standing on a
-     hairline, and the tools column tucks its curve over the player, so what
-     shows in each corner is the column before it — the sections read as
-     merged rather than ruled apart. */
+  /* THE COLUMNS MELT INTO EACH OTHER (Juan, 2026-11-05). No hairline, no
+     corner, no gap of bare ground between them: each column after the
+     library reaches back over its neighbour by `--melt` and fades in across
+     that width, so the library's black turns into the player's colour, and
+     the player's colour into the tools' ground, the way a wide gradient
+     does — one surface with three regions, not three panes. Rounded leading
+     corners were tried first and read as divided: a corner is an edge. */
   .stage {
     position: relative;
     z-index: 1;
     grid-column: 2;
     height: 100svh;
+    margin-left: calc(var(--melt) * -1);
     overflow: hidden;
-    border-radius: var(--col-r) 0 0 var(--col-r);
-    background: #000;
+    background: transparent;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--melt)
+    );
+    mask-image: linear-gradient(to right, transparent, #000 var(--melt));
     view-transition-name: stage;
   }
 
@@ -1926,17 +1944,50 @@ button {
     z-index: 2;
     grid-column: 3;
     height: 100svh;
-    /* Reaches back over the player by its own corner, so the curve shows the
-       player's wash rather than a gap; the player pads that strip clear. */
-    margin-left: calc(var(--col-r) * -1);
+    margin-left: calc(var(--melt) * -1);
     overflow: hidden;
-    border-radius: var(--col-r) 0 0 var(--col-r);
     background: var(--ground);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--melt)
+    );
+    mask-image: linear-gradient(to right, transparent, #000 var(--melt));
     view-transition-name: tools;
   }
 
+  /* The player gives the tools' melt its trailing edge to lie on. */
   .home.is-tooled .now-column {
-    padding-right: calc(1.5rem + var(--col-r));
+    padding-right: calc(1.5rem + var(--melt));
+  }
+
+  /* Whatever rises in a melting column rises in its solid part. */
+  .stage > .side,
+  .tools > .side {
+    left: var(--melt);
+  }
+
+  /* The first sheet in the tools column IS the column: no card, no corner,
+     no rise of its own — the column's arrival is the motion. What stacks
+     over it is a sheet, and keeps the sheet's look. */
+  .tools > .side.is-base {
+    height: 100%;
+    border-top: 0;
+    border-radius: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    transform: none;
+    visibility: visible;
+  }
+
+  .tools > .side.is-base.is-under {
+    transform: translateY(-0.5rem) scale(0.94);
+  }
+
+  .tools > .side.is-base .side-grabber {
+    display: none;
   }
 
   .home:not(.is-tooled) .tools {
@@ -1948,8 +1999,9 @@ button {
     inset: 0;
     z-index: 1;
     /* The cover stands 1.5rem under the window's edge — the phone's sits
-       12pt under the island — and the glass bar on the bottom one. */
-    padding: 1.5rem;
+       12pt under the island — and the glass bar on the bottom one; the
+       leading melt is clear of it. */
+    padding: 1.5rem 1.5rem 1.5rem calc(1.5rem + var(--melt));
     background: var(--ground);
     opacity: 1;
     visibility: visible;
@@ -2001,32 +2053,64 @@ button {
 /* The desk's one column change — the right column standing up when a sheet
    opens with nothing playing — as one move: tiles glide to their new
    places, the column slides in from the right edge and back out. */
+/* ON iOS's OWN CURVE. UIKit moves a sheet or a split-view column on a
+   critically damped spring that starts quick and settles long, with no
+   overshoot; (0.32, 0.72, 0, 1) is the standard fit of it. The site's
+   --ease spends itself in the first frames and then crawls, which read as a
+   jump and a drift rather than one move — worst on the way out. */
+:root {
+  --ios-curve: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 ::view-transition-group(*) {
-  animation-duration: var(--dur-turn);
-  animation-timing-function: var(--ease);
+  animation-duration: 560ms;
+  animation-timing-function: var(--ios-curve);
+}
+
+/* A column that only RESIZES — the player, as the tools column comes and
+   goes — is one picture, not two: the browser's default crossfades the old
+   and new snapshots stretched to the changing box, which doubled the cover
+   and the transport for the length of the move. The new one stands alone,
+   at its own size, pinned to the leading edge it shares with the old.
+   Stated plainly, before the :only-child rules below: `:not(:only-child)`
+   is not a selector Chrome takes on these pseudo-elements. */
+::view-transition-old(stage) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(stage) {
+  animation: none;
+  width: auto;
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
 }
 
 ::view-transition-old(stage):only-child,
 ::view-transition-old(tools):only-child {
-  animation: slide-out var(--dur-quick) var(--ease) both;
+  animation: slide-out 460ms var(--ios-curve) both;
+  opacity: 1;
 }
 
 ::view-transition-new(stage):only-child,
 ::view-transition-new(tools):only-child {
-  animation: slide-in var(--dur-turn) var(--ease) both;
+  animation: slide-in 560ms var(--ios-curve) both;
 }
 
+/* A column arrives from the right and leaves the way it came, fading as it
+   travels so its melt dissolves into the column it lay on. */
 @keyframes slide-in {
   from {
     opacity: 0;
-    transform: translateX(2rem);
+    transform: translateX(3rem);
   }
 }
 
 @keyframes slide-out {
   to {
     opacity: 0;
-    transform: translateX(2rem);
+    transform: translateX(3rem);
   }
 }
 
