@@ -1199,9 +1199,27 @@ button {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  container-type: size;
 }
 
-.player-backdrop img {
+/* One cover's wash: the still blur and the two turning copies over it,
+   faded as one, so a change of sound crosses whole washes. */
+.player-backdrop .wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  /* The outgoing cover waits for the incoming one to be fully in, so the
+     wash crosses cover to cover and never dips to bare ground between. */
+  transition: opacity 420ms var(--ease) 420ms;
+}
+
+.player-backdrop .wash.is-on {
+  z-index: 1;
+  opacity: 0.75;
+  transition-delay: 0ms;
+}
+
+.player-backdrop .wash > img {
   position: absolute;
   /* The app overscans 320pt so the blur reaches every edge. */
   inset: -8rem;
@@ -1209,16 +1227,34 @@ button {
   height: calc(100% + 16rem);
   object-fit: cover;
   filter: blur(60px);
-  opacity: 0;
-  /* The outgoing cover waits for the incoming one to be fully in, so the
-     wash crosses cover to cover and never dips to bare ground between. */
-  transition: opacity 420ms var(--ease) 420ms;
 }
 
-.player-backdrop img.is-on {
-  z-index: 1;
-  opacity: 0.75;
-  transition-delay: 0ms;
+/* A turning copy: a square big enough to cover the column at every angle
+   from its off-centre pivot (2.2 × the longer side clears the farthest
+   corner from either pivot), blurred at the app's ratio — 30 of a 640px
+   source is 4.7% of the square. The blur sits on the picture and the turn
+   on its parent, so the browser rotates a cached texture. */
+.player-backdrop .flow {
+  --side: calc(2.2 * max(100cqw, 100cqh));
+  position: absolute;
+  left: calc(50cqw + var(--x) * 100cqw - var(--side) / 2);
+  top: calc(50cqh + var(--y) * 100cqh - var(--side) / 2);
+  width: var(--side);
+  height: var(--side);
+  will-change: transform;
+}
+
+.player-backdrop .flow img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(calc(var(--side) * 0.047));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-backdrop .flow {
+    display: none;
+  }
 }
 
 /* The art-less sound's wash: the ink in two crossing ramps. */

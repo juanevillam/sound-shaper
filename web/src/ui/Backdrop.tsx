@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
+
+import { usePlayer } from '../player';
 
 /**
  * Two layers and a front: a new picture is LOADED before it takes the front,
@@ -71,6 +73,52 @@ export function Backdrop({ artUrl }: { artUrl: string }) {
 }
 
 /**
+ * THE FLOW — the app's, number for number (PlayerBackdrop.tsx there carries
+ * the reasoning and the measurement): two copies of the cover, blurred less
+ * than the still wash, turning in opposite directions about pivots off the
+ * column's centre, so the colours drift and pool. One clock advances by real
+ * time × playback speed while the sound plays and stops on pause, so the
+ * colours freeze where they are. Reduce Motion keeps the still wash.
+ */
+const FLOW_LAYERS = [
+  { periodS: 24, direction: 1, opacity: 0.85, x: -0.3, y: -0.2 },
+  { periodS: 33, direction: -1, opacity: 0.7, x: 0.32, y: 0.22 },
+] as const;
+
+const reducedMotion = () =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Drives every `.flow` turner under `root` from one music-time clock. */
+function useFlow(root: React.RefObject<HTMLDivElement | null>) {
+  const playing = usePlayer(s => s.playing);
+  const rate = usePlayer(s => s.rate);
+  const phase = useRef(0);
+  const speed = useRef(rate);
+  speed.current = rate;
+
+  useEffect(() => {
+    if (!playing || reducedMotion()) return;
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = now - last;
+      last = now;
+      // A long gap is a hidden tab coming back, not music played.
+      if (dt < 100) phase.current += (dt / 1000) * speed.current;
+      root.current?.querySelectorAll<HTMLElement>('.flow').forEach(turner => {
+        const layer = FLOW_LAYERS[Number(turner.dataset.layer)];
+        const turn =
+          ((phase.current / layer.periodS) * 360 * layer.direction) % 360;
+        turner.style.transform = `rotate(${turn}deg)`;
+      });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [playing, root]);
+}
+
+/**
  * THE APP'S PlayerBackdrop, LITERALLY: the cover fetched small (w_320, so
  * w_640 at 2x), blurred 60, at 0.75 over the page colour, with the same
  * fade laid over it — the app's stops, moved from its overscanned box into
@@ -80,18 +128,33 @@ export function Backdrop({ artUrl }: { artUrl: string }) {
  */
 export function PlayerBackdrop({ artUrl }: { artUrl: string }) {
   const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 320) : '');
+  const root = useRef<HTMLDivElement>(null);
+  useFlow(root);
 
   return (
-    <div className="player-backdrop" aria-hidden="true">
+    <div className="player-backdrop" aria-hidden="true" ref={root}>
       <div className={layers[front] ? 'standin' : 'standin is-on'} />
       {layers.map((src, i) =>
         src ? (
-          <img
-            key={i}
-            src={src}
-            alt=""
-            className={i === front ? 'is-on' : undefined}
-          />
+          <div key={i} className={i === front ? 'wash is-on' : 'wash'}>
+            <img src={src} alt="" />
+            {FLOW_LAYERS.map((layer, n) => (
+              <div
+                key={n}
+                className="flow"
+                data-layer={n}
+                style={
+                  {
+                    '--x': layer.x,
+                    '--y': layer.y,
+                    opacity: layer.opacity,
+                  } as React.CSSProperties
+                }
+              >
+                <img src={src} alt="" />
+              </div>
+            ))}
+          </div>
         ) : null,
       )}
       <div className="fade" />
