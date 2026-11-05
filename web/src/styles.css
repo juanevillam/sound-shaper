@@ -2052,15 +2052,44 @@ button {
   object-position: left top;
 }
 
-::view-transition-old(stage):only-child,
-::view-transition-old(tools):only-child {
+/* The player is the column the tools come out from UNDER, and go back
+   under: its group draws above theirs and clips to its own animating box,
+   so on close it widens over the departing column and covers it edge by
+   edge, and on open it narrows to uncover the arriving one. Without this
+   the tools' snapshot painted on top and faded slowly across the player —
+   half a Clips sheet ghosting over the cover. */
+::view-transition-group(stage) {
+  z-index: 2;
+  overflow: hidden;
+}
+
+::view-transition-group(tools) {
+  z-index: 1;
+}
+
+::view-transition-old(stage):only-child {
   animation: slide-out 460ms var(--ios-curve) both;
   opacity: 1;
 }
 
-::view-transition-new(stage):only-child,
-::view-transition-new(tools):only-child {
+::view-transition-new(stage):only-child {
   animation: slide-in 560ms var(--ios-curve) both;
+}
+
+/* The tools column is covered, not dismissed on its own: it only needs to
+   be gone by the time the player's edge has passed. */
+::view-transition-old(tools):only-child {
+  animation: fade-out 240ms ease-out both;
+}
+
+::view-transition-new(tools):only-child {
+  animation: none;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 /* A column arrives from the right and leaves the way it came, fading as it
