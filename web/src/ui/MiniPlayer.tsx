@@ -1,19 +1,19 @@
 import { t } from '../i18n';
-import { next, toggle, usePlayer } from '../player';
+import { next, previous, toggle, usePlayer } from '../player';
 
 import { Artwork } from './Artwork';
-import { NextGlyph, PlayPauseGlyph } from './glyphs';
+import { NextGlyph, PlayPauseGlyph, PreviousGlyph } from './glyphs';
 
 /**
  * The phone's now-playing banner — the app's collapsed PlayerSheet: glass
- * over the library, the cover, the title over the subtitle, play and next.
- * A tap anywhere else expands it.
+ * over the library, the cover, the title over the subtitle, and the app's
+ * three controls — previous, play, next. A tap anywhere else expands it. No
+ * progress line: the app dropped its own, and the expanded player has the
+ * scrubber.
  */
 export function MiniPlayer({ onExpand }: { onExpand: () => void }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
-  const position = usePlayer(s => s.position);
-  const duration = usePlayer(s => s.duration);
 
   if (!current) return null;
 
@@ -29,6 +29,10 @@ export function MiniPlayer({ onExpand }: { onExpand: () => void }) {
         </span>
         <span className="sr">{t('player.title')}</span>
       </button>
+      <button type="button" className="glyph skip" onClick={previous}>
+        <PreviousGlyph />
+        <span className="sr">{t('player.previous')}</span>
+      </button>
       <button type="button" className="glyph" onClick={toggle}>
         <PlayPauseGlyph playing={playing} />
         <span className="sr">
@@ -39,15 +43,6 @@ export function MiniPlayer({ onExpand }: { onExpand: () => void }) {
         <NextGlyph />
         <span className="sr">{t('player.next')}</span>
       </button>
-      <span
-        className="mini-progress"
-        style={
-          {
-            '--progress': duration ? position / duration : 0,
-          } as React.CSSProperties
-        }
-        aria-hidden="true"
-      />
     </div>
   );
 }

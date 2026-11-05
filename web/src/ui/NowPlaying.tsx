@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { formatTime } from '@app/lib/player';
 
@@ -9,7 +9,6 @@ import { Artwork } from './Artwork';
 import { useClipsSummary } from './ClipsForm';
 import { useShapeSummary } from './ShapePanel';
 import {
-  ChevronDownGlyph,
   ClipGlyph,
   NextGlyph,
   PencilGlyph,
@@ -26,6 +25,10 @@ import {
  * the mini player.
  */
 export type Panel = 'shape' | 'clips' | 'edit';
+
+/** The sheets' own numbers (SidePanel): how far, or how fast, lets go. */
+const DISMISS_PX = 120;
+const DISMISS_VELOCITY = 0.6; // px per ms
 
 export function NowPlaying({
   onCollapse,
@@ -44,6 +47,12 @@ export function NowPlaying({
   const clipsSummary = useClipsSummary();
   // While the thumb is held, the scrubber shows where it is, not the sound.
   const [dragging, setDragging] = useState<number | null>(null);
+  // A phone pulls the player down by its grabber, cover or title, as the
+  // app's sheet goes down under a finger. The column follows the finger
+  // directly — no render per frame.
+  const grab = useRef<{ y: number; t: number; id: number } | null>(null);
+  const column = (e: React.PointerEvent) =>
+    (e.currentTarget as HTMLElement).closest<HTMLElement>('.now-column');
 
   if (!current) return null;
 
@@ -52,9 +61,53 @@ export function NowPlaying({
   const progress = total ? Math.min(1, at / total) : 0;
 
   return (
-    <section className="now" aria-label={t('player.title')}>
+    <section
+      className="now"
+      aria-label={t('player.title')}
+      onPointerDown={e => {
+        if (
+          !(e.target as HTMLElement).closest('.collapse, .now-art, .now-copy')
+        )
+          return;
+        if (matchMedia('(min-width: 64rem)').matches) return;
+        grab.current = { y: e.clientY, t: performance.now(), id: e.pointerId };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const col = column(e);
+        if (col) col.style.transition = 'none';
+      }}
+      onPointerMove={e => {
+        if (grab.current?.id !== e.pointerId) return;
+        const dy = e.clientY - grab.current.y;
+        const col = column(e);
+        if (col) col.style.transform = `translateY(${dy > 0 ? dy : dy / 6}px)`;
+      }}
+      onPointerUp={e => {
+        const start = grab.current;
+        grab.current = null;
+        if (!start) return;
+        const col = column(e);
+        if (col) {
+          col.style.transition = '';
+          col.style.transform = '';
+        }
+        const dy = e.clientY - start.y;
+        const velocity = dy / Math.max(1, performance.now() - start.t);
+        if (dy > DISMISS_PX || (dy > 24 && velocity > DISMISS_VELOCITY))
+          onCollapse();
+      }}
+      onPointerCancel={e => {
+        grab.current = null;
+        const col = column(e);
+        if (col) {
+          col.style.transition = '';
+          col.style.transform = '';
+        }
+      }}
+    >
+      {/* The sheets' grabber, not a chevron: it says the player is pulled
+          down, and a tap on it does the same. */}
       <button type="button" className="collapse" onClick={onCollapse}>
-        <ChevronDownGlyph />
+        <span className="grabber" aria-hidden="true" />
         <span className="sr">{t('common.close')}</span>
       </button>
 

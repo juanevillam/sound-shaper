@@ -623,8 +623,13 @@ button {
   pointer-events: none;
 }
 
+/* A column, not a grid: WebKit sizes a display: grid <button> from the
+   cover's aspect-ratio too early, so the button came out shorter than what
+   it holds — the captions were clipped at its bottom edge and the next row
+   stood right against them (iPhone, 2026-11-05). */
 .tile {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.125rem;
   width: 100%;
   padding: 0;
@@ -636,6 +641,8 @@ button {
 .tile-art {
   position: relative;
   display: block;
+  flex: none;
+  width: 100%;
   aspect-ratio: 1;
   margin-bottom: 0.625rem;
   border-radius: 15%;
@@ -720,8 +727,12 @@ button {
   text-overflow: ellipsis;
 }
 
+/* Every one-line, clipped caption states Apple's leading (17/22, 15/20,
+   13/18): at the default 'normal', WebKit sizes the system font's line box
+   short and overflow: hidden cuts the descenders off. */
 .tile-name {
   font-size: 1.0625rem;
+  line-height: 1.375rem;
 }
 
 /* The app's opticalTextInset: captions clear the cover's rounded corner by
@@ -734,6 +745,7 @@ button {
 .tile-sub {
   color: var(--ink-2);
   font-size: 0.9375rem;
+  line-height: 1.25rem;
 }
 
 /* The playing tile's mark — the app's NowPlayingBars: a 26pt round scrim,
@@ -871,19 +883,29 @@ button {
 }
 
 .collapse {
-  justify-self: center;
+  align-self: center;
   display: grid;
   place-items: center;
-  width: 3rem;
-  height: 2rem;
+  width: 4rem;
+  height: 1.5rem;
+  margin-bottom: 0.5rem;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  touch-action: none;
 }
 
-.collapse svg {
-  width: 1.75rem;
+.collapse .grabber {
+  width: 2.25rem;
+  height: 0.3125rem;
+  border-radius: 999px;
+  background: rgb(var(--fg) / 0.3);
+}
+
+/* What a finger pulls the player down by does not scroll it. */
+.now-art,
+.now-copy {
+  touch-action: none;
 }
 
 .now-art {
@@ -908,6 +930,7 @@ button {
 
 .now-title {
   font-size: 1.375rem;
+  line-height: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -915,6 +938,7 @@ button {
 .now-artist {
   color: var(--muted);
   font-size: 1.0625rem;
+  line-height: 1.375rem;
 }
 
 /* Apple's media scrubber: a thin track that swells while held. */
@@ -1089,12 +1113,14 @@ button {
 
 .dock-label {
   font-size: 1.0625rem;
+  line-height: 1.375rem;
 }
 
 .dock-summary {
   overflow: hidden;
   color: var(--muted);
   font-size: 0.8125rem;
+  line-height: 1.125rem;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1158,11 +1184,13 @@ button {
 
 .mini-title {
   font-size: 1.0625rem;
+  line-height: 1.375rem;
 }
 
 .mini-artist {
   color: var(--muted);
   font-size: 0.9375rem;
+  line-height: 1.25rem;
 }
 
 .mini .glyph {
@@ -1174,26 +1202,6 @@ button {
 
 .mini .glyph.skip {
   padding: 0.85rem 0.55rem;
-}
-
-.mini-progress {
-  position: absolute;
-  left: 1.25rem;
-  right: 1.25rem;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: rgb(var(--fg) / 0.12);
-}
-
-.mini-progress::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--ink);
-  transform: scaleX(var(--progress));
-  transform-origin: left;
 }
 
 /* Phone: the expanded player is a sheet over everything. */
@@ -1227,6 +1235,14 @@ button {
   width: 100%;
   max-width: 26rem;
   margin: 0 auto;
+  /* The cover gives way so the whole console fits the screen, glass bar
+     included: everything under it measured 21.75rem at 393 × 663 (Chrome on
+     an iPhone, with its bars), plus the column's own safe-area padding.
+     Before, the column scrolled and the bar ended up over bare ground. */
+  --cover-cap: calc(
+    100dvh - 22rem - max(0.5rem, env(safe-area-inset-top)) -
+      max(1.5rem, env(safe-area-inset-bottom))
+  );
 }
 
 .now-column .now-art {
@@ -1246,7 +1262,9 @@ button {
 /* ── The player's wash: the app's PlayerBackdrop ── */
 
 .player-backdrop {
-  position: absolute;
+  /* Fixed on a phone: if the column ever scrolls, the wash stays behind
+     the glass bar instead of scrolling away from it. */
+  position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
@@ -2027,6 +2045,10 @@ button {
       filter var(--dur-turn) var(--ease),
       border-radius var(--dur-turn) var(--ease);
     overflow: hidden;
+  }
+
+  .player-backdrop {
+    position: absolute;
   }
 
   /* Under a sheet the player steps back, as the app's screen does under a
