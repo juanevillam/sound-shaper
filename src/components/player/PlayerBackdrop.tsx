@@ -161,9 +161,22 @@ const STANDIN_CROSS_ALPHA = 0.14;
  * headroom they do not have.
  */
 const FLOW_LAYERS = [
-  { periodS: 38, direction: 1, opacity: 0.6, offset: { x: -0.22, y: -0.16 } },
-  { periodS: 53, direction: -1, opacity: 0.5, offset: { x: 0.24, y: 0.14 } },
+  { periodS: 24, direction: 1, opacity: 0.85, offset: { x: -0.3, y: -0.2 } },
+  { periodS: 33, direction: -1, opacity: 0.7, offset: { x: 0.32, y: 0.22 } },
 ] as const;
+
+/**
+ * THE FLOW IS BLURRED LESS THAN THE STILL WASH, and the numbers above are
+ * as strong as they are, because the first cut was invisible on Juan's
+ * iPhone. At the wash's own 60pt blur, 38s / 53s and 0.6 / 0.5, the layer
+ * stack was simulated offline (cover art, fade stops and geometry from this
+ * file, iPhone 15 points): visible pixels moved ~1/255 a second — attempt 1's
+ * failure again, the blur eating what the motion moves. At 30pt, 24s / 33s and
+ * 0.85 / 0.7 they move ~4/255 a second and ~60/255 over five seconds in the
+ * brightest pools: a drift you see, never a flicker. The fade is unchanged, so
+ * nothing the console is read against got any louder.
+ */
+const FLOW_BLUR = 30;
 
 type PlayerBackdropProps = {
   artUrl?: string;
@@ -221,7 +234,7 @@ function FlowLayer({
         source={{ uri }}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
-        blurRadius={BACKDROP_BLUR}
+        blurRadius={FLOW_BLUR}
         transition={BACKDROP_FADE_MS}
         cachePolicy="memory-disk"
       />
