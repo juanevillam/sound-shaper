@@ -1,7 +1,12 @@
+import { lazy, Suspense } from 'react';
+
 import { useLocale } from './i18n';
-import { Home } from './screens/Home';
 import { Welcome } from './screens/Welcome';
 import { useSession } from './session';
+
+const Home = lazy(() =>
+  import('./screens/Home').then(m => ({ default: m.Home })),
+);
 
 export function App() {
   const session = useSession();
@@ -13,7 +18,9 @@ export function App() {
   if (session.state === 'loading') return null;
 
   return session.state === 'signed-in' ? (
-    <Home key={session.user.uid} user={session.user} />
+    <Suspense fallback={null}>
+      <Home key={session.user.uid} user={session.user} />
+    </Suspense>
   ) : (
     <Welcome />
   );

@@ -4,7 +4,7 @@ import { useScheme } from '../appearance';
 
 import { formatTime } from '@app/lib/player';
 
-import type { Clip } from '../clips';
+import { createClip, updateClip, type Clip } from '../clips';
 import { noteClipSaved } from '../trophies';
 import { t } from '../i18n';
 import type { Sound } from '../library';
@@ -276,8 +276,7 @@ const EditorCommit = ({
   onDone: () => void;
 }) => {
   useEffect(() => {
-    commit = async () => {
-      const { createClip, updateClip } = await import('../clips');
+    commit = () => {
       const value = { startMs: range[0] * 1000, endMs: range[1] * 1000 };
       if (clip) void updateClip(soundId, clip.id, value);
       else {

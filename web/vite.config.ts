@@ -35,4 +35,27 @@ export default defineConfig({
     // The shared modules live one level up.
     fs: { allow: [at('..')] },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes('node_modules/firebase/firestore') ||
+            id.includes('node_modules/@firebase/firestore')
+          )
+            return 'firestore';
+          if (
+            id.includes('node_modules/firebase/auth') ||
+            id.includes('node_modules/@firebase/auth')
+          )
+            return 'auth';
+          if (
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/react/')
+          )
+            return 'react';
+        },
+      },
+    },
+  },
 });

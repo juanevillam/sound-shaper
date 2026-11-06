@@ -1,23 +1,22 @@
-import { initializeApp } from 'firebase/app';
 import {
   initializeAppCheck,
   ReCaptchaEnterpriseProvider,
 } from 'firebase/app-check';
-import { getAuth } from 'firebase/auth';
 import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore';
 
-import { firebaseConfig, recaptchaSiteKey } from './firebaseConfig';
+import { app, auth } from './auth';
+import { recaptchaSiteKey } from './firebaseConfig';
+
+export { app, auth };
 
 declare global {
   // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string | undefined;
 }
-
-export const app = initializeApp(firebaseConfig);
 
 // On localhost reCAPTCHA cannot vouch for the page (the key is bound to
 // soundshaper.juanevillam.com), so App Check runs on a DEBUG token registered
@@ -33,8 +32,6 @@ export const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(recaptchaSiteKey),
   isTokenAutoRefreshEnabled: true,
 });
-
-export const auth = getAuth(app);
 
 // The app keeps Firestore's cache on disk too, so a library opens at once.
 export const db = initializeFirestore(app, {

@@ -7,7 +7,7 @@
   --ground: #0d0d0d;
   --ink: #f5f5f5;
   --ink-2: #a3a3a3;
-  --ink-3: #737373;
+  --ink-3: #7a7a7a;
   --surface: #161616;
   --hairline: #262626;
   --glass-ink: #2a2a2a;
@@ -151,14 +151,14 @@ button {
 
 @keyframes rise {
   from {
-    opacity: 0;
+    opacity: 0.01;
     transform: translateY(14px);
   }
 }
 
 @keyframes fade {
   from {
-    opacity: 0;
+    opacity: 0.01;
   }
 }
 
