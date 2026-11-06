@@ -28,7 +28,14 @@ service cloud.firestore {
 
         // Personal replay bookmarks into a song — same ownership.
         match /clips/{clipId} {
-          allow read, write: if isUser(uid);
+          allow read, delete: if isUser(uid);
+          allow create, update: if isUser(uid)
+            && request.resource.data.keys().size() <= 7
+            && request.resource.data.startMs is number
+            && request.resource.data.endMs is number
+            && request.resource.data.startMs >= 0
+            && request.resource.data.endMs > request.resource.data.startMs
+            && request.resource.data.endMs <= 86400000;
         }
       }
 
@@ -43,8 +50,10 @@ service cloud.firestore {
       // Earned trophies — private to you, one doc per trophy id holding its
       // `achievedAt`, so awards survive a reinstall.
       match /trophies/{trophyId} {
-        allow read: if isUser(uid);
-        allow write: if isUser(uid);
+        allow read, delete: if isUser(uid);
+        allow create, update: if isUser(uid)
+          && request.resource.data.keys().hasOnly(['achievedAt'])
+          && request.resource.data.achievedAt is number;
       }
     }
 

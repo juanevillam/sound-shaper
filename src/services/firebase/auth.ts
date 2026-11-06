@@ -54,8 +54,6 @@ export const configureGoogleSignIn = () => {
 export const signInWithGoogle = reported(
   'auth.signInWithGoogle',
   async (): Promise<FirebaseAuthTypes.UserCredential | null> => {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
     const response = await GoogleSignin.signIn();
 
     if (response.type !== 'success') return null;

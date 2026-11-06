@@ -27,7 +27,6 @@ const appCheckReady: Promise<AppCheck | null> = initializeAppCheck(getApp(), {
   provider: {
     providerOptions: {
       apple: { provider: __DEV__ ? 'debug' : 'appAttest' },
-      android: { provider: __DEV__ ? 'debug' : 'playIntegrity' },
     },
   },
   isTokenAutoRefreshEnabled: true,
