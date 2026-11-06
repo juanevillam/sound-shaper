@@ -36,14 +36,6 @@ export const RATE_MAX = 1.25;
 export const RATE_STEP = 0.05;
 
 /**
- * Compose's `Slider` counts the stops BETWEEN the two ends, so the eleven
- * values 0.75 … 1.25 are nine. SwiftUI takes `step` directly and has no use
- * for this.
- */
-export const RATE_SLIDER_STEPS =
-  Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) - 1;
-
-/**
  * A slider's raw value → the nearest stop, clamped to the range.
  *
  * FLOAT MATH ON THESE STEPS DRIFTS, and it drifts twice over: a slider hands

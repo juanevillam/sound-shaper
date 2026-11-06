@@ -98,7 +98,15 @@ const chime = async (variant: Variant): Promise<void> => {
   gain.connect(ctx.destination);
 
   await new Promise<void>(resolve => {
-    source.onEnded = () => resolve();
+    source.onEnded = () => {
+      try {
+        source.disconnect();
+        gain.disconnect();
+      } catch {
+        // Already disconnected.
+      }
+      resolve();
+    };
     source.start();
   });
 };

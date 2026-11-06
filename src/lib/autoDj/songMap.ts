@@ -27,10 +27,12 @@ export function getSongMap(
 ): Promise<SongMap | null> {
   const inFlight = memory.get(soundId);
   if (inFlight) return inFlight;
-  const promise = compute(soundId, audioUrl).catch(() => null);
-  promise.then(map => {
-    if (!map) memory.delete(soundId);
-  });
+  const promise = compute(soundId, audioUrl)
+    .catch(() => null)
+    .then(map => {
+      if (!map && memory.get(soundId) === promise) memory.delete(soundId);
+      return map;
+    });
   memory.set(soundId, promise);
   return promise;
 }
@@ -54,7 +56,10 @@ function pruneOnce(): void {
   FileSystem.readDirectoryAsync(cacheDir())
     .then(names =>
       Promise.all(
+        // `.json` only — an in-flight `<soundId>.mp3` or `.json.tmp` belongs
+        // to a decode that is still running, and its own `finally` deletes it.
         names
+          .filter(name => name.endsWith('.json'))
           .filter(name => !name.startsWith(`${CACHE_VERSION}-`))
           .map(name =>
             FileSystem.deleteAsync(`${cacheDir()}${name}`, {

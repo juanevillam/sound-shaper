@@ -5,7 +5,6 @@ import {
   RATE_LAST_STOP,
   RATE_MAX,
   RATE_MIN,
-  RATE_SLIDER_STEPS,
   rateLabel,
   rateToStop,
   snapRate,
@@ -32,8 +31,6 @@ describe('formatTime', () => {
 describe('the rate stops', () => {
   it('are eleven, 0.75 to 1.25', () => {
     expect(RATE_LAST_STOP).toBe(10);
-    // Compose counts the stops between the two ends.
-    expect(RATE_SLIDER_STEPS).toBe(9);
   });
 
   it('round-trip exactly through their indices', () => {

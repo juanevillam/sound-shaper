@@ -1,6 +1,7 @@
 import {
   type AudioBuffer,
   type AudioBufferSourceNode,
+  type GainNode,
 } from 'react-native-audio-api';
 
 import { audioEngine } from './audioEngine';
@@ -18,7 +19,7 @@ import { synthFx, type FxName } from './autoDj/fx';
 /** Takes of each sound, made once per session and reused. */
 const TAKES = 3;
 const cache = new Map<string, AudioBuffer>();
-const live = new Set<AudioBufferSourceNode>();
+const live = new Set<{ source: AudioBufferSourceNode; level: GainNode }>();
 
 function bufferFor(name: FxName, lengthS?: number): AudioBuffer {
   const ctx = audioEngine.getContext();
@@ -49,6 +50,7 @@ export const djFx = {
       const align =
         name === 'riser' || name === 'reverseCymbal' ? buffer.duration : 0;
       const startIn = cutInS - align;
+      if (-startIn >= buffer.duration) return;
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       // At the set's level: the sounds were tuned against untouched music,
@@ -57,16 +59,15 @@ export const djFx = {
       level.gain.value = audioEngine.levelLinear();
       source.connect(level);
       level.connect(ctx.destination);
+      const entry = { source, level };
       source.onEnded = () => {
-        live.delete(source);
+        live.delete(entry);
         source.disconnect();
         level.disconnect();
       };
-      live.add(source);
+      live.add(entry);
       if (startIn >= 0) source.start(ctx.currentTime + startIn);
-      else if (-startIn < buffer.duration)
-        source.start(ctx.currentTime, -startIn);
-      else live.delete(source);
+      else source.start(ctx.currentTime, -startIn);
     } catch {
       // A missing flourish is never worth an error in the music.
     }
@@ -74,10 +75,11 @@ export const djFx = {
 
   /** Silence everything in flight — a pause, a scrub, Auto DJ switched off. */
   stopAll(): void {
-    for (const source of live) {
+    for (const { source, level } of live) {
       try {
         source.stop();
         source.disconnect();
+        level.disconnect();
       } catch {
         // Already finished.
       }
