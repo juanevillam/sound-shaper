@@ -22,7 +22,7 @@ export { legalUrl, type LegalPage } from './author';
 export { confirmDestructiveIos } from './confirmDestructiveIos';
 export { DisclosureChevron } from './DisclosureChevron';
 export { artworkRadius } from './artworkRadius';
-export { EmptyState, EMPTY_STATE_STEPS } from './EmptyState';
+export { EmptyState } from './EmptyState';
 export {
   EMPTY_MEDIA_CAPTION_GAP,
   EMPTY_MEDIA_PLUS,
@@ -58,10 +58,6 @@ export {
 export { LIST_ROW_ONE_LINE } from './listRowText';
 export { SHEET_HERO_BADGE_SIZE, SHEET_HERO_GLYPH_SIZE } from './sheetHero';
 export {
-  composeSheetBottomPadding,
-  COMPOSE_SHEET_GUTTER,
-  COMPOSE_SHEET_HEADER_HEIGHT,
-  COMPOSE_SHEET_HEADER_TO_CONTENT,
   SHEET_CONTENT_TOP,
   SHEET_EMPTY_HEADER_SLOT,
   SHEET_FIRST_CARD_MARGIN,

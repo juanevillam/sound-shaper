@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  BackHandler,
-  Pressable,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -24,10 +18,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import {
-  initialWindowMetrics,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BannerGlassIos } from '@/components/player/BannerGlassIos';
 import {
@@ -379,20 +370,7 @@ export function PlayerSheet() {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  // Android hands back a bottom inset of 0 on some cold starts, resumes and
-  // config changes — which would drop the collapsed banner UNDER the
-  // navigation bar. Defend on two fronts: fall back to the metrics captured at
-  // launch, and latch the largest value seen this session (the inset only
-  // grows while the nav bar stays put).
-  const launchBottomInset = initialWindowMetrics?.insets.bottom ?? 0;
-  const [bottomInset, setBottomInset] = useState(
-    Math.max(insets.bottom, launchBottomInset),
-  );
-  useEffect(() => {
-    setBottomInset(current =>
-      Math.max(current, insets.bottom, launchBottomInset),
-    );
-  }, [insets.bottom, launchBottomInset]);
+  const bottomInset = insets.bottom;
   const { width: winW, height: winH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const current = usePlayerStore(s => s.current);
@@ -448,7 +426,7 @@ export function PlayerSheet() {
   expandedRef.current = expanded;
 
   // The React side of opening or closing: the state the rest of the screen
-  // reads, mirrored so screens' back handlers can yield to the sheet's.
+  // reads (e.g. Home's navigation bar hiding behind the expanded player).
   const markExpanded = useCallback((open: boolean) => {
     setExpanded(open);
     usePlayerStore.getState().setSheetExpanded(open);
@@ -645,21 +623,6 @@ export function PlayerSheet() {
 
     springTo(1);
   }, [expandNonce, current, springTo]);
-
-  // Android back collapses the player instead of popping the screen under it.
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        if (!expandedRef.current) return false;
-
-        springTo(0);
-        return true;
-      },
-    );
-
-    return () => subscription.remove();
-  }, [springTo]);
 
   // Sign-out / queue cleared while open: drop back to nothing.
   useEffect(() => {

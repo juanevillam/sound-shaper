@@ -114,9 +114,6 @@ export type SettingsScreenProps = {
   sections: SettingsRadioSection[];
   /** Category header rendered above the preference rows, e.g. "General". */
   sectionsTitle?: string;
-  /** Already-translated label for the dismiss action in the option dialogs.
-   *  Read on Android only — the iOS variant's menu `Picker` dismisses itself. */
-  cancelLabel: string;
   /** Optional read-only info rows rendered last, e.g. bundled versions. */
   about?: SettingsAboutConfig;
   /** Optional policy links. See `SettingsLegalConfig` for why they are not

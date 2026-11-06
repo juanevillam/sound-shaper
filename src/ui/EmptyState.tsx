@@ -10,52 +10,10 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { useAppTheme } from '@/core';
 
-import { type IconName } from './icons';
-
 import { actionButtonModifiersIos } from './SheetFormIos';
 
-/**
- * THE EMPTY STATE'S OWN STEPS, exported for the one case that may not mount
- * this component: a surface that must RE-DRAW it in another container.
- *
- * `EmptyState` hosts its own Compose `Host`, and a Host inside another Host is
- * the nesting blow-up the RNHostView notes record — so a Compose bottom sheet
- * standing an empty state has to draw the parts itself. The Clips sheet does,
- * and it had hand-copied all four numbers, which is the "re-implement in
- * another technology, import its constants" rule in `docs/standards.md`
- * pointing at exactly this shape. There is one caller today and
- * that is the point: the steps are stated here, and the copy is gone.
- */
-export const EMPTY_STATE_STEPS = {
-  iconSize: 48,
-  /** The mark-to-title and title-to-subtitle gap. */
-  gap: 8,
-  /** EXTRA gap the icon opens above the title, on top of `gap` — the mark is
-   *  a different kind of statement from the text and Apple's own
-   *  `ContentUnavailableView` spaces it that way (icon→title 23.7pt against
-   *  title→description 7.7, measured). 8 + 8 lands 16, the Material grid's
-   *  nearest rhythm. */
-  iconGap: 8,
-  /** EXTRA gap above the CTA, on top of `gap` — a button pressed right up
-   *  against the description reads as part of the prose. iOS gets 37pt of
-   *  clearance from Apple's own trailing inset; 8 + 16 is the Material-grid
-   *  equivalent. */
-  ctaGap: 16,
-  title: 'titleLarge',
-  subtitle: 'bodyMedium',
-} as const;
-
 export type EmptyStateProps = {
-  /**
-   * The Material Symbol drawn where iOS draws its `systemImage` — large and
-   * muted, the same statement `ContentUnavailableView` opens with.
-   */
-  icon?: IconName;
-  /**
-   * iOS only — the SF Symbol its `ContentUnavailableView` draws. Accepted and
-   * IGNORED here; this side names its Material twin via `icon`. Typed as the
-   * iOS twin needs it, since that file takes this type rather than restating it.
-   */
+  /** The SF Symbol `ContentUnavailableView` draws. */
   systemImage?: SFSymbol;
   title: string;
   subtitle?: string;

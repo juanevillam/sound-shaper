@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
-import { withAlpha, useAppTheme } from '@/core';
+import { useAppTheme } from '@/core';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { UI_STATE_LAB, useUiStateLab } from '@/dev/uiStateLab';
 import { formatAchievedDate, useTrophyContent } from '@/hooks/useTrophyContent';
@@ -61,13 +61,9 @@ export default function TrophiesRoute() {
           // one. `TrophiesScreen`'s own placeholder says so instead.
           loading={loading}
           colors={{
-            background: colors.background,
-            surface: colors.surfaceContainer,
             onSurface: colors.onSurface,
             onSurfaceMuted: colors.onSurfaceMuted,
             primary: colors.primary,
-            track: colors.surfaceVariant,
-            ripple: withAlpha(colors.onSurface, 0.1),
           }}
           strings={{ percent, ...screenStrings }}
           formatDate={formatDate}

@@ -18,10 +18,6 @@ export const translations = {
       back: 'Back',
       cancel: 'Cancel',
       close: 'Close',
-      // The snackbar's action-less dismiss slot (Android). It is the ONE
-      // user-facing string that used to live outside this file, hardcoded
-      // English in `SnackbarProvider`'s default.
-      ok: 'OK',
       retry: 'Try Again',
       // ARTWORK, the voice table's word for a picture that stands for a
       // recording — and the same word this app's editor already uses. It read
@@ -110,7 +106,6 @@ export const translations = {
         },
       },
       menu: {
-        label: 'Sound Options',
         edit: 'Edit Sound',
         // THE BAR'S LABEL, one word. `edit` above is the full phrase and stays
         // the compartment's accessibility label, where the extra word is worth
@@ -323,7 +318,6 @@ export const translations = {
         dark: 'Dark',
         system: 'Automatic',
       },
-      cancel: 'Cancel',
       signOut: 'Sign Out',
       signOutDialog: {
         title: 'Sign Out?',
@@ -395,7 +389,6 @@ export const translations = {
       back: 'Atrás',
       cancel: 'Cancelar',
       close: 'Cerrar',
-      ok: 'OK',
       retry: 'Reintentar',
       pickMedia: 'Elegir ilustración',
     },
@@ -478,7 +471,6 @@ export const translations = {
         },
       },
       menu: {
-        label: 'Opciones del sonido',
         edit: 'Editar sonido',
         editShort: 'Editar',
       },
@@ -649,7 +641,6 @@ export const translations = {
         dark: 'Oscuro',
         system: 'Automático',
       },
-      cancel: 'Cancelar',
       signOut: 'Cerrar sesión',
       signOutDialog: {
         title: '¿Cerrar sesión?',
@@ -726,7 +717,6 @@ export const translations = {
       back: '返回',
       cancel: '取消',
       close: '关闭',
-      ok: '好',
       retry: '重试',
       pickMedia: '选择插图',
     },
@@ -804,7 +794,6 @@ export const translations = {
         },
       },
       menu: {
-        label: '音频选项',
         edit: '编辑音频',
         editShort: '编辑',
       },
@@ -971,7 +960,6 @@ export const translations = {
         dark: '深色',
         system: '自动',
       },
-      cancel: '取消',
       signOut: '退出登录',
       signOutDialog: {
         title: '退出登录？',

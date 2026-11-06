@@ -99,8 +99,8 @@ type PlayerState = {
    * through `loadReset`, so a skip during the load cancels it.
    */
   pendingClip: ActiveClip | null;
-  // Mirror of the PlayerSheet's expanded state, so screens' own Android-back
-  // handlers can yield to the sheet's collapse handler.
+  // Mirror of the PlayerSheet's expanded state, so the home screen can hide
+  // its navigation-bar title and gear while the full player covers it.
   sheetExpanded: boolean;
   setSheetExpanded: (sheetExpanded: boolean) => void;
 

@@ -1,5 +1,3 @@
-import { type ReactNode } from 'react';
-
 import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -31,26 +29,6 @@ const APP_NAME = Constants.expoConfig?.name ?? '';
 // welcome disclaimer in site analytics.
 const openLegalPage = (page: LegalPage) =>
   WebBrowser.openBrowserAsync(legalUrl(APP_NAME, page, 'settings'));
-
-/**
- * SETTINGS IS THE ONE SCREEN IN THE SHEET FAMILY THAT ANDROID ALSO RENDERS, so
- * its root is chosen per platform rather than being `SheetScreen` outright.
- *
- * On iOS this route presents as a full-height form sheet (see
- * `IOS_SHEET_SCREENS`), and a sheet is presented ABOVE the RN root — so the
- * app's toast, which lives at that root, draws BEHIND it. This screen fires
- * one (a failed sign-out), and it had never been seen. `SheetScreen` mounts
- * the `SnackbarOutlet` that moves the toast into this tree; every other sheet
- * in the app already had it and this was the one that was missed.
- *
- * On Android Settings is an ordinary pushed screen whose root toast works
- * fine, and mounting an outlet there would claim the toast into this screen
- * and hand it the SHEET's clearance instead of the app's, so Android keeps the
- * plain View. That is the reason, not the release freeze it used to cite.
- */
-function SettingsRoot({ children }: { children: ReactNode }) {
-  return <SheetScreen>{children}</SheetScreen>;
-}
 
 export default function Settings() {
   const { t, locale, setLocale } = useI18n();
@@ -89,7 +67,7 @@ export default function Settings() {
   };
 
   return (
-    <SettingsRoot>
+    <SheetScreen>
       <SettingsScreen
         // Sign Out is the ONE session action, so it lives here rather than in
         // the Account screen — that keeps this screen to General, About,
@@ -154,7 +132,6 @@ export default function Settings() {
           supportedThemes: SUPPORTED_THEMES,
         })}
         sectionsTitle={t('settings.general.title')}
-        cancelLabel={t('settings.cancel')}
         about={buildAboutSettingsSection(
           translate,
           // The versionName of the installed binary — the ground truth for
@@ -183,6 +160,6 @@ export default function Settings() {
         colorScheme={scheme}
         colors={colors}
       />
-    </SettingsRoot>
+    </SheetScreen>
   );
 }

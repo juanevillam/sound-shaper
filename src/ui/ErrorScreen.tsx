@@ -2,16 +2,12 @@ import React from 'react';
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { withAlpha } from '@/core';
-
 import { PRESSED_OPACITY } from './SquashPressable';
 
 export type ErrorScreenColors = {
   background: string;
   onSurface: string;
   onSurfaceMuted: string;
-  /** iOS only — its borderless Retry is a text button, which keeps the
-   *  accent. Android's filled button takes the ink. */
   primary: string;
 };
 
@@ -55,7 +51,6 @@ export const ErrorScreen = ({
       <Pressable
         accessibilityRole="button"
         onPress={onRetry}
-        android_ripple={{ color: withAlpha(colors.background, 0.2) }}
         style={({ pressed }) => [
           styles.button,
           pressed && styles.buttonPressedIos,

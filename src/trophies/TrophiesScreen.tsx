@@ -58,19 +58,11 @@ export type TrophiesScreenProps = {
   loading?: boolean;
 };
 
-/** Material You roles the screen paints with. */
 export type TrophiesScreenColors = {
-  background: string;
-  /** Row background — an elevated surface (e.g. surfaceContainer). */
-  surface: string;
   onSurface: string;
   onSurfaceMuted: string;
   /** Progress-ring fill. */
   primary: string;
-  /** Progress-ring track (e.g. surfaceVariant). */
-  track: string;
-  /** Row press ripple — pass a low-alpha onSurface (e.g. withAlpha(onSurface, .1)). */
-  ripple: string;
 };
 
 export type TrophiesScreenStrings = {
@@ -630,7 +622,7 @@ const SUPPORTING_BONE_WIDTH = 160;
 /** The native row's own artwork→text gap. */
 const ROW_BONE_GAP = GROUPED_ROW.artGap;
 /** The bone row's own box, reserved in SwiftUI — see the note on the host. */
-const ROW_BONE_WIDTH = ICON_SLOT + 12 + SUPPORTING_BONE_WIDTH;
+const ROW_BONE_WIDTH = ICON_SLOT + ROW_BONE_GAP + SUPPORTING_BONE_WIDTH;
 /**
  * THE ROW'S CONTENT HEIGHT — solved from the rendered list, not from the line
  * boxes it holds.

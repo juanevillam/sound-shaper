@@ -108,7 +108,6 @@ export default function RootLayout() {
 }
 
 function AppRoot() {
-  const { t } = useI18n();
   const layoutHydrated = useLayoutStore(s => s.hasHydrated);
   const authResolved = useAuthStore(s => s.hasResolved);
   const themeHydrated = useThemeStore(s => s.hasHydrated);
@@ -164,7 +163,7 @@ function AppRoot() {
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <ThemeProvider value={navigationTheme}>
           <KeyboardProvider>
-            <SnackbarProvider dismissLabel={t('common.ok')}>
+            <SnackbarProvider>
               <Stack
                 screenOptions={{
                   headerShown: false,

@@ -34,16 +34,6 @@ import { PRESSED_OPACITY } from './SquashPressable';
 
 type SnackbarProviderProps = {
   children: React.ReactNode;
-  /**
-   * ANDROID ONLY — the constant action slot's label when a snackbar carries no
-   * real action (iOS renders no dismiss control at all; auto-dismiss and the
-   * swipe are the dismissal there). Already translated, since the package has
-   * no translator. Defaults to 'OK' — the one hardcoded English string this
-   * file shipped with — so an app that has not wired it yet is unchanged.
-   * Verified on the A54 via Topper's action-less toasts (the localized label
-   * renders in the slot and dismisses on tap).
-   */
-  dismissLabel?: string;
 };
 
 /**
@@ -95,10 +85,7 @@ const SWIPE_ACTIVATION_OFFSET = 8;
  * restyle one screen. A screen states nothing: the toast stands in the same
  * place on every screen, which is what `SNACKBAR_BOTTOM_CLEARANCE` is.
  */
-const SnackbarProvider = ({
-  children,
-  dismissLabel = 'OK',
-}: SnackbarProviderProps) => {
+const SnackbarProvider = ({ children }: SnackbarProviderProps) => {
   const [message, setMessage] = useState<string | null>(null);
   const [action, setAction] = useState<SnackbarAction | null>(null);
   const translateY = useSharedValue(HIDDEN_OFFSET);
@@ -285,13 +272,6 @@ const SnackbarProvider = ({
     [finalize, opacity, translateY, reduceMotion, setBoundOutlet, startTimer],
   );
 
-  // Plain dismiss (no action): a passive close, so commit the transaction.
-  const onDismissPress = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    finalize(true);
-    animateOut();
-  }, [animateOut, finalize]);
-
   // The action was taken (e.g. UNDO): resolve without committing, run it.
   const onActionPress = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -449,7 +429,7 @@ const SnackbarProvider = ({
             {action ? (
               <Pressable
                 hitSlop={8}
-                onPress={action ? onActionPress : onDismissPress}
+                onPress={onActionPress}
                 // Inline text action → the shared press FADE (see the
                 // press-language rule); it had no pressed state at all.
                 style={({ pressed }) => ({
@@ -457,7 +437,7 @@ const SnackbarProvider = ({
                 })}
               >
                 <RNText style={[styles.action, { color: colors.primary }]}>
-                  {action ? action.label : dismissLabel}
+                  {action.label}
                 </RNText>
               </Pressable>
             ) : null}

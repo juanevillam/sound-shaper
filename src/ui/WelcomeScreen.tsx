@@ -26,7 +26,6 @@ import { authButtonPoleKey } from './AuthButtonIos';
 import { AUTHOR_CREDIT_PREFIX, AUTHOR_NAME, authorUrl } from './author';
 import { BrandTile } from './BrandTile';
 import { GoogleSignInButton } from './GoogleSignInButton';
-import { type IconName } from './icons';
 import { type WelcomeLegal } from './LegalFooter';
 import { LegalFooter } from './LegalFooter';
 import { Screen } from './Screen';
@@ -34,15 +33,11 @@ import { duration, spacing } from './tokens';
 import { useSplashHidden } from './useSplashHidden';
 
 /**
- * The two sign-in buttons, each drawn to its brand's own spec. `apple` exists
- * only in the iOS variant — the Android screen has no Apple sign-in and draws
- * nothing for it, so don't pass it there.
+ * The two sign-in buttons, each drawn to its brand's own spec.
  */
 export type AuthActionProvider = 'google' | 'apple';
 
 export type WelcomeFeatureItem = {
-  /** The Material Symbol the Android row leads with. */
-  icon: IconName;
   /** The SF Symbol the iOS row leads with. */
   systemImage: string;
   title: string;

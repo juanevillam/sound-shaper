@@ -573,7 +573,6 @@ export default function HomeScreen() {
           // `StateWrap`.
           <StateWrap>
             <EmptyState
-              icon="warning"
               systemImage="exclamationmark.triangle"
               title={t('home.error.title')}
               subtitle={t('home.error.subtitle')}
