@@ -1,18 +1,18 @@
 {
   // Sound Shaper's media Worker: it holds the Cloudinary API secret so the app
-  // can delete its own uploads, and proves ownership by the upload PATH alone
-  // (see README.md). The same source once served the portfolio's other apps,
-  // which is why it is an environment rather than the top level.
+  // can sign its uploads and delete its own assets, proving ownership by the
+  // upload PATH alone (see README.md). The same source once served the
+  // portfolio's other apps, which is why it is an environment rather than the
+  // top level.
   //
   // ALWAYS DEPLOY WITH `--env`:
   //   npx wrangler deploy --env sound-shaper
   //
   // `vars` are NOT inherited from the top level by named environments, and
   // nothing here defines them, so a bare `wrangler deploy` produces a Worker
-  // with no FIREBASE_PROJECT_ID — every token then fails `bad-aud` and it
-  // deletes nothing. It fails CLOSED, which is the intended shape of that
-  // mistake.
-  "$schema": "node_modules/wrangler/config-schema.json",
+  // with an `undefined` project id that rejects every token. `npm run deploy`
+  // is disabled in package.json for the same reason.
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "media-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
@@ -25,7 +25,22 @@
         "FIREBASE_PROJECT_ID": "sound-shaper",
         // Must equal the app's `MEDIA_ROOT` (cloudinary/folders.ts).
         "MEDIA_FOLDER_ROOT": "sound-shaper",
+        "FIREBASE_PROJECT_NUMBER": "714853847469",
+        // `enforce` since 2026-11-03: Sound Shaper 1.0.1 (the first build
+        // with App Check) is live. See src/index.ts.
+        "APP_CHECK": "enforce",
+        // The web app (sound-shaper/web) and its dev server. CORS only lets
+        // a browser read the reply; the token and App Check still decide.
+        "ALLOWED_ORIGINS": "https://soundshaper.juanevillam.com,http://localhost:5173",
       },
+      // 30 requests a minute per account, across every route.
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1001",
+          "simple": { "limit": 30, "period": 60 },
+        },
+      ],
     },
   },
 }

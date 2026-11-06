@@ -111,11 +111,8 @@ Still to do:
   installs; Pages' own install would run the root's postinstall and husky).
   About 20 s. First build green; `soundshaper.pages.dev` serves it, but sign-in
   only works on the custom domain (API key and reCAPTCHA are bound to it).
-- **Custom domain `soundshaper.juanevillam.com`: attached, PENDING its DNS
-  record.** wrangler's token cannot write DNS, so the proxied CNAME
-  `soundshaper` → `soundshaper.pages.dev` is added by hand: Cloudflare
-  dashboard → Workers & Pages → soundshaper → Custom domains → Activate
-  domain (or DNS → Add record). The certificate follows on its own.
+- ✅ **Custom domain `soundshaper.juanevillam.com` LIVE** (proxied CNAME
+  `soundshaper` → `soundshaper.pages.dev`, certificate active).
 - Cloudinary needs nothing: uploads are signed by the Worker and delivery is
   open to any origin.
 

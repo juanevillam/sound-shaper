@@ -1,6 +1,6 @@
 ---
-description: Checkpoint audit of one app on one platform after a chunk of rework — is every repeated thing componentized, and is every surface idiomatic for that OS. Report-first.
-argument-hint: [platform, and any surfaces to exclude]
+description: Checkpoint audit of Sound Shaper on iOS or web (`web/`) after a chunk of rework — is every repeated thing componentized, and is every surface idiomatic for its target (iOS or web; never Android). Report-first.
+argument-hint: [target (ios|web), and any surfaces to exclude]
 ---
 
 # Craft audit — componentized, and native enough
@@ -19,9 +19,9 @@ usually one somebody hand-built instead of reaching for the shared thing.
 
 - **A. Componentization** — the same or nearly-the-same code exists once. No
   200-line block living in three files, no component nothing renders any more.
-- **B. "Is this <OS>-ly enough"** — radii, spacing, sizing, color, **button
+- **B. "Is this idiomatic for iOS / web"** — radii, spacing, sizing, color, **button
   types and variants**, containers, gestures, flows and structure are the
-  platform's own, expressed through the project's tokens.
+  target's own (iOS HIG / native SwiftUI controls on iOS; clean responsive DOM on web — never Android), expressed through the project's tokens.
 
 Scope from the user (the app is Sound Shaper; the platform, plus any surfaces
 to leave alone — ask if not given): $ARGUMENTS
@@ -48,12 +48,7 @@ Three contracts:
    skeleton rules, native-primitive-first rules, token systems, voice rules.
    Those beat any generic checklist below, and code that violates the project's
    _own_ documented rule is the most defensible finding you can report.
-2. Establish conventions: platform file suffixes, which platform (if any) is
-   **frozen** (none are, since 2026-08-29 — and treat any comment still
-   claiming one as an expired blocker to re-test, not a fact), where the former
-   shared packages (`src/ui`, `src/core`, `src/trophies`,
-   `modules/widget-bridge`) end and app code begins, which surfaces are deliberately not
-   idiomatic and why.
+2. Establish conventions: **Sound Shaper ships on iOS and web (`web/`) ONLY — never Android** (all Android code and config are deleted; never write, audit, or propose anything for Android). Check whether any leftover `.ios` suffix or platform stub is now redundant, where the former shared packages (`src/ui`, `src/core`, `src/trophies`, `modules/widget-bridge`) end and app code (`src/` on iOS, `web/src/` on web) begins, and which surfaces are deliberately not idiomatic and why.
 3. **Confirm the baseline is green before you touch anything** — typecheck,
    lint, format, tests. Note any uncommitted in-flight work so you can tell your
    changes from the user's.
@@ -147,10 +142,7 @@ everything here.
 
 ## A. Componentization
 
-1. **A platform twin nothing renders.** A `.ios`/`.android` file (or a
-   platform-named component) left behind when its surface was rebuilt. The tell:
-   its only importer imports _one constant_ from it. Check importers, not
-   mentions.
+1. **An orphaned platform file or component nothing renders.** A leftover `.android` file (Android is deleted), a redundant `.ios` split where only one native platform exists, or a component left behind when its surface was rebuilt on iOS or `web/`. The tell: its only importer imports _one constant_ from it. Check importers, not mentions.
 2. **A skeleton standing a component that was replaced.** The single most
    recurrent defect in a reworked codebase, because the bone is never the thing
    you are looking at when you change the real one. For every loading state, ask
@@ -168,8 +160,7 @@ everything here.
 7. **Comments describing code that no longer exists** — sizes, mechanisms,
    components that were renamed or deleted. Stale docs actively mislead the next
    session; they are findings, not cosmetics.
-8. **A type or union restated in a platform stub**, so adding a case means
-   editing the other platform's file.
+8. **A type or union restated across iOS (`src/`) and web (`web/src/`) or in a leftover stub**, so adding a case means editing two places.
 9. **Reimplementation beside the shared layer** — the same screen/hook/primitive
    solved once in `src/ui` / `src/core` and again in `src/components` or
    `src/hooks` (the extraction put the two worlds in one repo). Check before

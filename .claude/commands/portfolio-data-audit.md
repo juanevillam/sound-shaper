@@ -118,8 +118,8 @@ anything fired per keystroke or per mount.
 
 > Found this session: Explore fired THREE server queries per debounced keystroke,
 > with no result cache — backspacing a character and retyping it paid for all
-> three again. Both platform twins had their own copy of the same three calls.
-> Now one `searchExplore` behind a TTL'd session cache, shared by both.
+> three again. Duplicate callers had their own copy of the same three calls.
+> Now one `searchExplore` behind a TTL'd session cache, shared by all callers.
 
 Cache rules that came out of building it:
 
@@ -206,7 +206,7 @@ Prompts, not boxes. The project's own rules outrank all of it.
 2. **The listener keyed on data instead of on the surface that reads it.**
 3. **Two hooks on one query.** → one sync hook in the layout, stores everywhere
    else. Report as a render/maintenance finding, not a bandwidth one.
-4. **The per-keystroke fan-out with no cache**, duplicated across platform twins.
+4. **The per-keystroke fan-out with no cache**, duplicated across iOS and web or across screens.
 5. **The per-mount `getDocs` cache that dies with the screen** (a `useRef` inside
    a hook) → lift it to the service so every caller benefits.
 6. **The expensive invisible layer** — mounted always, faded by an animation.

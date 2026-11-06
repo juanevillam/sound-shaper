@@ -31,12 +31,11 @@ that no longer exist were adapted to this repo's layout (`src/ui`, `src/core`,
 ## The order, and why
 
 ```
-/portfolio-craft-audit ios        # 1  lock the reference before anything copies it
-/portfolio-craft-audit android    #    the twin, against that reference
+/portfolio-craft-audit ios        # 1  lock the iOS reference
+/portfolio-craft-audit web        #    and the web front end
 /portfolio-data-audit             # 2  prune the asking (the shared layer)
 /portfolio-cache-audit            # 3  bank what remains — never cache a call you should have deleted
-/portfolio-native-parity          # 4  closing pass: JUNK and HOLES, one-sided behaviour
-/portfolio-quality-audit          # 5  release gate 3, LAST — its one shot per release
+/portfolio-quality-audit          # 4  release gate 3, LAST — its one shot per release
 ```
 
 - **Craft first** because structure moves code, which would invalidate the

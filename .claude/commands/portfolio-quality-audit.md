@@ -35,7 +35,7 @@ Two contracts, non-negotiable:
    (`src/ui`, `src/core`, `src/trophies`, `modules/widget-bridge`,
    `modules/audio-session`), the `patches/` overlay, the widget in
    `targets/widget`, and the deployed Worker in `media-worker/`. Backend:
-   Firebase (Spark) and Cloudinary. Release target: the App Store first.
+   Firebase (Spark) and Cloudinary, plus the web app in `web/` (soundshaper.juanevillam.com). Release targets: iOS App Store and the web (never Android).
    This audit is release gate 3 in `docs/release.md`, which also lists what
    it must clear (the `npm audit` high advisories, then making that CI step
    blocking again).
@@ -67,12 +67,12 @@ the appendix checklist below, plus the two contracts above.
    memory/listener leaks.
 6. **Reliability & observability** — crash reporting coverage, error
    boundaries, offline/degraded behavior, race conditions, retry logic.
-7. **Privacy & compliance** — data collection vs store data-safety forms,
+7. **Privacy & compliance** — data collection vs App Store Nutrition Labels,
    permission minimization + rationale, account/data deletion completeness,
    privacy policy touchpoints, third-party SDK data flows.
-8. **Release & store configuration** — build config, versioning, signing,
-   shrinking/obfuscation, icons/splash, deep links, target SDK/OS levels,
-   store-listing prerequisites.
+8. **Release & store configuration (iOS App Store & web only)** — build config, versioning, signing,
+   icons/splash, universal links / web routes, iOS deployment target,
+   App Store listing and web deployment prerequisites.
 9. **Tooling & process** — CI, tests (AI-guided projects verified live often
    have none — assess what a minimal high-value test net would be), scripts,
    docs accuracy, `.gitignore` correctness.
@@ -201,7 +201,7 @@ doesn't apply to the stack, add what the stack demands.
 
 ## 6. Reliability & observability
 
-- Crash reporting: initialized on all platforms, uploads symbolicated,
+- Crash reporting: initialized on iOS and web (where used), dSYMs/sourcemaps symbolicated,
   catches JS + native; non-fatal error reporting where failures are silent.
 - Error boundaries around navigation roots / risky trees.
 - Offline & degraded: airplane-mode behavior on core flows; retry/backoff on
@@ -213,8 +213,7 @@ doesn't apply to the stack, add what the stack demands.
 ## 7. Privacy & compliance
 
 - Data inventory: what user data is collected/stored/transmitted, first- and
-  third-party (analytics, crash, media CDNs) — does it match the store
-  data-safety declarations you'll file?
+  third-party (analytics, crash, media CDNs) — does it match the App Store privacy declarations?
 - Permissions: each requested permission actually used, requested in
   context, with platform-appropriate rationale strings.
 - Account deletion: complete (auth + all user docs + storage/CDN assets +
@@ -225,11 +224,11 @@ doesn't apply to the stack, add what the stack demands.
 ## 8. Release & store configuration
 
 - Versioning strategy sane and documented; build numbers auto-managed.
-- Signing: release keys managed safely (EAS/keystore/App Store Connect),
-  never in repo.
-- iOS: ATS exceptions justified, required-reason APIs declared, correct
-  entitlements/capabilities, icon set complete, plist privacy strings.
-- Deep links / app links verified (assetlinks.json / AASA).
+- Signing: iOS release credentials managed safely (EAS / App Store Connect, team `PHLR7X3FGN` for Sound Shaper),
+  never in repo. (No Android / keystore / Play Store anywhere.)
+- iOS: ATS exceptions justified, required-reason APIs (`PrivacyInfo.xcprivacy`) declared, correct
+  entitlements/capabilities (App Groups, Sign in with Apple), `.icon` / icon set complete, Info.plist privacy strings.
+- Web & Universal Links: Cloudflare Pages / Vite build config, AASA if universal links are used (never `assetlinks.json`).
 - Env separation: dev endpoints, debug menus, and test users unreachable in
   release builds.
 - OTA-update config (if any) points at the right channel/runtime.
@@ -240,7 +239,7 @@ doesn't apply to the stack, add what the stack demands.
   reproducible from a clean checkout.
 - Tests: assess the _gap_ pragmatically — for a live-verified product, the
   high-value net is: pure logic units (engines, parsers, reducers), backend
-  security-rules tests, and one smoke E2E per platform. Recommend, don't
+  security-rules tests, and one smoke E2E on iOS / web. Recommend, don't
   gold-plate.
 - Scripts: `package.json` scripts work and are documented; one-command dev
   setup for a fresh machine.
