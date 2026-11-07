@@ -6,19 +6,19 @@
 Sound Shaper ships first on iOS, then Android, published under Grostify LLC's
 Apple Developer membership (team `PHLR7X3FGN`).
 
-| gate | what                                                                 | state                                                                                                    |
-| ---- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 1    | privacy policy, support and account-deletion pages                   | ✅ 2026-10-17 — live at juanevillam.com (site v1.0.0), all three languages                               |
-| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                                                        |
-| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                                                       |
-| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                                                     |
-| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                                                      |
-| 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports                                              |
-| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)                                       |
-| 2h   | account deletion end to end, Apple and Google providers              | ✅ Apple 2026-10-16; Google 2026-10-17 (Release build, see below)                                        |
-| 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build                                 |
-| 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                                                    |
-| 4    | submit                                                               | ✅ 1.0.0 live 2026-10-30; ✅ 1.0.1 (build 6, tag `v1.0.1`) live 2026-11-02; ✅ 1.1.0 approved 2026-11-06 |
+| gate | what                                                                 | state                                                                                                                                                          |
+| ---- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | privacy policy, support and account-deletion pages                   | ✅ 2026-10-17 — live at juanevillam.com (site v1.0.0), all three languages                                                                                     |
+| 2a   | Sign in with Apple                                                   | ✅ 2026-10-16, verified on device                                                                                                                              |
+| 2b   | media deleted with its sound, its cover and its account (the Worker) | ✅ 2026-09-12, E2E                                                                                                                                             |
+| 2d   | trophy totals server-side (`increment`, boundaries, one-time adopt)  | ✅ 2026-10-16, verified in Firestore                                                                                                                           |
+| 2e   | iOS submit profile in `eas.json`                                     | ✅ `ascAppId` 6823850995 + `appleTeamId` PHLR7X3FGN                                                                                                            |
+| 2f   | the SDK 57 drift survives a Release build                            | ✅ EAS production `.ipa` (build 2): zero unresolved imports                                                                                                    |
+| 2g   | the intermittent SIGSEGV                                             | ✅ root cause found and fixed (`NowPlayingBridge`'s publish queue)                                                                                             |
+| 2h   | account deletion end to end, Apple and Google providers              | ✅ Apple 2026-10-16; Google 2026-10-17 (Release build, see below)                                                                                              |
+| 2i   | console hardening before the repo is public                          | ✅ 2026-10-17 for iOS; the Android key waits for the first Android build                                                                                       |
+| 3    | the engineering quality audit                                        | ✅ 2026-10-17 — all five audits, fixes landed (below)                                                                                                          |
+| 4    | submit                                                               | ✅ 1.0.0 live 2026-10-30; ✅ 1.0.1 (build 6, tag `v1.0.1`) live 2026-11-02; ✅ 1.1.0 approved 2026-11-06; ✅ 1.1.2 (build 8, tag `v1.1.2`) approved 2026-11-07 |
 
 **1.0.0 is LIVE on the App Store (approved and released 2026-10-30):**
 https://apps.apple.com/app/id6823850995. **1.0.1 is LIVE too (approved 2026-11-01, on the store 2026-11-02, GitHub
@@ -29,6 +29,12 @@ Apple until Grostify's Account Holder accepted the updated Program License
 Agreement — an expired PLA blocks every signing call, so check it first when
 EAS reports an Apple 403. Its checklist — App Privacy changes included — is
 the "1.0.1" section below.
+
+## 1.1.2 — approved (2026-11-07)
+
+**Approved by App Store review on 2026-11-07 (build 8, tag `v1.1.2`, also live on the web); GitHub Release `v1.1.2`.**
+
+The App Store skipped `1.1.1` (web-only, 2026-11-05). What `1.1.2` brings: Auto DJ transitions and sound effects free up audio nodes immediately during long sessions, reliable local storage pruning while analyzing songs for Auto DJ, VoiceOver improvements across alerts and error screens, and a faster web sign-in load with improved contrast and keyboard focus.
 
 ## 1.1.0 — approved (2026-11-06)
 
