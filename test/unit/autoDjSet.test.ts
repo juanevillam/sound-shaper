@@ -254,10 +254,34 @@ describe('openings and returns', () => {
     expect(onBuild).toBeGreaterThan(20);
   });
 
-  it('comes back for a song from where it left it', () => {
+  it('comes back for a song from where it left it, shorter and never a third time', () => {
     for (const seg of segments({ part: 'later', fromBar: 48 })) {
       expect(bar(seg.startS)).toBeGreaterThanOrEqual(47.5);
       expect(Math.round(bar(seg.endS))).toBeGreaterThan(56);
+      expect(seg.endS - seg.startS).toBeLessThanOrEqual(44 + 1e-6);
+      expect(seg.resumeBar).toBeUndefined();
+    }
+  });
+
+  it('caps a long reggaeton-style peak so a song never plays almost whole', () => {
+    const longPeak: PoolSound = {
+      soundId: 'reggaeton',
+      map: songOf(92, [
+        [8, 0.35, 0.3, 0.4],
+        [32, 0.95, 0.95, 0.6],
+        [32, 1, 1, 0.65],
+        [32, 0.92, 0.9, 0.6],
+        [8, 0.3, 0.3, 0.35],
+      ]),
+    };
+    for (let seed = 1; seed <= 30; seed += 1) {
+      const seg = planSegment({
+        next: longPeak,
+        style: 'club',
+        seed,
+        setTempo: 92,
+      });
+      expect(seg.endS - seg.startS).toBeLessThanOrEqual(72 + 1e-6);
     }
   });
 

@@ -292,7 +292,10 @@ const direct = (): (() => void) => {
   let order: string[] = [];
   /** Songs left with a peak still ahead: where, and how many cuts ago. */
   const returns = new Map<string, { bar: number; at: number }>();
+  /** Songs that already returned once this pass — never a third play. */
+  const returned = new Set<string>();
   let cuts = 0;
+  let lastReturnCut = -10;
   /** The glue chosen for the cut into `upNext`, and whether it rose yet. */
   let fx: TransitionFx | null = null;
   let rose = false;
@@ -339,7 +342,10 @@ const direct = (): (() => void) => {
   const planRun = (fromId: string | null) => {
     const all = pool();
     const fresh = all.filter(p => !played.has(p.soundId));
-    if (fresh.filter(p => p.soundId !== fromId).length === 0) played.clear();
+    if (fresh.filter(p => p.soundId !== fromId).length === 0) {
+      played.clear();
+      returned.clear();
+    }
     const base = fresh.filter(p => p.soundId !== fromId).length ? fresh : all;
     order = planOrder(base, fromId, setTempo, random);
   };
@@ -385,32 +391,30 @@ const direct = (): (() => void) => {
       );
     };
 
-    // THE SAME SONG, AHEAD: an opening left on its build now and then
-    // jumps straight to that song's best chorus instead of another's.
-    if (
-      segment.part === 'opening' &&
-      segment.endsOn === 'build' &&
-      segment.resumeBar !== undefined &&
-      random() < 0.2
-    ) {
-      plan(segment.soundId, 'later', segment.resumeBar);
-      return;
-    }
-
     if (allRead()) {
       // Drop what left the library or played since the plan was made.
       order = order.filter(
         id => id !== segment?.soundId && maps.has(id) && !played.has(id),
       );
-      // A RETURN: a song the set left a couple of cuts ago, picked up
-      // where it stopped — always, once no new song is left.
+      // A RETURN: a song the set left at least 3 cuts ago, picked up on a
+      // later part for a shorter second turn — and at most once every 5
+      // cuts (1–2 times in 10 songs; Juan, 2026-11-07).
       const waiting = [...returns.entries()].filter(
         ([id, r]) =>
-          id !== segment?.soundId && maps.has(id) && cuts - r.at >= 2,
+          id !== segment?.soundId &&
+          maps.has(id) &&
+          !returned.has(id) &&
+          cuts - r.at >= 3,
       );
-      if (waiting.length && (!order.length || random() < 0.35)) {
+      if (
+        waiting.length &&
+        cuts - lastReturnCut >= 5 &&
+        (!order.length || random() < 0.22)
+      ) {
         const [id, r] = waiting.sort((x, y) => x[1].at - y[1].at)[0];
         returns.delete(id);
+        returned.add(id);
+        lastReturnCut = cuts;
         const last = !order.length && returns.size === 0;
         plan(id, 'later', r.bar, last);
         return;
@@ -418,9 +422,9 @@ const direct = (): (() => void) => {
       if (!order.length) planRun(segment.soundId);
       const nextId = order.shift();
       const map = nextId ? maps.get(nextId) : undefined;
-      // A NEW SONG: in on its opening a third of the time, when it has
+      // A NEW SONG: in on its opening a quarter of the time, when it has
       // one worth playing; otherwise on its best part.
-      const opening = !!map && firstPeakBar(map) >= 16 && random() < 0.35;
+      const opening = !!map && firstPeakBar(map) >= 16 && random() < 0.25;
       plan(
         nextId,
         opening ? 'opening' : 'peak',
@@ -483,14 +487,17 @@ const direct = (): (() => void) => {
     }
     clearTimers();
     // The song being left waits for the set to come back for its later
-    // parts — always after an opening, now and then after a peak.
+    // parts — only on its first visit, mainly after an opening (where the
+    // chorus was held back), and at most two waiting at a time.
     const leaving = segment;
     if (
       leaving?.resumeBar !== undefined &&
-      (leaving.part === 'opening' || random() < 0.4)
+      leaving.part !== 'later' &&
+      !returned.has(leaving.soundId) &&
+      (leaving.part === 'opening' || random() < 0.15)
     ) {
       returns.set(leaving.soundId, { bar: leaving.resumeBar, at: cuts });
-      if (returns.size > 3) returns.delete(returns.keys().next().value!);
+      if (returns.size > 2) returns.delete(returns.keys().next().value!);
     }
     returns.delete(target.soundId);
     cuts += 1;

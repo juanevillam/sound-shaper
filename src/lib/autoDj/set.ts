@@ -698,8 +698,14 @@ function sortMoves(moves: DjMove[]): DjMove[] {
 
 // --- Segments -------------------------------------------------------------
 
-/** The longest one sound stays in the set — a guard, not a target. */
-const MAX_SEGMENT_S = 210;
+/**
+ * The longest one sound stays in the set (Juan, 2026-11-07: at 210 s a track
+ * with a long reggaeton peak played almost whole, reading as Shaper on one
+ * song rather than a DJ cutting between records). A return (`later`) is
+ * shorter still, so the second visit is a callback, never another full turn.
+ */
+const MAX_SEGMENT_S = 72;
+const MAX_RETURN_S = 44;
 /** The shortest stretch worth bringing a sound in for. */
 const MIN_SEGMENT_S = 24;
 
@@ -719,9 +725,9 @@ function pickExit(random: () => number, endsOn: EndsOn): Exit {
 
 /**
  * Where a segment that came in at bar `from` leaves, given the peak run it
- * was cued for: the end of that peak — through the next one too, now and
- * then — or a phrase into the part after it, so the set sometimes changes
- * record on the way down instead of at the top.
+ * was cued for: the end of that peak — or a phrase into the part after it, so
+ * the set sometimes changes record on the way down instead of at the top.
+ * `maxS` caps the turn (shorter when returning to a song a second time).
  */
 function chooseEnd(
   map: SongMap,
@@ -729,22 +735,21 @@ function chooseEnd(
   run: [number, number],
   from: number,
   random: () => number,
+  maxS = MAX_SEGMENT_S,
 ): { end: number; endsOn: EndsOn } {
   const n = map.bars.length;
   const size = phraseBars(map);
   const startS = barTime(map, from);
-  const fits = (b: number) => barTime(map, b) - startS <= MAX_SEGMENT_S;
-  let last = run[1];
-  const following = peakRuns(sections)
-    .filter(([a]) => a > last)
-    .sort((x, y) => x[0] - y[0])[0];
-  if (following && random() < 0.3 && fits(sections[following[1]].end))
-    last = following[1];
+  const fits = (b: number) => barTime(map, b) - startS <= maxS;
+  // One peak section by default; a contiguous second one only when both fit
+  // comfortably inside `maxS`. Never chain a separate peak run across a break.
+  let last = run[0];
+  while (last < run[1] && fits(sections[last + 1].end)) last += 1;
 
   let end = sections[last].end;
   let endsOn: EndsOn = 'peak';
   const after = sections[last + 1];
-  if (after && random() < 0.3) {
+  if (after && after.kind !== 'peak' && random() < 0.3) {
     const into = Math.min(after.end, after.start + size);
     if (fits(into)) {
       end = into;
@@ -902,7 +907,14 @@ export function planSegment(opts: {
       // Halfway into a long drop: the cut lands in the middle of it.
       from = peak.start + size;
     }
-    ({ end, endsOn } = chooseEnd(map, sections, run, from, random));
+    ({ end, endsOn } = chooseEnd(
+      map,
+      sections,
+      run,
+      from,
+      random,
+      part === 'later' ? MAX_RETURN_S : MAX_SEGMENT_S,
+    ));
   }
 
   const { rate, matched } = matchRate(setTempo, map.bpm, style);
@@ -940,7 +952,9 @@ export function planSegment(opts: {
     exit,
     endsOn,
     part,
-    resumeBar: finale ? undefined : resumeFrom(map, sections, end),
+    // A song that already came back (`later`) is spent — never a third turn.
+    resumeBar:
+      finale || part === 'later' ? undefined : resumeFrom(map, sections, end),
     mix: choreograph({
       map,
       sections,
