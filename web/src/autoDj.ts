@@ -7,10 +7,14 @@ import {
 } from '@app/lib/autoDj/analysis';
 import {
   AUTO_DJ_STYLES,
+  DJ_FOCUS_RANK,
+  moveFocus,
   nextMoveIndex,
   rng,
   stateAt,
+  type AutoDjMode,
   type AutoDjStyle,
+  type DjFocus,
   type DjMove,
 } from '@app/lib/autoDj/plan';
 import {
@@ -18,6 +22,7 @@ import {
   joinSegment,
   planOrder,
   planSegment,
+  planSoundSegment,
   transitionFx,
   type Part,
   type PoolSound,
@@ -32,7 +37,9 @@ import type { Sound } from './library';
 import {
   applyGains,
   cueSound,
+  playSound,
   playerState,
+  seek,
   setEcho,
   setKeepPitch,
   setNextRoom,
@@ -60,7 +67,10 @@ type Snapshot = {
 
 export type AutoDjState = {
   on: boolean;
+  mode: AutoDjMode;
   status: 'idle' | 'preparing' | 'mixing';
+  /** The section of the Shape panel the DJ most recently changed. */
+  focus: DjFocus | null;
   /** Sounds read so far, out of `total` in the library. */
   ready: number;
   total: number;
@@ -69,7 +79,9 @@ export type AutoDjState = {
 
 const IDLE: AutoDjState = {
   on: false,
+  mode: 'off',
   status: 'idle',
+  focus: null,
   ready: 0,
   total: 0,
   snapshot: null,
@@ -77,6 +89,8 @@ const IDLE: AutoDjState = {
 
 let dj: AutoDjState = IDLE;
 const listeners = new Set<() => void>();
+
+export const autoDjState = (): AutoDjState => dj;
 
 const setDj = (patch: Partial<AutoDjState>) => {
   dj = { ...dj, ...patch };
@@ -92,14 +106,26 @@ export const useAutoDj = <T>(select: (s: AutoDjState) => T): T =>
     () => select(dj),
   );
 
-/** On: the person's shape is kept, to be given back from the switch. */
-export const startAutoDj = () => {
-  if (dj.on) return;
+/** On/Off/Mode: the person's shape is kept, to be given back when switched off. */
+export const setAutoDjMode = (mode: AutoDjMode) => {
+  if (mode === 'off') {
+    stopAutoDj({ restore: true });
+    return;
+  }
   const { gains, nextRoom, echo, rate, keepPitch } = playerState();
   setDj({
     on: true,
-    snapshot: { gains: [...gains], nextRoom, echo, rate, keepPitch },
+    mode,
+    focus: null,
+    snapshot:
+      dj.on && dj.snapshot
+        ? dj.snapshot
+        : { gains: [...gains], nextRoom, echo, rate, keepPitch },
   });
+};
+
+export const startAutoDj = (mode: 'sound' | 'all' = 'all') => {
+  setAutoDjMode(mode);
 };
 
 /**
@@ -234,9 +260,21 @@ export const forgetSongMap = (soundId: string) => {
 const LOOKAHEAD_S = 0.35;
 const JUMP_S = 1;
 const CUE_LEAD_S = 0.12;
+const FOCUS_HOLD_MS = 2000;
+let lastFocusAt = 0;
 
 const applyMove = (move: Partial<DjMove>) => {
   const now = playerState();
+  const nextFocus = moveFocus(
+    {
+      gains: now.gains,
+      nextRoom: now.nextRoom,
+      echo: now.echo,
+      rate: now.rate,
+      keepPitch: now.keepPitch,
+    },
+    move,
+  );
   if (move.gains && move.gains.some((g, i) => g !== now.gains[i]))
     applyGains(move.gains);
   if (move.nextRoom !== undefined && move.nextRoom !== now.nextRoom)
@@ -245,19 +283,47 @@ const applyMove = (move: Partial<DjMove>) => {
   if (move.rate !== undefined && move.rate !== now.rate) setRate(move.rate);
   if (move.keepPitch !== undefined && move.keepPitch !== now.keepPitch)
     setKeepPitch(move.keepPitch);
+  if (nextFocus) {
+    const cur = dj.focus;
+    const nowMs = Date.now();
+    const holdCurrent =
+      cur !== null &&
+      cur !== nextFocus &&
+      DJ_FOCUS_RANK[cur] >= DJ_FOCUS_RANK[nextFocus] &&
+      nowMs - lastFocusAt < FOCUS_HOLD_MS;
+    if (!holdCurrent) {
+      if (dj.focus !== nextFocus) setDj({ focus: nextFocus });
+      lastFocusAt = nowMs;
+    }
+  }
 };
 
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31);
 
 /** The app's director, line for line where it can be — see AutoDjDirector. */
-const direct = (): (() => void) => {
+const direct = (mode: 'sound' | 'all'): (() => void) => {
+  const singleSound = mode === 'sound';
   let cancelled = false;
   const maps = new Map<string, SongMap>();
   const failed = new Set<string>();
   const played = new Set<string>();
   const random = rng(freshSeed());
+  lastFocusAt = 0;
 
   let setTempo = 0;
+  let firstJoin = true;
+
+  // Starting DJ Juan (or switching between This Sound and All Sounds) rewinds
+  // the current sound to 0:00 so the mix starts from the beginning.
+  const initial = playerState();
+  if (initial.current) {
+    if (initial.loaded) {
+      seek(0);
+      if (!initial.playing) void playSound(initial.current);
+    } else {
+      void playSound(initial.current);
+    }
+  }
 
   /**
    * THE SET'S MOOD — Club, Slowed or Hyper — is the DJ's to choose, not a
@@ -314,6 +380,10 @@ const direct = (): (() => void) => {
   };
 
   const publishProgress = () => {
+    if (singleSound) {
+      setDj({ ready: 0, total: 0 });
+      return;
+    }
     const sounds = library();
     const done = sounds.filter(s => maps.has(s.id) || failed.has(s.id));
     setDj({ ready: done.length, total: sounds.length });
@@ -367,6 +437,19 @@ const direct = (): (() => void) => {
 
   const chooseUpNext = () => {
     if (!segment || upNext || cued) return;
+    if (singleSound) {
+      const map = maps.get(segment.soundId);
+      if (!map) return;
+      setUpNext(
+        planSoundSegment({
+          sound: { soundId: segment.soundId, map },
+          style: nextStyle(),
+          seed: Math.floor(random() * 2 ** 31),
+          atS: 0,
+        }),
+      );
+      return;
+    }
     const all = pool();
     if (all.length < 2) return;
     const plan = (
@@ -457,21 +540,36 @@ const direct = (): (() => void) => {
     chooseUpNext();
   };
 
-  /** Make the playing sound the set's segment, from where it is. */
+  /** Make the playing sound the set's segment, from the start on entry. */
   const join = () => {
-    const { current, position } = playerState();
+    const now = playerState();
+    const { current } = now;
     if (!current) return;
     const map = maps.get(current.id);
     if (!map) return; // read first; `pump` joins when it lands
+    const startFromTop = singleSound || firstJoin;
+    firstJoin = false;
+    if (startFromTop && now.position > 0.35) {
+      seek(0);
+    }
+    const atS = startFromTop ? 0 : now.position;
+    const seed = Math.floor(random() * 2 ** 31);
     begin(
-      joinSegment({
-        sound: { soundId: current.id, map },
-        style: nextStyle(),
-        seed: Math.floor(random() * 2 ** 31),
-        atS: position,
-        setTempo,
-      }),
-      position,
+      singleSound
+        ? planSoundSegment({
+            sound: { soundId: current.id, map },
+            style: nextStyle(),
+            seed,
+            atS: 0,
+          })
+        : joinSegment({
+            sound: { soundId: current.id, map },
+            style: nextStyle(),
+            seed,
+            atS,
+            setTempo,
+          }),
+      atS,
     );
   };
 
@@ -514,7 +612,7 @@ const direct = (): (() => void) => {
     void cueSound(sound, target.startS);
   };
 
-  /** Read the library, the playing sound first, one at a time. */
+  /** Read the library (or just the playing sound in `sound` mode), one at a time. */
   let pumping = false;
   const pump = async () => {
     if (pumping) return;
@@ -522,7 +620,8 @@ const direct = (): (() => void) => {
     try {
       while (!cancelled) {
         const { current } = playerState();
-        const todo = [current, ...library()].find(
+        const candidates = singleSound ? [current] : [current, ...library()];
+        const todo = candidates.find(
           (s): s is Sound => !!s && !maps.has(s.id) && !failed.has(s.id),
         );
         if (!todo) break;
@@ -532,7 +631,7 @@ const direct = (): (() => void) => {
         else failed.add(todo.id);
         publishProgress();
         if (!segment && !cued) join();
-        else if (allRead() && !order.length) {
+        else if (!singleSound && allRead() && !order.length) {
           // The whole library is read: plan the run, and re-pick what
           // comes next from it unless the cut is already on its way.
           planRun(segment?.soundId ?? null);
@@ -661,8 +760,8 @@ const direct = (): (() => void) => {
 
 /** Mount once in the signed-in app: the DJ runs whatever is open. */
 export const useAutoDjDirector = () => {
-  const on = useAutoDj(s => s.on);
-  useEffect(() => (on ? direct() : undefined), [on]);
+  const mode = useAutoDj(s => s.mode);
+  useEffect(() => (mode !== 'off' ? direct(mode) : undefined), [mode]);
   // Signing out (unmounting) leaves nothing on.
   useEffect(() => resetAutoDj, []);
 };

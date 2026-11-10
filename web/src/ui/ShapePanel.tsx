@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { AUTO_DJ_MODES, isAutoDjMode } from '@app/lib/autoDj/plan';
 import { rateLabel, RATE_MAX, RATE_MIN, RATE_STEP } from '@app/lib/player';
 import {
   EFFECT_LEVELS,
@@ -10,7 +11,7 @@ import {
   type EffectLevel,
 } from '@app/lib/shapeDsp';
 
-import { byHand, startAutoDj, stopAutoDj, useAutoDj } from '../autoDj';
+import { byHand, setAutoDjMode, useAutoDj } from '../autoDj';
 import { locale, t } from '../i18n';
 import {
   presetOf,
@@ -76,19 +77,21 @@ const LevelPicker = ({
   value: EffectLevel;
   onChange: (level: EffectLevel) => void;
 }) => (
-  <label className="cell picker">
-    <span className="cell-name">{label}</span>
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value as EffectLevel)}
-    >
-      {EFFECT_LEVELS.map(level => (
-        <option key={level} value={level}>
-          {t(`player.shape.levels.${level}`)}
-        </option>
-      ))}
-    </select>
-  </label>
+  <div className="card">
+    <label className="cell picker">
+      <span className="cell-name">{label}</span>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value as EffectLevel)}
+      >
+        {EFFECT_LEVELS.map(level => (
+          <option key={level} value={level}>
+            {t(`player.shape.levels.${level}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  </div>
 );
 
 /**
@@ -98,15 +101,16 @@ const LevelPicker = ({
  * a sheet over the player.
  */
 /**
- * Auto DJ — the sheet's last section, as in the app: a switch, a footer, and
- * while the library is being read a "Reading Library · 3 of 12" row, shown
- * only once the wait has lasted long enough to be worth naming.
+ * DJ Juan — the sheet's last section, as in the app: a menu picker (Off,
+ * This Sound, All Sounds), a footer, and while the library is being read in All
+ * Sounds mode a "Reading Library · 3 of 12" row, shown only once the wait has
+ * lasted long enough to be worth naming.
  */
 function AutoDjSection() {
-  const on = useAutoDj(s => s.on);
+  const mode = useAutoDj(s => s.mode);
   const ready = useAutoDj(s => s.ready);
   const total = useAutoDj(s => s.total);
-  const reading = on && total > 0 && ready < total;
+  const reading = mode === 'all' && total > 0 && ready < total;
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -121,17 +125,21 @@ function AutoDjSection() {
   return (
     <section>
       <div className="card">
-        <label className="cell">
+        <label className="cell picker">
           <span className="cell-name">{t('player.autoDj')}</span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="switch"
-            checked={on}
-            onChange={e =>
-              e.target.checked ? startAutoDj() : stopAutoDj({ restore: true })
-            }
-          />
+          <select
+            value={mode}
+            onChange={e => {
+              const m = e.target.value;
+              if (isAutoDjMode(m)) setAutoDjMode(m);
+            }}
+          >
+            {AUTO_DJ_MODES.map(m => (
+              <option key={m} value={m}>
+                {t(`player.autoDjMode.${m}`)}
+              </option>
+            ))}
+          </select>
         </label>
         {reading && shown && (
           <div className="cell">
@@ -157,11 +165,45 @@ export function ShapeForm() {
   const keepPitch = usePlayer(s => s.keepPitch);
   const echo = usePlayer(s => s.echo);
   const nextRoom = usePlayer(s => s.nextRoom);
+  const djOn = useAutoDj(s => s.on);
+  const djFocus = useAutoDj(s => s.focus);
   const preset = presetOf(gains);
+  const presetsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!djOn || !djFocus) return;
+    const form = presetsRef.current?.closest<HTMLElement>('.form');
+    if (!form) return;
+    const maxScroll = Math.max(0, form.scrollHeight - form.clientHeight);
+    if (maxScroll <= 0) return;
+
+    let top = form.scrollTop;
+    if (djFocus === 'presets' || djFocus === 'eq') {
+      top = 0;
+    } else {
+      const target = form.querySelector<HTMLElement>(
+        `[data-dj-section="${djFocus}"]`,
+      );
+      if (target) {
+        const formRect = form.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const offsetInForm = targetRect.top - formRect.top + form.scrollTop;
+        top = Math.min(
+          Math.max(0, offsetInForm - form.clientHeight * 0.4),
+          maxScroll,
+        );
+      } else if (djFocus === 'echo' || djFocus === 'nextRoom') {
+        top = maxScroll;
+      }
+    }
+    if (Math.abs(form.scrollTop - top) > 2) {
+      form.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [djOn, djFocus]);
 
   return (
     <>
-      <div className="card">
+      <div ref={presetsRef} className="card" data-dj-section="presets">
         <label className="cell picker">
           <span className="cell-name">{t('player.shape.presets')}</span>
           <select value={preset} onChange={e => setPreset(e.target.value)}>
@@ -177,7 +219,7 @@ export function ShapeForm() {
         </label>
       </div>
 
-      <section>
+      <section data-dj-section="eq">
         <h3 className="section-head">{t('player.eq.title')}</h3>
         <div className="card">
           {EQ_BANDS.map((band, i) => (
@@ -208,7 +250,7 @@ export function ShapeForm() {
         <p className="section-foot">{t('player.eq.hint')}</p>
       </section>
 
-      <section>
+      <section data-dj-section="speed">
         <h3 className="section-head split">
           <span>{t('player.speed')}</span>
           <span className="head-value">{rateLabel(rate, locale)}</span>
@@ -235,7 +277,7 @@ export function ShapeForm() {
         </div>
       </section>
 
-      <section>
+      <section data-dj-section="keepPitch">
         <div className="card">
           <label className="cell">
             <span className="cell-name">{t('player.keepPitch')}</span>
@@ -251,25 +293,17 @@ export function ShapeForm() {
         <p className="section-foot">{t('player.keepPitchDescription')}</p>
       </section>
 
-      <section>
-        <div className="card">
-          <LevelPicker
-            label={t('player.echo')}
-            value={echo}
-            onChange={setEcho}
-          />
-        </div>
+      <section data-dj-section="echo">
+        <LevelPicker label={t('player.echo')} value={echo} onChange={setEcho} />
         <p className="section-foot">{t('player.echoDescription')}</p>
       </section>
 
-      <section>
-        <div className="card">
-          <LevelPicker
-            label={t('player.nextRoom')}
-            value={nextRoom}
-            onChange={setNextRoom}
-          />
-        </div>
+      <section data-dj-section="nextRoom">
+        <LevelPicker
+          label={t('player.nextRoom')}
+          value={nextRoom}
+          onChange={setNextRoom}
+        />
         <p className="section-foot">{t('player.nextRoomDescription')}</p>
       </section>
 

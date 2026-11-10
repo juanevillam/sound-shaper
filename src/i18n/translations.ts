@@ -87,9 +87,14 @@ export const translations = {
       // DJ JUAN (2026-11-04, renamed 2026-11-08).
       autoDj: 'DJ Juan',
       autoDjDescription:
-        'Mixes parts of every sound in your library into a set, differently every time.',
+        'Mixes this sound or your whole library on the beat, differently every time.',
       autoDjPreparing: 'Reading Library',
       autoDjProgress: '{ready} of {total}',
+      autoDjMode: {
+        off: 'Off',
+        sound: 'This Sound',
+        all: 'All Sounds',
+      },
       shape: {
         title: 'Shape',
         custom: 'Custom',
@@ -454,9 +459,14 @@ export const translations = {
         'Añade una repetición corta, para que el sonido llegue dos veces.',
       autoDj: 'DJ Juan',
       autoDjDescription:
-        'Mezcla partes de todos los sonidos de tu biblioteca en un set, distinto cada vez.',
+        'Mezcla este sonido o toda tu biblioteca al ritmo, distinto cada vez.',
       autoDjPreparing: 'Leyendo biblioteca',
       autoDjProgress: '{ready} de {total}',
+      autoDjMode: {
+        off: 'No',
+        sound: 'Este sonido',
+        all: 'Todos',
+      },
       shape: {
         title: 'Moldear',
         custom: 'Personalizado',
@@ -464,7 +474,7 @@ export const translations = {
         pitchOff: 'Tono libre',
         presets: 'Ajustes preestablecidos',
         levels: {
-          off: 'Desactivado',
+          off: 'No',
           low: 'Bajo',
           medium: 'Medio',
           high: 'Alto',
@@ -777,9 +787,14 @@ export const translations = {
       echo: '回声',
       echoDescription: '添加一次短暂的重复，让声音响两次。',
       autoDj: 'DJ Juan',
-      autoDjDescription: '将资料库中所有声音的片段混成一套，每次都不同。',
+      autoDjDescription: '跟随节拍混音当前音频或整个资料库，每次都不同。',
       autoDjPreparing: '正在读取资料库',
       autoDjProgress: '{ready}/{total}',
+      autoDjMode: {
+        off: '关闭',
+        sound: '当前音频',
+        all: '所有音频',
+      },
       shape: {
         title: '塑形',
         custom: '自定',

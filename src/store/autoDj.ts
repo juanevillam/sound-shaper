@@ -1,23 +1,29 @@
 import { create } from 'zustand';
 
+import { type TranslationKey } from '@/i18n';
+import { type AutoDjMode, type DjFocus } from '@/lib/autoDj/plan';
 import { type EffectLevel } from '@/lib/shapeDsp';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 
 // ---------------------------------------------------------------------------
-// AUTO DJ — whether the DJ is on, and what it knows about the
+// AUTO DJ (DJ JUAN) — whether the DJ is on, which mode it runs ('sound' or
+// 'all'), which control it just moved (`focus`), and what it knows about the
 // sound in front of it. `AutoDjDirector` does the moving; this is its state.
 //
-// IT PLAYS THE WHOLE LIBRARY AS A SET (Juan, 2026-11-04). Switched on, it
-// reads every sound once (cached after), then plays stretches of them —
-// a drop here, a phrase there — cut together on downbeats with a way out
-// and a way in, never the same set twice. See `lib/autoDj/set.ts`.
+// TWO MODES:
+//   - `sound` (This Sound): mixes ONLY the playing sound from start to end,
+//     playing with all Shape controls across the whole track, and continuously
+//     re-mixing that same sound when it finishes.
+//   - `all` (All Sounds): reads every sound once (cached after), then plays
+//     stretches of them — a drop here, a phrase there — cut together on
+//     downbeats with a way out and a way in, never the same set twice.
+//     See `lib/autoDj/set.ts`.
 //
-// NOTHING HERE IS PERSISTED, same as the shaper store. Keeping a mix someone
-// liked ("Auto DJ 1") is the next step; a mix is its style plus its seed.
+// NOTHING HERE IS PERSISTED, same as the shaper store.
 //
 // THE DJ BORROWS THE SHAPE AND GIVES IT BACK. Switching it on snapshots the
-// person's own shape; switching it off from its own switch restores that.
+// person's own shape; switching it off from its own picker restores that.
 // Touching any other control in the sheet is a person taking the controls
 // back — the DJ stops and leaves the sound where it is, because snapping it
 // back to the pre-DJ shape under their finger would undo the move they just
@@ -41,15 +47,20 @@ export type AutoDjStatus = 'idle' | 'preparing' | 'mixing';
 
 type AutoDjState = {
   on: boolean;
+  mode: AutoDjMode;
   status: AutoDjStatus;
+  /** The section of the Shape sheet the DJ most recently changed. */
+  focus: DjFocus | null;
   /** Sounds read so far, out of `total` in the library. */
   ready: number;
   total: number;
-  /** The sound the set cuts to next, once it is chosen. */
+  /** The person's shape before DJ Juan took over. */
   snapshot: Snapshot | null;
-  start: () => void;
+  setMode: (mode: AutoDjMode) => void;
+  start: (mode?: 'sound' | 'all') => void;
   stop: (options: { restore: boolean }) => void;
   setStatus: (status: AutoDjStatus) => void;
+  setFocus: (focus: DjFocus | null) => void;
   setProgress: (ready: number, total: number) => void;
   /** Sign-out: forget everything. The shape stores reset themselves. */
   reset: () => void;
@@ -57,7 +68,9 @@ type AutoDjState = {
 
 const IDLE = {
   on: false,
+  mode: 'off' as AutoDjMode,
   status: 'idle' as const,
+  focus: null as DjFocus | null,
   ready: 0,
   total: 0,
   snapshot: null,
@@ -72,9 +85,22 @@ const takeSnapshot = (): Snapshot => {
 export const useAutoDjStore = create<AutoDjState>()((set, get) => ({
   ...IDLE,
 
-  start: () => {
-    if (get().on) return;
-    set({ on: true, snapshot: takeSnapshot() });
+  setMode: mode => {
+    if (mode === 'off') {
+      get().stop({ restore: true });
+      return;
+    }
+    const { on, snapshot } = get();
+    set({
+      on: true,
+      mode,
+      focus: null,
+      snapshot: on && snapshot ? snapshot : takeSnapshot(),
+    });
+  },
+
+  start: (mode = 'all') => {
+    get().setMode(mode);
   },
 
   stop: ({ restore }) => {
@@ -93,7 +119,24 @@ export const useAutoDjStore = create<AutoDjState>()((set, get) => ({
   },
 
   setStatus: status => set({ status }),
+  setFocus: focus => {
+    if (get().focus !== focus) set({ focus });
+  },
   setProgress: (ready, total) => set({ ready, total }),
 
   reset: () => set(IDLE),
 }));
+
+export const autoDjModeLabel = (
+  t: (key: TranslationKey) => string,
+  mode: AutoDjMode,
+): string => {
+  switch (mode) {
+    case 'sound':
+      return t('player.autoDjMode.sound');
+    case 'all':
+      return t('player.autoDjMode.all');
+    default:
+      return t('player.autoDjMode.off');
+  }
+};

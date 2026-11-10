@@ -3,6 +3,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 type NativeAudioSession = {
   excludeFromBackup: (path: string) => void;
   isOtherAudioPlaying: () => boolean;
+  scrollSheetSection?: (section: number) => void;
 };
 
 /**
@@ -27,4 +28,12 @@ export const isOtherAudioPlaying = (): boolean =>
  */
 export const excludeFromBackup = (path: string): void => {
   native?.excludeFromBackup?.(path);
+};
+
+/**
+ * Smoothly scroll the open SwiftUI Form sheet so `section` (0-indexed) is in
+ * view. Best-effort no-op in tests or if the native module has not been rebuilt.
+ */
+export const scrollSheetSection = (section: number): void => {
+  native?.scrollSheetSection?.(section);
 };

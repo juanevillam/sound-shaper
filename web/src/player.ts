@@ -10,6 +10,7 @@ import {
 import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
 import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
+import { autoDjState } from './autoDj';
 import { forgetClips, getClipsOfSounds, knownClips } from './clips';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
@@ -144,7 +145,13 @@ const load = (sound: Sound) => {
   el.addEventListener('loadedmetadata', () =>
     set({ duration: Number.isFinite(el.duration) ? el.duration : 0 }),
   );
-  el.addEventListener('ended', () => step(1));
+  el.addEventListener('ended', () => {
+    if (autoDjState().mode === 'sound') {
+      void cueSound(sound, 0);
+      return;
+    }
+    step(1);
+  });
 
   audioEngine.registerHandle(el);
   audioEngine.buildGraph(el);

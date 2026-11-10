@@ -18,6 +18,7 @@ import {
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
+import { scrollSheetSection } from '@modules/audio-session';
 
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
@@ -31,6 +32,7 @@ import {
   EQ_MIN_DB,
   type EffectLevel,
 } from '@/lib/audioEngine';
+import { AUTO_DJ_MODES, isAutoDjMode, type DjFocus } from '@/lib/autoDj/plan';
 import {
   RATE_LAST_STOP,
   rateLabel,
@@ -38,7 +40,7 @@ import {
   stopToRate,
 } from '@/lib/player';
 import { track } from '@/services/firebase/analytics';
-import { useAutoDjStore } from '@/store/autoDj';
+import { autoDjModeLabel, useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
 import {
   dbLabel,
@@ -90,6 +92,16 @@ const EQ_LABEL_WIDTH = 38;
 
 /** The Presets row's tag for a hand-shaped curve; never a real preset key. */
 const CUSTOM_TAG = 'custom';
+
+/** 0-indexed `Form` section for each DJ focus target. */
+const DJ_FOCUS_SECTION: Record<DjFocus, number> = {
+  presets: 0,
+  eq: 1,
+  speed: 2,
+  keepPitch: 3,
+  echo: 4,
+  nextRoom: 5,
+};
 
 /**
  * HOW FAR THE FIRST READ OF THE LIBRARY HAS GOT — after the standard loading
@@ -160,10 +172,20 @@ function ShaperSheetScreen() {
   const setEcho = useShaperStore(s => s.setEcho);
 
   const djOn = useAutoDjStore(s => s.on);
+  const djMode = useAutoDjStore(s => s.mode);
+  const djFocus = useAutoDjStore(s => s.focus);
   const djReady = useAutoDjStore(s => s.ready);
   const djTotal = useAutoDjStore(s => s.total);
-  const startDj = useAutoDjStore(s => s.start);
+  const setDjMode = useAutoDjStore(s => s.setMode);
   const stopDj = useAutoDjStore(s => s.stop);
+
+  useEffect(() => {
+    if (!djOn || !djFocus) return;
+    const section = DJ_FOCUS_SECTION[djFocus];
+    scrollSheetSection(section);
+    const timer = setTimeout(() => scrollSheetSection(section), 280);
+    return () => clearTimeout(timer);
+  }, [djOn, djFocus]);
 
   /**
    * ANY OTHER CONTROL TAKES THE SHAPE BACK FROM THE DJ. Moving one while it
@@ -293,25 +315,6 @@ function ShaperSheetScreen() {
           ))}
         </Section>
 
-        {/* THE OVERRIDE THAT USED TO SIT HERE IS GONE (2026-08-22), and what
-          replaced it is one-sided and on the section ABOVE — see
-          `FOOTER_TO_HEADER_MAKEUP`.
-
-          This one read "a section that follows a footer loses half its
-          separation" and handed 22 back through `listSectionSpacing`. The gap
-          it was chasing is real — Apple's Settings > General > Keyboard puts
-          31.00 between a footer's ink and the next header's ink, twice, where
-          a SwiftUI `Form` puts 20.66 — but the instrument was wrong twice
-          over. It sat on the section BELOW the boundary, and
-          `listSectionSpacing` is additive on a section's top and ABSOLUTE on
-          its bottom, so it paid for the gap by collapsing Speed to Preserve
-          Pitch from the family's 35.00 to 22.00. Juan caught that by eye.
-
-          Not everything the old note called a defect was one. A card's bottom
-          to its own footer ink reads 10.67 here against Apple's 11.00, because
-          a footer's INK is not its section's edge — the footer belongs to the
-          section above and is meant to occupy that space. That half needed
-          nothing. */}
         <Section
           header={
             <HStack>
@@ -351,14 +354,6 @@ function ShaperSheetScreen() {
           />
         </Section>
 
-        {/* Echo GRADES BY LEVEL (Juan, 2026-09-25), so it is a menu Picker row
-          again — the Presets row's own idiom, and the value takes the Form's
-          tint on Apple's authority (Settings tints its menu-picker values).
-          It was a picker of three SPACINGS once and a switch after those were
-          rejected on device; the levels grade the DEPTH instead, over the one
-          surviving spacing — see `ECHO_LEVELS` in `shapeDsp.ts`. It is
-          deliberately INDEPENDENT of Next Room — see the note on `echo` in
-          `store/shaper.ts`. */}
         <LevelPickerSection
           label={t('player.echo')}
           footer={t('player.echoDescription')}
@@ -367,12 +362,6 @@ function ShaperSheetScreen() {
           levelLabel={levelLabel}
         />
 
-        {/* Next Room gets its OWN section rather than joining Preserve Pitch's.
-          A grouped section is a statement that its rows belong together, and
-          these two answer different questions — one is about the speed control
-          above it, the other is a place. Sharing a card would also leave one
-          footer explaining two rows. Levels, like Echo above: the wall's
-          DEPTH — see `NEXT_ROOM_LEVELS`. */}
         <LevelPickerSection
           label={t('player.nextRoom')}
           footer={t('player.nextRoomDescription')}
@@ -381,24 +370,30 @@ function ShaperSheetScreen() {
           levelLabel={levelLabel}
         />
 
-        {/* AUTO DJ CLOSES THE SHEET (Juan, 2026-11-04): a switch, like
-          Preserve Pitch — on, it plays the library as a set and moves every
-          control above it itself, mixing the speeds and curves the way a DJ
-          would; off from here, the shape goes back to what it was. While the
-          library is read the first time, a row says how far that has got.
-          What comes next is not shown, on purpose: a DJ does not announce
-          the next record. */}
+        {/* DJ JUAN CLOSES THE SHEET: a menu Picker with Off, This Sound,
+          and All Sounds — on, it moves every control above it itself, either
+          remixing the playing sound continuously or playing the library as a
+          set; off from here, the shape goes back to what it was. While the
+          library is read the first time in All Sounds mode, a row says how
+          far that has got. */}
         <Section
           footer={<SwiftUIText>{t('player.autoDjDescription')}</SwiftUIText>}
         >
-          <Toggle
-            isOn={djOn}
+          <Picker
             label={t('player.autoDj')}
-            onIsOnChange={on => (on ? startDj() : stopDj({ restore: true }))}
-            // Green, as Preserve Pitch above — see `switchOn`.
-            modifiers={[tint(colors.switchOn)]}
-          />
-          {djOn && djTotal > 0 && djReady < djTotal ? (
+            selection={djMode}
+            onSelectionChange={key => {
+              if (isAutoDjMode(key)) setDjMode(key);
+            }}
+            modifiers={[pickerStyle('menu')]}
+          >
+            {AUTO_DJ_MODES.map(m => (
+              <SwiftUIText key={m} modifiers={[tag(m)]}>
+                {autoDjModeLabel(t, m)}
+              </SwiftUIText>
+            ))}
+          </Picker>
+          {djMode === 'all' && djTotal > 0 && djReady < djTotal ? (
             <DjProgressRow
               label={t('player.autoDjPreparing')}
               value={djProgress}

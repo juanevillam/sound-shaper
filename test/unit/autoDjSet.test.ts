@@ -8,6 +8,7 @@ import {
   matchRate,
   planOrder,
   planSegment,
+  planSoundSegment,
   tempoDistance,
   transitionFx,
   type PoolSound,
@@ -382,5 +383,50 @@ describe("Juan's hands — the live gestures from his DÁKITI session", () => {
       const state = stateAt(s.mix, s.endS - 1e-3);
       expect(state.rate).toBeGreaterThanOrEqual(0.75);
     }
+  });
+});
+
+describe('planSoundSegment ("This Sound" mode)', () => {
+  it('plays the sound through to its end and exercises every control group', () => {
+    const seg = planSoundSegment({
+      sound: { soundId: 'dakiti', map: song },
+      style: 'club',
+      seed: 42,
+      atS: 0,
+    });
+    expect(seg.soundId).toBe('dakiti');
+    expect(seg.startS).toBe(0);
+    expect(seg.endS).toBeGreaterThanOrEqual(song.durationS - BAR);
+    expect(seg.resumeBar).toBeUndefined();
+
+    // Every control family gets moved across a single-sound mix.
+    const changedGains = seg.mix.moves.some(
+      m => m.gains && m.gains.some(g => g !== 0),
+    );
+    const changedRate = seg.mix.moves.some(
+      m => m.rate !== undefined && Math.abs(m.rate - 1) > 1e-3,
+    );
+    const changedPitch = seg.mix.moves.some(m => m.keepPitch === false);
+    const changedEcho = seg.mix.moves.some(
+      m => m.echo !== undefined && m.echo !== 'off',
+    );
+    const changedRoom = seg.mix.moves.some(
+      m => m.nextRoom !== undefined && m.nextRoom !== 'off',
+    );
+    expect(changedGains).toBe(true);
+    expect(changedRate).toBe(true);
+    expect(changedPitch).toBe(true);
+    expect(changedEcho).toBe(true);
+    expect(changedRoom).toBe(true);
+
+    // Never leaves a 10s dead stretch with nothing moving.
+    let maxGap = 0;
+    for (let i = 1; i < seg.mix.moves.length; i += 1) {
+      maxGap = Math.max(
+        maxGap,
+        seg.mix.moves[i].atS - seg.mix.moves[i - 1].atS,
+      );
+    }
+    expect(maxGap).toBeLessThan(8);
   });
 });

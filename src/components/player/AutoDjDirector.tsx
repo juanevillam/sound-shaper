@@ -5,6 +5,8 @@ import { type SongMap } from '@/lib/autoDj/analysis';
 import { djLevelDb } from '@/lib/autoDj/loudness';
 import {
   AUTO_DJ_STYLES,
+  DJ_FOCUS_RANK,
+  moveFocus,
   nextMoveIndex,
   rng,
   stateAt,
@@ -16,6 +18,7 @@ import {
   joinSegment,
   planOrder,
   planSegment,
+  planSoundSegment,
   transitionFx,
   type Part,
   type PoolSound,
@@ -76,10 +79,24 @@ const JUMP_S = 1;
  */
 const CUE_LEAD_S = 0.12;
 
+/** Minimum dwell time on a scrolled section so the sheet never bounces frantically. */
+const FOCUS_HOLD_MS = 2000;
+let lastFocusAt = 0;
+
 /** Apply a partial state, touching only what actually changes. */
 function applyMove(move: Partial<DjMove>): void {
   const shaper = useShaperStore.getState();
   const player = usePlayerStore.getState();
+  const nextFocus = moveFocus(
+    {
+      gains: shaper.gains,
+      nextRoom: shaper.nextRoom,
+      echo: shaper.echo,
+      rate: player.rate,
+      keepPitch: player.keepPitch,
+    },
+    move,
+  );
   if (move.gains && move.gains.some((g, i) => g !== shaper.gains[i])) {
     shaper.applyGains(move.gains);
   }
@@ -94,6 +111,20 @@ function applyMove(move: Partial<DjMove>): void {
   }
   if (move.keepPitch !== undefined && move.keepPitch !== player.keepPitch) {
     player.setKeepPitch(move.keepPitch);
+  }
+  if (nextFocus) {
+    const dj = useAutoDjStore.getState();
+    const cur = dj.focus;
+    const nowMs = Date.now();
+    const holdCurrent =
+      cur !== null &&
+      cur !== nextFocus &&
+      DJ_FOCUS_RANK[cur] >= DJ_FOCUS_RANK[nextFocus] &&
+      nowMs - lastFocusAt < FOCUS_HOLD_MS;
+    if (!holdCurrent) {
+      dj.setFocus(nextFocus);
+      lastFocusAt = nowMs;
+    }
   }
   // ONE LEVEL FOR THE WHOLE SET: whatever the move did to the loudness, the
   // leveller takes back — gradually, so it never reads as a jump.
@@ -112,11 +143,28 @@ let levelRampS = LEVEL_ENTER_S;
 
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31);
 
+/**
+ * Flip to `true` locally only when re-recording the DÁKITI demo video so every
+ * take replays `DAKITI_DEMO_SEED` deterministically; kept `false` in production
+ * so DJ Juan mixes DÁKITI with a fresh random seed like every other sound.
+ */
+const PIN_DAKITI_DEMO = false;
+const DAKITI_DEMO_SEED = 846;
+
+const isPinnedDakiti = (
+  sound: Pick<Sound, 'id' | 'name'> | null | undefined,
+): boolean =>
+  PIN_DAKITI_DEMO &&
+  !!sound &&
+  (/d[aá]kit[ií]/i.test(sound.name) || /d[aá]kit[ií]/i.test(sound.id));
+
 export function AutoDjDirector() {
   const on = useAutoDjStore(s => s.on);
+  const mode = useAutoDjStore(s => s.mode);
 
   useEffect(() => {
-    if (!on) return;
+    if (!on || mode === 'off') return;
+    const singleSound = mode === 'sound';
 
     let cancelled = false;
     const maps = new Map<string, SongMap>();
@@ -124,8 +172,19 @@ export function AutoDjDirector() {
     const played = new Set<string>();
     const random = rng(freshSeed());
     const dj = useAutoDjStore.getState();
+    lastFocusAt = 0;
 
     let setTempo = 0;
+    let firstJoin = true;
+
+    // Starting DJ Juan (or switching between This Sound and All Sounds)
+    // always rewinds the playing sound to 0:00 so the mix is heard from the
+    // beginning (Juan, 2026-11-09).
+    const initialPlayer = usePlayerStore.getState();
+    if (initialPlayer.current) {
+      initialPlayer.seek(0);
+      if (!initialPlayer.playing) initialPlayer.toggle();
+    }
 
     /**
      * THE SET'S MOOD — Club, Slowed or Hyper — is the DJ's to choose, not a
@@ -181,6 +240,10 @@ export function AutoDjDirector() {
     };
 
     const publishProgress = () => {
+      if (singleSound) {
+        dj.setProgress(0, 0);
+        return;
+      }
       const sounds = library();
       const done = sounds.filter(s => maps.has(s.id) || failed.has(s.id));
       dj.setProgress(done.length, sounds.length);
@@ -234,6 +297,23 @@ export function AutoDjDirector() {
 
     const chooseUpNext = () => {
       if (!segment || upNext || cued) return;
+      if (singleSound) {
+        const map = maps.get(segment.soundId);
+        if (!map) return;
+        const currentSound =
+          library().find(s => s.id === segment?.soundId) ??
+          usePlayerStore.getState().current;
+        const dakiti = isPinnedDakiti(currentSound);
+        setUpNext(
+          planSoundSegment({
+            sound: { soundId: segment.soundId, map },
+            style: dakiti ? 'club' : nextStyle(),
+            seed: dakiti ? DAKITI_DEMO_SEED : Math.floor(random() * 2 ** 31),
+            atS: 0,
+          }),
+        );
+        return;
+      }
       const all = pool();
       if (all.length < 2) return;
       const plan = (
@@ -324,21 +404,37 @@ export function AutoDjDirector() {
       chooseUpNext();
     };
 
-    /** Make the playing sound the set's segment, from where it is. */
+    /** Make the playing sound the set's segment, from the start on entry. */
     const join = () => {
-      const { current, position } = usePlayerStore.getState();
+      const player = usePlayerStore.getState();
+      const { current } = player;
       if (!current) return;
       const map = maps.get(current.id);
       if (!map) return; // read first; `pump` joins when it lands
+      const startFromTop = singleSound || firstJoin;
+      firstJoin = false;
+      if (startFromTop && player.position > 0.35) {
+        player.seek(0);
+      }
+      const atS = startFromTop ? 0 : player.position;
+      const dakiti = isPinnedDakiti(current);
+      const seed = dakiti ? DAKITI_DEMO_SEED : Math.floor(random() * 2 ** 31);
       begin(
-        joinSegment({
-          sound: { soundId: current.id, map },
-          style: nextStyle(),
-          seed: Math.floor(random() * 2 ** 31),
-          atS: position,
-          setTempo,
-        }),
-        position,
+        singleSound || dakiti
+          ? planSoundSegment({
+              sound: { soundId: current.id, map },
+              style: dakiti ? 'club' : nextStyle(),
+              seed,
+              atS: 0,
+            })
+          : joinSegment({
+              sound: { soundId: current.id, map },
+              style: nextStyle(),
+              seed,
+              atS,
+              setTempo,
+            }),
+        dakiti ? 0 : atS,
       );
     };
 
@@ -381,7 +477,7 @@ export function AutoDjDirector() {
       usePlayerStore.getState().cueSound(sound, target.startS);
     };
 
-    /** Read the library, the playing sound first, one at a time. */
+    /** Read the library (or just the playing sound in `sound` mode), one at a time. */
     let pumping = false;
     const pump = async () => {
       if (pumping) return;
@@ -389,7 +485,8 @@ export function AutoDjDirector() {
       try {
         while (!cancelled) {
           const current = usePlayerStore.getState().current;
-          const todo = [current, ...library()].find(
+          const candidates = singleSound ? [current] : [current, ...library()];
+          const todo = candidates.find(
             (s): s is Sound => !!s && !maps.has(s.id) && !failed.has(s.id),
           );
           if (!todo) break;
@@ -399,7 +496,7 @@ export function AutoDjDirector() {
           else failed.add(todo.id);
           publishProgress();
           if (!segment && !cued) join();
-          else if (allRead() && !order.length) {
+          else if (!singleSound && allRead() && !order.length) {
             // The whole library is read: plan the run, and re-pick what
             // comes next from it unless the cut is already on its way.
             planRun(segment?.soundId ?? null);
@@ -478,6 +575,17 @@ export function AutoDjDirector() {
           chooseUpNext();
           return;
         }
+        if (
+          singleSound &&
+          !cued &&
+          upNext &&
+          previous.playing &&
+          segment &&
+          previous.position >= segment.endS - 1
+        ) {
+          cue();
+          return;
+        }
         // A load the set did not ask for: join it once it is playing, and
         // plan the rest of the run from there.
         cued = null;
@@ -517,13 +625,15 @@ export function AutoDjDirector() {
       cancelled = true;
       clearTimers();
       djFx.stopAll();
-      // Back to the person's own level, as gently as the set came in.
-      audioEngine.setLevelDb(0, LEVEL_ENTER_S);
-      levelRampS = LEVEL_ENTER_S;
+      if (!useAutoDjStore.getState().on) {
+        // Back to the person's own level, as gently as the set came in.
+        audioEngine.setLevelDb(0, LEVEL_ENTER_S);
+        levelRampS = LEVEL_ENTER_S;
+      }
       unsubscribe();
       dj.setProgress(0, 0);
     };
-  }, [on]);
+  }, [on, mode]);
 
   return null;
 }
