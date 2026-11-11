@@ -9,6 +9,7 @@ drifted. Outputs:
 
     assets/AppIcon.icon/                   the iOS icon — `ios.icon` points here
     assets/images/icon.png                 root fallback
+    assets/images/oauth-logo.png           Google Cloud OAuth branding logo (120×120)
     assets/images/splash-icon{,-dark}.png  splash art, one per appearance
     web/public/favicon.svg, icons/…        the web app's icons — see build_web()
 
@@ -241,6 +242,9 @@ def build(app, out_dir):
     ic = GRIDS["icon"]
     sp = SPLASH_GRID_OVERRIDES.get(app, GRIDS["splash"])
     write_mark_png(os.path.join(images, "icon.png"), geom, ic, GROUND_LIGHT, GROUND_DARK)
+    Image.open(os.path.join(images, "icon.png")).resize(
+        (120, 120), Image.LANCZOS).save(os.path.join(images, "oauth-logo.png"), optimize=True)
+    print("    oauth-logo.png")
     write_mark_png(os.path.join(images, "splash-icon.png"), geom, sp, GROUND_DARK)
     write_mark_png(os.path.join(images, "splash-icon-dark.png"), geom, sp, GROUND_LIGHT)
     return doc
