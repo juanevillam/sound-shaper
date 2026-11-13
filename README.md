@@ -2,10 +2,10 @@
 
 A personal music player with a sound you can shape. Add your own `.mp3`s,
 play them, shape them with a five-band EQ, playback speed from 0.75× to 1.25×
-with the pitch kept or set free, and
-the Next Room and Echo effects, and clip the parts worth replaying. Your
-library is yours alone: there is no social layer, and nothing you upload is
-shared with or shown to anyone else.
+with the pitch kept or set free, the Next Room and Echo effects, and DJ Juan
+(automatic transitions and live FX across a sound or your whole library), and
+clip the parts worth replaying. Your library is yours alone: there is no social
+layer, and nothing you upload is shared with or shown to anyone else.
 
 On iPhone it is an Expo (SDK 57) and React Native app with native SwiftUI
 through `@expo/ui`; on the web it is a React and Vite app in `web/`, playing

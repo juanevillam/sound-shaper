@@ -2,11 +2,12 @@
 
 **Decided 2026-11-04 (Juan).** The Play Store is paused for good, and Sound
 Shaper gets a web version that does everything the iOS app does — library,
-uploads, the player, Shape, clips, trophies, settings and the account — at
+uploads, the player, Shape, DJ Juan, clips, trophies, settings and the account — at
 `soundshaper.juanevillam.com`. **It is a website, not a PWA** (Juan,
-2026-11-04: installing is awkward, and none of his webs install). The iOS app stays on
-the App Store. Topper and Booker follow the same road later (web only, their
-own public repos); this app goes first.
+2026-11-04: installing is awkward, and Only web-only products like Book Highlighter
+install as PWAs). The iOS app stays on the App Store. Booker followed as its own
+standalone web repository (`juanevillam/book-highlighter` at
+`bookhighlighter.juanevillam.com`).
 
 ## The rule: one product, two front ends, always at parity
 
@@ -87,7 +88,7 @@ Done 2026-11-04, from Juan's browser:
    sign-in handler. A new origin (a preview URL, another port) must be added
    there or Firebase calls from it fail.
 
-Still to do:
+Production status:
 
 - ✅ **Media Worker CORS DEPLOYED 2026-11-05** (`npm run deploy:sound-shaper`
   in portfolio `services/media-worker`; this repo's `media-worker/` copy is
@@ -116,7 +117,7 @@ Still to do:
 - Cloudinary needs nothing: uploads are signed by the Worker and delivery is
   open to any origin.
 
-## Order of work
+## Build milestones (all complete)
 
 1. Scaffold `web/` with the shared imports and the audio shim, proven by
    playing a file through the shared engine. Done 2026-11-04.
@@ -127,22 +128,17 @@ Still to do:
    site's full-screen Songs player as the whole window; on a phone the app's
    grid, mini player, full-screen player and Shape sheet. Signing out stops
    the sound and forgets the shape (`resetPlayer`).
-4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room. Built
-   2026-11-04, beside step 3.
-5. Clips, then uploads and Edit Sound (tags, artwork). Clips built
-   2026-11-04: list, play to the end and park, Repeat (all four modes, via the
-   app's `clipQueue`), delete, and the app's clip editor (zoomed waveform under a
-   fixed playhead, ruler, overview with the selection frame, timecode, ±15
-   and a play-once preview) for new and existing clips. The desk's columns
-   share the window equally: halves with a sound open, thirds with a sheet. Auto DJ follows once the
-   app's version lands.
+4. Shape: Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room, and DJ
+   Juan (`This Sound` and `All Sounds` modes with live Shape sheet auto-scroll).
+5. Clips, uploads, and Edit Sound (tags, artwork): list, play to the end and
+   park, Repeat (all four modes, via the app's `clipQueue`), delete, and the
+   app's clip editor (zoomed waveform under a fixed playhead, ruler, overview
+   with the selection frame, timecode, ±15 and a play-once preview) for new
+   and existing clips.
 6. Trophies, Settings, Manage Account, delete account.
-7. ~~PWA~~ — built 2026-11-04 and REMOVED the same day (Juan: no web of his
-   installs). The manifest, `web/sw.js` and its build plugin are gone;
-   `web/src/offline.ts` now only unregisters a worker an earlier visit left
-   and deletes its `soundshaper-*` caches. `npm run brand-art` still writes
-   `web/public/`, but only the favicon and the bookmark's
-   `apple-touch-icon.png`.
-8. Deploy (2026-11-05: Worker and Pages done, the domain waits on its DNS
-   record), then the website's "Powered by Sound Shaper" mini player moves onto
-   this repo's engine, and its link offers both the web app and the App Store.
+7. Non-PWA policy (`web/src/offline.ts`): actively unregisters any leftover
+   Service Worker and deletes `soundshaper-*` caches. `npm run brand-art`
+   writes `web/public/` (`favicon.svg` and `apple-touch-icon.png`).
+8. Deployed to `soundshaper.juanevillam.com` (2026-11-05), with the website's
+   "Powered by Sound Shaper" mini player synced to this repo's engine and Auto
+   DJ planner.
