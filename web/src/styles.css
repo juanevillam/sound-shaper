@@ -1112,8 +1112,11 @@ button {
 }
 
 .dock-label {
+  overflow: hidden;
   font-size: 1.0625rem;
   line-height: 1.375rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .dock-summary {
@@ -1228,6 +1231,7 @@ button {
 }
 
 .now-column .now {
+  container-type: inline-size;
   position: relative;
   display: flex;
   flex: 1;
@@ -1246,8 +1250,11 @@ button {
 }
 
 .now-column .now-art {
+  position: relative;
+  flex: none;
   align-self: center;
-  width: min(100%, var(--cover-cap, 100%));
+  width: min(100cqw, var(--cover-cap));
+  height: min(100cqw, var(--cover-cap));
 }
 
 .now-column .transport {
@@ -1760,12 +1767,17 @@ button {
 }
 
 .cell-name {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   font-size: 1.0625rem;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .picker select {
+  flex: 1;
+  min-width: 0;
   max-width: 55%;
   padding: 0.25rem 1.375rem 0.25rem 0.25rem;
   border: 0;
@@ -1775,6 +1787,7 @@ button {
   font: inherit;
   font-size: 1.0625rem;
   text-align: end;
+  text-align-last: end;
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
@@ -1927,9 +1940,10 @@ button {
      column beside it, and whatever stacks over them stacks there, nested. */
   .home {
     --pad: clamp(1.5rem, 2.4vw, 2.5rem);
-    /* The phone's proportions: about half as wide as the window is tall. */
-    --stage-w: clamp(24rem, min(30vw, 56svh), 30rem);
-    --tools-w: clamp(22rem, 26vw, 27rem);
+    /* The phone's proportions, widened to a balanced middle ground so the
+       player column breathes both alone and beside Shape / Clips. */
+    --stage-w: clamp(25.5rem, min(32vw, 60svh), 32rem);
+    --tools-w: clamp(22.75rem, 26.5vw, 27.75rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 0;
     height: 100svh;
@@ -2067,7 +2081,7 @@ button {
     max-width: none;
     margin: 0;
     /* The cover keeps room for the console under it on a short window. */
-    --cover-cap: calc(100svh - 21rem);
+    --cover-cap: calc(100svh - 23rem);
   }
 
   .collapse,
