@@ -276,10 +276,17 @@ EAS-remote-managed — never edit them.
   tag the exact commit it was built from: `v1.0.0`. TestFlight and internal
   builds get no tag.
 - **A GitHub Release once a store approves it**, from that tag. Its first line
-  names the store(s) it shipped to (`App Store`, `Google Play`, or both); the
+  names where it shipped (`App Store`, `Web`, or `App Store · Web`); the
   notes follow (`/release-notes`; the store's own text from `/store-notes`).
-  One Release per version: if the second store approves the same version
-  later, edit that Release's first line to name it — never a second Release.
+- **Format — identical in every portfolio repo (Juan, 2026-11-13):**
+  - Tag name: `vX.Y.Z`, always with the `v`.
+  - Tag message: just `vX.Y.Z` — `git tag -m "vX.Y.Z" vX.Y.Z` (annotated and
+    signed, nothing else). The story goes in the Release, never the tag.
+  - Release title: `vX.Y.Z`, exactly the tag name — no channel, no subtitle.
+    `gh release create vX.Y.Z --title vX.Y.Z --notes-file …`.
+  - Release body: first line the channel, a blank line, then `•` bullets.
+    One Release per version: if the second store approves the same version
+    later, edit that Release's first line to name it — never a second Release.
 - **Each store ships the versions it wants and skips the rest.** A fix for one
   platform is the next version, sent to that store only. Android's first
   release is NOT a second "1.0.0": it is the next version, sent to both
