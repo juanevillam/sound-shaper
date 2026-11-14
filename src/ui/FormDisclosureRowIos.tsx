@@ -8,7 +8,11 @@ import {
   Text,
   VStack,
 } from '@expo/ui/swift-ui';
-import { foregroundStyle, frame } from '@expo/ui/swift-ui/modifiers';
+import {
+  foregroundStyle,
+  frame,
+  layoutPriority,
+} from '@expo/ui/swift-ui/modifiers';
 
 import { LIST_ROW_ONE_LINE } from './listRowText';
 import { SkeletonBone } from './SkeletonBone';
@@ -128,7 +132,11 @@ const ValueSlot = ({
     </VStack>
   ) : (
     <Text
-      modifiers={[foregroundStyle(colors.onSurfaceMuted), ...LIST_ROW_ONE_LINE]}
+      modifiers={[
+        foregroundStyle(colors.onSurfaceMuted),
+        ...LIST_ROW_ONE_LINE,
+        frame({ maxWidth: 165, alignment: 'trailing' }),
+      ]}
     >
       {value}
     </Text>
@@ -162,7 +170,9 @@ export const FormValueRowIos = ({
   colors: FormDisclosureColors;
 }) => (
   <HStack spacing={8}>
-    <Text modifiers={[foregroundStyle(colors.onSurface)]}>{label}</Text>
+    <Text modifiers={[foregroundStyle(colors.onSurface), layoutPriority(1)]}>
+      {label}
+    </Text>
     <Spacer />
     <ValueSlot value={value} loading={loading} colors={colors} />
   </HStack>
@@ -186,7 +196,9 @@ export const FormDisclosureRowIos = ({
   colors: FormDisclosureColors;
 }) => (
   <HStack spacing={8}>
-    <Text modifiers={[foregroundStyle(colors.onSurface)]}>{label}</Text>
+    <Text modifiers={[foregroundStyle(colors.onSurface), layoutPriority(1)]}>
+      {label}
+    </Text>
     <Spacer />
     {value !== undefined ? (
       <ValueSlot value={value} loading={loading} colors={colors} />

@@ -12,6 +12,7 @@ export function ConfirmDialog({
   message,
   cancel,
   confirm,
+  destructive = true,
   onConfirm,
   onClose,
 }: {
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   message: string;
   cancel: string;
   confirm: string;
+  destructive?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -51,7 +53,7 @@ export function ConfirmDialog({
         </button>
         <button
           type="button"
-          className="pill is-destructive"
+          className={destructive ? 'pill is-destructive' : 'pill is-primary'}
           onClick={() => {
             onConfirm();
             onClose();

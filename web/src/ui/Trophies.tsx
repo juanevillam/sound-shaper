@@ -102,36 +102,89 @@ function TrophyGlyph({
 
 /* ── The Trophies sheet ── */
 
-const RING = 84;
-const RING_STROKE = 10;
+const RING = 92;
+const RING_STROKE = 8.5;
 
 function Ring({ fraction, label }: { fraction: number; label: string }) {
+  const c = RING / 2;
   const r = (RING - RING_STROKE) / 2;
   const length = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const tipDeg = clamped * 360 - 90;
+  const headLen = Math.min(length * clamped, RING_STROKE * 0.9);
+  const headStartDeg = tipDeg - (headLen / length) * 360;
 
   return (
     <span className="ring">
       <svg viewBox={`0 0 ${RING} ${RING}`} aria-hidden="true">
+        <defs>
+          <mask id="trophy-ring-mask">
+            <circle
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              stroke="#fff"
+              strokeWidth={RING_STROKE}
+            />
+          </mask>
+          <filter
+            id="trophy-tip-shadow"
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="160%"
+          >
+            <feGaussianBlur stdDeviation="1.35" />
+          </filter>
+        </defs>
         <circle
-          cx={RING / 2}
-          cy={RING / 2}
+          cx={c}
+          cy={c}
           r={r}
           fill="none"
           stroke="var(--track)"
           strokeWidth={RING_STROKE}
         />
-        {fraction > 0 && (
-          <circle
-            cx={RING / 2}
-            cy={RING / 2}
-            r={r}
-            fill="none"
-            stroke="var(--ink)"
-            strokeWidth={RING_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={`${length * fraction} ${length}`}
-            transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
-          />
+        {clamped > 0 && (
+          <>
+            <circle
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={`${length * clamped} ${length}`}
+              transform={`rotate(-90 ${c} ${c})`}
+            />
+            <g mask="url(#trophy-ring-mask)">
+              <circle
+                cx={c}
+                cy={c}
+                r={r}
+                fill="none"
+                stroke="rgb(0 0 0 / 0.55)"
+                strokeWidth={RING_STROKE + 0.5}
+                strokeLinecap="round"
+                strokeDasharray={`0.8 ${length}`}
+                filter="url(#trophy-tip-shadow)"
+                transform={`rotate(${tipDeg + 2.3} ${c} ${c})`}
+              />
+            </g>
+            <circle
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={`${headLen} ${length}`}
+              transform={`rotate(${headStartDeg} ${c} ${c})`}
+            />
+          </>
         )}
       </svg>
       <span className="ring-label">{label}</span>

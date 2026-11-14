@@ -347,10 +347,32 @@ button {
   min-height: 100svh;
 }
 
-/* On a phone the third column is no box at all: its sheets rise over the
-   screen like every other. */
-.tools {
+/* On a phone the third column is no box at all, and the modal container is
+   always a pass-through wrapper around its scrim and fixed sheets. */
+.tools,
+.modals {
   display: contents;
+}
+
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  background: rgb(0 0 0 / 0.48);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-quick) var(--ease);
+}
+
+.modal-scrim.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modals > .side {
+  z-index: 8;
 }
 
 /* ── The library ── */
@@ -853,15 +875,26 @@ button {
 /* ── The player ── */
 
 .glyph {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: none;
-  transition:
-    transform 160ms var(--ease),
-    background var(--hover);
+  transition: transform 160ms var(--ease);
+}
+
+.glyph::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--fg) / 0.08);
+  opacity: 0;
+  will-change: opacity;
+  transition: opacity var(--hover);
+  pointer-events: none;
 }
 
 .glyph:active {
@@ -1030,13 +1063,16 @@ button {
 }
 
 @media (hover: hover) {
-  .transport .glyph:hover {
-    background: rgb(var(--fg) / 0.08);
+  .transport .glyph:hover::after {
+    opacity: 1;
   }
 }
 
 /* The app's glass footer, holding the Shape card. */
 .dock {
+  position: relative;
+  isolation: isolate;
+  transform: translateZ(0);
   display: flex;
   /* Wide enough that a divider stands clear of a hovered or open pill. */
   gap: 0.75rem;
@@ -1062,7 +1098,7 @@ button {
   left: calc(-0.375rem - 0.5px);
   width: 1px;
   background: var(--separator);
-  transition: opacity var(--dur-micro) var(--ease);
+  pointer-events: none;
 }
 
 .dock-cell {
@@ -1081,14 +1117,29 @@ button {
   border-radius: 1rem;
   background: none;
   text-align: start;
-  transition:
-    transform 160ms var(--ease),
-    background var(--hover);
+  transition: transform 160ms var(--ease);
+}
+
+/* Hover and expanded highlights sit on a GPU-composited ::after layer
+   animating opacity rather than repainting background inside the
+   backdrop-filter parent — eliminating sibling hover flicker over the
+   turning backdrop. */
+.dock-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgb(var(--fg) / 0.06);
+  opacity: 0;
+  will-change: opacity;
+  transition: opacity var(--hover);
+  pointer-events: none;
 }
 
 @media (hover: hover) {
-  .dock-cell:hover {
-    background: rgb(var(--fg) / 0.06);
+  .dock-cell:hover::after {
+    opacity: 1;
   }
 }
 
@@ -1096,8 +1147,9 @@ button {
   transform: scale(0.97);
 }
 
-.dock-cell[aria-expanded='true'] {
+.dock-cell[aria-expanded='true']::after {
   background: rgb(var(--fg) / 0.13);
+  opacity: 1;
 }
 
 .dock-icon {
@@ -1474,6 +1526,12 @@ button {
   font-weight: 600;
 }
 
+.side-lead {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+}
+
 .side-bar > .round,
 .side-bar > .glass-pill {
   justify-self: end;
@@ -1485,7 +1543,7 @@ button {
 
 /* iOS 26's bar button: a glass circle, the glyph in full ink. A desk bar
    is not a thumb's target, so it takes the macOS toolbar's measure — a
-   36px circle around an 18px glyph — rather than the phone's 44pt. */
+   36px circle around a 22px glyph — rather than the phone's 44pt. */
 .round,
 .glass-pill {
   border: 0;
@@ -1504,7 +1562,7 @@ button {
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  padding: 0.5625rem;
+  padding: 0.4375rem;
   border-radius: 50%;
 }
 
@@ -1514,29 +1572,44 @@ button {
   }
 }
 
-/* Two glyphs in one capsule — the clip editor's Shape beside its ✓. */
+/* Two glyphs in one capsule — the clip editor's ✓ beside its Shape. */
 .glass-pill {
-  justify-self: end;
-  display: flex;
+  position: relative;
+  isolation: isolate;
+  transform: translateZ(0);
+  display: inline-flex;
   align-items: center;
+  gap: 0.25rem;
   height: 2.25rem;
   padding: 0.1875rem;
   border-radius: 999px;
 }
 
 .glass-pill button {
+  position: relative;
   display: grid;
   place-items: center;
   width: 1.875rem;
   height: 1.875rem;
-  padding: 0.375rem;
+  padding: 0.3125rem;
   border: 0;
   border-radius: 50%;
   background: none;
   color: inherit;
-  transition:
-    background var(--hover),
-    transform var(--dur-micro) var(--ease);
+  transition: transform var(--dur-micro) var(--ease);
+}
+
+.glass-pill button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgb(var(--fg) / 0.1);
+  opacity: 0;
+  will-change: opacity;
+  transition: opacity var(--hover);
+  pointer-events: none;
 }
 
 .glass-pill button svg {
@@ -1545,8 +1618,8 @@ button {
 }
 
 @media (hover: hover) {
-  .glass-pill button:hover {
-    background: rgb(var(--fg) / 0.1);
+  .glass-pill button:not(.is-commit):hover::after {
+    opacity: 1;
   }
 }
 
@@ -1555,7 +1628,6 @@ button {
 }
 
 .glass-pill .is-commit {
-  margin-left: 0.25rem;
   background: var(--ink);
   color: var(--ground);
 }
@@ -1675,13 +1747,14 @@ button {
 }
 
 .clip-row {
-  padding-right: 0.375rem;
+  padding-right: 0.5rem;
 }
 
 .clip-play {
   display: flex;
   flex: 1;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   min-width: 0;
   padding: 0.375rem 0;
@@ -1690,38 +1763,29 @@ button {
   text-align: start;
 }
 
-.clip-mark {
-  position: relative;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  color: var(--muted);
-}
-
-.clip-mark svg {
-  width: 1rem;
-}
-
-.clip-mark .bars {
-  position: static;
-}
-
-.clip-copy {
-  display: grid;
-  min-width: 0;
-}
-
 .clip-name {
+  overflow: hidden;
   font-size: 1.0625rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.clip-length {
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
+.clip-play.is-active .clip-name {
+  color: var(--accent);
+}
+
+.clip-active-icon {
+  display: inline-grid;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--accent);
+}
+
+.clip-active-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .form {
@@ -1767,20 +1831,25 @@ button {
 }
 
 .cell-name {
+  flex: none;
+  font-size: 1.0625rem;
+  white-space: nowrap;
+}
+
+.picker .cell-name {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  font-size: 1.0625rem;
-  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .picker select {
   flex: 1;
   min-width: 0;
-  max-width: 55%;
+  max-width: 48%;
   padding: 0.25rem 1.375rem 0.25rem 0.25rem;
   border: 0;
+  outline: none;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 18'%3E%3Cpath d='M2.5 6.5 6 3l3.5 3.5M2.5 11.5 6 15l3.5-3.5' fill='none' stroke='%23999' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     right center / 0.6rem no-repeat;
   color: var(--muted);
@@ -2008,10 +2077,13 @@ button {
     view-transition-name: tools;
   }
 
-  /* A sheet that stacks inside a column is set off by its hairline alone,
-     as the columns are: no cast shadow. */
-  .stage > .side,
+  /* A sheet that stacks inside the tools column is set off by its hairline
+     alone, as the columns are: no cast shadow. */
   .tools > .side {
+    position: absolute;
+    z-index: 3;
+    height: calc(100% - 0.75rem - var(--index, 0) * 0.625rem);
+    border-top: 1px solid var(--hairline);
     box-shadow: none;
   }
 
@@ -2028,9 +2100,33 @@ button {
     box-shadow: none;
     transform: none;
     visibility: visible;
+    transition:
+      opacity var(--dur-quick) var(--ease),
+      transform var(--dur-quick) var(--ease),
+      filter var(--dur-turn) var(--ease);
+  }
+
+  .tools > .side.is-base.is-switching {
+    animation: tool-switch var(--dur-quick) var(--ease) backwards;
+  }
+
+  .home.is-tooled .tools > .side.is-base.is-leaving {
+    opacity: 0;
+    transform: translateY(0.375rem) scale(0.985);
+    pointer-events: none;
+  }
+
+  @keyframes tool-switch {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
   }
 
   .tools > .side.is-base.is-under {
+    border-top: 1px solid var(--hairline);
+    border-radius: var(--sheet-r) var(--sheet-r) 0 0;
+    background: var(--sheet-bg);
     transform: translateY(-0.5rem) scale(0.94);
   }
 
@@ -2038,8 +2134,29 @@ button {
     display: none;
   }
 
+  .tools > .side.is-base .side-bar {
+    cursor: default;
+  }
+
   .home:not(.is-tooled) .tools {
     display: none;
+  }
+
+  /* Global modal sheets (Settings, Account, Trophies, Edit / New Sound)
+     rise from the bottom in the horizontal center of the viewport, above
+     all columns, so opening one never collapses or covers a single column. */
+  .modals > .side {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8;
+    width: min(27.5rem, calc(100vw - 3rem));
+    height: min(44rem, calc(100svh - 2.5rem - var(--index, 0) * 0.625rem));
+    margin-inline: auto;
+    border: 1px solid var(--hairline);
+    border-bottom: 0;
+    box-shadow: 0 -0.75rem 2.5rem rgb(0 0 0 / 0.45);
   }
 
   .now-column {
@@ -2053,24 +2170,11 @@ button {
     opacity: 1;
     visibility: visible;
     transform: none;
-    transform-origin: 50% 0;
-    transition:
-      transform var(--dur-turn) var(--ease),
-      filter var(--dur-turn) var(--ease),
-      border-radius var(--dur-turn) var(--ease);
     overflow: hidden;
   }
 
   .player-backdrop {
     position: absolute;
-  }
-
-  /* Under a sheet the player steps back, as the app's screen does under a
-     form sheet. */
-  .home.side-open .now-column {
-    transform: translateY(0.5rem) scale(0.94);
-    border-radius: 2.125rem 2.125rem 0 0;
-    filter: brightness(0.6);
   }
 
   .home:not(.has-current) .now-column {
@@ -2087,13 +2191,6 @@ button {
   .collapse,
   .mini {
     display: none;
-  }
-
-  .side {
-    position: absolute;
-    z-index: 3;
-    height: calc(100% - 0.75rem - var(--index, 0) * 0.625rem);
-    border-top: 1px solid var(--hairline);
   }
 
   .form {
@@ -2359,17 +2456,12 @@ button {
   cursor: default;
 }
 
-.fields {
-  display: grid;
-  gap: 2.1875rem;
-}
-
 .field {
-  display: grid;
   cursor: text;
 }
 
 .field input {
+  width: 100%;
   flex: 1;
   min-width: 0;
   padding: 0.25rem 0;
@@ -2409,6 +2501,9 @@ button {
 }
 
 .toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
   margin: 0;
   padding: 0.75rem 1.125rem;
   border: 1px solid var(--hairline);
@@ -2418,7 +2513,16 @@ button {
   -webkit-backdrop-filter: blur(12px);
   font-size: 0.9375rem;
   white-space: nowrap;
+  pointer-events: auto;
   animation: rise var(--dur-turn) var(--ease) both;
+}
+
+.toast-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 @media (min-width: 64rem) {
@@ -2499,9 +2603,11 @@ button {
   display: block;
   align-items: center;
   min-width: 0;
+  max-width: 48%;
   overflow: hidden;
   color: var(--muted);
   font-size: 1.0625rem;
+  text-align: end;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -2597,15 +2703,13 @@ button {
 /* The summary card: earned, the ring, available — the two figures share one
    width so the ring lands on the card's centre whatever the labels say. */
 .trophy-summary {
-  /* Sized against the rows under it, not as a hero: a 72px ring in a 96px
-     card beside 60px rows. */
-  --ring-size: 4.5rem;
+  --ring-size: 5.125rem;
   container-type: inline-size;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 1rem 0.75rem;
 }
 
 .figure {
@@ -2662,8 +2766,9 @@ button {
 }
 
 .ring-label {
-  font-size: 1.25rem;
+  font-size: 1.1875rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 

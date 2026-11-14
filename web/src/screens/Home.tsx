@@ -14,7 +14,13 @@ import { AccountForm } from '../ui/AccountForm';
 import { Backdrop, PlayerBackdrop } from '../ui/Backdrop';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
 import { ClipsForm } from '../ui/ClipsForm';
-import { CheckGlyph, CloseGlyph, GearGlyph, ShapeGlyph } from '../ui/glyphs';
+import {
+  CheckGlyph,
+  CloseGlyph,
+  GearGlyph,
+  PlusGlyph,
+  ShapeGlyph,
+} from '../ui/glyphs';
 import { LibraryGrid } from '../ui/LibraryGrid';
 import { MiniPlayer } from '../ui/MiniPlayer';
 import { NowPlaying } from '../ui/NowPlaying';
@@ -114,30 +120,34 @@ const useLargeTitle = () => {
 };
 
 /**
- * One sheet in the stack. The app presents every one of these as a sheet
- * over what opened it — Shape over Clips, the clip editor over Clips, Account
- * over Settings, Trophies over Account — so the web keeps a stack, not a
- * single slot that swaps its body.
+ * Two independent sheet stacks:
+ * - `ToolEntry` belongs to the desk's THIRD column (`tools`): Shape and Clips
+ *   are worked WITH the player, so on a desk they open beside it, and whatever
+ *   stacks over Clips (the clip editor, or Shape opened from Clips / the clip
+ *   editor) stacks inside that third column.
+ * - `ModalEntry` opens in a global centered sheet rising from the bottom over
+ *   all columns (`modals`), so opening Settings (Account / Trophies) or
+ *   Edit / New Sound never collapses or closes the third column.
  */
-type Entry =
-  | { kind: 'settings' | 'account' | 'trophies' | 'shape' | 'clips' }
-  /** The playing sound's editor, or — from a held tile — that sound's. */
-  | { kind: 'edit'; sound?: Sound }
-  | { kind: 'new'; picked: PickedSound }
+type ToolEntry =
+  | { kind: 'shape' | 'clips' }
   | { kind: 'clip'; clip: Clip | null };
 
-/**
- * `tools`: the layer belongs to the desk's THIRD column. Shape and Clips are
- * worked WITH the player — you shape what you hear, you frame a clip while it
- * plays — so on a desk they open beside the player instead of over it, and
- * whatever stacks over them (Shape over Clips, the clip editor) stacks there
- * too, nested. Decided when the layer is pushed, so a closing stack never
- * jumps columns on its way out.
- */
-type Layer = { id: number; entry: Entry; leaving: boolean; tools: boolean };
+type ModalEntry =
+  | { kind: 'settings' | 'account' | 'trophies' }
+  /** The playing sound's editor, or — from a held tile — that sound's. */
+  | { kind: 'edit'; sound?: Sound }
+  | { kind: 'new'; picked: PickedSound };
 
-const isTool = (entry: Entry) =>
-  entry.kind === 'shape' || entry.kind === 'clips';
+type Entry = ToolEntry | ModalEntry;
+
+type Layer<T extends Entry> = {
+  id: number;
+  entry: T;
+  leaving: boolean;
+  slot?: number;
+  switching?: boolean;
+};
 
 /** A sheet's slide, so a popped one is unmounted only once it is gone. */
 const LEAVE_MS = 320;
@@ -145,25 +155,30 @@ const LEAVE_MS = 320;
 let nextLayer = 0;
 
 /**
- * THE SIGNED-IN APP. On a desk, the library and the sound that is playing,
- * and a third column while Shape or Clips is open (see `Layer`); every other
- * sheet rises over the player's column the way the app's sheets rise over
- * the player. On a phone it is the app: the grid, the now-playing banner,
- * and the player and its sheets rising over it.
+ * THE SIGNED-IN APP. On a desk, the library, the sound that is playing, and a
+ * third column while Shape or Clips is open; modal sheets (Settings, Account,
+ * Trophies, Edit / New Sound) rise globally from the bottom in the center over
+ * all columns without closing any of them. On a phone it is the app: the grid,
+ * the now-playing banner, and the player and its sheets rising over it.
  */
 export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
   const addTilePosition = useAddTilePosition(user.uid);
   useTrophySystem(user.uid, library);
   const current = usePlayer(s => s.current);
+  const playing = usePlayer(s => s.playing);
+  const rate = usePlayer(s => s.rate);
   const [expanded, setExpanded] = useState(false);
-  const [layers, setLayers] = useState<Layer[]>([]);
+  const [toolLayers, setToolLayers] = useState<Layer<ToolEntry>[]>([]);
+  const [modalLayers, setModalLayers] = useState<Layer<ModalEntry>[]>([]);
   // Auth's user object changes in place; an edit bumps this to re-render.
   const [, setProfileTick] = useState(0);
   const { title, titled } = useLargeTitle();
 
-  const live = layers.filter(layer => !layer.leaving);
-  const base = live[0]?.entry.kind ?? null;
+  const liveTools = toolLayers.filter(layer => !layer.leaving);
+  const toolBase = liveTools[0]?.entry.kind ?? null;
+  const liveModals = modalLayers.filter(layer => !layer.leaving);
+  const modalBase = liveModals[0]?.entry.kind ?? null;
 
   useEffect(() => {
     if (library.state === 'ready') syncLibrary(library.sounds);
@@ -175,44 +190,79 @@ export function Home({ user }: { user: User }) {
   // Auto DJ mixes whatever is open, from the Shape sheet's switch.
   useAutoDjDirector();
 
-  const leave = (keep: (layer: Layer, index: number) => boolean) => {
-    setLayers(all =>
-      all.map((layer, i) =>
-        layer.leaving || keep(layer, i) ? layer : { ...layer, leaving: true },
-      ),
-    );
+  const leaveIn = <T extends Entry>(
+    setStack: React.Dispatch<React.SetStateAction<Layer<T>[]>>,
+    keep: (layer: Layer<T>, index: number) => boolean,
+  ) => {
+    setStack(all => {
+      const liveBefore = all.filter(l => !l.leaving);
+      return all.map((layer, i) =>
+        layer.leaving || keep(layer, i)
+          ? layer
+          : {
+              ...layer,
+              leaving: true,
+              slot: liveBefore.indexOf(layer),
+            },
+      );
+    });
     setTimeout(
-      () => setLayers(all => all.filter(layer => !layer.leaving)),
+      () => setStack(all => all.filter(layer => !layer.leaving)),
       LEAVE_MS,
     );
   };
 
-  /** Over whatever is open. */
-  const push = (entry: Entry) =>
-    setLayers(all => {
-      // A stack keeps the column its first sheet opened in.
-      const front = all.find(layer => !layer.leaving);
-      const tools = front ? front.tools : isTool(entry);
-      return [...all, { id: nextLayer++, entry, leaving: false, tools }];
-    });
+  const pushTool = (entry: ToolEntry, switching = false) =>
+    setToolLayers(all => [
+      ...all,
+      { id: nextLayer++, entry, leaving: false, switching },
+    ]);
 
-  /** The front sheet goes; the one under it comes forward. */
-  const pop = () => {
-    const front = live[live.length - 1];
-    if (front) leave(layer => layer.id !== front.id);
+  const popTool = () => {
+    const front = liveTools[liveTools.length - 1];
+    if (front) leaveIn(setToolLayers, layer => layer.id !== front.id);
   };
 
-  /** Everything goes. */
-  const closeAll = () => leave(() => false);
+  const closeTools = () => leaveIn(setToolLayers, () => false);
 
-  /** A fresh stack holding one sheet — or none, if that sheet was it. */
-  const openOnly = (entry: Entry) => {
-    if (live.length === 1 && base === entry.kind && entry.kind !== 'new') {
-      closeAll();
+  const openTool = (kind: 'shape' | 'clips') => {
+    if (liveTools.length === 1 && toolBase === kind) {
+      closeTools();
       return;
     }
-    leave(() => false);
-    push(entry);
+    const wasOpen = liveTools.length > 0;
+    if (wasOpen) closeTools();
+    pushTool({ kind }, wasOpen);
+  };
+
+  const pushModal = (entry: ModalEntry) =>
+    setModalLayers(all => [...all, { id: nextLayer++, entry, leaving: false }]);
+
+  const popModal = () => {
+    const front = liveModals[liveModals.length - 1];
+    if (front) leaveIn(setModalLayers, layer => layer.id !== front.id);
+  };
+
+  const closeModals = () => leaveIn(setModalLayers, () => false);
+
+  const openModal = (entry: ModalEntry) => {
+    if (
+      liveModals.length === 1 &&
+      modalBase === entry.kind &&
+      entry.kind !== 'new'
+    ) {
+      const prev = liveModals[0].entry;
+      const sameTarget =
+        entry.kind !== 'edit' ||
+        prev.kind !== 'edit' ||
+        (entry.sound?.id ?? current?.id) === (prev.sound?.id ?? current?.id);
+      if (sameTarget) {
+        closeModals();
+        return;
+      }
+    }
+    closeModals();
+    pushModal(entry);
   };
 
   // THE RIGHT COLUMN STANDS FOR A SOUND, and it stands up as one move. The
@@ -224,34 +274,23 @@ export function Home({ user }: { user: User }) {
   const hasCurrent = Boolean(current);
   useEffect(() => {
     if (hasCurrent === stood) return;
-    if (live.length) setStood(hasCurrent);
-    else morph(() => setStood(hasCurrent));
-    // `live` only decides whether a sheet already holds the column up.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    morph(() => setStood(hasCurrent));
   }, [hasCurrent, stood]);
 
   // THE THIRD COLUMN stands up and lies down through `morph` too, a beat
   // after the stack that needs it — the same lag as the player's column.
-  const tooled = live.some(layer => layer.tools);
+  const tooled = liveTools.length > 0 && hasCurrent;
   const [toolsShown, setToolsShown] = useState(false);
   useEffect(() => {
     if (tooled !== toolsShown) morph(() => setToolsShown(tooled));
   }, [tooled, toolsShown]);
-  const overPlayer = live.filter(layer => !layer.tools);
-
-  // The grid re-flows only when the right column has to stand up for a
-  // sheet; a sheet over the player is no column change at all.
-  const stageThen = (change: () => void) =>
-    stood || live.length ? change() : morph(change);
 
   const pick = (file: File) => {
     if (!isMp3(file)) {
       showToast(t('home.addSoundFormat'));
       return;
     }
-    void readPicked(file).then(picked =>
-      stageThen(() => openOnly({ kind: 'new', picked })),
-    );
+    void readPicked(file).then(picked => openModal({ kind: 'new', picked }));
   };
 
   // On a desk an mp3 can simply be dropped on the window.
@@ -282,52 +321,41 @@ export function Home({ user }: { user: User }) {
         )
       )
         return;
-      if (live.length) pop();
+      if (liveModals.length) popModal();
+      else if (liveTools.length) popTool();
       else setExpanded(false);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   });
 
-  // The right column stands while a sound is loaded or a sheet is up.
-  const staged = stood || live.length > 0;
   const className = [
     'home',
     current ? 'has-current' : '',
-    staged ? 'is-staged' : '',
+    stood ? 'is-staged' : '',
     expanded ? 'is-expanded' : '',
-    overPlayer.length ? 'side-open' : '',
     toolsShown ? 'is-tooled' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const close = (
-    <button type="button" className="round" onClick={pop}>
-      <CloseGlyph />
-      <span className="sr">{t('common.close')}</span>
-    </button>
-  );
-  const shapeGlyph = (
-    <button
-      type="button"
-      className="round"
-      onClick={() => push({ kind: 'shape' })}
-    >
-      <ShapeGlyph />
-      <span className="sr">{t('player.shape.title')}</span>
-    </button>
-  );
-
   /** A sheet's bar and body, by what it holds. */
   const render = (
     entry: Entry,
+    onClose: () => void,
   ): {
     title: string;
     action?: React.ReactNode;
     trailing?: React.ReactNode;
     body: React.ReactNode;
   } => {
+    const close = (
+      <button type="button" className="round" onClick={onClose}>
+        <CloseGlyph />
+        <span className="sr">{t('common.close')}</span>
+      </button>
+    );
+
     switch (entry.kind) {
       case 'settings':
         return {
@@ -335,7 +363,7 @@ export function Home({ user }: { user: User }) {
           body: (
             <SettingsForm
               user={user}
-              onAccount={() => push({ kind: 'account' })}
+              onAccount={() => pushModal({ kind: 'account' })}
             />
           ),
         };
@@ -346,7 +374,7 @@ export function Home({ user }: { user: User }) {
             <AccountForm
               user={user}
               onChanged={() => setProfileTick(n => n + 1)}
-              onTrophies={() => push({ kind: 'trophies' })}
+              onTrophies={() => pushModal({ kind: 'trophies' })}
             />
           ),
         };
@@ -355,28 +383,36 @@ export function Home({ user }: { user: User }) {
       case 'shape':
         return { title: t('player.shape.title'), body: <ShapeForm /> };
       case 'clips':
-        // The app's Clips bar: a close leading, Shape trailing — the sound
-        // stays shapeable from every clip surface.
+        // The app's Clips bar: close on the left, and on the right one capsule
+        // holding Shape and + (HeaderGlyphGroupIos).
         return {
           title: t('player.clips.title'),
           action: close,
-          trailing: shapeGlyph,
-          body: (
-            <ClipsForm
-              onEdit={clip => push({ kind: 'clip', clip })}
-              onNew={() => push({ kind: 'clip', clip: null })}
-            />
+          trailing: (
+            <span className="glass-pill">
+              <button type="button" onClick={() => pushTool({ kind: 'shape' })}>
+                <ShapeGlyph />
+                <span className="sr">{t('player.shape.title')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => pushTool({ kind: 'clip', clip: null })}
+              >
+                <PlusGlyph />
+                <span className="sr">{t('player.clips.new')}</span>
+              </button>
+            </span>
           ),
+          body: <ClipsForm onEdit={clip => pushTool({ kind: 'clip', clip })} />,
         };
       case 'clip':
         return {
           title: entry.clip ? t('player.clips.edit') : t('player.clips.new'),
           action: close,
-          // The app's merged pill: Shape stacks over the editor, the ✓
-          // commits the clip.
+          // One capsule holding Shape and ✓ — the app's HeaderGlyphGroupIos.
           trailing: (
             <span className="glass-pill">
-              <button type="button" onClick={() => push({ kind: 'shape' })}>
+              <button type="button" onClick={() => pushTool({ kind: 'shape' })}>
                 <ShapeGlyph />
                 <span className="sr">{t('player.shape.title')}</span>
               </button>
@@ -395,7 +431,7 @@ export function Home({ user }: { user: User }) {
               key={entry.clip?.id ?? 'new'}
               sound={current}
               clip={entry.clip}
-              onDone={pop}
+              onDone={popTool}
             />
           ) : null,
         };
@@ -413,7 +449,7 @@ export function Home({ user }: { user: User }) {
                   library.state === 'ready' ? library.sounds : [],
                 ),
               }}
-              onDone={closeAll}
+              onDone={closeModals}
             />
           ),
         };
@@ -427,7 +463,7 @@ export function Home({ user }: { user: User }) {
             <SoundForm
               key={`edit-${sound.id}`}
               draft={{ kind: 'edit', sound }}
-              onDone={closeAll}
+              onDone={closeModals}
             />
           ) : null,
         };
@@ -435,29 +471,41 @@ export function Home({ user }: { user: User }) {
     }
   };
 
-  /** One column's stack: its layers, each knowing how many stand over it. */
-  const sheets = (tools: boolean) => {
-    const group = layers.filter(layer => layer.tools === tools);
+  /** Renders a stack of layers, each knowing how many stand over it. */
+  const renderStack = <T extends Entry>(
+    group: Layer<T>[],
+    onPop: () => void,
+  ) => {
     const front = group.filter(layer => !layer.leaving);
     return group.map((layer, i) => {
-      const sheet = render(layer.entry);
-      const depth = front.length - 1 - front.indexOf(layer);
+      const handleClose = layer.leaving ? () => {} : onPop;
+      const sheet = render(layer.entry, handleClose);
+      const liveIndex = front.indexOf(layer);
+      const depth = front.length - 1 - liveIndex;
+      const index = liveIndex >= 0 ? liveIndex : (layer.slot ?? i);
       return (
         <SidePanel
           key={layer.id}
           open={!layer.leaving}
+          switching={Boolean(layer.switching)}
           depth={layer.leaving ? 0 : depth}
-          index={i}
+          index={index}
           title={sheet.title}
           action={sheet.action}
           trailing={sheet.trailing}
-          onClose={layer.leaving ? () => {} : pop}
+          onClose={handleClose}
         >
           {sheet.body}
         </SidePanel>
       );
     });
   };
+
+  const editingCurrent =
+    liveModals.length === 1 &&
+    liveModals[0].entry.kind === 'edit' &&
+    (!liveModals[0].entry.sound ||
+      liveModals[0].entry.sound.id === current?.id);
 
   return (
     <div className={className}>
@@ -472,8 +520,8 @@ export function Home({ user }: { user: User }) {
           <button
             type="button"
             className="round bar-glyph"
-            aria-expanded={base === 'settings'}
-            onClick={() => stageThen(() => openOnly({ kind: 'settings' }))}
+            aria-expanded={modalBase === 'settings'}
+            onClick={() => openModal({ kind: 'settings' })}
           >
             <GearGlyph />
             <span className="sr">{t('app.settings')}</span>
@@ -498,37 +546,45 @@ export function Home({ user }: { user: User }) {
             sounds={library.sounds}
             addTilePosition={addTilePosition}
             onPick={pick}
-            onEdit={sound => stageThen(() => openOnly({ kind: 'edit', sound }))}
+            onEdit={sound => openModal({ kind: 'edit', sound })}
           />
         )}
       </main>
 
       <div className="stage">
         <div className="now-column">
-          <PlayerBackdrop artUrl={current?.artUrl ?? ''} />
+          <PlayerBackdrop
+            artUrl={current?.artUrl ?? ''}
+            flowing={playing}
+            rate={rate}
+          />
           <NowPlaying
             onCollapse={() => setExpanded(false)}
-            onOpen={next => openOnly({ kind: next })}
-            panel={
-              base === 'shape' ||
-              base === 'clips' ||
-              (base === 'edit' && live.length === 1)
-                ? base
-                : null
+            onOpen={next =>
+              next === 'edit' ? openModal({ kind: 'edit' }) : openTool(next)
             }
+            panel={
+              toolBase === 'shape' || toolBase === 'clips' ? toolBase : null
+            }
+            editing={editingCurrent}
           />
         </div>
-
-        {sheets(false)}
       </div>
 
-      <div className="tools">{sheets(true)}</div>
+      <div className="tools">{renderStack(toolLayers, popTool)}</div>
+
+      <div className="modals">
+        <div
+          className={liveModals.length ? 'modal-scrim is-open' : 'modal-scrim'}
+          aria-hidden="true"
+          onClick={closeModals}
+        />
+        {renderStack(modalLayers, popModal)}
+      </div>
 
       <MiniPlayer onExpand={() => setExpanded(true)} />
       <Toast />
-      <TrophyBanner
-        onOpen={() => stageThen(() => openOnly({ kind: 'trophies' }))}
-      />
+      <TrophyBanner onOpen={() => openModal({ kind: 'trophies' })} />
     </div>
   );
 }

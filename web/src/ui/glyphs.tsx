@@ -73,9 +73,9 @@ export const ShapeGlyph = () => (
 export const CloseGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path
-      d="M7 7l10 10M17 7 7 17"
+      d="M6 6l12 12M18 6 6 18"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.1"
       strokeLinecap="round"
     />
   </svg>
@@ -181,5 +181,29 @@ export const ChevronRightGlyph = () => (
 export const ChevronLeftGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M15 5l-7 7 7 7" {...strokeProps} strokeWidth={2} />
+  </svg>
+);
+
+/** SF Symbols' `speaker.wave.2.fill`: the active clip's indicator on iOS. */
+export const SpeakerWaveGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M3.5 9.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3.1l4.15 3.45a.85.85 0 0 0 1.4-.65V6.7a.85.85 0 0 0-1.4-.65L6.6 9.5H3.5Z"
+      fill="currentColor"
+    />
+    <path
+      d="M15.4 8.85a4.5 4.5 0 0 1 0 6.3M18.1 6.3a8.2 8.2 0 0 1 0 11.4"
+      {...strokeProps}
+      strokeWidth={1.9}
+    />
+  </svg>
+);
+
+/** SF Symbols' `ellipsis`: the row options menu trigger on web. */
+export const MoreGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="5.5" cy="12" r="1.75" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.75" fill="currentColor" />
+    <circle cx="18.5" cy="12" r="1.75" fill="currentColor" />
   </svg>
 );

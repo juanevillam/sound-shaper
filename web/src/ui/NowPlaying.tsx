@@ -34,10 +34,12 @@ export function NowPlaying({
   onCollapse,
   onOpen,
   panel,
+  editing = false,
 }: {
   onCollapse: () => void;
   onOpen: (panel: Panel) => void;
-  panel: Panel | null;
+  panel: 'shape' | 'clips' | null;
+  editing?: boolean;
 }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
@@ -207,7 +209,7 @@ export function NowPlaying({
         <button
           type="button"
           className="dock-cell is-hug"
-          aria-expanded={panel === 'edit'}
+          aria-expanded={editing}
           aria-label={t('player.menu.edit')}
           onClick={() => onOpen('edit')}
         >

@@ -247,39 +247,34 @@ export function SoundForm({
         />
       </div>
 
-      {/* Each field under its own label, the grouped form's header-over-card
-          shape: a side column is too narrow to hold a label and a value on
-          one line. */}
+      {/* Title and Subtitle in one grouped card with placeholders only,
+          matching Sound Shaper iOS's `edit-sound.tsx` Section. */}
       <form
-        className="fields"
+        className="card"
         onSubmit={e => {
           e.preventDefault();
           void save();
         }}
       >
-        <label className="field">
-          <span className="section-head">{t('soundEdit.name.label')}</span>
-          <span className="card cell">
-            <input
-              value={name}
-              placeholder={t('soundEdit.name.placeholder')}
-              disabled={busy}
-              autoComplete="off"
-              onChange={e => setName(e.target.value)}
-            />
-          </span>
+        <label className="cell field">
+          <input
+            value={name}
+            placeholder={t('soundEdit.name.label')}
+            aria-label={t('soundEdit.name.label')}
+            disabled={busy}
+            autoComplete="off"
+            onChange={e => setName(e.target.value)}
+          />
         </label>
-        <label className="field">
-          <span className="section-head">{t('soundEdit.subtitle.label')}</span>
-          <span className="card cell">
-            <input
-              value={artist}
-              placeholder={t('soundEdit.subtitle.placeholder')}
-              disabled={busy}
-              autoComplete="off"
-              onChange={e => setArtist(e.target.value)}
-            />
-          </span>
+        <label className="cell field">
+          <input
+            value={artist}
+            placeholder={t('soundEdit.subtitle.label')}
+            aria-label={t('soundEdit.subtitle.label')}
+            disabled={busy}
+            autoComplete="off"
+            onChange={e => setArtist(e.target.value)}
+          />
         </label>
         <button type="submit" hidden />
       </form>

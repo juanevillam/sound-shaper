@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
-
-import { usePlayer } from '../player';
+import { thumbUrl } from '../lib/thumbUrl';
 
 /**
  * Two layers and a front: a new picture is LOADED before it takes the front,
  * so the old wash holds until there is something to fade to. Flipping on the
  * prop alone faded the old cover out over an image still on the network —
- * the column dropped to bare ground for a beat on every change of sound.
+ * the column dropped to bare ground for a beat on every change of cover.
  */
 function useCrossfade(src: string): {
   layers: [string, string];
@@ -49,9 +47,9 @@ function useCrossfade(src: string): {
 }
 
 /**
- * The app's PlayerBackdrop, on the web: the playing sound's cover, blurred
- * and dimmed, behind everything. Two layers, so a new cover fades in over the
- * last rather than snapping.
+ * The app's PlayerBackdrop, on the web: the active cover, blurred and dimmed,
+ * behind everything. Two layers, so a new cover fades in over the last rather
+ * than snapping.
  */
 export function Backdrop({ artUrl }: { artUrl: string }) {
   const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 160) : '');
@@ -77,8 +75,9 @@ export function Backdrop({ artUrl }: { artUrl: string }) {
  * the reasoning and the measurement): two copies of the cover, blurred less
  * than the still wash, turning in opposite directions about pivots off the
  * column's centre, so the colours drift and pool. One clock advances by real
- * time × playback speed while the sound plays and stops on pause, so the
- * colours freeze where they are. Reduce Motion keeps the still wash.
+ * time × speed while `flowing` is true (always on in Book Highlighter; while
+ * playing in Sound Shaper) and freezes in place when paused. Reduce Motion
+ * keeps the still wash.
  */
 const FLOW_LAYERS = [
   { periodS: 24, direction: 1, opacity: 0.85, x: -0.3, y: -0.2 },
@@ -88,22 +87,24 @@ const FLOW_LAYERS = [
 const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Drives every `.flow` turner under `root` from one music-time clock. */
-function useFlow(root: React.RefObject<HTMLDivElement | null>) {
-  const playing = usePlayer(s => s.playing);
-  const rate = usePlayer(s => s.rate);
+/** Drives every `.flow` turner under `root` from one clock. */
+function useFlow(
+  root: React.RefObject<HTMLDivElement | null>,
+  flowing: boolean,
+  rate: number,
+) {
   const phase = useRef(0);
   const speed = useRef(rate);
   speed.current = rate;
 
   useEffect(() => {
-    if (!playing || reducedMotion()) return;
+    if (!flowing || reducedMotion()) return;
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
       const dt = now - last;
       last = now;
-      // A long gap is a hidden tab coming back, not music played.
+      // A long gap is a hidden tab coming back, not time to catch up on.
       if (dt < 100) phase.current += (dt / 1000) * speed.current;
       root.current?.querySelectorAll<HTMLElement>('.flow').forEach(turner => {
         const layer = FLOW_LAYERS[Number(turner.dataset.layer)];
@@ -115,7 +116,7 @@ function useFlow(root: React.RefObject<HTMLDivElement | null>) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [playing, root]);
+  }, [flowing, root]);
 }
 
 /**
@@ -123,13 +124,21 @@ function useFlow(root: React.RefObject<HTMLDivElement | null>) {
  * w_640 at 2x), blurred 60, at 0.75 over the page colour, with the same
  * fade laid over it — the app's stops, moved from its overscanned box into
  * the column's own height (screen y = offset × 1514 − 320 on the 874pt
- * phone they were measured on). An art-less sound takes the app's stand-in:
+ * phone they were measured on). An art-less item takes the app's stand-in:
  * the ink, in two crossing ramps.
  */
-export function PlayerBackdrop({ artUrl }: { artUrl: string }) {
+export function PlayerBackdrop({
+  artUrl,
+  flowing = true,
+  rate = 1,
+}: {
+  artUrl: string;
+  flowing?: boolean;
+  rate?: number;
+}) {
   const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 320) : '');
   const root = useRef<HTMLDivElement>(null);
-  useFlow(root);
+  useFlow(root, flowing, rate);
 
   return (
     <div className="player-backdrop" aria-hidden="true" ref={root}>
@@ -137,7 +146,7 @@ export function PlayerBackdrop({ artUrl }: { artUrl: string }) {
       {/* BOTH WASHES STAY MOUNTED, picture or not. Mounting one only once it
           had a picture put it on screen ALREADY at its resting opacity — no
           transition runs on an element's first style — so the first change
-          of sound, and every change out of an art-less one, cut instead of
+          of item, and every change out of an art-less one, cut instead of
           crossing. */}
       {layers.map((src, i) => (
         <div key={i} className={i === front ? 'wash is-on' : 'wash'}>

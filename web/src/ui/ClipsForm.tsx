@@ -7,46 +7,25 @@ import { deleteClip, useClips, type Clip } from '../clips';
 import { t } from '../i18n';
 import { playClip, setRepeat, toggle, usePlayer } from '../player';
 
+import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Bars, ClipGlyph, PencilGlyph, PlusGlyph, TrashGlyph } from './glyphs';
+import { ClipGlyph, MoreGlyph, SpeakerWaveGlyph } from './glyphs';
 
 const range = (clip: { startMs: number; endMs: number }) =>
   `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
 
 /**
- * The row under Repeat: a new clip, in words. The bar's + alone was the only
- * way in, and on a wide sheet a lone glyph in a corner is easy to miss — the
- * row is where the list itself says what can be added to it (Reminders'
- * "New Reminder").
- */
-const NewClipRow = ({ onNew }: { onNew: () => void }) => (
-  <button type="button" className="cell new-clip-row" onClick={onNew}>
-    <span className="clip-mark">
-      <PlusGlyph />
-    </span>
-    {t('player.clips.new')}
-  </button>
-);
-
-/**
  * The Clips sheet's body, the app's branch for branch: nothing until the
  * clips are known, the EMPTY STATE in place of the whole form while there are
  * none (scissors, title, line — Repeat is about how clips play, so it only
- * exists once there are clips), and otherwise Repeat, New Clip, the clips.
+ * exists once there are clips), and otherwise Repeat and the clips card.
  */
-export function ClipsForm({
-  onEdit,
-  onNew,
-}: {
-  onEdit: (clip: Clip) => void;
-  onNew: () => void;
-}) {
+export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
   const current = usePlayer(s => s.current);
   const repeat = usePlayer(s => s.repeat);
   const active = usePlayer(s => s.activeClip?.id ?? null);
-  const playing = usePlayer(s => s.playing);
-  const rate = usePlayer(s => s.rate);
   const clips = useClips(current?.id);
+  const [menuClip, setMenuClip] = useState<Clip | null>(null);
   const [confirming, setConfirming] = useState<Clip | null>(null);
 
   if (!current) return null;
@@ -59,10 +38,7 @@ export function ClipsForm({
             <ClipGlyph />
           </span>
           <h3>{t('player.clips.none')}</h3>
-          <p>{t('player.clips.emptyWeb')}</p>
-          <button type="button" className="pill is-primary" onClick={onNew}>
-            {t('player.clips.new')}
-          </button>
+          <p>{t('player.clips.empty')}</p>
         </div>
       ) : (
         <>
@@ -84,10 +60,6 @@ export function ClipsForm({
             </label>
           </div>
 
-          <div className="card">
-            <NewClipRow onNew={onNew} />
-          </div>
-
           <ul className="card clip-list">
             {clips.map(clip => {
               const isActive = active === clip.id;
@@ -95,48 +67,28 @@ export function ClipsForm({
                 <li key={clip.id} className="cell clip-row">
                   <button
                     type="button"
-                    className="clip-play"
+                    className={isActive ? 'clip-play is-active' : 'clip-play'}
                     aria-current={isActive || undefined}
                     onClick={() =>
                       isActive ? toggle() : playClip(current.id, clip)
                     }
                   >
-                    <span className="clip-mark">
-                      {isActive ? (
-                        <Bars live={playing} rate={rate} />
-                      ) : (
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path
-                            d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"
-                            fill="currentColor"
-                          />
-                        </svg>
-                      )}
+                    <span className="clip-name">
+                      {clip.label || range(clip)}
                     </span>
-                    <span className="clip-copy">
-                      <span className="clip-name">
-                        {clip.label || range(clip)}
+                    {isActive && (
+                      <span className="clip-active-icon" aria-hidden="true">
+                        <SpeakerWaveGlyph />
                       </span>
-                      <span className="clip-length">
-                        {formatTime((clip.endMs - clip.startMs) / 1000)}
-                      </span>
-                    </span>
+                    )}
                   </button>
                   <button
                     type="button"
                     className="round quiet"
-                    onClick={() => onEdit(clip)}
+                    onClick={() => setMenuClip(clip)}
                   >
-                    <PencilGlyph />
-                    <span className="sr">{t('player.clips.edit')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="round quiet"
-                    onClick={() => setConfirming(clip)}
-                  >
-                    <TrashGlyph />
-                    <span className="sr">{t('player.clips.delete')}</span>
+                    <MoreGlyph />
+                    <span className="sr">{t('player.clips.editAction')}</span>
                   </button>
                 </li>
               );
@@ -144,6 +96,27 @@ export function ClipsForm({
           </ul>
         </>
       )}
+
+      <ActionSheet
+        open={menuClip !== null}
+        cancel={t('common.cancel')}
+        actions={[
+          {
+            label: t('player.clips.editAction'),
+            onSelect: () => {
+              if (menuClip) onEdit(menuClip);
+            },
+          },
+          {
+            label: t('player.clips.delete'),
+            destructive: true,
+            onSelect: () => {
+              if (menuClip) setConfirming(menuClip);
+            },
+          },
+        ]}
+        onClose={() => setMenuClip(null)}
+      />
 
       <ConfirmDialog
         open={confirming !== null}
