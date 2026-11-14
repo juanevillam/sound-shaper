@@ -132,11 +132,7 @@ const ValueSlot = ({
     </VStack>
   ) : (
     <Text
-      modifiers={[
-        foregroundStyle(colors.onSurfaceMuted),
-        ...LIST_ROW_ONE_LINE,
-        frame({ maxWidth: 165, alignment: 'trailing' }),
-      ]}
+      modifiers={[foregroundStyle(colors.onSurfaceMuted), ...LIST_ROW_ONE_LINE]}
     >
       {value}
     </Text>

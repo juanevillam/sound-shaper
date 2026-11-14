@@ -10,6 +10,7 @@ import { playClip, setRepeat, toggle, usePlayer } from '../player';
 import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ClipGlyph, MoreGlyph, SpeakerWaveGlyph } from './glyphs';
+import { showToast } from './Toast';
 
 const range = (clip: { startMs: number; endMs: number }) =>
   `${formatTime(clip.startMs / 1000)} – ${formatTime(clip.endMs / 1000)}`;
@@ -124,7 +125,13 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
         message={t('player.clips.deleteConfirm.message')}
         cancel={t('player.clips.deleteConfirm.cancel')}
         confirm={t('player.clips.deleteConfirm.confirm')}
-        onConfirm={() => confirming && deleteClip(current.id, confirming.id)}
+        onConfirm={() => {
+          if (!confirming) return;
+          deleteClip(current.id, confirming.id).then(
+            () => showToast(t('snackbar.clip-deleted')),
+            () => showToast(t('snackbar.clip-delete-failed')),
+          );
+        }}
         onClose={() => setConfirming(null)}
       />
     </>

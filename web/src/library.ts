@@ -33,7 +33,7 @@ export type Sound = {
 
 export type Library =
   | { state: 'loading' }
-  | { state: 'error' }
+  | { state: 'error'; retry: () => void }
   | { state: 'ready'; sounds: Sound[] };
 
 const millis = (value: unknown) =>
@@ -45,57 +45,60 @@ const finite = (value: unknown) =>
 /** The library, live, in the person's own hand order — the app's listener. */
 export const useLibrary = (uid: string): Library => {
   const [library, setLibrary] = useState<Library>({ state: 'loading' });
+  const [attempt, setAttempt] = useState(0);
   const repairing = useRef(false);
 
-  useEffect(
-    () =>
-      onSnapshot(
-        query(
-          collection(db, USERS_COLLECTION, uid, SOUNDS_SUBCOLLECTION),
-          orderBy('createdAt', 'desc'),
-        ),
-        snapshot => {
-          const sounds = byGridOrder(
-            snapshot.docs.map(d => {
-              const data = d.data();
-
-              return {
-                artist: (data.artist as string) ?? '',
-                artUrl: (data.artUrl as string) ?? '',
-                audioUrl: (data.audioUrl as string) ?? '',
-                createdAt: millis(data.createdAt),
-                durationMs: finite(data.durationMs),
-                id: d.id,
-                name: (data.name as string) ?? '',
-                position: finite(data.position),
-              };
-            }),
-          );
-
-          syncLibrary(sounds);
-          setLibrary({ state: 'ready', sounds });
-
-          if (
-            !repairing.current &&
-            !snapshot.metadata.fromCache &&
-            sounds.length > 0 &&
-            needsPositionRepair(sounds)
-          ) {
-            repairing.current = true;
-            backfillSoundPositions(sounds)
-              .catch(error => console.warn('repair positions', error))
-              .finally(() => {
-                repairing.current = false;
-              });
-          }
-        },
-        error => {
-          console.warn('library', error);
-          setLibrary({ state: 'error' });
-        },
+  useEffect(() => {
+    setLibrary({ state: 'loading' });
+    return onSnapshot(
+      query(
+        collection(db, USERS_COLLECTION, uid, SOUNDS_SUBCOLLECTION),
+        orderBy('createdAt', 'desc'),
       ),
-    [uid],
-  );
+      snapshot => {
+        const sounds = byGridOrder(
+          snapshot.docs.map(d => {
+            const data = d.data();
+
+            return {
+              artist: (data.artist as string) ?? '',
+              artUrl: (data.artUrl as string) ?? '',
+              audioUrl: (data.audioUrl as string) ?? '',
+              createdAt: millis(data.createdAt),
+              durationMs: finite(data.durationMs),
+              id: d.id,
+              name: (data.name as string) ?? '',
+              position: finite(data.position),
+            };
+          }),
+        );
+
+        syncLibrary(sounds);
+        setLibrary({ state: 'ready', sounds });
+
+        if (
+          !repairing.current &&
+          !snapshot.metadata.fromCache &&
+          sounds.length > 0 &&
+          needsPositionRepair(sounds)
+        ) {
+          repairing.current = true;
+          backfillSoundPositions(sounds)
+            .catch(error => console.warn('repair positions', error))
+            .finally(() => {
+              repairing.current = false;
+            });
+        }
+      },
+      error => {
+        console.warn('library', error);
+        setLibrary({
+          state: 'error',
+          retry: () => setAttempt(n => n + 1),
+        });
+      },
+    );
+  }, [uid, attempt]);
 
   return library;
 };

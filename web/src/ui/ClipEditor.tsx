@@ -12,6 +12,7 @@ import { cue, pause, playClip, scrubTo, usePlayer } from '../player';
 import { levelAt, useWaveform, type Waveform } from '../waveform';
 
 import { PlayPauseGlyph } from './glyphs';
+import { showToast } from './Toast';
 
 /**
  * THE CLIP EDITOR — the app's ClipTrimEditor (Voice Memos' trim anatomy,
@@ -136,6 +137,14 @@ export function ClipEditor({
     // Once, on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The sound changed under the editor (skip or deletion): leave, as iOS does.
+  const soundIdRef = useRef(sound.id);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  useEffect(() => {
+    if (sound.id !== soundIdRef.current) onDoneRef.current();
+  }, [sound.id]);
 
   const head =
     drag && (drag.kind === 'scrub' || drag.kind === 'seek')
@@ -278,13 +287,16 @@ const EditorCommit = ({
   useEffect(() => {
     commit = () => {
       const value = { startMs: range[0] * 1000, endMs: range[1] * 1000 };
-      if (clip) void updateClip(soundId, clip.id, value);
-      else {
-        void createClip(soundId, value);
+      const write = clip
+        ? updateClip(soundId, clip.id, value)
+        : createClip(soundId, value);
+      if (!clip) {
         // Re-framing moves the range and nothing else; only a new clip
         // counts toward Clipper and Splicer.
         noteClipSaved();
       }
+      write.catch(() => showToast(t('snackbar.clip-save-failed')));
+      showToast(t(clip ? 'snackbar.clip-updated' : 'snackbar.clip-created'));
       pause();
       onDone();
     };

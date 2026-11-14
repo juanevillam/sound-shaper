@@ -88,12 +88,16 @@ export function ConfirmDialog({
       <h2>{title}</h2>
       <p>{message}</p>
       <div className="confirm-actions">
-        <button type="button" className="pill" onClick={onClose}>
+        <button
+          type="button"
+          className={destructive ? 'pill is-preferred' : 'pill'}
+          onClick={onClose}
+        >
           {cancel}
         </button>
         <button
           type="button"
-          className={destructive ? 'pill is-destructive' : 'pill is-primary'}
+          className={destructive ? 'pill is-destructive' : 'pill is-preferred'}
           onClick={() => {
             onConfirm();
             onClose();

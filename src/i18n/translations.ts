@@ -60,7 +60,6 @@ export const translations = {
     home: {
       addSound: 'Add Sound',
       addSoundFormat: 'MP3 files only',
-      reorder: 'Reorder',
       error: {
         title: "Couldn't Load Your Sounds",
         subtitle: 'Check your connection and try again.',
@@ -434,7 +433,6 @@ export const translations = {
     home: {
       addSound: 'Añadir sonido',
       addSoundFormat: 'Solo archivos MP3',
-      reorder: 'Reordenar',
       error: {
         title: 'No se pudieron cargar tus sonidos',
         subtitle: 'Comprueba tu conexión y vuelve a intentarlo.',
@@ -766,7 +764,6 @@ export const translations = {
     home: {
       addSound: '添加音频',
       addSoundFormat: '仅限 MP3 文件',
-      reorder: '重新排序',
       error: {
         title: '无法载入你的音频',
         subtitle: '请检查网络连接后重试。',

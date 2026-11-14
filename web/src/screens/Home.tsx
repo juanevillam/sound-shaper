@@ -559,6 +559,9 @@ export function Home({ user }: { user: User }) {
           <section className="empty">
             <h2>{t('home.error.title')}</h2>
             <p>{t('home.error.subtitle')}</p>
+            <button type="button" className="pill" onClick={library.retry}>
+              {t('common.retry')}
+            </button>
           </section>
         )}
 
@@ -567,6 +570,7 @@ export function Home({ user }: { user: User }) {
             sounds={library.sounds}
             addTilePosition={addTilePosition}
             onPick={pick}
+            onEdit={sound => openModal({ kind: 'edit', sound })}
           />
         )}
       </main>
