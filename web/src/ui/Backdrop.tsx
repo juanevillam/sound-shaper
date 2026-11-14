@@ -142,7 +142,9 @@ export function PlayerBackdrop({
 
   return (
     <div className="player-backdrop" aria-hidden="true" ref={root}>
-      <div className={layers[front] ? 'standin' : 'standin is-on'} />
+      <div
+        className={!artUrl && !layers[front] ? 'standin is-on' : 'standin'}
+      />
       {/* BOTH WASHES STAY MOUNTED, picture or not. Mounting one only once it
           had a picture put it on screen ALREADY at its resting opacity — no
           transition runs on an element's first style — so the first change

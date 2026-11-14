@@ -207,3 +207,14 @@ export const MoreGlyph = () => (
     <circle cx="18.5" cy="12" r="1.75" fill="currentColor" />
   </svg>
 );
+
+/** SF Symbols' `arrow.up.arrow.down`: the home bar's reorder toggle. */
+export const ReorderGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M8 19V5M4.5 8.5 8 5l3.5 3.5M16 5v14M12.5 15.5 16 19l3.5-3.5"
+      {...strokeProps}
+      strokeWidth={1.85}
+    />
+  </svg>
+);

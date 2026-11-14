@@ -512,6 +512,15 @@ button {
   animation: fade var(--dur-quick) var(--ease) both;
 }
 
+.confirm.is-closing {
+  animation: rise-out 220ms var(--ease) both;
+  pointer-events: none;
+}
+
+.confirm.is-closing::backdrop {
+  animation: fade-out 220ms var(--ease) both;
+}
+
 .confirm h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -554,6 +563,15 @@ button {
   animation: fade var(--dur-quick) var(--ease) both;
 }
 
+.action-sheet.is-closing {
+  animation: sheet-fall 220ms var(--ease) both;
+  pointer-events: none;
+}
+
+.action-sheet.is-closing::backdrop {
+  animation: fade-out 220ms var(--ease) both;
+}
+
 .action-group {
   display: grid;
   overflow: hidden;
@@ -594,6 +612,20 @@ button {
   }
 }
 
+@keyframes sheet-fall {
+  to {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
 @media (min-width: 64rem) {
   .action-sheet {
     margin: auto;
@@ -605,6 +637,7 @@ button {
 /* The app's spacing, not a web grid's: TILE_GAP 14 between columns, 18
    between rows, 10 from cover to caption. */
 .grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(10.5rem, 45%), 1fr));
   gap: 1.125rem 0.875rem;
@@ -614,12 +647,8 @@ button {
 }
 
 .grid li {
-  /* backwards, not both: a finished entrance must not hold the transform,
-     or a held tile could never be moved off its slot. */
   animation: rise 520ms var(--ease) backwards;
   animation-delay: calc(var(--i, 0) * 28ms);
-  /* A hold is the drag's, not the browser's: no callout, no selection, no
-     image drag. */
   -webkit-touch-callout: none;
   user-select: none;
 }
@@ -628,21 +657,8 @@ button {
   -webkit-user-drag: none;
 }
 
-/* The held tile rides over its neighbours; the rest glide out of its way. */
-.grid li.is-lifted {
-  position: relative;
-  z-index: 5;
-  cursor: grabbing;
-  transition: none;
-}
-
-.grid li.is-lifted .tile-art {
-  box-shadow: 0 0.5rem 1.25rem rgb(0 0 0 / 0.3);
-  border-radius: 15%;
-}
-
-.grid.is-sorting .tile {
-  pointer-events: none;
+.grid.is-entered li {
+  animation: none;
 }
 
 /* A column, not a grid: WebKit sizes a display: grid <button> from the
@@ -658,6 +674,7 @@ button {
   border: 0;
   background: none;
   text-align: start;
+  cursor: pointer;
 }
 
 .tile-art {
@@ -713,6 +730,7 @@ button {
 }
 
 .artwork {
+  position: relative;
   display: grid;
   place-items: center;
   width: 100%;
@@ -723,8 +741,8 @@ button {
 }
 
 .artwork img {
-  /* Every layer in one cell: the last cover beneath, the new one over it. */
-  grid-area: 1 / 1;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1573,10 +1591,8 @@ button {
 }
 
 /* Two glyphs in one capsule — the clip editor's ✓ beside its Shape, or Clips'
-   Shape beside +. Each slot is a full .round button (2.25rem / 0.4375rem
-   padding) with the app's CAPSULE_GAP (14.16 / 43 × 2.25rem ≈ 0.75rem)
-   between them, so the merged pill is the sum of two buttons plus their
-   division space. */
+   Shape beside +. Balanced outer horizontal padding and a closer inner gap so
+   neither glyph crowds the capsule's rounded ends. */
 .glass-pill {
   position: relative;
   isolation: isolate;
@@ -1584,9 +1600,9 @@ button {
   justify-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.25rem;
   height: 2.25rem;
-  padding: 0;
+  padding: 0 0.3125rem;
   border-radius: 999px;
 }
 
@@ -2520,6 +2536,11 @@ button {
   white-space: nowrap;
   pointer-events: auto;
   animation: rise var(--dur-turn) var(--ease) both;
+}
+
+.toast.is-leaving {
+  animation: rise-out 200ms var(--ease) both;
+  pointer-events: none;
 }
 
 .toast-action {

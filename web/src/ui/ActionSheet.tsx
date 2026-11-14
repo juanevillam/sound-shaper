@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+
+import { useModalDialog } from './ConfirmDialog';
 
 export type SheetAction = {
   label: string;
@@ -28,28 +30,29 @@ export function ActionSheet({
   cancel: string;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = ref.current;
-
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  const { ref, closing } = useModalDialog(open);
+  const shownActions = useRef(actions);
+  if (open && actions.length > 0) shownActions.current = actions;
+  const viewActions = open ? actions : shownActions.current;
 
   return (
     <dialog
       ref={ref}
-      className="action-sheet"
-      onClose={onClose}
+      className={closing ? 'action-sheet is-closing' : 'action-sheet'}
+      onCancel={e => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (open) onClose();
+      }}
       onClick={e => {
         // A click on the backdrop lands on the dialog itself.
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div className="action-group">
-        {actions.map(action => (
+        {viewActions.map(action => (
           <button
             key={action.label}
             type="button"

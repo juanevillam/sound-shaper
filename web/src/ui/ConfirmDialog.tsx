@@ -1,4 +1,46 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const CLOSE_MS = 220;
+
+/**
+ * Keeps a native `<dialog>` open for `CLOSE_MS` with `.is-closing` while its
+ * exit animation plays, and intercepts `Escape` (`onCancel`) so keyboard
+ * dismissal animates out with the same transition as clicking Cancel.
+ */
+export function useModalDialog(open: boolean) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    const dialog = ref.current;
+
+    if (!dialog) return;
+    if (open) {
+      setClosing(false);
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+
+    if (!dialog.open) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      dialog.close();
+      return;
+    }
+
+    setClosing(true);
+    const timer = window.setTimeout(() => {
+      setClosing(false);
+      if (dialog.open) dialog.close();
+    }, CLOSE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  return { ref, closing };
+}
 
 /**
  * A yes/no question, in the site's own language rather than a copy of an OS
@@ -25,21 +67,19 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = ref.current;
-
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  const { ref, closing } = useModalDialog(open);
 
   return (
     <dialog
       ref={ref}
-      className="confirm"
-      onClose={onClose}
+      className={closing ? 'confirm is-closing' : 'confirm'}
+      onCancel={e => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (open) onClose();
+      }}
       onClick={e => {
         // A click on the backdrop lands on the dialog itself.
         if (e.target === e.currentTarget) onClose();

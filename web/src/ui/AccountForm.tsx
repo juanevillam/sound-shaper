@@ -17,7 +17,7 @@ import { uploadFailureKey } from '../media';
 import { resetPlayer } from '../player';
 
 import { ActionSheet } from './ActionSheet';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog, useModalDialog } from './ConfirmDialog';
 import { ChevronRightGlyph } from './glyphs';
 import { Avatar } from './SettingsForm';
 import { showToast } from './Toast';
@@ -44,17 +44,11 @@ function NameDialog({
   onSave: (name: string) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const { ref, closing } = useModalDialog(open);
   const [value, setValue] = useState(initial);
 
   useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      setValue(initial);
-      dialog.showModal();
-    }
-    if (!open && dialog.open) dialog.close();
+    if (open) setValue(initial);
   }, [open, initial]);
 
   const valid = value.trim().length >= MIN_NAME_LENGTH;
@@ -62,8 +56,14 @@ function NameDialog({
   return (
     <dialog
       ref={ref}
-      className="confirm"
-      onClose={onClose}
+      className={closing ? 'confirm is-closing' : 'confirm'}
+      onCancel={e => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (open) onClose();
+      }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <form

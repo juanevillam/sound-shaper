@@ -172,6 +172,22 @@ export const setAddTilePosition = (position: number) => {
 };
 
 /**
+ * Give the whole library positions, in the order it is being displayed —
+ * the app's `backfillSoundPositions`, run when `needsPositionRepair` fires.
+ */
+export const backfillSoundPositions = async (
+  ordered: Array<{ id: string }>,
+): Promise<void> => {
+  if (ordered.length === 0) return;
+
+  const batch = writeBatch(db);
+  ordered.forEach((sound, index) => {
+    batch.update(doc(soundsOf(), sound.id), { position: index });
+  });
+  await batch.commit();
+};
+
+/**
  * The whole order re-spaced, for the one case a move cannot be given a slot
  * (float64 out of room between two neighbours) — the app's
  * `renormalizeSoundPositions` plus the add tile, in one batch.

@@ -7,6 +7,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 type ToastMessage = {
   text: string;
   id: number;
+  leaving?: boolean;
   actionLabel?: string;
   onAction?: () => void;
 };
@@ -14,6 +15,9 @@ type ToastMessage = {
 let message: ToastMessage | null = null;
 const listeners = new Set<() => void>();
 let next = 0;
+
+const DURATION_MS = 3200;
+const EXIT_MS = 200;
 
 export const showToast = (
   text: string,
@@ -33,22 +37,30 @@ const clearToast = () => {
   listeners.forEach(listener => listener());
 };
 
+const leaveToast = (id: number) => {
+  if (!message || message.id !== id || message.leaving) return;
+  message = { ...message, leaving: true };
+  listeners.forEach(listener => listener());
+};
+
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => listeners.delete(listener);
 };
-
-const DURATION_MS = 3200;
 
 export function Toast() {
   const current = useSyncExternalStore(subscribe, () => message);
 
   useEffect(() => {
     if (!current) return;
-    const timer = setTimeout(
-      () => {
+    if (current.leaving) {
+      const exit = setTimeout(() => {
         if (message?.id === current.id) clearToast();
-      },
+      }, EXIT_MS);
+      return () => clearTimeout(exit);
+    }
+    const timer = setTimeout(
+      () => leaveToast(current.id),
       current.onAction ? 5000 : DURATION_MS,
     );
     return () => clearTimeout(timer);
@@ -57,7 +69,10 @@ export function Toast() {
   return (
     <div className="toast-slot" role="status" aria-live="polite">
       {current && (
-        <div key={current.id} className="toast">
+        <div
+          key={current.id}
+          className={current.leaving ? 'toast is-leaving' : 'toast'}
+        >
           <span>{current.text}</span>
           {current.actionLabel && current.onAction && (
             <button
@@ -65,7 +80,7 @@ export function Toast() {
               className="toast-action"
               onClick={() => {
                 const fn = current.onAction;
-                clearToast();
+                leaveToast(current.id);
                 fn?.();
               }}
             >

@@ -101,20 +101,21 @@ const SkeletonGrid = () => (
  * stretch between the first scroll and the title going under, read as a
  * half-collapsed bar (Juan, 2026-11-04).
  */
-const useLargeTitle = () => {
+const useLargeTitle = (active: boolean) => {
   const title = useRef<HTMLHeadingElement>(null);
   const [titled, setTitled] = useState(false);
 
   useEffect(() => {
+    if (!active || !title.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => setTitled(!entry.isIntersecting),
       // The bar's own height: "under the bar" is where the title goes away.
       { rootMargin: '-56px 0px 0px 0px' },
     );
 
-    if (title.current) observer.observe(title.current);
+    observer.observe(title.current);
     return () => observer.disconnect();
-  }, []);
+  }, [active]);
 
   return { title, titled };
 };
@@ -173,7 +174,17 @@ export function Home({ user }: { user: User }) {
   const [modalLayers, setModalLayers] = useState<Layer<ModalEntry>[]>([]);
   // Auth's user object changes in place; an edit bumps this to re-render.
   const [, setProfileTick] = useState(0);
-  const { title, titled } = useLargeTitle();
+  const [coldLoad, setColdLoad] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (library.state !== 'loading') return;
+    const id = setTimeout(() => setColdLoad(true), 220);
+    return () => clearTimeout(id);
+  }, [library.state]);
+
+  const readyOrCold = library.state !== 'loading' || coldLoad;
+  const { title, titled } = useLargeTitle(readyOrCold);
 
   const liveTools = toolLayers.filter(layer => !layer.leaving);
   const toolBase = liveTools[0]?.entry.kind ?? null;
@@ -265,17 +276,25 @@ export function Home({ user }: { user: User }) {
     pushModal(entry);
   };
 
-  // THE RIGHT COLUMN STANDS FOR A SOUND, and it stands up as one move. The
-  // library's first snapshot primes `current` with the first sound — the
-  // app's parked banner — so the column arrives on its own, after the grid
-  // has drawn; taking `current` straight would snap it in. It follows
-  // `current` through `morph` instead, like every other column change.
+  // On initial hydration, stand the second column synchronously with the
+  // library so the grid never renders wide and shrinks mid-entrance; reserve
+  // `morph` for 0 -> 1 and 1 -> 0 changes during the session.
+  const activeCurrent =
+    current ?? (library.state === 'ready' ? (library.sounds[0] ?? null) : null);
+  const hasCurrent = Boolean(activeCurrent);
   const [stood, setStood] = useState(false);
-  const hasCurrent = Boolean(current);
+  const isStaged = hydrated.current ? stood : hasCurrent;
+
   useEffect(() => {
+    if (library.state === 'loading') return;
+    if (!hydrated.current) {
+      hydrated.current = true;
+      setStood(hasCurrent);
+      return;
+    }
     if (hasCurrent === stood) return;
     morph(() => setStood(hasCurrent));
-  }, [hasCurrent, stood]);
+  }, [library.state, hasCurrent, stood]);
 
   // THE THIRD COLUMN stands up and lies down through `morph` too, a beat
   // after the stack that needs it — the same lag as the player's column.
@@ -329,10 +348,12 @@ export function Home({ user }: { user: User }) {
     return () => document.removeEventListener('keydown', onKey);
   });
 
+  if (!readyOrCold) return null;
+
   const className = [
     'home',
-    current ? 'has-current' : '',
-    stood ? 'is-staged' : '',
+    activeCurrent ? 'has-current' : '',
+    isStaged ? 'is-staged' : '',
     expanded ? 'is-expanded' : '',
     toolsShown ? 'is-tooled' : '',
   ]
@@ -509,7 +530,7 @@ export function Home({ user }: { user: User }) {
 
   return (
     <div className={className}>
-      <Backdrop artUrl={current?.artUrl ?? ''} />
+      <Backdrop artUrl={activeCurrent?.artUrl ?? ''} />
 
       <main className="library">
         <header className={titled ? 'bar is-edge is-titled' : 'bar'}>
@@ -546,7 +567,6 @@ export function Home({ user }: { user: User }) {
             sounds={library.sounds}
             addTilePosition={addTilePosition}
             onPick={pick}
-            onEdit={sound => openModal({ kind: 'edit', sound })}
           />
         )}
       </main>
