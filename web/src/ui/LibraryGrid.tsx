@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 
 import { positionForMove, renormalized } from '@app/lib/gridOrder';
 import { DRAG_ACTIVE_SCALE } from '@app/ui/dragMetrics';
@@ -140,6 +141,8 @@ type Drag = {
   /** The press inside the tile, so the tile stays under the same spot. */
   grabX: number;
   grabY: number;
+  width: number;
+  height: number;
   timer: ReturnType<typeof setTimeout> | null;
   lifted: boolean;
   /** The order when it lifted, to tell a move from a hold. */
@@ -180,6 +183,7 @@ export function LibraryGrid({
 
   /** The order while a tile is held, and until the snapshot agrees. */
   const [order, setOrder] = useState<string[] | null>(null);
+  const orderRef = useRef<string[] | null>(null);
   const [lifted, setLifted] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const keys = order ?? cells.map(cell => cell.key);
@@ -188,6 +192,7 @@ export function LibraryGrid({
   const drag = useRef<Drag | null>(null);
   const swallowClick = useRef(false);
   const slots = useRef(new Map<string, { left: number; top: number }>());
+  const anims = useRef(new Map<string, Animation>());
 
   useEffect(() => {
     if (entered) return;
@@ -198,70 +203,125 @@ export function LibraryGrid({
   // Once the snapshot carries the order the drop wrote, it is the truth again.
   const live = cells.map(cell => cell.key).join('|');
   useEffect(() => {
-    if (order && !lifted && order.join('|') === live) setOrder(null);
+    if (order && !lifted && order.join('|') === live) {
+      orderRef.current = null;
+      setOrder(null);
+    }
   }, [live, order, lifted]);
 
   const items = () => [...(list.current?.children ?? [])] as HTMLLIElement[];
 
+  const snapshotSlots = () => {
+    slots.current.clear();
+    for (const li of items()) {
+      const key = li.dataset.key;
+      if (key) {
+        slots.current.set(key, { left: li.offsetLeft, top: li.offsetTop });
+      }
+    }
+  };
+
   /** Keep the held tile under the pointer, wherever its slot now is. */
   const follow = () => {
     const d = drag.current;
-    if (!d?.lifted) return;
+    const host = list.current;
+    if (!d?.lifted || !host) return;
     const li = items().find(el => el.dataset.key === d.key);
     if (!li) return;
-    // The slot itself, wherever it now is and however its column scrolls.
-    li.style.transform = '';
-    const slot = li.getBoundingClientRect();
-    const dx = d.x - d.grabX - slot.left;
-    const dy = d.y - d.grabY - slot.top;
-    // Less motion asked for: the tile still travels, it just does not lift.
+    const running = anims.current.get(d.key);
+    if (running) {
+      running.cancel();
+      anims.current.delete(d.key);
+    }
+    const hostRect = host.getBoundingClientRect();
+    const slotLeft = hostRect.left + li.offsetLeft;
+    const slotTop = hostRect.top + li.offsetTop;
+    const dx = d.x - d.grabX - slotLeft;
+    const dy = d.y - d.grabY - slotTop;
     const scale = matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 1
       : DRAG_ACTIVE_SCALE;
-    li.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    li.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
   };
 
-  /** The slot under the pointer: the tile there gives up its place. */
+  /**
+   * Hit-test by untransformed layout slot index (`offsetLeft`/`offsetTop`),
+   * never `getBoundingClientRect()` (which moves with in-flight FLIP
+   * animations and causes rapid back-and-forth oscillation).
+   */
   const retarget = () => {
     const d = drag.current;
-    if (!d?.lifted) return;
-    const over = items().find(el => {
-      if (el.dataset.key === d.key) return false;
-      const r = el.getBoundingClientRect();
-      return d.x >= r.left && d.x <= r.right && d.y >= r.top && d.y <= r.bottom;
+    const host = list.current;
+    if (!d?.lifted || !host) return;
+    const hostRect = host.getBoundingClientRect();
+    const listItems = items();
+    const to = listItems.findIndex(el => {
+      const w = el.offsetWidth;
+      const h = Math.max(el.offsetHeight, d.height);
+      const ix = w * 0.12;
+      const iy = h * 0.12;
+      const left = hostRect.left + el.offsetLeft + ix;
+      const right = hostRect.left + el.offsetLeft + w - ix;
+      const top = hostRect.top + el.offsetTop + iy;
+      const bottom = hostRect.top + el.offsetTop + h - iy;
+      return d.x >= left && d.x <= right && d.y >= top && d.y <= bottom;
     });
-    const target = over?.dataset.key;
-    if (!target) return;
-    setOrder(current => {
-      const next = [...(current ?? keys)];
-      const from = next.indexOf(d.key);
-      const to = next.indexOf(target);
-      if (from === -1 || to === -1 || from === to) return current;
-      next.splice(from, 1);
-      next.splice(to, 0, d.key);
-      return next;
+    if (to === -1) return;
+    const current = orderRef.current ?? keys;
+    const from = current.indexOf(d.key);
+    if (from === -1 || from === to) return;
+    const next = [...current];
+    next.splice(from, 1);
+    next.splice(to, 0, d.key);
+    orderRef.current = next;
+    flushSync(() => {
+      setOrder(next);
     });
   };
 
-  // Every tile that changed slot glides from where it was (FLIP); the held
-  // one is placed under the pointer instead.
+  // Every tile that changed slot glides from where it was (interruptible FLIP);
+  // the held one is placed under the pointer instead.
   useLayoutEffect(() => {
     const host = list.current;
     if (!host) return;
+    if (!drag.current?.lifted) {
+      snapshotSlots();
+      return;
+    }
+    const hostRect = host.getBoundingClientRect();
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     for (const li of items()) {
       const key = li.dataset.key ?? '';
       const now = { left: li.offsetLeft, top: li.offsetTop };
       const was = slots.current.get(key);
       slots.current.set(key, now);
-      if (!was || key === drag.current?.key || reduce) continue;
-      const dx = was.left - now.left;
-      const dy = was.top - now.top;
-      if (dx || dy)
-        li.animate(
-          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
-          { duration: 260, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
-        );
+      if (!was || key === drag.current.key || reduce) continue;
+      let dx = was.left - now.left;
+      let dy = was.top - now.top;
+      if (!dx && !dy) continue;
+
+      const prevAnim = anims.current.get(key);
+      if (prevAnim && prevAnim.playState === 'running') {
+        const r = li.getBoundingClientRect();
+        const tx = r.left - hostRect.left - now.left;
+        const ty = r.top - hostRect.top - now.top;
+        dx = was.left - now.left + tx;
+        dy = was.top - now.top + ty;
+        prevAnim.cancel();
+      }
+      if (!dx && !dy) continue;
+
+      const anim = li.animate(
+        [
+          { transform: `translate3d(${dx}px, ${dy}px, 0)` },
+          { transform: 'none' },
+        ],
+        { duration: 260, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+      );
+      anim.onfinish = () => {
+        if (anims.current.get(key) === anim) anims.current.delete(key);
+      };
+      anims.current.set(key, anim);
     }
     follow();
   });
@@ -299,20 +359,30 @@ export function LibraryGrid({
 
     swallowClick.current = true;
     const li = items().find(el => el.dataset.key === d.key);
-    // Settle into the slot from wherever the pointer left it.
+    // Settle into the slot from wherever the pointer left it, staying above
+    // neighbours until it lands.
     if (li) {
       const from = li.style.transform;
       li.style.transform = '';
-      li.animate([{ transform: from }, { transform: 'none' }], {
-        duration: 220,
-        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-      });
+      if (from) {
+        li.style.zIndex = '5';
+        const anim = li.animate([{ transform: from }, { transform: 'none' }], {
+          duration: 220,
+          easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        });
+        anim.onfinish = () => {
+          li.style.zIndex = '';
+          if (anims.current.get(d.key) === anim) anims.current.delete(d.key);
+        };
+        anims.current.set(d.key, anim);
+      }
     }
     setLifted(null);
 
-    const final = order ?? keys;
+    const final = orderRef.current ?? order ?? keys;
     const to = final.indexOf(d.key);
     if (!commit || to === d.from) {
+      orderRef.current = null;
       setOrder(null);
       // A hold that never moved is the editor's door, as in the app.
       const cell = byKey.get(d.key);
@@ -338,6 +408,7 @@ export function LibraryGrid({
     } catch (error) {
       console.warn('reorder', error);
       showToast(t('snackbar.reorder-failed'));
+      orderRef.current = null;
       setOrder(null);
     }
   };
@@ -400,6 +471,8 @@ export function LibraryGrid({
       y: e.clientY,
       grabX: e.clientX - r.left,
       grabY: e.clientY - r.top,
+      width: r.width,
+      height: r.height,
       timer: null,
       lifted: false,
       from: keys.indexOf(key),
@@ -408,11 +481,17 @@ export function LibraryGrid({
     };
     d.timer = setTimeout(() => {
       d.timer = null;
+      snapshotSlots();
       d.lifted = true;
       d.scroller = scrollerOf(li);
       navigator.vibrate?.(10);
-      setOrder(keys);
-      setLifted(key);
+      const initial = [...keys];
+      orderRef.current = initial;
+      flushSync(() => {
+        setOrder(initial);
+        setLifted(key);
+      });
+      follow();
       d.frame = requestAnimationFrame(autoScroll);
     }, HOLD_MS);
     drag.current = d;

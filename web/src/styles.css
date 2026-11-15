@@ -2594,7 +2594,7 @@ button {
   position: fixed;
   left: 50%;
   bottom: calc(5.5rem + env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 40;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -2613,12 +2613,37 @@ button {
   font-size: 0.9375rem;
   white-space: nowrap;
   pointer-events: auto;
-  animation: rise var(--dur-turn) var(--ease) both;
+  animation: toast-in 380ms var(--ease) both;
 }
 
 .toast.is-leaving {
-  animation: rise-out 200ms var(--ease) both;
+  animation: toast-out 180ms cubic-bezier(0.32, 0, 0.67, 0) both;
   pointer-events: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(5rem);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(5rem);
+  }
 }
 
 .toast-action {
@@ -2632,6 +2657,23 @@ button {
 @media (min-width: 64rem) {
   .toast-slot {
     bottom: 2rem;
+  }
+
+  .toast {
+    border-color: rgb(var(--fg) / 0.16);
+    background: color-mix(in srgb, var(--empty-media) 94%, var(--ink) 6%);
+    box-shadow:
+      0 0.75rem 2rem rgb(0 0 0 / 0.42),
+      var(--lg-rim);
+    font-weight: 500;
+  }
+
+  :root[data-theme='light'] .toast {
+    border-color: rgb(0 0 0 / 0.12);
+    background: rgb(255 255 255 / 0.96);
+    box-shadow:
+      0 0.75rem 2rem rgb(0 0 0 / 0.14),
+      var(--lg-rim);
   }
 }
 

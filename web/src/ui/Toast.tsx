@@ -17,7 +17,7 @@ const listeners = new Set<() => void>();
 let next = 0;
 
 const DURATION_MS = 3200;
-const EXIT_MS = 200;
+const EXIT_MS = 180;
 
 export const showToast = (
   text: string,
