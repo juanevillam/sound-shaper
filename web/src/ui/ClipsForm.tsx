@@ -4,6 +4,7 @@ import { REPEAT_MODES, type RepeatMode } from '@app/lib/clipQueue';
 import { formatTime } from '@app/lib/player';
 
 import { deleteClip, useClips, type Clip } from '../clips';
+import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
 import { t } from '../i18n';
 import { playClip, setRepeat, toggle, usePlayer } from '../player';
 
@@ -25,7 +26,9 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
   const current = usePlayer(s => s.current);
   const repeat = usePlayer(s => s.repeat);
   const active = usePlayer(s => s.activeClip?.id ?? null);
-  const clips = useClips(current?.id);
+  const realClips = useClips(current?.id);
+  const clipsLab = useUiStateLab(s => (UI_STATE_LAB ? s.clips : 'live'));
+  const clips = clipsLab === 'empty' ? [] : realClips;
   const [menuClip, setMenuClip] = useState<Clip | null>(null);
   const [confirming, setConfirming] = useState<Clip | null>(null);
 
@@ -62,10 +65,14 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
           </div>
 
           <ul className="card clip-list">
-            {clips.map(clip => {
+            {clips.map((clip, idx) => {
               const isActive = active === clip.id;
               return (
-                <li key={clip.id} className="cell clip-row">
+                <li
+                  key={clip.id}
+                  style={{ '--i': Math.min(idx, 18) } as React.CSSProperties}
+                  className="cell clip-row"
+                >
                   <button
                     type="button"
                     className={isActive ? 'clip-play is-active' : 'clip-play'}

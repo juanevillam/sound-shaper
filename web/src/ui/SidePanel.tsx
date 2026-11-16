@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { t } from '../i18n';
 
@@ -43,20 +49,24 @@ export function SidePanel({
   children: ReactNode;
 }) {
   // iOS draws the bar's scroll edge only once something is under it.
+  const aside = useRef<HTMLElement>(null);
   const form = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState(false);
   const [pull, setPull] = useState<number | null>(null);
   const grab = useRef<{ y: number; t: number; id: number } | null>(null);
 
-  // Mounted below the edge, then raised: a sheet that mounted open would
-  // simply appear.
+  // Mounted below the edge, then raised on the very next paint frame after
+  // committing the initial off-screen layout synchronously in `useLayoutEffect`.
   const [raised, setRaised] = useState(false);
-  useEffect(() => {
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => setRaised(true));
-    });
+  useLayoutEffect(() => {
+    if (!open) {
+      setRaised(false);
+      return;
+    }
+    void aside.current?.getBoundingClientRect();
+    const frame = requestAnimationFrame(() => setRaised(true));
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [open]);
 
   // A new body in the sheet starts at the top with a bare bar.
   useEffect(() => {
@@ -107,6 +117,7 @@ export function SidePanel({
 
   return (
     <aside
+      ref={aside}
       className={[
         'side',
         index === 0 ? 'is-base' : '',

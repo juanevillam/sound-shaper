@@ -8,6 +8,7 @@ import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
 import { legalUrl } from '@app/ui/author';
 
 import { setTheme, SUPPORTED_THEMES, useTheme } from '../appearance';
+import { useDevSettingsStore } from '../dev/devSettings';
 import { locale, setLocale, SUPPORTED_LOCALES, t } from '../i18n';
 import { resetPlayer } from '../player';
 import { signOut } from '../session';
@@ -56,6 +57,8 @@ export function SettingsForm({
 }) {
   const [confirming, setConfirming] = useState(false);
   const theme = useTheme();
+  const stateLabBar = useDevSettingsStore(s => s.stateLabBar);
+  const setStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
 
   return (
     <>
@@ -117,6 +120,24 @@ export function SettingsForm({
           </div>
         </div>
       </section>
+
+      {import.meta.env.DEV && (
+        <section>
+          <h3 className="section-head">Dev</h3>
+          <div className="card">
+            <label className="cell">
+              <span className="cell-name">State Lab</span>
+              <input
+                type="checkbox"
+                role="switch"
+                className="switch"
+                checked={stateLabBar}
+                onChange={e => setStateLabBar(e.target.checked)}
+              />
+            </label>
+          </div>
+        </section>
+      )}
 
       <section>
         <h3 className="section-head">{t('settings.legal.title')}</h3>

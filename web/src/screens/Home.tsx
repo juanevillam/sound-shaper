@@ -5,6 +5,8 @@ import { flushSync } from 'react-dom';
 
 import { useAutoDjDirector } from '../autoDj';
 import type { Clip } from '../clips';
+import { UiStateLabBar } from '../dev/UiStateLabBar';
+import { UI_STATE_LAB, useUiStateLab, type LabScreen } from '../dev/uiStateLab';
 import { t } from '../i18n';
 import { useAddTilePosition, useLibrary, type Sound } from '../library';
 import { resetPlayer, syncLibrary, usePlayer } from '../player';
@@ -166,6 +168,7 @@ export function Home({ user }: { user: User }) {
   const library = useLibrary(user.uid);
   const addTilePosition = useAddTilePosition(user.uid);
   useTrophySystem(user.uid, library);
+  const homeLab = useUiStateLab(s => (UI_STATE_LAB ? s.home : 'live'));
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
   const rate = usePlayer(s => s.rate);
@@ -528,6 +531,22 @@ export function Home({ user }: { user: User }) {
     (!liveModals[0].entry.sound ||
       liveModals[0].entry.sound.id === current?.id);
 
+  const effectiveLibState =
+    homeLab === 'skeleton'
+      ? 'loading'
+      : homeLab === 'error'
+        ? 'error'
+        : library.state;
+
+  const labScreens: LabScreen[] = ['home'];
+  if (liveTools.some(l => l.entry.kind === 'clips')) labScreens.push('clips');
+  if (liveModals.some(l => l.entry.kind === 'account')) {
+    labScreens.push('account');
+  }
+  if (liveModals.some(l => l.entry.kind === 'trophies')) {
+    labScreens.push('trophies');
+  }
+
   return (
     <div className={className}>
       <Backdrop artUrl={activeCurrent?.artUrl ?? ''} />
@@ -553,19 +572,25 @@ export function Home({ user }: { user: User }) {
           Sound Shaper
         </h1>
 
-        {library.state === 'loading' && <SkeletonGrid />}
+        {effectiveLibState === 'loading' && <SkeletonGrid />}
 
-        {library.state === 'error' && (
+        {effectiveLibState === 'error' && (
           <section className="empty">
             <h2>{t('home.error.title')}</h2>
             <p>{t('home.error.subtitle')}</p>
-            <button type="button" className="pill" onClick={library.retry}>
+            <button
+              type="button"
+              className="pill"
+              onClick={() => {
+                if (library.state === 'error') library.retry();
+              }}
+            >
               {t('common.retry')}
             </button>
           </section>
         )}
 
-        {library.state === 'ready' && (
+        {effectiveLibState === 'ready' && library.state === 'ready' && (
           <LibraryGrid
             sounds={library.sounds}
             addTilePosition={addTilePosition}
@@ -609,6 +634,7 @@ export function Home({ user }: { user: User }) {
       <MiniPlayer onExpand={() => setExpanded(true)} />
       <Toast />
       <TrophyBanner onOpen={() => openModal({ kind: 'trophies' })} />
+      <UiStateLabBar screens={labScreens} />
     </div>
   );
 }

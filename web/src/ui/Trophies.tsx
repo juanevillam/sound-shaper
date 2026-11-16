@@ -21,6 +21,7 @@ import { useTrophies } from '@app/trophies/useTrophies';
 import { createPortal } from 'react-dom';
 
 import { locale, t } from '../i18n';
+import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
 import { pause, playerState, toggle } from '../player';
 
 import { ChevronRightGlyph, CloseGlyph } from './glyphs';
@@ -199,7 +200,9 @@ function Ring({ fraction, label }: { fraction: number; label: string }) {
  * row captions stand bones instead of a confident "0 of 7".
  */
 export function TrophiesForm() {
-  const { trophies, earned, total, hydrated } = useTrophies(COPY);
+  const { trophies, earned, total, hydrated: realHydrated } = useTrophies(COPY);
+  const trophiesLab = useUiStateLab(s => (UI_STATE_LAB ? s.trophies : 'live'));
+  const hydrated = trophiesLab === 'skeleton' ? false : realHydrated;
   const [open, setOpen] = useState<string | null>(null);
   const fraction = total > 0 ? earned / total : 0;
   const percent = new Intl.NumberFormat(locale, { style: 'percent' }).format(

@@ -13,6 +13,7 @@ import {
   setOwnPhoto,
 } from '../account';
 import { locale, t } from '../i18n';
+import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
 import { uploadFailureKey } from '../media';
 import { resetPlayer } from '../player';
 
@@ -118,8 +119,12 @@ export function AccountForm({
   const [photoBusy, setPhotoBusy] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [confirm, setConfirm] = useState<0 | 1 | 2>(0);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingState, setDeleting] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
+  const accountLab = useUiStateLab(s => (UI_STATE_LAB ? s.account : 'live'));
+  const deleting = deletingState || accountLab === 'deleting';
+  const showMemberSkeleton =
+    accountLab === 'skeleton' || memberSince === undefined;
 
   useEffect(() => {
     let live = true;
@@ -250,7 +255,7 @@ export function AccountForm({
             <span className="cell-name">
               {t('settings.manageAccount.memberSince')}
             </span>
-            {memberSince === undefined ? (
+            {showMemberSkeleton ? (
               <span className="bone line value-bone" />
             ) : (
               <span className="cell-value">
