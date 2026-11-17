@@ -429,4 +429,48 @@ describe('planSoundSegment ("This Sound" mode)', () => {
     }
     expect(maxGap).toBeLessThan(8);
   });
+
+  it('holds slowed varispeed for multiple bars while sculpting presets over it', () => {
+    const seg = planSoundSegment({
+      sound: { soundId: 'dakiti', map: song },
+      style: 'club',
+      seed: 42,
+      atS: 0,
+    });
+    const moves = seg.mix.moves;
+    const tapeStart = moves.findIndex(
+      m => m.keepPitch === false && m.rate !== undefined && m.rate <= 0.95,
+    );
+    expect(tapeStart).toBeGreaterThanOrEqual(0);
+    const tapeRestore = moves.findIndex(
+      (m, i) => i > tapeStart && m.keepPitch === true,
+    );
+    expect(tapeRestore).toBeGreaterThan(tapeStart);
+    expect(
+      moves[tapeRestore].atS - moves[tapeStart].atS,
+    ).toBeGreaterThanOrEqual(3 * BAR - 1e-6);
+    const midMoves = moves.filter(m => m.atS < seg.endS - 4 * BAR);
+    expect(midMoves.some(m => m.nextRoom === 'high')).toBe(false);
+  });
+
+  it('never enables Preserve Pitch when slowed below 0.95x', () => {
+    for (const seg of [
+      ...segments(),
+      ...AUTO_DJ_STYLES.map((style, i) =>
+        planSoundSegment({
+          sound: { soundId: 'dakiti', map: song },
+          style,
+          seed: i + 10,
+          atS: 0,
+        }),
+      ),
+    ]) {
+      for (let t = seg.startS; t < seg.endS; t += 0.25) {
+        const st = stateAt(seg.mix, t);
+        if (st.rate < 0.95 - 1e-4) {
+          expect(st.keepPitch).toBe(false);
+        }
+      }
+    }
+  });
 });

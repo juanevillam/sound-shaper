@@ -80,7 +80,7 @@ const JUMP_S = 1;
 const CUE_LEAD_S = 0.12;
 
 /** Minimum dwell time on a scrolled section so the sheet never bounces frantically. */
-const FOCUS_HOLD_MS = 2000;
+const FOCUS_HOLD_MS = 3200;
 let lastFocusAt = 0;
 
 /** Apply a partial state, touching only what actually changes. */

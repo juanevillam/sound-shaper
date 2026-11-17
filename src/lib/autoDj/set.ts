@@ -367,16 +367,29 @@ export function choreograph(opts: {
   const before = (t: number) => t > startS + 1e-6 && t < exitS;
 
   const moves: DjMove[] = [];
+  let runningRate = rate;
+  let runningKeepPitch = palette.keepPitch;
   const at = (atS: number, move: Omit<DjMove, 'atS'>) => {
     if (atS < startS || atS >= endS) return;
     // Under the segment's Echo the wall goes no deeper than Low: each pays
     // its level in trim, and together they sank the set past what the
     // leveller can win back (`loudness.ts`).
-    const capped =
+    const capped: Omit<DjMove, 'atS'> =
       baseEcho !== 'off' &&
       (move.nextRoom === 'medium' || move.nextRoom === 'high')
         ? { ...move, nextRoom: 'low' as const }
-        : move;
+        : { ...move };
+    const nextRate = capped.rate ?? runningRate;
+    const nextKeepPitch =
+      capped.keepPitch !== undefined ? capped.keepPitch : runningKeepPitch;
+    // Below 0.95×, Preserve Pitch sounds metallic on most songs; only speed-up
+    // (>= 1×) or a gentle 0.95× nudge keeps pitch preservation on.
+    if (nextRate < 0.95 - 1e-4 && nextKeepPitch) {
+      capped.keepPitch = false;
+    }
+    runningRate = nextRate;
+    runningKeepPitch =
+      capped.keepPitch !== undefined ? capped.keepPitch : runningKeepPitch;
     moves.push({ atS, ...capped });
   };
 
@@ -401,28 +414,33 @@ export function choreograph(opts: {
   }
   let current = rate;
   const baseEcho = single ? 'off' : pick(palette.echo);
+  const initialKeepPitch = rate < 0.95 - 1e-4 ? false : palette.keepPitch;
+  runningRate = rate;
+  runningKeepPitch = initialKeepPitch;
   moves.push({
     atS: startS,
     gains,
     nextRoom: 'off',
     echo: baseEcho,
     rate,
-    keepPitch: palette.keepPitch,
+    keepPitch: initialKeepPitch,
   });
 
   // JUAN'S HANDS — the moves of his own DÁKITI session (the demo on
   // juanevillam.com, 2026-11-04), the set's reference for how this app is
   // played live. Read off the recording frame by frame, his hands do four
   // things, and each is one gesture here:
-  //   · HOP   — presets flicked through in a burst, a couple of beats each,
-  //             landing on the one he keeps;
-  //   · TAPE  — the speed walked a twentieth at a time, down to 0.85× or up
-  //             to 1.15×, with Preserve Pitch OFF so the key slides with it,
-  //             held, and walked back;
-  //   · STACK — Next Room climbed Low → Medium → High with Echo under it,
-  //             held for bars, then cleared;
-  //   · FLIP  — Preserve Pitch toggled off and on over a sped-up stretch,
-  //             the voice dropping into the varispeed and back.
+  //   · HOP   — a clean preset change held for half a phrase, then a second
+  //             curve for the rest of the phrase;
+  //   · TAPE  — a calm slowed/varispeed passage: steps into slowed or sped-up
+  //             varispeed (`keepPitch: false`), holds the speed steady across
+  //             an 8-bar stretch while sculpting presets on top of it, and
+  //             walks back cleanly;
+  //   · STACK — a brief Next Room wall (Low → Medium, never High mid-song so
+  //             the music never disappears) or a light Echo phrase, opened
+  //             back onto a fresh curve after 2 bars;
+  //   · FLIP  — Preserve Pitch toggled off and held across a full phrase so
+  //             the pitch shift has room to breathe before returning.
   // Every gesture fits inside [lineS, untilS) and leaves the state it found,
   // so a section's own moves stay in charge.
   const stepS = barS <= 2.2 ? barS : 2 * beatS;
@@ -443,22 +461,12 @@ export function choreograph(opts: {
   ): number => {
     const room = untilS - lineS;
 
-    // Gentle 2-bar move when `room` is too short for a full 4-bar phrase
-    // before a section boundary or build: one clean preset change on the bar,
-    // and one speed step a bar later.
+    // Gentle 2-bar preset change when `room` is too short for a full phrase
+    // before a section boundary or build — never touches speed for 1 bar.
     const compact = (): number => {
       if (room < 2 * barS - 1e-6) return lineS + Math.max(barS, room);
-      const nextCurve = preset(pick(HOP.filter(p => p !== 'flat')));
-      at(lineS, { gains: nextCurve });
-      if (pulse) {
-        const dir =
-          style === 'slowed' ? -1 : style === 'hyper' ? 1 : pick([-1, 1]);
-        const nudged = snapRate(current + dir * RATE_STEP);
-        if (nudged !== current) {
-          at(lineS + barS, { rate: nudged });
-          at(lineS + 2 * barS, { rate: current });
-        }
-      }
+      gains = preset(pick(HOP.filter(p => p !== 'flat')));
+      at(lineS, { gains });
       return lineS + 2 * barS;
     };
 
@@ -479,92 +487,105 @@ export function choreograph(opts: {
     lastHand = kind;
 
     if (kind === 0) {
-      // HOP + SPEED: 4-bar phrase. First bar steps cleanly through 3 presets
-      // onto the phrase's curve; bar 2 nudges Playback Speed by one step and
-      // holds for 2 bars so both changes breathe before returning on bar 4.
-      const each = 2 * beatS;
+      // HOP: 4-bar preset phrase. Holds one preset for 2 full bars (~5s),
+      // then lands on the phrase's target curve for the next 2 bars — never
+      // touches playback speed so the groove stays locked.
       const p1 = pick(HOP.filter(p => p !== 'flat'));
-      const p2 = pick(HOP.filter(p => p !== p1 && p !== 'flat'));
       at(lineS, { gains: preset(p1) });
-      at(lineS + each, { gains: preset(p2) });
       gains = single
-        ? preset(pick(HOP.filter(p => p !== p2 && p !== 'flat')))
+        ? preset(pick(HOP.filter(p => p !== p1 && p !== 'flat')))
         : curveOf(pick(palette[home]), random);
-      at(lineS + 2 * each, { gains });
-      if (pulse) {
-        const dir =
-          style === 'slowed' ? -1 : style === 'hyper' ? 1 : pick([-1, 1]);
-        const nudgedRate = snapRate(current + dir * RATE_STEP);
-        if (nudgedRate !== current) {
-          at(lineS + 2 * barS, { rate: nudgedRate });
-          at(lineS + 4 * barS, { rate: current });
-        }
-      }
+      at(lineS + 2 * barS, { gains });
       return lineS + 4 * barS;
     }
     if (kind === 1 && pulse) {
-      // TAPE: unhurried 4-bar vinyl speed walk (one step per bar) with
-      // Preserve Pitch off, held for a full bar at the target speed, then
-      // walked back a step per bar.
+      // TAPE: a sustained slowed (or lifted) passage. When 8 bars fit, steps
+      // smoothly into varispeed (`keepPitch: false` at 0.90× or 0.85×),
+      // holds that speed steady for 6 bars (~15s) while changing EQ presets
+      // over the slowed groove, then restores speed on bar 7.
       const down =
         home === 'break' ||
         style === 'slowed' ||
-        (style !== 'hyper' && chance(0.5));
+        (style !== 'hyper' && chance(0.75));
       const dir = down ? -1 : 1;
       const step1 = snapRate(current + dir * RATE_STEP);
       const step2 = snapRate(current + dir * 2 * RATE_STEP);
       if (step1 === current) return compact();
-      at(lineS, { keepPitch: false, rate: step1 });
-      if (step2 !== step1) {
-        at(lineS + barS, { rate: step2 });
+      if (room >= 8 * barS - 1e-6) {
+        const targetRate = step2 !== step1 ? step2 : step1;
+        at(lineS, { keepPitch: false, rate: step1 });
+        if (targetRate !== step1) {
+          at(lineS + barS, { rate: targetRate });
+        }
+        const pMid1 = preset(pick(['warm', 'bass', 'vocal']));
+        const pMid2 = preset(
+          pick(['warm', 'bass', 'bright'].filter(p => p !== 'warm')),
+        );
+        at(lineS + 2 * barS, { gains: pMid1 });
+        at(lineS + 4 * barS, { gains: pMid2 });
+        gains = single
+          ? preset(pick(['bass', 'bright', 'vocal', 'warm']))
+          : curveOf(pick(palette[home]), random);
+        at(lineS + 6 * barS, { gains, rate: step1 });
+        at(lineS + 7 * barS, { rate: current, keepPitch: palette.keepPitch });
+        return lineS + 8 * barS;
       }
-      at(lineS + 2 * barS, { rate: step1 });
+      at(lineS, { keepPitch: false, rate: step1 });
+      const pMid = preset(pick(['warm', 'bass', 'vocal']));
+      at(lineS + barS, { gains: pMid });
       at(lineS + 3 * barS, { rate: current, keepPitch: palette.keepPitch });
       return lineS + 4 * barS;
     }
     if (kind === 2) {
-      // STACK: spacious 4-bar Next Room + Echo phrase. Enters the room at bar
-      // 0, climbs Low → Medium → High while Echo sits underneath, steps down
-      // at bar 3, and opens back onto a fresh curve at bar 4.
+      // STACK: cautious 4-bar spatial phrase. Uses either a light Echo ('low')
+      // or a gentle Next Room filter ('low', stepping to 'medium' for at most
+      // 1 bar, never 'high' mid-song and never stacking Echo + Medium/High),
+      // then opens cleanly onto a fresh curve at bar 2 so the music never
+      // stays muffled for long.
       const shape = gains;
-      const echoed = pulse && baseEcho === 'off' && (single || chance(0.6));
-      if (echoed) at(lineS - beatS, { echo: 'low' });
-      at(lineS, { gains: FLAT, nextRoom: 'low' });
-      at(lineS + barS, { nextRoom: 'medium' });
-      if (baseEcho === 'off') {
-        at(lineS + 2 * barS, { nextRoom: 'high' });
+      const useEcho = pulse && baseEcho === 'off' && (single || chance(0.45));
+      if (useEcho) {
+        at(lineS - beatS, { echo: 'low' });
+        at(lineS, { gains: FLAT, nextRoom: 'low' });
+        at(lineS + 2 * barS - beatS, { echo: baseEcho });
+      } else {
+        at(lineS, { gains: FLAT, nextRoom: 'low' });
+        if (baseEcho === 'off') {
+          at(lineS + barS, { nextRoom: 'medium' });
+        }
       }
-      at(lineS + 3 * barS, { nextRoom: 'low' });
-      if (echoed) at(lineS + 4 * barS - beatS, { echo: baseEcho });
       gains = single
         ? preset(pick(['bass', 'bright', 'vocal', 'warm', 'treble']))
         : curveOf(pick(palette[home]), random);
       if (gains.every((g, idx) => g === shape[idx])) {
         gains = preset(pick(['bass', 'bright', 'vocal', 'warm']));
       }
-      at(lineS + 4 * barS, { nextRoom: 'off', gains });
+      at(lineS + 2 * barS, { nextRoom: 'off', gains });
       return lineS + 4 * barS;
     }
-    // FLIP: 4-bar Speed + Preserve Pitch phrase. Bar 0 steps the speed; bar 1
-    // flips Preserve Pitch off and holds for 2 full bars so the pitch change
-    // feels deliberate; bar 3 restores Preserve Pitch; bar 4 restores speed.
+    // FLIP: 4-bar Preserve Pitch phrase. At 1× it nudges speed to 0.95× and
+    // toggles Preserve Pitch off; in slowed (< 0.95×) it leaves Preserve Pitch
+    // off and nudges speed up to 0.95× or steps presets; in hyper (>= 1.05×)
+    // it toggles Preserve Pitch on/off cleanly (speed-up handles Preserve
+    // Pitch well across all songs).
     if (!pulse) return compact();
+    if (current < 0.95 - 1e-4) {
+      at(lineS, { rate: 0.95, keepPitch: false });
+      at(lineS + 3 * barS, { rate: current, keepPitch: false });
+      return lineS + 4 * barS;
+    }
     const own = palette.keepPitch;
-    const dir = style === 'slowed' ? -1 : style === 'hyper' ? 1 : pick([-1, 1]);
+    const dir = style === 'hyper' ? 1 : -1;
     const nudged =
       Math.abs(current - 1) < 0.01
-        ? snapRate(current + dir * 2 * RATE_STEP)
+        ? snapRate(current + dir * RATE_STEP)
         : current;
     if (nudged !== current) {
-      at(lineS, { rate: nudged });
-      at(lineS + barS, { keepPitch: !own });
+      at(lineS, { rate: nudged, keepPitch: !own });
     } else {
       at(lineS, { keepPitch: !own });
     }
-    at(lineS + 3 * barS, { keepPitch: own });
-    if (nudged !== current) {
-      at(lineS + 4 * barS - beatS, { rate: current });
-    }
+    at(lineS + 3 * barS, { rate: current, keepPitch: own });
     return lineS + 4 * barS;
   };
 
@@ -595,6 +616,19 @@ export function choreograph(opts: {
     if (eS <= startS || sS >= exitS) continue;
     const next = sections[i + 1];
 
+    // Reserve the last bars before a peak for its build.
+    let buildFromS = eS;
+    const dropS =
+      next?.kind === 'peak' && s.kind !== 'peak' ? barAt(next.start) : -1;
+    const hasBuild = dropS > startS && dropS < exitS;
+    if (hasBuild) {
+      const buildBars = Math.min(s.end - s.start, single ? 4 : pick([4, 8]));
+      buildFromS = Math.max(startS, dropS - buildBars * barS);
+    }
+
+    // The last part of a section that runs into a peak is its build's.
+    const untilS = Math.min(eS, exitS, buildFromS);
+
     // ENTERING THIS PART, when its first bar falls inside the segment.
     if (before(sS) && sS - startS >= barS - 1e-6) {
       if (s.kind === 'peak') {
@@ -611,6 +645,10 @@ export function choreograph(opts: {
           gains = FLAT;
           at(sS, { gains, nextRoom: 'low' });
           at(sS + barS, { nextRoom: 'medium' });
+          if (sS + 2 * barS < untilS) {
+            gains = curveOf(pick(palette.break), random);
+            at(sS + 2 * barS, { nextRoom: 'off', gains });
+          }
         } else if (r < 0.8) {
           gains = curveOf(pick(palette.break), random);
           at(sS, { gains, nextRoom: 'off' });
@@ -624,14 +662,12 @@ export function choreograph(opts: {
           at(sS, { rate: current });
         }
       } else if (s.kind === 'outro') {
-        // Walking out of the room (unless `exit === 'room'` already owns the
-        // final walk-out, so Next Room climbs Low → Medium → High only once).
+        // Walking out of the room over the outro's last bars.
         if (exit !== 'room') {
           const span = Math.min(eS, exitS) - sS;
           gains = FLAT;
           at(sS, { gains, nextRoom: 'low' });
-          at(sS + span / 3, { nextRoom: 'medium' });
-          at(sS + (2 * span) / 3, { nextRoom: 'high' });
+          at(sS + span / 2, { nextRoom: 'medium' });
         }
       } else if (s.kind === 'build' && single) {
         current = rate;
@@ -643,21 +679,9 @@ export function choreograph(opts: {
       }
     }
 
-    // Reserve the last bars before a peak for its build.
-    let buildFromS = eS;
-    const dropS =
-      next?.kind === 'peak' && s.kind !== 'peak' ? barAt(next.start) : -1;
-    const hasBuild = dropS > startS && dropS < exitS;
-    if (hasBuild) {
-      const buildBars = Math.min(s.end - s.start, single ? 4 : pick([4, 8]));
-      buildFromS = Math.max(startS, dropS - buildBars * barS);
-    }
-
-    // The last part of a section that runs into a peak is its build's.
-    const untilS = Math.min(eS, exitS, buildFromS);
-
-    // JUAN'S HANDS on the bar lines of an intro, verse, build, or breakdown so
-    // the controls stay continuously active without dead gaps.
+    // JUAN'S HANDS on the bar lines of an intro, verse, build, or breakdown —
+    // with a 1-bar breather after each gesture so changes never pile up
+    // back-to-back.
     if (
       pulse &&
       (s.kind === 'verse' ||
@@ -670,8 +694,9 @@ export function choreograph(opts: {
       for (let b = startBar; b < s.end; b += 2) {
         const lineS = barAt(b);
         if (!before(lineS) || lineS < busyUntil - 1e-6) continue;
+        if (!single && !chance(palette.hands)) continue;
         const home = s.kind === 'break' ? 'break' : 'verse';
-        busyUntil = hands(lineS, untilS, home);
+        busyUntil = hands(lineS, untilS, home) + barS;
       }
     }
 
@@ -690,12 +715,10 @@ export function choreograph(opts: {
       if (entry !== 'walk-in' || opts.openS !== dropS) {
         // Light: the filter is already closing, and the two together
         // sank a build 12 dB under the drop it leads to.
-        at(dropS - 2 * barS, { nextRoom: 'low' });
-        if (single || chance(0.4)) at(dropS - barS, { nextRoom: 'medium' });
+        at(dropS - barS, { nextRoom: 'low' });
       }
-      if (pulse && (single ? chance(0.6) : chance(palette.push))) {
+      if (!single && pulse && chance(palette.push)) {
         at(dropS - 4 * barS, { rate: snapRate(current + 0.05) });
-        at(dropS - 2 * barS, { rate: snapRate(current + 0.1) });
         pushed = true;
       }
     }
@@ -712,8 +735,8 @@ export function choreograph(opts: {
         const lineS = barAt(b);
         if (!before(lineS) || lineS + barS > exitS) continue;
         if (lineS < busyUntil - 1e-6) continue;
-        if (pulse) {
-          busyUntil = hands(lineS, untilS, 'peak');
+        if (pulse && (single || chance(palette.hands))) {
+          busyUntil = hands(lineS, untilS, 'peak') + barS;
           if (busyUntil > lineS) continue;
         }
         if ((b - s.start) % size !== 0) continue;
@@ -754,13 +777,12 @@ export function choreograph(opts: {
     const span = endS - exitS;
     gains = FLAT;
     at(exitS, { gains, nextRoom: 'low' });
-    at(exitS + span / 3, { nextRoom: 'medium' });
-    at(exitS + (2 * span) / 3, { nextRoom: 'high' });
+    at(exitS + span / 2, { nextRoom: 'medium' });
     // How Juan's DÁKITI session ends: the record slowed a twentieth at a
     // time, pitch and all, as it goes behind the wall.
     if (pulse && (single || chance(0.5))) {
       at(exitS, { keepPitch: false });
-      const steps = Math.max(1, Math.min(4, Math.round(span / stepS)));
+      const steps = Math.max(1, Math.min(2, Math.round(span / stepS)));
       for (let k = 1; k <= steps; k += 1) {
         at(exitS + (k - 1) * (span / steps), {
           rate: snapRate(current - k * RATE_STEP),
@@ -797,6 +819,16 @@ function sortMoves(moves: DjMove[]): DjMove[] {
       Object.assign(last, move, { atS: last.atS });
     } else {
       merged.push({ ...move });
+    }
+  }
+  let rate = 1;
+  let keepPitch = true;
+  for (const move of merged) {
+    if (move.rate !== undefined) rate = move.rate;
+    if (move.keepPitch !== undefined) keepPitch = move.keepPitch;
+    if (rate < 0.95 - 1e-4 && keepPitch) {
+      move.keepPitch = false;
+      keepPitch = false;
     }
   }
   return merged;

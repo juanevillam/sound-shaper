@@ -5,6 +5,7 @@ import {
   analyzeSamples,
   type SongMap,
 } from '@app/lib/autoDj/analysis';
+import { djLevelDb } from '@app/lib/autoDj/loudness';
 import {
   AUTO_DJ_STYLES,
   DJ_FOCUS_RANK,
@@ -260,8 +261,11 @@ export const forgetSongMap = (soundId: string) => {
 const LOOKAHEAD_S = 0.35;
 const JUMP_S = 1;
 const CUE_LEAD_S = 0.12;
-const FOCUS_HOLD_MS = 2000;
+const FOCUS_HOLD_MS = 3200;
+const LEVEL_RAMP_S = 0.35;
+const LEVEL_ENTER_S = 1.5;
 let lastFocusAt = 0;
+let levelRampS = LEVEL_ENTER_S;
 
 const applyMove = (move: Partial<DjMove>) => {
   const now = playerState();
@@ -296,6 +300,16 @@ const applyMove = (move: Partial<DjMove>) => {
       lastFocusAt = nowMs;
     }
   }
+  const after = playerState();
+  audioEngine.setLevelDb(
+    djLevelDb({
+      gains: after.gains,
+      nextRoom: after.nextRoom,
+      echo: after.echo,
+    }),
+    levelRampS,
+  );
+  levelRampS = LEVEL_RAMP_S;
 };
 
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31);
@@ -753,6 +767,10 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
     cancelled = true;
     clearTimers();
     djFx.stopAll();
+    if (!dj.on) {
+      audioEngine.setLevelDb(0, LEVEL_ENTER_S);
+      levelRampS = LEVEL_ENTER_S;
+    }
     unsubscribe();
     setDj({ ready: 0, total: 0 });
   };

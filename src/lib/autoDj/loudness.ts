@@ -36,7 +36,7 @@ import {
 } from '../shapeDsp';
 
 /** Where the set sits, in dB under an untouched sound. */
-export const DJ_TARGET_DB = -7.5;
+export const DJ_TARGET_DB = -9.5;
 
 const SAMPLE_RATE = 48000;
 const POINTS = 160;
