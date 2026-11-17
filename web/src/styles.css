@@ -3159,13 +3159,48 @@ button {
 
 /* ── Dev State Lab HUD ── */
 
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.1875rem;
+  border-radius: 0.75rem;
+  background: var(--track);
+}
+
+.segmented button {
+  padding: 0.375rem 0.625rem;
+  border: 0;
+  border-radius: 0.5625rem;
+  background-color: transparent;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+
+.segmented button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.segmented button.is-active {
+  background-color: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.22);
+}
+
 .state-lab-shell {
   position: fixed;
   left: 0.75rem;
   right: 0.75rem;
   bottom: calc(
-    max(4.75rem, env(safe-area-inset-bottom) + 4.5rem) +
-      var(--lab-offset, 0px)
+    max(4.75rem, env(safe-area-inset-bottom) + 4.5rem) + var(--lab-offset, 0px)
   );
   z-index: 60;
   max-width: 26rem;
