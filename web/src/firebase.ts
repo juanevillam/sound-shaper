@@ -14,7 +14,6 @@ import { recaptchaSiteKey } from './firebaseConfig';
 export { app, auth };
 
 declare global {
-  // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string | undefined;
 }
 

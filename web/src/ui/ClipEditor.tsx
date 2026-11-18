@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { useScheme } from '../appearance';
-
 import { formatTime } from '@app/lib/player';
 
+import { useScheme } from '../appearance';
+
 import { createClip, updateClip, type Clip } from '../clips';
-import { noteClipSaved } from '../trophies';
 import { t } from '../i18n';
 import type { Sound } from '../library';
 import { cue, pause, playClip, scrubTo, usePlayer } from '../player';
+import { noteClipSaved } from '../trophies';
 import { levelAt, useWaveform, type Waveform } from '../waveform';
 
 import { PlayPauseGlyph } from './glyphs';

@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
+import { audioEngine } from '@app/lib/audioEngine';
 import {
   ANALYSIS_SAMPLE_RATE,
   analyzeSamples,
@@ -30,7 +31,6 @@ import {
   type Segment,
   type TransitionFx,
 } from '@app/lib/autoDj/set';
-import { audioEngine } from '@app/lib/audioEngine';
 import type { EffectLevel } from '@app/lib/shapeDsp';
 
 import { djFx, preloadDjFx } from './djFx';

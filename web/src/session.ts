@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { USERS_COLLECTION } from '@app/services/firebase/collections';
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -7,8 +8,6 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-
-import { USERS_COLLECTION } from '@app/services/firebase/collections';
 
 import { auth } from './auth';
 

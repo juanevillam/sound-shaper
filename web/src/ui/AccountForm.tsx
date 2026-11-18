@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-
-import type { User } from 'firebase/auth';
 
 import { MIN_NAME_LENGTH } from '@app/constants/forms';
+import type { User } from 'firebase/auth';
+import { createPortal } from 'react-dom';
 
 import {
   deleteAccount,
@@ -12,8 +11,8 @@ import {
   setOwnName,
   setOwnPhoto,
 } from '../account';
-import { locale, t } from '../i18n';
 import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
+import { locale, t } from '../i18n';
 import { uploadFailureKey } from '../media';
 import { resetPlayer } from '../player';
 

@@ -1,4 +1,11 @@
 import {
+  CLIPS_SUBCOLLECTION,
+  SHAPES_SUBCOLLECTION,
+  SOUNDS_SUBCOLLECTION,
+  TROPHIES_SUBCOLLECTION,
+  USERS_COLLECTION,
+} from '@app/services/firebase/collections';
+import {
   deleteUser,
   GoogleAuthProvider,
   reauthenticateWithPopup,
@@ -14,14 +21,6 @@ import {
   setDoc,
   type Timestamp,
 } from 'firebase/firestore';
-
-import {
-  CLIPS_SUBCOLLECTION,
-  SHAPES_SUBCOLLECTION,
-  SOUNDS_SUBCOLLECTION,
-  TROPHIES_SUBCOLLECTION,
-  USERS_COLLECTION,
-} from '@app/services/firebase/collections';
 
 import { auth, db } from './firebase';
 import { cleanupMyMedia, destroyAsset, uploadImage } from './media';

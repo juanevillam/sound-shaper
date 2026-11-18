@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { byGridOrder, needsPositionRepair } from '@app/lib/gridOrder';
+import {
+  SOUNDS_SUBCOLLECTION,
+  USERS_COLLECTION,
+} from '@app/services/firebase/collections';
 import {
   collection,
   doc,
@@ -8,12 +13,6 @@ import {
   query,
   type Timestamp,
 } from 'firebase/firestore';
-
-import {
-  SOUNDS_SUBCOLLECTION,
-  USERS_COLLECTION,
-} from '@app/services/firebase/collections';
-import { byGridOrder, needsPositionRepair } from '@app/lib/gridOrder';
 
 import { db } from './firebase';
 import { syncLibrary } from './player';

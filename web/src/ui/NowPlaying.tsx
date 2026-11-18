@@ -7,7 +7,6 @@ import { next, previous, seek, toggle, usePlayer } from '../player';
 
 import { Artwork } from './Artwork';
 import { useClipsSummary } from './ClipsForm';
-import { useShapeSummary } from './ShapePanel';
 import {
   ClipGlyph,
   NextGlyph,
@@ -16,6 +15,7 @@ import {
   PreviousGlyph,
   ShapeGlyph,
 } from './glyphs';
+import { useShapeSummary } from './ShapePanel';
 
 /**
  * The expanded player — the app's console (PlayerConsole.ios) and the site's

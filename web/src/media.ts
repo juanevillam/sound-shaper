@@ -1,6 +1,5 @@
-import { getToken } from 'firebase/app-check';
-
 import { MAX_UPLOAD_BYTES } from '@app/services/cloudinary/limits';
+import { getToken } from 'firebase/app-check';
 
 import { appCheck, auth } from './firebase';
 

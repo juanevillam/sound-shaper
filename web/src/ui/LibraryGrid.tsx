@@ -6,10 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { flushSync } from 'react-dom';
 
 import { positionForMove, renormalized } from '@app/lib/gridOrder';
-import { DRAG_ACTIVE_SCALE } from '@app/ui/dragMetrics';
+import { flushSync } from 'react-dom';
 
 import { useAutoDj } from '../autoDj';
 import { t } from '../i18n';

@@ -1,3 +1,9 @@
+import { positionBetween } from '@app/lib/gridOrder';
+import {
+  CLIPS_SUBCOLLECTION,
+  SOUNDS_SUBCOLLECTION,
+  USERS_COLLECTION,
+} from '@app/services/firebase/collections';
 import {
   addDoc,
   collection,
@@ -10,13 +16,6 @@ import {
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
-
-import { positionBetween } from '@app/lib/gridOrder';
-import {
-  CLIPS_SUBCOLLECTION,
-  SOUNDS_SUBCOLLECTION,
-  USERS_COLLECTION,
-} from '@app/services/firebase/collections';
 
 import { auth, db } from './firebase';
 import type { Sound } from './library';

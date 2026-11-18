@@ -10,7 +10,6 @@ export type BiquadFilterNode = globalThis.BiquadFilterNode;
 export type ConvolverNode = globalThis.ConvolverNode;
 export type GainNode = globalThis.GainNode;
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const AudioContext = globalThis.AudioContext;
 export type AudioContext = globalThis.AudioContext;
 

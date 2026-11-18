@@ -1,17 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  serverTimestamp,
-  setDoc,
-  type Timestamp,
-} from 'firebase/firestore';
-
-import {
   LIBRARY_SOUND_COUNT,
   LISTENING_MINUTES,
   SAVED_CLIP_COUNT,
@@ -32,6 +21,16 @@ import type {
   AwardedTrophy,
   TrophyPersistenceAdapter,
 } from '@app/trophies/types';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  serverTimestamp,
+  setDoc,
+  type Timestamp,
+} from 'firebase/firestore';
 
 import { db } from './firebase';
 import type { Library } from './library';

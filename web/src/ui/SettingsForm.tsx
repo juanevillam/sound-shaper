@@ -1,11 +1,10 @@
 import { useState } from 'react';
 
-import type { User } from 'firebase/auth';
-
 import type { Theme } from '@app/core/theme/themes';
 import type { Locale } from '@app/i18n/translations';
 import { thumbUrl } from '@app/services/cloudinary/thumbUrl';
 import { legalUrl } from '@app/ui/author';
+import type { User } from 'firebase/auth';
 
 import { setTheme, SUPPORTED_THEMES, useTheme } from '../appearance';
 import { useDevSettingsStore } from '../dev/devSettings';

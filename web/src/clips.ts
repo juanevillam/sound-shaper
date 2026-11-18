@@ -1,6 +1,11 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
 import {
+  CLIPS_SUBCOLLECTION,
+  SOUNDS_SUBCOLLECTION,
+  USERS_COLLECTION,
+} from '@app/services/firebase/collections';
+import {
   collection,
   deleteDoc,
   doc,
@@ -13,12 +18,6 @@ import {
   updateDoc,
   type Timestamp,
 } from 'firebase/firestore';
-
-import {
-  CLIPS_SUBCOLLECTION,
-  SOUNDS_SUBCOLLECTION,
-  USERS_COLLECTION,
-} from '@app/services/firebase/collections';
 
 import { auth, db } from './firebase';
 

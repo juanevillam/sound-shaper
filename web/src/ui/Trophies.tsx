@@ -20,8 +20,8 @@ import type {
 import { useTrophies } from '@app/trophies/useTrophies';
 import { createPortal } from 'react-dom';
 
-import { locale, t } from '../i18n';
 import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
+import { locale, t } from '../i18n';
 import { pause, playerState, toggle } from '../player';
 
 import { ChevronRightGlyph, CloseGlyph } from './glyphs';

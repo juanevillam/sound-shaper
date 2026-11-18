@@ -5,8 +5,8 @@ import { flushSync } from 'react-dom';
 
 import { useAutoDjDirector } from '../autoDj';
 import type { Clip } from '../clips';
-import { UiStateLabBar } from '../dev/UiStateLabBar';
 import { UI_STATE_LAB, useUiStateLab, type LabScreen } from '../dev/uiStateLab';
+import { UiStateLabBar } from '../dev/UiStateLabBar';
 import { t } from '../i18n';
 import { useAddTilePosition, useLibrary, type Sound } from '../library';
 import { resetPlayer, syncLibrary, usePlayer } from '../player';
