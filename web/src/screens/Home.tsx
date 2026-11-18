@@ -596,6 +596,7 @@ export function Home({ user }: { user: User }) {
             addTilePosition={addTilePosition}
             onPick={pick}
             onEdit={sound => openModal({ kind: 'edit', sound })}
+            onSelectSound={() => setExpanded(true)}
           />
         )}
       </main>

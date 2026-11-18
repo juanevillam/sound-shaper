@@ -63,7 +63,13 @@ const toCells = (sounds: Sound[], addTilePosition: number | null): Cell[] => {
     : [...cells.slice(0, slot), add, ...cells.slice(slot)];
 };
 
-const SoundTile = ({ sound }: { sound: Sound }) => {
+const SoundTile = ({
+  sound,
+  onSelect,
+}: {
+  sound: Sound;
+  onSelect: () => void;
+}) => {
   const isCurrent = usePlayer(s => s.loaded && s.current?.id === sound.id);
   const playing = usePlayer(s => s.playing);
   const rate = usePlayer(s => s.rate);
@@ -73,7 +79,10 @@ const SoundTile = ({ sound }: { sound: Sound }) => {
       type="button"
       className={isCurrent ? 'tile is-current' : 'tile'}
       aria-current={isCurrent || undefined}
-      onClick={() => playSound(sound)}
+      onClick={() => {
+        playSound(sound);
+        onSelect();
+      }}
     >
       <span className="tile-art">
         <Artwork artUrl={sound.artUrl} name={sound.name} width={TILE_WIDTH} />
@@ -166,11 +175,13 @@ export function LibraryGrid({
   addTilePosition,
   onPick,
   onEdit,
+  onSelectSound,
 }: {
   sounds: Sound[];
   addTilePosition: number | null;
   onPick: (file: File) => void;
   onEdit: (sound: Sound) => void;
+  onSelectSound: () => void;
 }) {
   const cells = useMemo(
     () => toCells(sounds, addTilePosition),
@@ -555,7 +566,7 @@ export function LibraryGrid({
     cell.kind === 'add' ? (
       <AddTile onPick={onPick} />
     ) : (
-      <SoundTile sound={cell.sound} />
+      <SoundTile sound={cell.sound} onSelect={onSelectSound} />
     );
 
   const gridClass = [

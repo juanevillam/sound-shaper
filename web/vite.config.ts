@@ -32,6 +32,9 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
+    strictPort: true,
+    host: true,
     // The shared modules live one level up.
     fs: { allow: [at('..')] },
   },
