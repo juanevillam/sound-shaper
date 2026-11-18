@@ -238,10 +238,7 @@ export function LibraryGrid({
     const slotTop = hostRect.top + li.offsetTop;
     const dx = d.x - d.grabX - slotLeft;
     const dy = d.y - d.grabY - slotTop;
-    const scale = matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 1
-      : DRAG_ACTIVE_SCALE;
-    li.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
+    li.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
   };
 
   /**
@@ -365,7 +362,7 @@ export function LibraryGrid({
       const from = li.style.transform;
       li.style.transform = '';
       if (from) {
-        li.style.zIndex = '5';
+        li.style.zIndex = '10';
         const anim = li.animate([{ transform: from }, { transform: 'none' }], {
           duration: 220,
           easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',

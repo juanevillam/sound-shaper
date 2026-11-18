@@ -153,7 +153,7 @@ type Layer<T extends Entry> = {
 };
 
 /** A sheet's slide, so a popped one is unmounted only once it is gone. */
-const LEAVE_MS = 320;
+const LEAVE_MS = 240;
 
 let nextLayer = 0;
 

@@ -52,14 +52,14 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --dur: 320ms;
-  --dur-settle: 600ms;
-  --dur-micro: 150ms;
-  --dur-quick: 300ms;
+  --dur-settle: 450ms;
+  --dur-micro: 140ms;
+  --dur-quick: 220ms;
   /* A highlight FADES in and out: the quick rung on CSS's own even ease —
      the website's --hover, exactly. The spring-like --ease lands in a few
      frames, which reads as a snap, not a transition. */
   --hover: var(--dur-quick) cubic-bezier(0.25, 0.1, 0.25, 1);
-  --dur-turn: 450ms;
+  --dur-turn: 340ms;
   --bar-h: 4rem;
   --font-sans:
     system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text',
@@ -112,6 +112,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -121,6 +122,16 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+chrome_annotation,
+[chrome_annotation],
+a[x-apple-data-detectors] {
+  border-bottom: 0 !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  pointer-events: none !important;
 }
 
 a {
@@ -713,21 +724,47 @@ button {
 }
 
 /* The held tile rides over its neighbours; the rest glide out of its way. */
+.grid::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: rgb(0 0 0 / 0.44);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.grid.is-sorting::before {
+  opacity: 1;
+}
+
 .grid li.is-lifted {
   position: relative;
-  z-index: 5;
+  z-index: 10;
   cursor: grabbing;
   transition: none;
 }
 
 .grid li.is-lifted .tile-art {
-  box-shadow: 0 0.5rem 1.25rem rgb(0 0 0 / 0.3);
+  box-shadow: 0 0.75rem 1.75rem rgb(0 0 0 / 0.42);
   border-radius: 15%;
 }
 
 .grid.is-sorting .tile {
   pointer-events: none;
   transform: none;
+}
+
+.grid li.is-lifted .tile {
+  transform: scale(1.03);
+  transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid li.is-lifted .tile {
+    transform: none;
+  }
 }
 
 /* A column, not a grid: WebKit sizes a display: grid <button> from the
@@ -746,7 +783,7 @@ button {
   cursor: pointer;
   /* Leaving a hover settles on a long, even curve; an ease-out that spends
      itself in the first frames reads as a snap on the way back. */
-  transition: transform 560ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .tile-art {
@@ -772,7 +809,7 @@ button {
      keeps just enough to read as lifted. */
   box-shadow: 0 0.5rem 1.25rem rgb(0 0 0 / 0.28);
   opacity: 0;
-  transition: opacity 560ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity 380ms cubic-bezier(0.32, 0.72, 0, 1);
   pointer-events: none;
 }
 
@@ -784,12 +821,12 @@ button {
 @media (hover: hover) {
   .tile:hover {
     transform: translateY(-4px);
-    transition-duration: 320ms;
+    transition-duration: var(--dur-quick);
   }
 
   .tile:hover .tile-art::after {
     opacity: 1;
-    transition-duration: 320ms;
+    transition-duration: var(--dur-quick);
   }
 
   .tile:hover:active {
@@ -816,7 +853,7 @@ button {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 400ms var(--ease);
+  transition: opacity var(--dur-quick) var(--ease);
 }
 
 .artwork img.is-ready {
@@ -1078,6 +1115,7 @@ button {
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
+  touch-action: pan-x;
 }
 
 .scrub input::-webkit-slider-runnable-track {
@@ -1155,12 +1193,15 @@ button {
   }
 }
 
-/* The app's glass footer, holding the Shape card. */
+/* The app's glass footer: Shape, Clips, and Edit in locked columns so
+   switching languages or summaries never causes horizontal CLS, with each
+   compartment's icon + text centered symmetrically between its dividers. */
 .dock {
   position: relative;
   isolation: isolate;
   transform: translateZ(0);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.25rem;
   /* Wide enough that a divider stands clear of a hovered or open pill. */
   gap: 0.75rem;
   margin-top: 1.5rem;
@@ -1191,14 +1232,11 @@ button {
 .dock-cell {
   position: relative;
   display: flex;
-  flex: 1;
   align-items: center;
-  /* Centred, so the air either side of a cell's content — and so the
-     distance to each divider — is the same on both ends. */
   justify-content: center;
   gap: 0.625rem;
   min-width: 0;
-  padding: 0.625rem 1rem;
+  padding: 0.625rem 0.5rem;
   border: 0;
   /* Concentric with the bar: its corner less the inset. */
   border-radius: 1rem;
@@ -1247,6 +1285,7 @@ button {
 
 .dock-copy {
   display: grid;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -1263,6 +1302,7 @@ button {
   color: var(--muted);
   font-size: 0.8125rem;
   line-height: 1.125rem;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1357,16 +1397,19 @@ button {
   flex-direction: column;
   padding: max(0.5rem, env(safe-area-inset-top)) max(1.5rem, var(--gutter))
     max(1.5rem, env(safe-area-inset-bottom));
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: none;
+  touch-action: none;
   background: var(--ground);
   isolation: isolate;
   opacity: 0;
   visibility: hidden;
   transform: translateY(100%);
   transition:
-    transform 520ms var(--ease),
-    opacity 300ms var(--ease),
-    visibility 0s linear 520ms;
+    transform 420ms var(--ease),
+    opacity var(--dur-quick) var(--ease),
+    visibility 0s linear 420ms;
 }
 
 .now-column .now {
@@ -1428,7 +1471,7 @@ button {
      wash crosses cover to cover and never dips to bare ground between. An
      EVEN dissolve, the app's: the site's --ease spends itself in the first
      frames and reads as a cut. */
-  transition: opacity 420ms ease-in-out 420ms;
+  transition: opacity 280ms ease-in-out 280ms;
 }
 
 .player-backdrop .wash.is-on {
@@ -1494,7 +1537,7 @@ button {
       rgb(var(--fg) / 0.02)
     );
   opacity: 0;
-  transition: opacity 420ms ease-in-out;
+  transition: opacity 280ms ease-in-out;
 }
 
 .player-backdrop .standin.is-on {
@@ -1523,8 +1566,8 @@ button {
   visibility: visible;
   transform: none;
   transition:
-    transform 520ms var(--ease),
-    opacity 200ms var(--ease);
+    transform 420ms var(--ease),
+    opacity 180ms var(--ease);
 }
 
 .home.is-expanded .mini {
@@ -2163,6 +2206,7 @@ button {
      and rounded leading corners before that left a wedge of ground. */
   .stage {
     position: relative;
+    z-index: 2;
     grid-column: 2;
     height: 100svh;
     overflow: hidden;
@@ -2180,6 +2224,7 @@ button {
   .tools {
     display: block;
     position: relative;
+    z-index: 2;
     grid-column: 3;
     height: 100svh;
     overflow: hidden;
@@ -2285,6 +2330,7 @@ button {
     visibility: visible;
     transform: none;
     overflow: hidden;
+    touch-action: auto;
   }
 
   .player-backdrop {
@@ -2325,7 +2371,7 @@ button {
 }
 
 ::view-transition-group(*) {
-  animation-duration: 560ms;
+  animation-duration: 380ms;
   animation-timing-function: var(--ios-curve);
 }
 
@@ -2365,18 +2411,18 @@ button {
 }
 
 ::view-transition-old(stage):only-child {
-  animation: slide-out 460ms var(--ios-curve) both;
+  animation: slide-out 340ms var(--ios-curve) both;
   opacity: 1;
 }
 
 ::view-transition-new(stage):only-child {
-  animation: slide-in 560ms var(--ios-curve) both;
+  animation: slide-in 380ms var(--ios-curve) both;
 }
 
 /* The tools column is covered, not dismissed on its own: it only needs to
    be gone by the time the player's edge has passed. */
 ::view-transition-old(tools):only-child {
-  animation: fade-out 240ms ease-out both;
+  animation: fade-out 200ms ease-out both;
 }
 
 ::view-transition-new(tools):only-child {
@@ -2794,7 +2840,7 @@ button {
 }
 
 .value-bone {
-  width: 6rem;
+  width: 3.75rem;
   margin: 0;
 }
 
@@ -3179,6 +3225,7 @@ button {
   color: var(--ink-2);
   font-size: 0.875rem;
   font-weight: 500;
+  white-space: nowrap;
   transition:
     background-color var(--dur-micro) var(--ease),
     color var(--dur-micro) var(--ease),

@@ -33,6 +33,14 @@ const formatMemberSince = (millis: number | null) =>
       })
     : '—';
 
+/**
+ * Prevents iOS Chrome's async text-classifier pass (`chrome_annotation`) from
+ * concatenating `.cell-name` ("Email") + `.cell-value` into one email match
+ * and underlining the row label a second after the sheet opens.
+ */
+const disarmEmailDetector = (email: string | null | undefined) =>
+  email ? email.replace(/([@.])/g, '$1\u200B') : '—';
+
 /** The app's native text alert for the Name row, in the site's dialog. */
 function NameDialog({
   open,
@@ -249,7 +257,9 @@ export function AccountForm({
             <span className="cell-name">
               {t('settings.manageAccount.email')}
             </span>
-            <span className="cell-value">{user.email ?? '—'}</span>
+            <span className="cell-value">
+              {disarmEmailDetector(user.email)}
+            </span>
           </div>
           <div className="cell">
             <span className="cell-name">
