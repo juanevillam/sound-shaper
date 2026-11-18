@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'soundshaper-shell-v1';
+const SHELL_CACHE = 'soundshaper-shell-v2';
 const ARTWORK_CACHE = 'soundshaper-artwork-v1';
 const SHELL_URLS = [
   '/',
@@ -77,7 +77,7 @@ self.addEventListener('fetch', event => {
   if (url.origin === self.location.origin) {
     if (request.mode === 'navigate') {
       event.respondWith(
-        fetch(request)
+        fetch(request, { cache: 'no-cache' })
           .then(response => {
             if (response.ok) {
               const copy = response.clone();
