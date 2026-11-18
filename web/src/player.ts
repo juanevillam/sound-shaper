@@ -12,6 +12,7 @@ import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
 import { autoDjState } from './autoDj';
 import { forgetClips, getClipsOfSounds, knownClips } from './clips';
+import { thumbUrl } from './lib/thumbUrl';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
 import { forgetWaveforms } from './waveform';
@@ -41,6 +42,8 @@ export type PlayerState = {
   repeat: RepeatMode;
   /** Bumps on every load — how Auto DJ tells its own cuts from a person's. */
   loadNonce: number;
+  /** Bumps on every discontinuous playhead move so Media Session re-syncs. */
+  seekNonce: number;
 };
 
 const REPEAT_KEY = 'soundshaper.clipRepeat';
@@ -71,6 +74,7 @@ const initial: PlayerState = {
   activeClip: null,
   repeat: 'off',
   loadNonce: 0,
+  seekNonce: 0,
 };
 
 let state: PlayerState = { ...initial, repeat: storedRepeat() };
@@ -78,9 +82,139 @@ const listeners = new Set<() => void>();
 let element: AudioTagHandle | null = null;
 let frame = 0;
 
+// ── Media Session API (Lock Screen / Control Center / Dynamic Island / media keys) ──
+
+const NOW_PLAYING_ART_WIDTH = 600;
+let mediaControlsWired = false;
+let lastMetadataKey = '';
+
+const wireMediaSessionControls = () => {
+  if (
+    mediaControlsWired ||
+    typeof navigator === 'undefined' ||
+    !('mediaSession' in navigator)
+  ) {
+    return;
+  }
+  mediaControlsWired = true;
+  const ms = navigator.mediaSession;
+  const safeSet = (
+    action: MediaSessionAction,
+    handler: MediaSessionActionHandler | null,
+  ) => {
+    try {
+      ms.setActionHandler(action, handler);
+    } catch {
+      // Unsupported action in this browser.
+    }
+  };
+
+  safeSet('play', () => {
+    if (!state.playing) void toggle();
+  });
+  safeSet('pause', () => pause());
+  safeSet('previoustrack', () => previous());
+  safeSet('nexttrack', () => next());
+  safeSet('seekto', details => {
+    if (
+      typeof details.seekTime === 'number' &&
+      Number.isFinite(details.seekTime)
+    )
+      seek(details.seekTime);
+  });
+  // Disable ±15s skip slots so iOS Lock Screen / Dynamic Island draws prev/next
+  // tracks, matching `NowPlayingBridge.tsx` (`REMOTE_CONTROLS`).
+  safeSet('seekbackward', null);
+  safeSet('seekforward', null);
+};
+
+const syncMediaSessionPosition = () => {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator))
+    return;
+  const ms = navigator.mediaSession;
+  if (typeof ms.setPositionState !== 'function') return;
+  if (!state.current || !state.loaded) {
+    try {
+      ms.setPositionState();
+    } catch {
+      // Ignore clear error.
+    }
+    return;
+  }
+  const duration =
+    state.duration > 0
+      ? state.duration
+      : (state.current.durationMs ?? 0) / 1000;
+  if (!(duration > 0) || !Number.isFinite(duration)) return;
+  const position = Math.max(0, Math.min(duration, state.position));
+  try {
+    ms.setPositionState({
+      duration,
+      playbackRate: state.playing ? state.rate : 1,
+      position,
+    });
+  } catch {
+    // Ignore transient range mismatches while loading.
+  }
+};
+
+const syncMediaSession = () => {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator))
+    return;
+  wireMediaSessionControls();
+  const ms = navigator.mediaSession;
+  const cur = state.current;
+
+  if (!cur) {
+    ms.metadata = null;
+    ms.playbackState = 'none';
+    lastMetadataKey = '';
+    syncMediaSessionPosition();
+    return;
+  }
+
+  const metaKey = `${cur.id}|${cur.name}|${cur.artist}|${cur.artUrl}`;
+  if (metaKey !== lastMetadataKey && typeof MediaMetadata !== 'undefined') {
+    lastMetadataKey = metaKey;
+    ms.metadata = new MediaMetadata({
+      title: cur.name,
+      ...(cur.artist ? { artist: cur.artist } : {}),
+      artwork: cur.artUrl
+        ? [
+            {
+              src: thumbUrl(cur.artUrl, NOW_PLAYING_ART_WIDTH),
+              sizes: '600x600',
+              type: 'image/jpeg',
+            },
+          ]
+        : [
+            {
+              src: '/icons/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+          ],
+    });
+  }
+
+  ms.playbackState = state.playing ? 'playing' : 'paused';
+  syncMediaSessionPosition();
+};
+
 const set = (patch: Partial<PlayerState>) => {
+  const prev = state;
   state = { ...state, ...patch };
   listeners.forEach(listener => listener());
+  if (
+    prev.current !== state.current ||
+    prev.loaded !== state.loaded ||
+    prev.playing !== state.playing ||
+    prev.rate !== state.rate ||
+    prev.duration !== state.duration ||
+    prev.seekNonce !== state.seekNonce
+  ) {
+    syncMediaSession();
+  }
 };
 
 const subscribe = (listener: () => void) => {
@@ -174,7 +308,7 @@ export const cueSound = async (sound: Sound, startS: number) => {
   set({ activeClip: null });
   load(sound);
   if (element) element.currentTime = startS;
-  set({ position: startS });
+  set({ position: startS, seekNonce: state.seekNonce + 1 });
   await start();
 };
 
@@ -265,7 +399,7 @@ export const seek = (seconds: number) => {
   // A scrub is a manual move, and a manual move ends a clip run.
   set({ activeClip: null });
   element.currentTime = seconds;
-  set({ position: seconds });
+  set({ position: seconds, seekNonce: state.seekNonce + 1 });
 };
 
 // ── The Shape ───────────────────────────────────────────────────────────
@@ -323,7 +457,7 @@ let clipEnding = false;
 export const scrubTo = (seconds: number) => {
   if (!element) return;
   element.currentTime = seconds;
-  set({ position: seconds });
+  set({ position: seconds, seekNonce: state.seekNonce + 1 });
 };
 
 /** Play a clip: from its start, to its end, then whatever Repeat says. */
@@ -352,6 +486,7 @@ export const playClip = async (
       once,
     },
     position: at,
+    seekNonce: state.seekNonce + 1,
   });
   await start();
 };
@@ -381,7 +516,10 @@ const clipEnded = async (
       // Off: the clip played once and parks on its start, ready to replay.
       element?.pause();
       if (element) element.currentTime = clip.startMs / 1000;
-      set({ position: clip.startMs / 1000 });
+      set({
+        position: clip.startMs / 1000,
+        seekNonce: state.seekNonce + 1,
+      });
       return;
     }
 

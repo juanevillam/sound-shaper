@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync:web-ui": "node ../../scripts/sync-web-ui.mjs",
+    "check:web-ui": "node ../../scripts/sync-web-ui.mjs --check"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

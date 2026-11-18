@@ -37,6 +37,7 @@ import { useTrophyStore } from '@/trophies';
 type Variant = 'normal' | 'platinum';
 
 const SOURCES: Record<Variant, number> = {
+  // Both chimes from Kenney's Interface Sounds (https://kenney.nl/assets/interface-sounds, CC0).
   normal: require('../../assets/sounds/trophy.mp3'),
   platinum: require('../../assets/sounds/trophy-platinum.mp3'),
 };

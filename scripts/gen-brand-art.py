@@ -344,8 +344,8 @@ def favicon_svg(geom):
 
 
 def build_web(app, assets_dir, out_dir):
-    """The web app's favicon and the icon a bookmark takes. Not a PWA (Juan,
-    2026-11-04): no installed or maskable icons."""
+    """The web app's favicon and PWA / Home Screen icons (`apple-touch-icon.png`,
+    `icon-192.png`, `icon-512.png`)."""
     geom = unary_union(MARKS[app]())
     icons = os.path.join(out_dir, "icons")
     os.makedirs(icons, exist_ok=True)
@@ -355,10 +355,11 @@ def build_web(app, assets_dir, out_dir):
     print("built", os.path.relpath(out_dir, REPO_ROOT))
     print("    favicon.svg")
 
-    # iOS masks a Home Screen icon itself: the app's own full-bleed icon.
-    Image.open(os.path.join(assets_dir, "images", "icon.png")).resize(
-        (180, 180), Image.LANCZOS).save(os.path.join(icons, "apple-touch-icon.png"))
-    print("    icons/apple-touch-icon.png")
+    base_icon = Image.open(os.path.join(assets_dir, "images", "icon.png"))
+    for name, sz in [("apple-touch-icon.png", 180), ("icon-192.png", 192), ("icon-512.png", 512)]:
+        base_icon.resize((sz, sz), Image.LANCZOS).save(
+            os.path.join(icons, name), optimize=True)
+        print(f"    icons/{name}")
 
 
 if __name__ == "__main__":
