@@ -323,6 +323,13 @@ export const translations = {
         dark: 'Dark',
         system: 'Automatic',
       },
+      install: {
+        label: 'Install App',
+        title: 'Install Sound Shaper',
+        ios: 'Tap Share in Safari, then choose "Add to Home Screen".',
+        mac: 'In Safari, open File in the menu bar and choose "Add to Dock…", or open in Chrome to install.',
+        done: 'OK',
+      },
       signOut: 'Sign Out',
       signOutDialog: {
         title: 'Sign Out?',
@@ -651,6 +658,13 @@ export const translations = {
         dark: 'Oscuro',
         system: 'Automático',
       },
+      install: {
+        label: 'Instalar aplicación',
+        title: 'Instalar Sound Shaper',
+        ios: 'Toca Compartir en Safari y elige «Agregar a pantalla de inicio».',
+        mac: 'En Safari, abre Archivo en la barra de menú y elige «Agregar al Dock…», o ábrela en Chrome para instalarla.',
+        done: 'OK',
+      },
       signOut: 'Cerrar sesión',
       signOutDialog: {
         title: '¿Cerrar sesión?',
@@ -974,6 +988,13 @@ export const translations = {
         light: '浅色',
         dark: '深色',
         system: '自动',
+      },
+      install: {
+        label: '安装应用',
+        title: '安装 Sound Shaper',
+        ios: '在 Safari 浏览器中轻点“共享”，然后选择“添加到主屏幕”。',
+        mac: '在 Safari 菜单栏中打开“文件”并选择“添加到程序坞…”，或使用 Chrome 安装。',
+        done: '好',
       },
       signOut: '退出登录',
       signOutDialog: {

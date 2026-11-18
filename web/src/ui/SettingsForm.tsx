@@ -10,6 +10,7 @@ import { legalUrl } from '@app/ui/author';
 import { setTheme, SUPPORTED_THEMES, useTheme } from '../appearance';
 import { useDevSettingsStore } from '../dev/devSettings';
 import { locale, setLocale, SUPPORTED_LOCALES, t } from '../i18n';
+import { isIosSafari, usePwaInstall } from '../offline';
 import { resetPlayer } from '../player';
 import { signOut } from '../session';
 
@@ -56,9 +57,16 @@ export function SettingsForm({
   onAccount: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [installGuideOpen, setInstallGuideOpen] = useState(false);
   const theme = useTheme();
   const stateLabBar = useDevSettingsStore(s => s.stateLabBar);
   const setStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
+  const { isInstalled, promptInstall } = usePwaInstall();
+
+  const onInstall = async () => {
+    const result = await promptInstall();
+    if (result === 'manual') setInstallGuideOpen(true);
+  };
 
   return (
     <>
@@ -108,6 +116,18 @@ export function SettingsForm({
               ))}
             </select>
           </label>
+          {!isInstalled && (
+            <button
+              type="button"
+              className="cell link-row"
+              onClick={() => void onInstall()}
+            >
+              <span className="cell-name">{t('settings.install.label')}</span>
+              <span className="chevron">
+                <ChevronRightGlyph />
+              </span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -185,6 +205,18 @@ export function SettingsForm({
           void signOut();
         }}
         onClose={() => setConfirming(false)}
+      />
+
+      <ConfirmDialog
+        open={installGuideOpen}
+        title={t('settings.install.title')}
+        message={
+          isIosSafari() ? t('settings.install.ios') : t('settings.install.mac')
+        }
+        confirm={t('settings.install.done')}
+        destructive={false}
+        onConfirm={() => setInstallGuideOpen(false)}
+        onClose={() => setInstallGuideOpen(false)}
       />
     </>
   );
