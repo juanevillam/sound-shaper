@@ -1,25 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactElement } from 'react';
 
 import {
   HStack,
   Picker,
+  RNHostView,
   Section,
   Slider,
   Spacer,
   Text as SwiftUIText,
   Toggle,
+  VStack,
 } from '@expo/ui/swift-ui';
 import {
   font,
   foregroundStyle,
   frame,
+  listRowInsets,
   listSectionMargins,
+  monospacedDigit,
   pickerStyle,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { scrollSheetSection } from '@modules/audio-session';
 
+import {
+  EchoScope,
+  echoTapDb,
+  eqExtremeDb,
+  EqScope,
+  formatSignedDb,
+  nextRoom1kDb,
+  NextRoomScope,
+  SCOPE_HEIGHT,
+} from '@/components/player/ShapeScopesIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
 import { useAppTheme } from '@/core';
@@ -116,27 +130,74 @@ function DjProgressRow(props: Parameters<typeof FormValueRowIos>[0]) {
 }
 
 /**
+ * Hosted studio parameter scope row inside a grouped SwiftUI `Section`:
+ * `listRowInsets(0)` spans edge-to-edge across the grouped card, and
+ * `frame({ height: SCOPE_HEIGHT })` reserves the exact 38pt slot in SwiftUI on
+ * the first frame with zero layout shift.
+ */
+function ScopeRowIos({ children }: { children: ReactElement }) {
+  return (
+    <VStack
+      modifiers={[
+        frame({ height: SCOPE_HEIGHT }),
+        listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
+      ]}
+    >
+      <RNHostView>{children}</RNHostView>
+    </VStack>
+  );
+}
+
+/**
  * One graded effect — Echo or Next Room — as a menu `Picker` row in a section
- * of its own, its explanation in the section's footer. The two were written
- * out twice, identically but for their copy and their store field.
+ * of its own, preceded by its 38pt studio parameter scope and its explanation
+ * in the section's footer.
  */
 function LevelPickerSection({
   label,
   footer,
   value,
+  meta,
+  scope,
+  activeColor,
+  mutedColor,
   onChange,
   levelLabel,
 }: {
   label: string;
   footer: string;
   value: EffectLevel;
+  meta?: string | null;
+  scope: ReactElement;
+  activeColor: string;
+  mutedColor: string;
   onChange: (key: unknown) => void;
   levelLabel: (level: EffectLevel) => string;
 }) {
   return (
     <Section footer={<SwiftUIText>{footer}</SwiftUIText>}>
+      <ScopeRowIos>{scope}</ScopeRowIos>
       <Picker
-        label={label}
+        label={
+          meta ? (
+            <HStack spacing={6}>
+              <SwiftUIText modifiers={[foregroundStyle(activeColor)]}>
+                {label}
+              </SwiftUIText>
+              <SwiftUIText
+                modifiers={[
+                  font({ textStyle: 'footnote' }),
+                  monospacedDigit(),
+                  foregroundStyle(mutedColor),
+                ]}
+              >
+                {meta}
+              </SwiftUIText>
+            </HStack>
+          ) : (
+            label
+          )
+        }
         selection={value}
         onSelectionChange={onChange}
         modifiers={[pickerStyle('menu')]}
@@ -157,6 +218,7 @@ function ShaperSheetScreen() {
   useEffect(() => track({ name: 'open_shape' }), []);
   const { colors } = useAppTheme();
 
+  const playing = usePlayerStore(s => s.playing);
   const rate = usePlayerStore(s => s.rate);
   const setRate = usePlayerStore(s => s.setRate);
   const keepPitch = usePlayerStore(s => s.keepPitch);
@@ -216,9 +278,19 @@ function ShaperSheetScreen() {
   const labelFor = (key: string) =>
     presetLabel(t, key) ?? t('player.eq.presets.flat');
 
+  const eqActive = gains.some(g => g !== 0);
+  const eqDb = eqExtremeDb(gains);
+
   const mutedText = [
     font({ textStyle: 'footnote' }),
+    monospacedDigit(),
     foregroundStyle(colors.onSurfaceMuted),
+  ];
+
+  const activeText = [
+    font({ textStyle: 'footnote' }),
+    monospacedDigit(),
+    foregroundStyle(colors.onSurface),
   ];
 
   /**
@@ -283,36 +355,57 @@ function ShaperSheetScreen() {
               length: FOOTER_TO_HEADER_MAKEUP,
             }),
           ]}
-          title={t('player.eq.title')}
+          header={
+            <HStack>
+              <SwiftUIText>{t('player.eq.title')}</SwiftUIText>
+              <Spacer />
+              {eqActive ? (
+                <SwiftUIText
+                  modifiers={[
+                    monospacedDigit(),
+                    foregroundStyle(colors.onSurface),
+                  ]}
+                >
+                  {formatSignedDb(eqDb, locale)}
+                </SwiftUIText>
+              ) : null}
+            </HStack>
+          }
           footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
         >
-          {EQ_BANDS.map((band, index) => (
-            <HStack key={band.hz} spacing={8}>
-              <SwiftUIText
-                modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
-              >
-                {band.label}
-              </SwiftUIText>
-              <Slider
-                modifiers={sliderInk}
-                value={gains[index]}
-                min={EQ_MIN_DB}
-                max={EQ_MAX_DB}
-                step={1}
-                onValueChange={value =>
-                  byHand(setBandGain)(index, Math.round(value))
-                }
-              />
-              <SwiftUIText
-                modifiers={[
-                  ...mutedText,
-                  frame({ width: EQ_LABEL_WIDTH, alignment: 'trailing' }),
-                ]}
-              >
-                {dbLabel(gains[index])}
-              </SwiftUIText>
-            </HStack>
-          ))}
+          <ScopeRowIos>
+            <EqScope gains={gains} playing={playing} />
+          </ScopeRowIos>
+          {EQ_BANDS.map((band, index) => {
+            const bandActive = gains[index] !== 0;
+            return (
+              <HStack key={band.hz} spacing={8}>
+                <SwiftUIText
+                  modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
+                >
+                  {band.label}
+                </SwiftUIText>
+                <Slider
+                  modifiers={sliderInk}
+                  value={gains[index]}
+                  min={EQ_MIN_DB}
+                  max={EQ_MAX_DB}
+                  step={1}
+                  onValueChange={value =>
+                    byHand(setBandGain)(index, Math.round(value))
+                  }
+                />
+                <SwiftUIText
+                  modifiers={[
+                    ...(bandActive ? activeText : mutedText),
+                    frame({ width: EQ_LABEL_WIDTH, alignment: 'trailing' }),
+                  ]}
+                >
+                  {dbLabel(gains[index])}
+                </SwiftUIText>
+              </HStack>
+            );
+          })}
         </Section>
 
         <Section
@@ -320,7 +413,16 @@ function ShaperSheetScreen() {
             <HStack>
               <SwiftUIText>{t('player.speed')}</SwiftUIText>
               <Spacer />
-              <SwiftUIText>{rateLabel(rate, locale)}</SwiftUIText>
+              <SwiftUIText
+                modifiers={[
+                  monospacedDigit(),
+                  foregroundStyle(
+                    rate !== 1 ? colors.onSurface : colors.onSurfaceMuted,
+                  ),
+                ]}
+              >
+                {rateLabel(rate, locale)}
+              </SwiftUIText>
             </HStack>
           }
         >
@@ -358,6 +460,10 @@ function ShaperSheetScreen() {
           label={t('player.echo')}
           footer={t('player.echoDescription')}
           value={echo}
+          meta={echo === 'off' ? null : formatSignedDb(echoTapDb(echo), locale)}
+          scope={<EchoScope level={echo} playing={playing} />}
+          activeColor={colors.onSurface}
+          mutedColor={colors.onSurfaceMuted}
           onChange={key => byHand(setEcho)(asLevel(key))}
           levelLabel={levelLabel}
         />
@@ -366,6 +472,14 @@ function ShaperSheetScreen() {
           label={t('player.nextRoom')}
           footer={t('player.nextRoomDescription')}
           value={nextRoom}
+          meta={
+            nextRoom === 'off'
+              ? null
+              : formatSignedDb(nextRoom1kDb(nextRoom), locale)
+          }
+          scope={<NextRoomScope level={nextRoom} playing={playing} />}
+          activeColor={colors.onSurface}
+          mutedColor={colors.onSurfaceMuted}
           onChange={key => byHand(setNextRoom)(asLevel(key))}
           levelLabel={levelLabel}
         />

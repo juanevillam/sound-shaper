@@ -1,6 +1,7 @@
 import {
   AudioContext,
   AudioManager,
+  type AnalyserNode,
   type AudioNode,
   type AudioParam,
   type AudioTagHandle,
@@ -150,6 +151,12 @@ type Graph = {
   echoTrim: GainNode;
   /** Unity, except while a load fades in — see `fadeInNextLoad`. */
   fade: GainNode;
+  /**
+   * Read-only post-DSP inspection tap placed in series between `fade` and
+   * `ctx.destination` (`AnalyserNode::processNode` returns `processingBuffer`
+   * unmodified, so wiring it in series keeps the graph 100% single-consumer).
+   */
+  analyser: AnalyserNode;
   /**
    * The level the convolver is WIRED FOR — connected and holding that level's
    * impulse when not 'off', absent from the chain when 'off'. See `applyEcho`.
@@ -468,10 +475,17 @@ export const audioEngine = {
     } else {
       wallTrim.connect(echoTrim);
     }
-    // The last node: unity, or a short fade-in when Auto DJ asked for one.
+    // The last gain node: unity, or a short fade-in when Auto DJ asked for one,
+    // followed in series by the read-only post-DSP analyser tap.
     const fade = ctx.createGain();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.minDecibels = -84;
+    analyser.maxDecibels = -10;
+    analyser.smoothingTimeConstant = 0.72;
     echoTrim.connect(fade);
-    fade.connect(ctx.destination);
+    fade.connect(analyser);
+    analyser.connect(ctx.destination);
     if (pendingFadeS > 0) {
       const now = ctx.currentTime;
       fade.gain.setValueAtTime(0, now);
@@ -491,11 +505,21 @@ export const audioEngine = {
       echo,
       echoTrim,
       fade,
+      analyser,
       // Seeded from the live setting, so a graph rebuilt mid-session (a new
       // sound) keeps the echo the person already chose.
       echoLevel: settings.echo,
     };
     pushSettings(true);
+  },
+
+  /**
+   * Read-only post-DSP analyser tap on the active graph, or `null` when no
+   * sound is loaded.
+   */
+  getAudioTap(): { analyser: AnalyserNode; context: AudioContext } | null {
+    if (!graph || !context) return null;
+    return { analyser: graph.analyser, context };
   },
 
   /** Drop the previous sound's nodes so reloads don't accumulate orphans. */
@@ -516,6 +540,7 @@ export const audioEngine = {
       graph.echo?.disconnect();
       graph.echoTrim.disconnect();
       graph.fade.disconnect();
+      graph.analyser.disconnect();
     } catch {
       // The old media source rides a disposed <Audio>; ignore if already gone.
     }

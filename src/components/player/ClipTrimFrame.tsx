@@ -194,6 +194,12 @@ type ClipTrimFrameProps = {
    * time a pan activates the sheet may already have won. iOS passes nothing.
    */
   onBandTouch?: (down: boolean) => void;
+  /**
+   * Which edge or handle is currently being dragged (`'start' | 'end' | 'clip'`),
+   * or `null` when released, so `ClipRangeCaption` can highlight the active
+   * edge timestamp in full ink matching `web/src/ui/ClipEditor.tsx`.
+   */
+  onActiveEdgeChange?: (edge: 'start' | 'end' | 'clip' | null) => void;
 };
 
 export function ClipTrimFrame({
@@ -204,6 +210,7 @@ export function ClipTrimFrame({
   endSv,
   onChange,
   onBandTouch,
+  onActiveEdgeChange,
 }: ClipTrimFrameProps) {
   const { colors } = useAppTheme();
   /**
@@ -244,22 +251,26 @@ export function ClipTrimFrame({
     endSv.value = endS;
   }, [startS, endS, startSv, endSv]);
 
-  const setDragging = (value: boolean) => {
+  const setDragging = (
+    value: boolean,
+    edge: 'start' | 'end' | 'clip' | null = null,
+  ) => {
     draggingRef.current = value;
     // The sheet under this editor stops competing for the drag — see
     // `onBandTouch`.
     onBandTouch?.(value);
+    onActiveEdgeChange?.(value ? edge : null);
   };
   const commit = (nextStartS: number, nextEndS: number) => {
     // Through `setDragging`, so the release REACHES the sheet: a commit that
     // only cleared the ref left `sheetGesturesEnabled` off for good.
-    setDragging(false);
+    setDragging(false, null);
     onChange(nextStartS, nextEndS);
   };
 
   const dragStart = Gesture.Pan()
     .minDistance(DRAG_MIN_DISTANCE)
-    .onBegin(() => runOnJS(setDragging)(true))
+    .onBegin(() => runOnJS(setDragging)(true, 'start'))
     .onChange(event => {
       const max = endSv.value - MIN_GAP_S;
       startSv.value = Math.min(
@@ -286,7 +297,7 @@ export function ClipTrimFrame({
 
   const dragEnd = Gesture.Pan()
     .minDistance(DRAG_MIN_DISTANCE)
-    .onBegin(() => runOnJS(setDragging)(true))
+    .onBegin(() => runOnJS(setDragging)(true, 'end'))
     .onChange(event => {
       const min = startSv.value + MIN_GAP_S;
       endSv.value = Math.max(
@@ -307,7 +318,7 @@ export function ClipTrimFrame({
   // same fine-scrub gain as the caps: one drag language for the whole frame.
   const dragClip = Gesture.Pan()
     .minDistance(DRAG_MIN_DISTANCE)
-    .onBegin(() => runOnJS(setDragging)(true))
+    .onBegin(() => runOnJS(setDragging)(true, 'clip'))
     .onChange(event => {
       const length = endSv.value - startSv.value;
       const next = Math.min(

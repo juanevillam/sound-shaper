@@ -123,7 +123,10 @@ const WAVE_INK_RATIO = 0.78;
  * secondaryLabel for the same reason: the WAVE is content, the CURSOR is
  * the instrument, and only one of them gets full contrast.
  */
-const WAVE_BAR_ALPHA = 0.6;
+const WAVE_BAR_OUTSIDE_ALPHA = 0.35;
+const WAVE_BAR_INSIDE_ALPHA = 0.78;
+const OVERVIEW_BAR_OUTSIDE_ALPHA = 0.34;
+const OVERVIEW_BAR_INSIDE_ALPHA = 0.78;
 /** The ruler band under it, part of the same strip so it pans for free. */
 const RULER_HEIGHT = 28;
 
@@ -410,8 +413,13 @@ export function ClipTrimEditor({
   // finger — the drag-local idiom the scrubber uses.
   const playheadSv = useSharedValue(usePlayerStore.getState().position);
   const panningRef = useRef(false);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [activeEdge, setActiveEdge] = useState<'start' | 'end' | 'clip' | null>(
+    null,
+  );
   const setPanning = (value: boolean) => {
     panningRef.current = value;
+    setScrubbing(value);
     // The sheet under this editor stops competing for the drag — see
     // `onBandTouch`.
     onBandTouch?.(value);
@@ -518,8 +526,12 @@ export function ClipTrimEditor({
   const startSv = useSharedValue(range.startS);
   const endSv = useSharedValue(range.endS);
   const edgeDraggingRef = useRef(false);
-  const setEdgeDragging = (value: boolean) => {
+  const setEdgeDragging = (
+    value: boolean,
+    edge: 'start' | 'end' | 'clip' | null = null,
+  ) => {
     edgeDraggingRef.current = value;
+    setActiveEdge(value ? edge : null);
     // Dragging a cap is the same competition as scrubbing — see `onBandTouch`.
     onBandTouch?.(value);
   };
@@ -540,6 +552,7 @@ export function ClipTrimEditor({
 
   const commitEdges = useCallback(() => {
     edgeDraggingRef.current = false;
+    setActiveEdge(null);
     // RELEASE THE SHEET TOO. This cleared only the ref, so a cap drag left
     // `sheetGesturesEnabled` off permanently — swipe-to-dismiss was dead for
     // the rest of the editor's life, and the leak was invisible because the
@@ -615,6 +628,13 @@ export function ClipTrimEditor({
   const washStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: startSv.value * PPS }],
     width: Math.max(0, (endSv.value - startSv.value) * PPS),
+  }));
+  const inRangeClipStyle = useAnimatedStyle(() => ({
+    left: startSv.value * PPS,
+    width: Math.max(0, (endSv.value - startSv.value) * PPS),
+  }));
+  const inRangeInverseStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -startSv.value * PPS }],
   }));
   const startEdgeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: startSv.value * PPS - EDGE_TOUCH_WIDTH / 2 }],
@@ -736,7 +756,7 @@ export function ClipTrimEditor({
       .minDistance(0)
       .onBegin(() => {
         edgeBaseSv.value = edge === 'start' ? startSv.value : endSv.value;
-        runOnJS(setEdgeDragging)(true);
+        runOnJS(setEdgeDragging)(true, edge);
       })
       .onChange(event => {
         const raw = edgeBaseSv.value + event.translationX / PPS;
@@ -826,6 +846,14 @@ export function ClipTrimEditor({
     return parts.join('');
   }, [waveform, overviewWidth, overviewPps]);
 
+  const overviewClipStyle = useAnimatedStyle(() => ({
+    left: startSv.value * overviewPps,
+    width: Math.max(0, (endSv.value - startSv.value) * overviewPps),
+  }));
+  const overviewInverseStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -startSv.value * overviewPps }],
+  }));
+
   const overviewPlayheadStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -907,10 +935,47 @@ export function ClipTrimEditor({
                     buckets={waveform?.buckets ?? null}
                     bucketMs={waveform?.bucketMs ?? 50}
                     durationS={durationS}
-                    barColor={withAlpha(colors.onSurface, WAVE_BAR_ALPHA)}
+                    barColor={withAlpha(
+                      colors.onSurface,
+                      WAVE_BAR_OUTSIDE_ALPHA,
+                    )}
                     mutedColor={colors.onSurfaceMuted}
                   />
                 ))}
+                {/* Selected range bars shine brighter (`WAVE_BAR_INSIDE_ALPHA`,
+                  boosting to 0.96 while live/playing), clipped to
+                  `[startSv, endSv]` so dragging trim caps shifts bar contrast
+                  at 60fps on the UI thread without rebuilding SVG paths. */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.inRangeClip, inRangeClipStyle]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.inRangeInner,
+                      { width: trackWidth },
+                      inRangeInverseStyle,
+                    ]}
+                  >
+                    {tiles.map(index => (
+                      <WaveTile
+                        key={`in-${index}`}
+                        index={index}
+                        buckets={waveform?.buckets ?? null}
+                        bucketMs={waveform?.bucketMs ?? 50}
+                        durationS={durationS}
+                        barColor={withAlpha(
+                          colors.onSurface,
+                          playing || scrubbing || activeEdge !== null
+                            ? 0.94
+                            : WAVE_BAR_INSIDE_ALPHA,
+                        )}
+                        mutedColor={colors.onSurfaceMuted}
+                        waveOnly
+                      />
+                    ))}
+                  </Animated.View>
+                </Animated.View>
                 {/* THE WAIT'S OWN INK — one bone across the track's whole
                   extent, inside the strip so it spans exactly what the band
                   spans and pans with it. It fades out as the bars fade in
@@ -1073,10 +1138,38 @@ export function ClipTrimEditor({
               key={overviewPath ? 'wave' : 'bone'}
             >
               <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
-                {/* The rest of the track, in the house's muted ink — the frame's
-                wash is what marks the selection over it. */}
-                <Path d={overviewPath} fill={colors.onSurfaceMuted} />
+                {/* Outside bars in calm dim ink; inside bars highlighted via
+                  the live-clipped overlay below. */}
+                <Path
+                  d={overviewPath}
+                  fill={withAlpha(colors.onSurface, OVERVIEW_BAR_OUTSIDE_ALPHA)}
+                />
               </Svg>
+              {overviewPath ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.overviewInRangeClip, overviewClipStyle]}
+                >
+                  <Animated.View
+                    style={[
+                      { width: overviewWidth, height: OVERVIEW_HEIGHT },
+                      overviewInverseStyle,
+                    ]}
+                  >
+                    <Svg width={overviewWidth} height={OVERVIEW_HEIGHT}>
+                      <Path
+                        d={overviewPath}
+                        fill={withAlpha(
+                          colors.onSurface,
+                          playing || scrubbing || activeEdge !== null
+                            ? 0.92
+                            : OVERVIEW_BAR_INSIDE_ALPHA,
+                        )}
+                      />
+                    </Svg>
+                  </Animated.View>
+                </Animated.View>
+              ) : null}
             </Animated.View>
             <Animated.View
               pointerEvents="none"
@@ -1095,6 +1188,7 @@ export function ClipTrimEditor({
                 endSv={endSv}
                 onChange={onRangeChange}
                 onBandTouch={onBandTouch}
+                onActiveEdgeChange={setActiveEdge}
               />
             </View>
           </View>
@@ -1114,6 +1208,8 @@ export function ClipTrimEditor({
           endSv={endSv}
           width={overviewWidth}
           color={colors.onSurfaceMuted}
+          activeColor={colors.onSurface}
+          activeEdge={activeEdge}
         />
 
         {/* The one LARGE air on the sheet — it separates the wave group from
@@ -1124,7 +1220,11 @@ export function ClipTrimEditor({
         <View style={styles.airEven} />
 
         {/* THE TIMECODE — Voice Memos' centrepiece, standing alone. */}
-        <TimecodeLabel playheadSv={playheadSv} color={colors.onSurface} />
+        <TimecodeLabel
+          playheadSv={playheadSv}
+          color={colors.onSurface}
+          live={playing || scrubbing || activeEdge !== null}
+        />
 
         {/* THE TRANSPORT — ±15 and play, the editor's own loop. FIXED gap to
           the readout above: the timecode is this transport's own caption
@@ -1247,6 +1347,7 @@ const WaveTile = memo(function WaveTile({
   durationS,
   barColor,
   mutedColor,
+  waveOnly = false,
 }: {
   index: number;
   buckets: number[] | null;
@@ -1254,6 +1355,7 @@ const WaveTile = memo(function WaveTile({
   durationS: number;
   barColor: string;
   mutedColor: string;
+  waveOnly?: boolean;
 }) {
   const fromS = index * CHUNK_S;
   const toS = Math.min(durationS, fromS + CHUNK_S);
@@ -1286,6 +1388,7 @@ const WaveTile = memo(function WaveTile({
   }, [buckets, bucketMs, fromS, toS, index]);
 
   const ticks = useMemo(() => {
+    if (waveOnly) return [];
     const list: { x: number; label: string; major: boolean }[] = [];
     for (let second = Math.ceil(fromS); second < toS; second += 1) {
       const x = (second - fromS) * PPS;
@@ -1301,7 +1404,7 @@ const WaveTile = memo(function WaveTile({
       list.push({ x: x + PPS / 2, label: '', major: false });
     }
     return list;
-  }, [fromS, toS]);
+  }, [fromS, toS, waveOnly]);
 
   return (
     <View
@@ -1320,41 +1423,43 @@ const WaveTile = memo(function WaveTile({
           as a whole was REMOUNTED when the decode landed to cross-fade them;
           that meant fading a ruler out under an identical ruler fading in, for
           no reason once the placeholder stopped being bar-shaped. */}
-      <Svg
-        width={width + RULER_LABEL_BLEED * 2}
-        height={WAVE_HEIGHT + RULER_HEIGHT}
-      >
-        {/* Everything is drawn in the tile's own coordinates and shifted into
-            the bleed, so the canvas grew without anything moving. */}
-        <G x={RULER_LABEL_BLEED}>
-          {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
-            BELOW them (Voice Memos, Juan's screenshots). */}
-          <Path
-            d={ticks
-              .map(
-                tick =>
-                  `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
-              )
-              .join('')}
-            stroke={mutedColor}
-            strokeWidth={1}
-          />
-          {ticks.map(tick =>
-            tick.major ? (
-              <SvgText
-                key={`l${tick.x}`}
-                x={tick.x}
-                y={WAVE_HEIGHT + 23}
-                fontSize={11}
-                textAnchor="middle"
-                fill={mutedColor}
-              >
-                {tick.label}
-              </SvgText>
-            ) : null,
-          )}
-        </G>
-      </Svg>
+      {!waveOnly ? (
+        <Svg
+          width={width + RULER_LABEL_BLEED * 2}
+          height={WAVE_HEIGHT + RULER_HEIGHT}
+        >
+          {/* Everything is drawn in the tile's own coordinates and shifted into
+              the bleed, so the canvas grew without anything moving. */}
+          <G x={RULER_LABEL_BLEED}>
+            {/* APPLE'S ORDER: ticks hang off the wave's bottom edge, labels sit
+              BELOW them (Voice Memos, Juan's screenshots). */}
+            <Path
+              d={ticks
+                .map(
+                  tick =>
+                    `M${tick.x.toFixed(1)},${WAVE_HEIGHT + 2}v${tick.major ? 7 : 4}`,
+                )
+                .join('')}
+              stroke={mutedColor}
+              strokeWidth={1}
+            />
+            {ticks.map(tick =>
+              tick.major ? (
+                <SvgText
+                  key={`l${tick.x}`}
+                  x={tick.x}
+                  y={WAVE_HEIGHT + 23}
+                  fontSize={11}
+                  textAnchor="middle"
+                  fill={mutedColor}
+                >
+                  {tick.label}
+                </SvgText>
+              ) : null,
+            )}
+          </G>
+        </Svg>
+      ) : null}
       {/* THE BARS ARRIVE AS A CROSSFADE, not a swap: this layer fades in over
           the 220ms the band's bone takes to fade out. Opacity-only, which is
           exactly what Reduce Motion asks transitions to become — so it is not
@@ -1385,11 +1490,15 @@ const ClipRangeCaption = memo(function ClipRangeCaption({
   endSv,
   width,
   color,
+  activeColor,
+  activeEdge,
 }: {
   startSv: SharedValue<number>;
   endSv: SharedValue<number>;
   width: number;
   color: string;
+  activeColor: string;
+  activeEdge: 'start' | 'end' | 'clip' | null;
 }) {
   const [edges, setEdges] = useState(() => ({
     start: Math.floor(startSv.value),
@@ -1415,22 +1524,35 @@ const ClipRangeCaption = memo(function ClipRangeCaption({
     [],
   );
 
+  const startLive = activeEdge === 'start' || activeEdge === 'clip';
+  const durationLive = activeEdge !== null;
+  const endLive = activeEdge === 'end' || activeEdge === 'clip';
+
   return (
     <View style={[styles.rangeCaption, { width }]}>
       <AppText
         doNotTranslate
         text={formatTime(edges.start)}
-        style={[styles.rangeCaptionText, { color }]}
+        style={[
+          styles.rangeCaptionText,
+          { color: startLive ? activeColor : color },
+        ]}
       />
       <AppText
         doNotTranslate
         text={formatTime(Math.max(0, edges.end - edges.start))}
-        style={[styles.rangeCaptionText, { color }]}
+        style={[
+          styles.rangeCaptionText,
+          { color: durationLive ? activeColor : color },
+        ]}
       />
       <AppText
         doNotTranslate
         text={formatTime(edges.end)}
-        style={[styles.rangeCaptionText, { color }]}
+        style={[
+          styles.rangeCaptionText,
+          { color: endLive ? activeColor : color },
+        ]}
       />
     </View>
   );
@@ -1447,10 +1569,14 @@ const ClipRangeCaption = memo(function ClipRangeCaption({
 function TimecodeLabel({
   playheadSv,
   color,
+  live,
 }: {
   playheadSv: SharedValue<number>;
   color: string;
+  live: boolean;
 }) {
+  const { scheme } = useAppTheme();
+  const isDark = scheme === 'dark';
   const [seconds, setSeconds] = useState(() => Math.floor(playheadSv.value));
   useAnimatedReaction(
     // FLOORED to match `formatTime`'s own semantics — the playhead is
@@ -1467,7 +1593,11 @@ function TimecodeLabel({
     <AppText
       doNotTranslate
       text={formatTime(seconds)}
-      style={[styles.timecode, { color }]}
+      style={[
+        styles.timecode,
+        { color },
+        isDark && live ? styles.timecodeLiveDark : null,
+      ]}
     />
   );
 }
@@ -1537,6 +1667,29 @@ const styles = StyleSheet.create({
   },
   /** The bars' own layer, over the ruler's canvas and in the same box. */
   tileWave: { left: 0, position: 'absolute', top: 0 },
+  inRangeClip: {
+    bottom: RULER_HEIGHT + BAND_BOTTOM_PAD,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+  },
+  inRangeInner: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+  },
+  overviewInRangeClip: {
+    bottom: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+  },
+  timecodeLiveDark: {
+    textShadowColor: 'rgba(184, 220, 255, 0.28)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
   /**
    * THE BAND'S BONE — the track's full extent inside the strip, centred in
    * the wave's own area (the ruler and the bottom pad are below it, which is
