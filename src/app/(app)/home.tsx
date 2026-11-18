@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -22,7 +22,11 @@ import {
   MINI_PLAYER_HEIGHT,
 } from '@/components/player/bannerMetrics';
 import { PlayerSheet } from '@/components/player/PlayerSheet';
-import { AddSoundTile, SoundTile } from '@/components/sounds/SoundTile';
+import {
+  AddSoundTile,
+  SoundTile,
+  useSoundTileMetrics,
+} from '@/components/sounds/SoundTile';
 import { HeaderSettingsButtonIos } from '@/components/ui/HeaderSettingsButtonIos';
 // DEV LAB — delete with `src/dev/uiStateLab`.
 import { Screen } from '@/components/ui/Screen';
@@ -47,6 +51,7 @@ import {
 } from '@/services/firebase/sounds';
 import { setAddTilePosition } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { useAutoDjStore } from '@/store/autoDj';
 import { stashPendingUpload } from '@/store/pendingUpload';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
@@ -485,6 +490,79 @@ export default function HomeScreen() {
     TILE_GAP -
     // The safe area comes free through `contentInsetAdjustmentBehavior`.
     insets.bottom;
+
+  /**
+   * AUTO-SCROLL THE LIBRARY GRID WHEN DJ JUAN ("All Sounds") CHANGES TRACKS.
+   *
+   * Keeps the Shape sheet and PlayerSheet untouched while moving the underlying
+   * Home grid to the playing sound's cover row, so the listener sees the active
+   * tile immediately (or as soon as they dismiss Shape / collapse the player).
+   */
+  const djAll = useAutoDjStore(s => s.on && s.mode === 'all');
+  const dragging = useSoundsStore(s => s.isDragging);
+  const { tileHeight } = useSoundTileMetrics();
+  const { height: windowHeight } = useWindowDimensions();
+  const lastDjScrolledId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!djAll) {
+      lastDjScrolledId.current = null;
+      return;
+    }
+    if (
+      !currentSoundId ||
+      currentSoundId === lastDjScrolledId.current ||
+      dragging
+    ) {
+      return;
+    }
+    const index = cells.findIndex(
+      cell => cell.kind === 'sound' && cell.id === currentSoundId,
+    );
+    if (index === -1) return;
+    lastDjScrolledId.current = currentSoundId;
+
+    const row = Math.floor(index / 2);
+    const inlineTopInset = insets.top + 44;
+    const bannerSpace = bannerBottomOffset(insets.bottom) + MINI_PLAYER_HEIGHT;
+    const visibleH = Math.max(
+      tileHeight,
+      windowHeight - inlineTopInset - bannerSpace,
+    );
+    const rowPitch = tileHeight + GRID_ROW_GAP;
+    const rowContentY = row === 0 ? 0 : GRID_TOP_GAP + row * rowPitch;
+    const totalRows = Math.ceil(cells.length / 2);
+    const contentHeight =
+      GRID_TOP_GAP +
+      totalRows * tileHeight +
+      Math.max(0, totalRows - 1) * GRID_ROW_GAP +
+      listBottomPadding;
+    const maxScrollY = Math.max(0, contentHeight - visibleH);
+    const targetY =
+      row === 0
+        ? 0
+        : Math.min(
+            Math.max(0, rowContentY - (visibleH - tileHeight) * 0.42),
+            maxScrollY,
+          );
+
+    scrollableRef.current?.scrollTo({
+      y: targetY,
+      animated: !reduceMotion,
+    });
+  }, [
+    cells,
+    currentSoundId,
+    djAll,
+    dragging,
+    insets.bottom,
+    insets.top,
+    listBottomPadding,
+    reduceMotion,
+    scrollableRef,
+    tileHeight,
+    windowHeight,
+  ]);
 
   return (
     <Screen>

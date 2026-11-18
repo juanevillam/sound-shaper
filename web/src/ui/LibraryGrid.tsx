@@ -11,6 +11,7 @@ import { flushSync } from 'react-dom';
 import { positionForMove, renormalized } from '@app/lib/gridOrder';
 import { DRAG_ACTIVE_SCALE } from '@app/ui/dragMetrics';
 
+import { useAutoDj } from '../autoDj';
 import { t } from '../i18n';
 import type { Sound } from '../library';
 import { playSound, usePlayer } from '../player';
@@ -210,6 +211,63 @@ export function LibraryGrid({
   }, [live, order, lifted]);
 
   const items = () => [...(list.current?.children ?? [])] as HTMLLIElement[];
+
+  // In DJ Juan "All Sounds" mode, smoothly scroll the library grid to the
+  // active sound's cover tile whenever the DJ switches tracks (without closing
+  // any open sheet), so the listener can follow which song is playing.
+  const currentId = usePlayer(s => s.current?.id ?? null);
+  const djAll = useAutoDj(s => s.on && s.mode === 'all');
+  const lastDjScrolledId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!djAll) {
+      lastDjScrolledId.current = null;
+      return;
+    }
+    if (!currentId || currentId === lastDjScrolledId.current) return;
+    lastDjScrolledId.current = currentId;
+    if (drag.current?.lifted) return;
+
+    const li = items().find(el => el.dataset.key === currentId);
+    if (!li) return;
+    const scroller = scrollerOf(li);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rect = li.getBoundingClientRect();
+
+    if (scroller === document.scrollingElement) {
+      const targetTop = Math.max(
+        0,
+        window.scrollY + rect.top - (window.innerHeight - rect.height) * 0.42,
+      );
+      if (Math.abs(window.scrollY - targetTop) > 4) {
+        window.scrollTo({
+          top: targetTop,
+          behavior: reduce ? 'auto' : 'smooth',
+        });
+      }
+      return;
+    }
+
+    const scrollerRect = scroller.getBoundingClientRect();
+    const offsetInScroller = rect.top - scrollerRect.top + scroller.scrollTop;
+    const maxScroll = Math.max(
+      0,
+      scroller.scrollHeight - scroller.clientHeight,
+    );
+    const targetTop = Math.min(
+      Math.max(
+        0,
+        offsetInScroller - (scroller.clientHeight - rect.height) * 0.42,
+      ),
+      maxScroll,
+    );
+    if (Math.abs(scroller.scrollTop - targetTop) > 4) {
+      scroller.scrollTo({
+        top: targetTop,
+        behavior: reduce ? 'auto' : 'smooth',
+      });
+    }
+  }, [djAll, currentId, keys]);
 
   const snapshotSlots = () => {
     slots.current.clear();

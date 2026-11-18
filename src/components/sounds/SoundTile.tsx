@@ -19,6 +19,7 @@ import {
   EMPTY_MEDIA_PLUS,
   SquashPressable,
   CONTINUOUS_CURVE,
+  TEXT_VARIANTS,
 } from '@/ui';
 
 // The home grid cell: a square artwork tile (the sound's embedded cover, or the
@@ -173,6 +174,8 @@ export type SoundTileMetrics = {
   captionInset: number;
   /** The gap the title's own `marginBottom` opens under it. */
   titleGap: number;
+  /** Full height of a tile (square cover + caption gap + two text line boxes). */
+  tileHeight: number;
 };
 
 /**
@@ -193,6 +196,11 @@ export type SoundTileMetrics = {
  */
 export const soundTileMetrics = (cell: number): SoundTileMetrics => {
   const artRadius = artworkRadius(cell);
+  const titleGap = 1;
+  const captionHeight =
+    (TEXT_VARIANTS[CAPTION_VARIANTS.title].lineHeight ?? 22) +
+    titleGap +
+    (TEXT_VARIANTS[CAPTION_VARIANTS.subtitle].lineHeight ?? 20);
 
   return {
     cell,
@@ -214,7 +222,8 @@ export const soundTileMetrics = (cell: number): SoundTileMetrics => {
      * the corner rather than a constant.
      */
     captionInset: opticalTextInset(artRadius),
-    titleGap: 1,
+    titleGap,
+    tileHeight: cell + EMPTY_MEDIA_CAPTION_GAP + captionHeight,
   };
 };
 
