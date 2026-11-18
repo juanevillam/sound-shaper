@@ -8,10 +8,8 @@ import {
 } from '@app/ui/author';
 
 import { t } from '../i18n';
-import { isIosSafari, usePwaInstall } from '../offline';
 import { signInWithGoogle } from '../session';
 import { BrandTile } from '../ui/brand';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ClipIcon, GoogleG, LibraryIcon, ShapeIcon } from '../ui/icons';
 
 const APP_NAME = 'Sound Shaper';
@@ -33,13 +31,6 @@ const FEATURES = [
 export function Welcome() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [installGuideOpen, setInstallGuideOpen] = useState(false);
-  const { isInstalled, promptInstall } = usePwaInstall();
-
-  const onInstall = async () => {
-    const result = await promptInstall();
-    if (result === 'manual') setInstallGuideOpen(true);
-  };
 
   const signIn = async () => {
     setBusy(true);
@@ -98,15 +89,6 @@ export function Welcome() {
             ? t('welcome.button.google.loadingLabel')
             : t('welcome.button.google.label')}
         </button>
-        {!isInstalled && (
-          <button
-            type="button"
-            className="welcome-install"
-            onClick={() => void onInstall()}
-          >
-            {t('settings.install.label')}
-          </button>
-        )}
         {failed && (
           <p className="error" role="alert">
             {t('errors.message')}
@@ -124,18 +106,6 @@ export function Welcome() {
           {after}
         </p>
       </footer>
-
-      <ConfirmDialog
-        open={installGuideOpen}
-        title={t('settings.install.title')}
-        message={
-          isIosSafari() ? t('settings.install.ios') : t('settings.install.mac')
-        }
-        confirm={t('settings.install.done')}
-        destructive={false}
-        onConfirm={() => setInstallGuideOpen(false)}
-        onClose={() => setInstallGuideOpen(false)}
-      />
     </main>
   );
 }

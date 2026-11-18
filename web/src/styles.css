@@ -297,28 +297,6 @@ button {
   cursor: default;
 }
 
-.welcome-install {
-  justify-self: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 999px;
-  color: var(--ink-2);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  transition:
-    color var(--hover),
-    background var(--hover),
-    transform 160ms var(--ease);
-}
-
-.welcome-install:hover {
-  color: var(--ink);
-  background: var(--elevated);
-}
-
-.welcome-install:active {
-  transform: scale(0.97);
-}
-
 .legal,
 .error {
   margin: 0;
