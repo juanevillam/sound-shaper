@@ -3,13 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FX_PEAK, synthFx, type FxName } from '../../src/lib/autoDj/fx';
 
 const RATE = 48000;
-const NAMES: FxName[] = [
-  'riser',
-  'reverseCymbal',
-  'impact',
-  'downlifter',
-  'zap',
-];
+const NAMES: FxName[] = ['riser', 'reverseCymbal', 'downlifter', 'zap'];
 
 const peak = (xs: Float32Array) =>
   xs.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
@@ -37,10 +31,10 @@ describe('synthFx', () => {
     expect(peak(riser.left.subarray(n - RATE / 4))).toBeGreaterThan(
       peak(riser.left.subarray(0, RATE / 4)) * 4,
     );
-    const impact = synthFx('impact', RATE, 2);
-    expect(impact.alignS).toBe(0);
-    expect(peak(impact.left.subarray(0, RATE / 4))).toBeGreaterThan(
-      peak(impact.left.subarray(RATE)) * 4,
+    const downlifter = synthFx('downlifter', RATE, 2);
+    expect(downlifter.alignS).toBe(0);
+    expect(peak(downlifter.left.subarray(0, RATE / 4))).toBeGreaterThan(
+      peak(downlifter.left.subarray(RATE)) * 2,
     );
   });
 

@@ -1237,18 +1237,17 @@ export type TransitionFx = {
   /** How long the riser runs, in seconds of the outgoing music. */
   beforeS?: number;
   /** Lands ON the cut. */
-  on?: 'impact' | 'downlifter' | 'zap';
+  on?: 'downlifter' | 'zap';
   /** How long the incoming sound fades in over. */
   fadeInS: number;
 };
 
 /**
  * THE GLUE BETWEEN TWO SEGMENTS, chosen from how one leaves and the other
- * comes in: a build cut short rises into the next drop and lands with a hit;
- * a filter sweep or the wall rises too; a brake lands with a boom; a drop is
- * hit, a walk-in is not (the wall opening is its own arrival), and a verse
- * slides in on a downlifter. Every cut gets SOMETHING: a record must never
- * simply appear (Juan, 2026-11-04).
+ * comes in: a build cut short rises into the next drop and lands on a
+ * downlifter or zap; a filter sweep or the wall rises too; a verse slides in
+ * on a downlifter. Every cut gets SOMETHING: a record must never simply
+ * appear (Juan, 2026-11-04).
  */
 export function transitionFx(
   from: Segment,
@@ -1275,7 +1274,7 @@ export function transitionFx(
     }
   }
   if (to.entry === 'drop' || to.entry === 'cut' || from.exit === 'brake') {
-    fx.on = random() < 0.75 ? 'impact' : 'zap';
+    fx.on = random() < 0.65 ? 'downlifter' : 'zap';
   } else if (to.entry === 'verse') {
     fx.on = random() < 0.7 ? 'downlifter' : undefined;
     fx.fadeInS = 0.35;

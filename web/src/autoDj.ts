@@ -33,7 +33,7 @@ import {
 import { audioEngine } from '@app/lib/audioEngine';
 import type { EffectLevel } from '@app/lib/shapeDsp';
 
-import { djFx } from './djFx';
+import { djFx, preloadDjFx } from './djFx';
 import type { Sound } from './library';
 import {
   applyGains,
@@ -760,6 +760,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
   });
 
   setDj({ status: 'preparing' });
+  preloadDjFx();
   publishProgress();
   void pump();
 

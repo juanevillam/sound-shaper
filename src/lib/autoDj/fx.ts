@@ -16,12 +16,7 @@
 
 import { rng } from './plan';
 
-export type FxName =
-  | 'riser'
-  | 'reverseCymbal'
-  | 'impact'
-  | 'downlifter'
-  | 'zap';
+export type FxName = 'riser' | 'reverseCymbal' | 'downlifter' | 'zap';
 
 export type FxSound = {
   left: Float32Array<ArrayBuffer>;
@@ -35,14 +30,13 @@ export type FxSound = {
 export const FX_PEAK: Record<FxName, number> = {
   riser: 0.22,
   reverseCymbal: 0.2,
-  impact: 0.45,
   downlifter: 0.2,
   zap: 0.22,
 };
 
 /** Sounds that build INTO the cut, and sounds that land ON it. */
 export const BEFORE_CUT: FxName[] = ['riser', 'reverseCymbal'];
-export const ON_CUT: FxName[] = ['impact', 'downlifter', 'zap'];
+export const ON_CUT: FxName[] = ['downlifter', 'zap'];
 
 const lpAlpha = (hz: number, rate: number) =>
   1 - Math.exp((-2 * Math.PI * hz) / rate);
@@ -139,39 +133,6 @@ function reverseCymbal(
   return { left: make(), right: make(), durationS: lengthS, alignS: lengthS };
 }
 
-function impact(rate: number, random: () => number): FxSound {
-  const lengthS = 2;
-  const length = Math.floor(lengthS * rate);
-  const left = new Float32Array(length);
-  const right = new Float32Array(length);
-  let phase = 0;
-  let burstL = 0;
-  let burstR = 0;
-  let tailL = 0;
-  let tailR = 0;
-  const aBurst = lpAlpha(2500, rate);
-  const aTail = lpAlpha(700, rate);
-  for (let i = 0; i < length; i += 1) {
-    const t = i / rate;
-    // The boom: a sine falling from 90 to 38 Hz.
-    phase += (2 * Math.PI * glide(90, 38, Math.min(1, t / 0.4))) / rate;
-    const boom = Math.sin(phase) * Math.exp(-t / 0.45);
-    // The hit: a short burst of dark noise.
-    burstL += aBurst * (random() * 2 - 1 - burstL);
-    burstR += aBurst * (random() * 2 - 1 - burstR);
-    const hit = Math.exp(-t / 0.035);
-    // The air it leaves behind.
-    tailL += aTail * (random() * 2 - 1 - tailL);
-    tailR += aTail * (random() * 2 - 1 - tailR);
-    const tail = 0.35 * Math.exp(-t / 0.6);
-    left[i] = boom + burstL * hit * 1.6 + tailL * tail;
-    right[i] = boom + burstR * hit * 1.6 + tailR * tail;
-  }
-  edges(left, rate, 0.003, 0.02);
-  edges(right, rate, 0.003, 0.02);
-  return { left, right, durationS: lengthS, alignS: 0 };
-}
-
 function downlifter(rate: number, random: () => number): FxSound {
   const lengthS = 2;
   const length = Math.floor(lengthS * rate);
@@ -214,10 +175,8 @@ export function synthFx(
       ? riser(sampleRate, random, lengthS ?? 3)
       : name === 'reverseCymbal'
         ? reverseCymbal(sampleRate, random, lengthS ?? 1.5)
-        : name === 'impact'
-          ? impact(sampleRate, random)
-          : name === 'downlifter'
-            ? downlifter(sampleRate, random)
-            : zap(sampleRate);
+        : name === 'downlifter'
+          ? downlifter(sampleRate, random)
+          : zap(sampleRate);
   return normalise(sound, FX_PEAK[name]);
 }

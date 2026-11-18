@@ -26,7 +26,7 @@ import {
   type TransitionFx,
 } from '@/lib/autoDj/set';
 import { getSongMap } from '@/lib/autoDj/songMap';
-import { djFx } from '@/lib/djFx';
+import { djFx, preloadDjFx } from '@/lib/djFx';
 import { type Sound } from '@/services/firebase/sounds';
 import { useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
@@ -618,6 +618,7 @@ export function AutoDjDirector() {
     });
 
     dj.setStatus('preparing');
+    preloadDjFx();
     publishProgress();
     void pump();
 
