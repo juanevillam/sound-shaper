@@ -61,7 +61,7 @@ export function SettingsForm({
   const theme = useTheme();
   const stateLabBar = useDevSettingsStore(s => s.stateLabBar);
   const setStateLabBar = useDevSettingsStore(s => s.setStateLabBar);
-  const { isInstalled, promptInstall } = usePwaInstall();
+  const { canInstall, promptInstall } = usePwaInstall();
 
   const onInstall = async () => {
     const result = await promptInstall();
@@ -116,7 +116,7 @@ export function SettingsForm({
               ))}
             </select>
           </label>
-          {!isInstalled && (
+          {canInstall && (
             <button
               type="button"
               className="cell link-row"
