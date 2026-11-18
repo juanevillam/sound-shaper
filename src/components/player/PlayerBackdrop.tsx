@@ -68,7 +68,7 @@ const BACKDROP_SOURCE_WIDTH = 320;
 // whole screen is tinted by it, so a hard cut is the most violent thing in the
 // player. Also covers the gap between a skip's page animation and the store
 // swap that brings the new art here.
-const BACKDROP_FADE_MS = 420;
+const BACKDROP_FADE_MS = 280;
 /**
  * ONE STEP UP FROM 0.62, NOT ALL THE WAY — and the ceiling is a readability
  * fact rather than taste.
