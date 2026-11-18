@@ -36,7 +36,7 @@ import { locale } from '../i18n';
  *   (`6.5 px` clear of both top and `border-bottom`) so the stroke and its
  *   glow never touch or blend into the separator line, while area washes and
  *   live spectrum bars anchor flush on the bottom and side borders.
- * - Book Highlighter one-shot ink/wash entrance (`data-ink-state`), spring
+ * - One-shot ink/wash entrance (`data-ink-state`), spring
  *   posture on Play <-> Pause, and smooth spectrum melt on Pause.
  */
 

@@ -17,6 +17,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
+import { forgetSongMap } from './autoDj';
 import { auth, db } from './firebase';
 import type { Sound } from './library';
 import { destroyAsset, uploadAudio, uploadImage, type Asset } from './media';
@@ -143,6 +144,7 @@ export const deleteSound = async (soundId: string) => {
 
   await Promise.all(clips.docs.map(clip => deleteDoc(clip.ref)));
   await deleteDoc(ref);
+  forgetSongMap(soundId);
   await Promise.all([
     destroyAsset((data?.audioPublicId as string) ?? '', 'video'),
     destroyAsset((data?.artPublicId as string) ?? '', 'image'),

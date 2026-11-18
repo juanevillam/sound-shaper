@@ -34,11 +34,10 @@ import {
   isMp3,
   readPicked,
   SoundForm,
-  Toast,
   useSoundFormBar,
   type PickedSound,
 } from '../ui/SoundForm';
-import { showToast } from '../ui/Toast';
+import { showToast, Toast } from '../ui/Toast';
 import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
 
 const DESK = '(min-width: 64rem)';

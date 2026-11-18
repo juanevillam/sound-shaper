@@ -81,19 +81,6 @@ export const CloseGlyph = () => (
   </svg>
 );
 
-export const ChevronDownGlyph = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="m6 9 6 6 6-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 /**
  * The playing tile's mark — the app's `NowPlayingBars`: three white
  * hairlines breathing inside a round scrim, slow and shallow, keeping time
@@ -127,15 +114,6 @@ export const PlusGlyph = () => (
   </svg>
 );
 
-export const TrashGlyph = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M4.5 6.5h15M9.5 6.5V4.8c0-.7.5-1.3 1.2-1.3h2.6c.7 0 1.2.6 1.2 1.3v1.7M6.5 6.5l.8 12.2c.1 1 .9 1.8 1.9 1.8h5.6c1 0 1.8-.8 1.9-1.8l.8-12.2"
-      {...strokeProps}
-    />
-  </svg>
-);
-
 export const ClipGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <circle cx="6" cy="6" r="3" {...strokeProps} />
@@ -159,7 +137,6 @@ export const CheckGlyph = () => (
   </svg>
 );
 
-/** SF Symbols' `gearshape`: the home bar's one glyph, as in every app. */
 /** SF Symbols' `gearshape`: eight squared teeth on a ring, a round hole. */
 export const GearGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -175,12 +152,6 @@ export const GearGlyph = () => (
 export const ChevronRightGlyph = () => (
   <svg viewBox="0 0 8 13" aria-hidden="true">
     <path d="M1.5 1.5 6.5 6.5l-5 5" {...strokeProps} strokeWidth={1.8} />
-  </svg>
-);
-
-export const ChevronLeftGlyph = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M15 5l-7 7 7 7" {...strokeProps} strokeWidth={2} />
   </svg>
 );
 

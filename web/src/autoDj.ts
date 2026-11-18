@@ -125,10 +125,6 @@ export const setAutoDjMode = (mode: AutoDjMode) => {
   });
 };
 
-export const startAutoDj = (mode: 'sound' | 'all' = 'all') => {
-  setAutoDjMode(mode);
-};
-
 /**
  * Off. From its own switch the shape goes back (`restore`); from any other
  * control the person has taken the controls back, and the sound stays where

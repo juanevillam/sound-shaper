@@ -20,9 +20,7 @@ import {
 
 import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Toast, showToast } from './Toast';
-
-export { Toast };
+import { showToast } from './Toast';
 
 /** A picked mp3 and what its tag said. */
 export type PickedSound = { file: File; tags: Id3Tags };

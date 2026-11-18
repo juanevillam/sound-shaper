@@ -16,35 +16,6 @@ const BARS = [
 
 const INK = '#F5F5F5';
 
-export const BrandMark = ({
-  size,
-  color = INK,
-}: {
-  size: number;
-  color?: string;
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 48 48"
-    fill="none"
-    aria-hidden="true"
-  >
-    {BARS.map(([x, h]) => (
-      <line
-        key={x}
-        x1={x}
-        y1={24 - h / 2}
-        x2={x}
-        y2={24 + h / 2}
-        stroke={color}
-        strokeWidth={3.25}
-        strokeLinecap="round"
-      />
-    ))}
-  </svg>
-);
-
 const SQUIRCLE_N = 4.5;
 const SQUIRCLE_STEPS = 256;
 
