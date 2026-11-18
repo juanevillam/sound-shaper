@@ -8,9 +8,10 @@ clip the parts worth replaying. Your library is yours alone: there is no social
 layer, and nothing you upload is shared with or shown to anyone else.
 
 On iPhone it is an Expo (SDK 57) and React Native app with native SwiftUI
-through `@expo/ui`; on the web it is a React and Vite app in `web/`, playing
-through the Web Audio API with the same shaping. Both share one account on
-Firebase (Auth + Firestore) and Cloudinary.
+through `@expo/ui`; on the web it is a React and Vite app and installable PWA
+in `web/`, playing through the Web Audio API with the same shaping and full
+Media Session integration. Both share one account on Firebase (Auth + Firestore)
+and Cloudinary.
 
 - **App Store:** [apps.apple.com/app/id6823850995](https://apps.apple.com/app/id6823850995), published by Grostify LLC
 - **Web:** [soundshaper.juanevillam.com](https://soundshaper.juanevillam.com)

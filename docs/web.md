@@ -3,9 +3,10 @@
 **Decided 2026-11-04 (Juan).** The Play Store is paused for good, and Sound
 Shaper gets a web version that does everything the iOS app does — library,
 uploads, the player, Shape, DJ Juan, clips, trophies, settings and the account — at
-`soundshaper.juanevillam.com`. **It is a website, not a PWA** (Juan,
-2026-11-04: installing is awkward, and Only web-only products like Book Highlighter
-install as PWAs). The iOS app stays on the App Store. Booker followed as its own
+`soundshaper.juanevillam.com`. **It is an installable PWA** (`public/manifest.webmanifest`
+and `public/sw.js` paired with `web/src/offline.ts` `registerServiceWorker()`,
+matching `book-highlighter` so both web products install cleanly as standalone
+apps). The iOS app stays on the App Store. Book Highlighter lives in its own
 standalone web repository (`juanevillam/book-highlighter` at
 `bookhighlighter.juanevillam.com`).
 
@@ -51,8 +52,12 @@ drifts.
   is for desktops and for Android, which is how Sound Shaper reaches Android
   without the Play Store.
 - **No widgets, no haptics, no Live Activity.** Native surfaces.
-- **Offline.** The app mirrors the library to the phone. The web streams:
-  with no service worker it keeps nothing offline but Firestore's own copy.
+- **Offline & PWA shell.** The native iOS app mirrors MP3 files to the phone's
+  disk. The web app installs as a standalone PWA (`manifest.webmanifest` +
+  `sw.js`), caching the app shell, hashed JS/CSS chunks, icons, and Cloudinary
+  cover artwork while leaving Cloudinary audio streams (`Range` / `audio`) and
+  Firebase Auth/Firestore untouched (Firestore caches library metadata in
+  IndexedDB via `persistentLocalCache`).
 
 ## Security in a public repo
 
@@ -136,9 +141,14 @@ Production status:
    with the selection frame, timecode, ±15 and a play-once preview) for new
    and existing clips.
 6. Trophies, Settings, Manage Account, delete account.
-7. Non-PWA policy (`web/src/offline.ts`): actively unregisters any leftover
-   Service Worker and deletes `soundshaper-*` caches. `npm run brand-art`
-   writes `web/public/` (`favicon.svg` and `apple-touch-icon.png`).
+7. Installable PWA & Media Session parity (`web/src/offline.ts`, `web/public/sw.js`,
+   `web/public/manifest.webmanifest`, `web/src/player.ts`): registers `/sw.js`
+   in production to cache the app shell, icons, and Cloudinary cover artwork
+   without intercepting audio streams, and publishes full `navigator.mediaSession`
+   metadata, artwork, playback state, position state, and remote action handlers
+   (`play`, `pause`, `previoustrack`, `nexttrack`, `seekto`). `npm run brand-art`
+   writes `web/public/` (`favicon.svg`, `apple-touch-icon.png`, `icon-192.png`,
+   and `icon-512.png`).
 8. Deployed to `soundshaper.juanevillam.com` (2026-11-05), with the website's
    "Powered by Sound Shaper" mini player synced to this repo's engine and Auto
    DJ planner.
