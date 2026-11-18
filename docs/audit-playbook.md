@@ -1,61 +1,35 @@
-# The audit playbook — five commands, and the order they run in
+# The Audit Playbook — 8 Standardized Portfolio Audits (Sound Shaper iOS & Web)
 
-> **iOS ONLY SINCE 2026-11-04.** Android is gone from the portfolio (see
-> AGENTS.md → "Platform"), so `/portfolio-native-parity` is DELETED and every
-> phase below that brings Android anywhere is history. The order that is
-> left, per app, on iOS alone:
->
-> ```
-> /portfolio-craft-audit   <app> ios   # lock the surfaces
-> /portfolio-data-audit    <app>       # prune what it asks for
-> /portfolio-cache-audit   <app>       # bank what remains
-> /portfolio-quality-audit <app>       # gate the release, last
-> ```
->
-> The web has its own six `web-*` audits, in its own repo.
+> **PLATFORMS: iOS & Web ONLY — NEVER Android (since 2026-11-04).**
+> Sound Shaper ships on **iOS** (`src/`, `modules/`, `targets/widget`) and **Web PWA** (`web/`, deployed at `soundshaper.juanevillam.com`). Every audit runs on **ONE surface per session** (`sound-shaper-ios` or `sound-shaper-web`) so 100% of files in scope are read with zero sampling.
 
-The five audits live in `.claude/commands/`, ported from the portfolio monorepo
-on 2026-10-17 with their substance unchanged — only paths, names and checks
-that no longer exist were adapted to this repo's layout (`src/ui`, `src/core`,
-`src/trophies`, `modules/widget-bridge`, `patches/`). They keep their
-`portfolio-` names so the history in `AGENTS.md` still reads.
+| #     | Command                                                                    | The Moment & Scope                                                                                                                                                                                                                   |
+| :---- | :------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | `/portfolio-craft-audit <sound-shaper-ios\|sound-shaper-web>`              | Lock componentization, dead code/props, design tokens, and shared web UI twins (`npm run check:web-ui`).                                                                                                                             |
+| **2** | `/portfolio-data-audit <sound-shaper-ios\|sound-shaper-web>`               | Prune Firestore listeners vs `getDocs`, Cloudinary `thumbUrl` transforms, Web Audio streaming, and `media-worker` calls.                                                                                                             |
+| **3** | `/portfolio-cache-audit <sound-shaper-ios\|sound-shaper-web>`              | Bank immutable facts (`durationMs`, waveforms, Auto DJ analysis, `sw.js` shell/cover cache, local iOS file mirror) with one home, one key, one death.                                                                                |
+| **4** | `/portfolio-motion-audit <sound-shaper-ios\|sound-shaper-web>`             | 60fps/120fps fluidity: Shape sheet & 3 studio scopes Frame-0 open budget, shared `rAF` `sampleAudio`, desktop `startViewTransition` over `blur()` layers, covered `PlayerBackdrop` `.flow` pause, and Reanimated UI-thread worklets. |
+| **5** | `/portfolio-parity-audit <sound-shaper-twins\|web-twins\|responsive-i18n>` | Zero drift between `sound-shaper` iOS ⇄ `sound-shaper/web` ⇄ `juanevillam.com` Mini Player, `sound-shaper/web` ⇄ `book-highlighter`, and Desktop ⇄ Mobile × `en`/`es`/`zh` × `dark`/`light`.                                         |
+| **6** | `/portfolio-a11y-audit <sound-shaper-ios\|sound-shaper-web>`               | Keyboard navigation, focus trapping (`inert` on under-sheets), ARIA/VoiceOver labels in `en`/`es`/`zh`, measured contrast over Liquid Glass & cover washes, `prefers-reduced-motion`, and 44pt touch targets.                        |
+| **7** | `/portfolio-quality-audit <sound-shaper-ios\|sound-shaper-web>`            | 10-dimension engineering gate (security, deps, code quality, architecture, performance, reliability, privacy, store/web config, tests).                                                                                              |
+| **8** | `/portfolio-release-audit sound-shaper`                                    | Final pre-release gate across builds, unit tests, patches, PWA `sw.js`, legal links, and docs sync.                                                                                                                                  |
 
-| command                    | the moment                                             | scope        |
-| -------------------------- | ------------------------------------------------------ | ------------ |
-| `/portfolio-craft-audit`   | a big chunk of rework just landed                      | one platform |
-| `/portfolio-data-audit`    | UI done; what does it cost the network while it works  | the app      |
-| `/portfolio-cache-audit`   | UI done; what does it relearn that it already knew     | the app      |
-| `/portfolio-native-parity` | one platform is the reference, the other must catch up | both         |
-| `/portfolio-quality-audit` | a release is next                                      | everything   |
-
-## The order, and why
+## Recommended Order (One Surface Per Session)
 
 ```
-/portfolio-craft-audit ios        # 1  lock the iOS reference
-/portfolio-craft-audit web        #    and the web front end
-/portfolio-data-audit             # 2  prune the asking (the shared layer)
-/portfolio-cache-audit            # 3  bank what remains — never cache a call you should have deleted
-/portfolio-quality-audit          # 4  release gate 3, LAST — its one shot per release
+/portfolio-motion-audit  sound-shaper-web     # 1  fix Shape sheet / scopes / ViewTransition hitches
+/portfolio-craft-audit   sound-shaper-web     # 2  lock Web structure & shared UI twins
+/portfolio-craft-audit   sound-shaper-ios     # 3  lock iOS SwiftUI reference + motion check
+/portfolio-data-audit    sound-shaper-web     # 4  prune network & Firestore reads (Web + iOS)
+/portfolio-cache-audit   sound-shaper-web     # 5  bank what remains (SW, waveforms, durationMs, Auto DJ)
+/portfolio-parity-audit  sound-shaper-twins   # 6  verify iOS ⇄ Web ⇄ Website Mini Player + responsive i18n
+/portfolio-a11y-audit    sound-shaper-web     # 7  keyboard, focus trap, contrast, reduced motion
+/portfolio-quality-audit sound-shaper         # 8  10-dimension engineering audit
+/portfolio-release-audit sound-shaper         # 9  final GO / NO-GO gate
 ```
 
-- **Craft first** because structure moves code, which would invalidate the
-  line-level findings of the audits after it, and because iOS is the reference
-  everything else is measured against.
-- **Data before cache**: the data audit decides which calls exist at all.
-- **Parity's closing pass** hunts what the others leave: a `.ios` file taking a
-  prop it ignores, a constant nobody imports, behaviour on one side only. The
-  full four-stage Phase B (parity → craft → Juan's manual sweep → parity) ran
-  in the monorepo and closed on 2026-09-11; what has landed since (the offline
-  mirror, the widget, Sign in with Apple, the extraction, the team change) is
-  what a re-run reads.
-- **Quality last**, after both platforms have settled and the release config
-  it audits exists. It is gate 3 in [`release.md`](release.md).
+## Standing Rules
 
-## Standing rules that outrank the order
-
-- **Report-first, always.** Every audit stops for Juan's go before touching
-  code; the order sequences the READING, not a licence to fix.
-- **A finding outside an audit's moment is still recorded** — handed to the
-  audit whose moment it is, not silently fixed out of scope.
-- **Behaviour is Juan's call.** What the app DOES is reported, never changed by
-  an audit.
+- **One surface per session.** Never overload a single session with both iOS and Web full-codebase audits at once.
+- **Report-first, always.** Stop after the report for Juan's approval before editing code.
+- **Keep `sound-shaper/web` and `book-highlighter` shared UI twins in sync** via `npm run check:web-ui` in the root portfolio repo.

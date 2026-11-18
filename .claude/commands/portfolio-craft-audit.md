@@ -1,7 +1,22 @@
 ---
-description: Checkpoint audit of Sound Shaper on iOS or web (`web/`) after a chunk of rework — is every repeated thing componentized, and is every surface idiomatic for its target (iOS or web; never Android). Report-first.
-argument-hint: [target (ios|web), and any surfaces to exclude]
+name: portfolio-craft-audit
+description: >-
+  Checkpoint audit of an app on iOS or web after a chunk of rework — is every repeated thing componentized, and is every surface idiomatic for its target (iOS or web; never Android). Report-first. (iOS & web only, never Android.) Use when Juan invokes /portfolio-craft-audit or asks for this audit.
 ---
+
+> **PLATFORMS: iOS & Web ONLY — NEVER Android.**
+> All apps in Juan's portfolio ship on **iOS and/or the web** (or web-only). There is no Android anywhere — never audit, write, check, or propose Android code, `.android` files, Google Play / Play Store assets, keystores, or `assetlinks.json`.
+>
+> **SINGLE-SURFACE SESSION RULE (Context Budget):**
+> Audit **ONE surface per session** so the entire surface fits in context without sampling. If Juan does not specify a target, ask him which ONE surface to audit today:
+>
+> 1. **`sound-shaper-ios`** (`~/Code/portfolio/sound-shaper` — `src/`, `modules/`, `targets/widget`, following `sound-shaper/AGENTS.md` + `sound-shaper/docs/standards.md`).
+> 2. **`sound-shaper-web`** (`~/Code/portfolio/sound-shaper/web` — Vite + React 19 PWA, shared UI twins verified with `npm run check:web-ui`).
+> 3. **`book-highlighter`** (`~/Code/portfolio/book-highlighter` — 100% Web-only PWA, never iOS, zero references to `booker`, following `book-highlighter/AGENTS.md` + `npm run check:web-ui`).
+> 4. **`website`** (`~/Code/portfolio/website` — `juanevillam.com`, or run `/web-craft-audit`).
+> 5. **`space-explorer`** (`~/Code/portfolio/space-explorer` — 50KB 3D arcade game in `game.js`).
+>
+> _(Legacy `apps/booker` and `apps/topper` in the root repo are frozen private legacy native iOS workspaces — never audit them unless Juan explicitly asks.)_
 
 # Craft audit — componentized, and native enough
 
@@ -23,8 +38,8 @@ usually one somebody hand-built instead of reaching for the shared thing.
   types and variants**, containers, gestures, flows and structure are the
   target's own (iOS HIG / native SwiftUI controls on iOS; clean responsive DOM on web — never Android), expressed through the project's tokens.
 
-Scope from the user (the app is Sound Shaper; the platform, plus any surfaces
-to leave alone — ask if not given): $ARGUMENTS
+Scope from the user (app + platform, plus any surfaces to leave alone —
+ask if not given): (the arguments Juan passed)
 
 Three contracts:
 
@@ -48,7 +63,7 @@ Three contracts:
    skeleton rules, native-primitive-first rules, token systems, voice rules.
    Those beat any generic checklist below, and code that violates the project's
    _own_ documented rule is the most defensible finding you can report.
-2. Establish conventions: **Sound Shaper ships on iOS and web (`web/`) ONLY — never Android** (all Android code and config are deleted; never write, audit, or propose anything for Android). Check whether any leftover `.ios` suffix or platform stub is now redundant, where the former shared packages (`src/ui`, `src/core`, `src/trophies`, `modules/widget-bridge`) end and app code (`src/` on iOS, `web/src/` on web) begins, and which surfaces are deliberately not idiomatic and why.
+2. Establish conventions: **platforms are iOS and web ONLY — never Android** (Android is gone across the entire portfolio; never write, audit, or propose anything for Android). Check whether any `.ios` suffix or platform stub is now redundant or paired with web (`web/`), where shared packages end and app code begins, and which surfaces are deliberately not idiomatic and why.
 3. **Confirm the baseline is green before you touch anything** — typecheck,
    lint, format, tests. Note any uncommitted in-flight work so you can tell your
    changes from the user's.
@@ -66,9 +81,8 @@ Cheap, mechanical, and it aims the reading:
 - **Build the who-imports-what map.** For each component, list its importers.
   This is what finds a platform twin that nothing renders any more — a plain
   reference grep will not, because comments and skeletons still name it.
-- Run a duplication detector if one is to hand (the portfolio's
-  `scripts/shared-code-audit.mjs` did not come with the extraction). Treat a
-  high score as a hint, never a verdict: read the pair.
+- Run the repo's own duplication detector if it has one. Treat a high score as a
+  hint, never a verdict: read the pair.
 
 Then read every file in scope, holding the Phase 0 rules in mind.
 
@@ -161,11 +175,10 @@ everything here.
    components that were renamed or deleted. Stale docs actively mislead the next
    session; they are findings, not cosmetics.
 8. **A type or union restated across iOS (`src/`) and web (`web/src/`) or in a leftover stub**, so adding a case means editing two places.
-9. **Reimplementation beside the shared layer** — the same screen/hook/primitive
-   solved once in `src/ui` / `src/core` and again in `src/components` or
-   `src/hooks` (the extraction put the two worlds in one repo). Check before
-   concluding: sometimes staying separate is right (genuinely different
-   features, or app-specific data shapes).
+9. **Cross-app reimplementation** — the same screen/hook/primitive solved twice
+   in a monorepo. Check before concluding: sometimes staying separate is right
+   (genuinely different features, app-specific data shapes, or lifting would
+   drag a heavy dependency into a deliberately light package).
 10. **The right amount of extraction.** Not everything scoring high should move,
     and a shared component with per-caller presentation knobs is drift with
     extra steps: if two callers need different looks from one component, that is

@@ -1,7 +1,20 @@
 ---
-description: Audit what an app recomputes, refetches or relearns that it already knew — and give every stable value one home, one key, one death. Report-first.
-argument-hint: [surfaces to focus on or exclude]
+name: portfolio-cache-audit
+description: >-
+  Audit what an app recomputes, refetches or relearns that it already knew — and give every stable value one home, one key, one death. Report-first. (iOS & web only, never Android.) Use when Juan invokes /portfolio-cache-audit or asks for this audit.
 ---
+
+> **PLATFORMS: iOS & Web ONLY — NEVER Android.**
+> All apps in Juan's portfolio ship on **iOS and/or the web** (or web-only). There is no Android anywhere — never audit, write, check, or propose Android code, `.android` files, Google Play / Play Store assets, keystores, or `assetlinks.json`.
+>
+> **SINGLE-SURFACE SESSION RULE (Context Budget):**
+> Audit **ONE surface per session** so every derivation, decode, worker, and persistent cache is read completely:
+>
+> 1. **`sound-shaper-ios`** (`~/Code/portfolio/sound-shaper` — `src/`, `modules/`: `Sound.durationMs`, versioned waveform JSON cache `lib/waveform.ts`, Auto DJ track analysis cache, `expo-image` prefetch, local offline MP3 mirror, Widget snapshot bridge).
+> 2. **`sound-shaper-web`** (`~/Code/portfolio/sound-shaper/web` — Service Worker `public/sw.js` shell + Cloudinary artwork cache, IndexedDB `persistentLocalCache`, Web Audio waveform & Auto DJ analysis cache in `localStorage`/memory, 2-layer `useCrossfade` image decode cache).
+> 3. **`book-highlighter`** (`~/Code/portfolio/book-highlighter` — Service Worker `public/sw.js` + immutable ONNX model caching `det.onnx` / `rec-latin.onnx`, warm singleton Web Worker `photoImport/worker.ts`, `bodies` store + IndexedDB cache, `coverPalette.ts` chromatic accent cache, `paginator.ts` layout memoization).
+>
+> _(Legacy `apps/booker` and `apps/topper` are frozen private legacy native iOS workspaces — skip unless explicitly requested.)_
 
 # Cache audit — never learn the same thing twice
 
@@ -26,8 +39,8 @@ content seen ten seconds ago, a beat of blank artwork, a control that measures
 itself and then jumps. Hunt the symptoms and the recomputes underneath them
 fall out.
 
-Scope from the user (the app is Sound Shaper; any surfaces to leave alone —
-the whole app if not given): $ARGUMENTS
+Scope from the user (which apps, plus any surfaces to leave alone — ask if not
+given): (the arguments Juan passed)
 
 Three contracts, same as the other portfolio audits:
 
@@ -74,11 +87,11 @@ Mechanical, and it aims the reading. Sweep for the four families:
 
 ```bash
 # derivations and decodes
-grep -rn "decode\|useMemo\|measure(\|measureInWindow\|onLayout" src modules --include='*.ts' --include='*.tsx' -l
+grep -rn "decode\|useMemo\|measure(\|measureInWindow\|onLayout" apps/<app>/src --include='*.ts' --include='*.tsx' -l
 # placeholder branches — every one marks a value the app claims not to know
-grep -rn "'-:--'\|'--:--'\|Skeleton\|placeholder\|useDelayedShow" src -l
+grep -rn "'-:--'\|'--:--'\|Skeleton\|placeholder\|useDelayedShow" apps/<app>/src -l
 # device storage already in play
-grep -rn "AsyncStorage\|FileSystem\|persist(" src modules -l
+grep -rn "AsyncStorage\|FileSystem\|persist(" apps/<app>/src -l
 ```
 
 For each site, record four things:

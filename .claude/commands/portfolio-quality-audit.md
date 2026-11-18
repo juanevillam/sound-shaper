@@ -1,7 +1,20 @@
 ---
-description: Complete engineering audit of a finished product — code quality, structure, security, performance, dependencies, privacy, release/store config. Behavior-preserving, plan-first.
-argument-hint: [dimensions or folders to focus on]
+name: portfolio-quality-audit
+description: >-
+  Complete engineering audit of a finished product — code quality, structure, security, performance, dependencies, privacy, release/store config. Behavior-preserving, plan-first. (iOS & web only, never Android.) Use when Juan invokes /portfolio-quality-audit or asks for this audit.
 ---
+
+> **PLATFORMS: iOS & Web ONLY — NEVER Android.**
+> All apps in Juan's portfolio ship on **iOS and/or the web** (or web-only). There is no Android anywhere — never audit, write, check, or propose Android code, `.android` files, Google Play / Play Store assets, keystores, or `assetlinks.json`.
+>
+> **SINGLE-SURFACE SESSION RULE (Context Budget):**
+> Audit **ONE surface per session** (or use `research` subagents per dimension within that single surface) so context never overflows:
+>
+> 1. **`sound-shaper-ios`** (`~/Code/portfolio/sound-shaper` — iOS app in `src/`, `modules/`, `targets/widget`, `patches/`, `media-worker/`, EAS / Grostify `PHLR7X3FGN` signing).
+> 2. **`sound-shaper-web`** (`~/Code/portfolio/sound-shaper/web` — Web PWA at `soundshaper.juanevillam.com`, Firebase Auth/App Check locks, `public/_headers`, `sw.js`).
+> 3. **`book-highlighter`** (`~/Code/portfolio/book-highlighter` — 100% Web-only PWA at `bookhighlighter.juanevillam.com`, ONNX Web Worker, PDF export, Firebase/GCP/Cloudflare locks).
+> 4. **`website`** (`~/Code/portfolio/website` — `juanevillam.com` + Cloudflare Pages Functions `/api/photos` D1).
+> 5. **`space-explorer`** (`~/Code/portfolio/space-explorer` — 50KB 3D arcade game).
 
 # Quality audit — audit "the other side" of a finished product
 
@@ -13,8 +26,8 @@ structure, security, performance, configuration, and release hygiene. Audit
 that side to the standard of a high-quality production app **today** — and
 change the product side nothing.
 
-Optional scope from the user (dimensions or folders — full audit if
-empty): $ARGUMENTS
+Optional scope from the user (apps, packages, or dimensions — full audit if
+empty): (the arguments Juan passed)
 
 Two contracts, non-negotiable:
 
@@ -31,14 +44,9 @@ Two contracts, non-negotiable:
 1. Read the project's `AGENTS.md` / `CLAUDE.md`, memory, and repo docs. They
    define conventions and standards that override generic
    advice here.
-2. Map the terrain: the app, the former shared packages now inside it
-   (`src/ui`, `src/core`, `src/trophies`, `modules/widget-bridge`,
-   `modules/audio-session`), the `patches/` overlay, the widget in
-   `targets/widget`, and the deployed Worker in `media-worker/`. Backend:
-   Firebase (Spark) and Cloudinary, plus the web app in `web/` (soundshaper.juanevillam.com). Release targets: iOS App Store and the web (never Android).
-   This audit is release gate 3 in `docs/release.md`, which also lists what
-   it must clear (the `npm audit` high advisories, then making that CI step
-   blocking again).
+2. Map the terrain: monorepo? which apps/packages are in scope? shared code
+   gets audited once but its findings affect every consumer. What backend/
+   services (Firebase, APIs, CDNs)? What's the release target (App Store on iOS and/or web — never Android / Google Play)?
 3. Confirm the baseline works: the app builds and runs _before_ you touch
    anything, so regressions are attributable. If devices/simulators are
    connected, note the working state.
@@ -46,7 +54,7 @@ Two contracts, non-negotiable:
 ## Phase 1 — Fan-out audit
 
 Audit each dimension below. These are independent — parallelize with
-subagents (one dimension each); multi-agent
+subagents (one dimension each, or one per app for big monorepos); multi-agent
 orchestration (Workflow) is appropriate here if available. Each auditor reads
 code and configs and returns findings with file:line evidence, severity
 (Critical/High/Medium/Low), and a concrete fix. Findings without evidence or
@@ -162,7 +170,7 @@ doesn't apply to the stack, add what the stack demands.
 - Dead code: unused exports, components, assets, feature-flagged remnants,
   commented-out blocks, orphaned files from removed features.
 - Duplication: near-identical components/hooks/utils that should merge —
-  especially between `src/ui` / `src/core` and the app code beside them.
+  especially across apps in a monorepo where shared packages exist.
 - Types: strictness flags on; `any`/casts/`@ts-ignore` hotspots; API
   boundary types honest (nullable where data can be missing).
 - Error handling: swallowed catches, unhandled promise rejections, missing
@@ -174,9 +182,8 @@ doesn't apply to the stack, add what the stack demands.
 
 ## 4. Architecture & structure
 
-- Module boundaries: `src/ui` / `src/core` / `src/trophies` reaching back into
-  app code (they were packages and stay app-agnostic), deep relative imports
-  crossing layers.
+- Module boundaries: apps importing each other's internals, shared packages
+  reaching back into apps, deep relative imports crossing layers.
 - Circular dependencies (madge or equivalent).
 - State management: one pattern used consistently? Server-state vs UI-state
   separation? Subscriptions centralized or duplicated per screen?

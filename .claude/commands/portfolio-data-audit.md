@@ -1,7 +1,20 @@
 ---
-description: Audit how an app talks to Firebase, Cloudinary and the media pipeline — how many reads it makes, what it caches, what it keeps alive that nobody is looking at. Report-first.
-argument-hint: [surfaces to focus on or exclude]
+name: portfolio-data-audit
+description: >-
+  Audit how an app talks to Firebase, Cloudinary and the media pipeline — how many reads it makes, what it caches, what it keeps alive that nobody is looking at. Report-first. (iOS & web only, never Android.) Use when Juan invokes /portfolio-data-audit or asks for this audit.
 ---
+
+> **PLATFORMS: iOS & Web ONLY — NEVER Android.**
+> All apps in Juan's portfolio ship on **iOS and/or the web** (or web-only). There is no Android anywhere — never audit, write, check, or propose Android code, `.android` files, Google Play / Play Store assets, keystores, or `assetlinks.json`.
+>
+> **SINGLE-SURFACE SESSION RULE (Context Budget):**
+> Audit **ONE surface per session** so every Firestore query, listener, Cloudinary transform, and media/worker pipeline is read completely:
+>
+> 1. **`sound-shaper-ios`** (`~/Code/portfolio/sound-shaper` — `src/`, `modules/`, `targets/widget`, RN Firebase + local file mirror + Cloudinary + `media-worker`).
+> 2. **`sound-shaper-web`** (`~/Code/portfolio/sound-shaper/web` — Firebase Web SDK + IndexedDB `persistentLocalCache`, Web Audio streaming, Service Worker `sw.js`, Cloudinary `thumbUrl`).
+> 3. **`book-highlighter`** (`~/Code/portfolio/book-highlighter` — 100% Web-only PWA: 2-document split `users/{uid}/books/{id}` metadata listener vs on-demand `users/{uid}/bodies/{id}`, IndexedDB persistence, Cloudinary 2:3 cover uploads, `book-highlighter-media-worker`).
+>
+> _(Legacy `apps/booker` and `apps/topper` are frozen private legacy native iOS workspaces — skip unless explicitly requested.)_
 
 # Data audit — the fewest calls that still feel instant
 
@@ -16,8 +29,8 @@ layer costs a frame every frame.
 quota and the feel — and where they disagree, the feel wins. This audit never
 trades a working screen for a cheaper one.
 
-Scope from the user (the app is Sound Shaper; any surfaces to leave alone —
-the whole app if not given): $ARGUMENTS
+Scope from the user (which apps, plus any surfaces to leave alone — ask if not
+given): (the arguments Juan passed)
 
 Three contracts, same as the other portfolio audits:
 
@@ -58,7 +71,7 @@ evaporate here.
 Mechanical, and it aims the reading:
 
 ```bash
-grep -rln "onSnapshot\|getDocs\|getDoc(" src modules targets media-worker --include='*.ts' --include='*.tsx'
+grep -rln "onSnapshot\|getDocs\|getDoc(" apps packages --include='*.ts' --include='*.tsx'
 ```
 
 For each call site, record four things:
@@ -226,10 +239,8 @@ Prompts, not boxes. The project's own rules outrank all of it.
 
 ## Verification discipline
 
-- **Prove the device is running YOUR code before you believe a screenshot.** The
-  portfolio's other apps may have their own Metro on this Mac, so first find
-  which serves which app (a Release build on the iPhone has no Metro at all —
-  there, the check is that the build was made from this commit):
+- **Prove the device is running YOUR code before you believe a screenshot.** In a
+  monorepo with several Metro instances, first find which serves which app:
 
   ```bash
   lsof -nP -iTCP -sTCP:LISTEN | grep node        # the ports
