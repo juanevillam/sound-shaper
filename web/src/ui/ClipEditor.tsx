@@ -2,8 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatTime } from '@app/lib/player';
 
+import {
+  isTabHidden,
+  prefersReducedMotion,
+  sampleAudio,
+  stepEnvelope,
+} from '../analyser';
 import { useScheme } from '../appearance';
-
 import { createClip, updateClip, type Clip } from '../clips';
 import { t } from '../i18n';
 import type { Sound } from '../library';
@@ -21,15 +26,18 @@ import { showToast } from './Toast';
  * selection as a wash between two draggable edge lines; a full-track
  * OVERVIEW carrying the selection frame; the large timecode; ±15 and play.
  * The scale never changes — the waveform moves, the coordinates stand still.
+ *
+ * Same studio instrument family as `NowPlaying` and `ShapePanel`: at rest the
+ * waveform and readouts sit calm in monochrome ink; while playing or trimming,
+ * phosphor contrast rises on the selected range, playhead pass, timecode, and
+ * active edge timestamp, then settles over `--dur-settle` (450 ms).
  */
 
-// The app's constants, at the web's px for its pt.
 const PPS = 100;
 const WAVE_HEIGHT = 200;
 const RULER_HEIGHT = 28;
 const BAND_BOTTOM_PAD = 10;
 const WAVE_INK_RATIO = 0.78;
-const WAVE_BAR_ALPHA = 0.6;
 const BAR_PITCH = 4.5;
 const BAR_WIDTH = 2;
 const TRACK_EDGE_PAD = 40;
@@ -42,10 +50,6 @@ const MIN_GAP_S = 1;
 const SKIP_S = 15;
 const BONE_LEVEL = 0.18;
 
-// Selection is the one accent on the surface — it marks a SELECTION, which
-// is what the accent is kept for; the playhead is the instrument, in red.
-// A canvas cannot read the CSS tokens, so it carries both schemes' values
-// (the same ones styles.css states) and draws in whichever is in force.
 const PALETTES = {
   dark: {
     ink: '245 245 245',
@@ -54,6 +58,7 @@ const PALETTES = {
     panel: 'rgb(255 255 255 / 0.075)',
     muted: 'rgb(235 235 245 / 0.6)',
     halo: 'rgb(22 22 22 / 0.6)',
+    phosphorRgb: '165 215 255',
   },
   light: {
     ink: '0 0 0',
@@ -62,6 +67,7 @@ const PALETTES = {
     panel: 'rgb(0 0 0 / 0.05)',
     muted: 'rgb(60 60 67 / 0.6)',
     halo: 'rgb(242 242 247 / 0.6)',
+    phosphorRgb: '',
   },
 };
 
@@ -73,6 +79,7 @@ const useCanvas = (height: number) => {
   useLayoutEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    setWidth(Math.round(canvas.clientWidth));
     const observer = new ResizeObserver(([entry]) =>
       setWidth(Math.round(entry.contentRect.width)),
     );
@@ -84,7 +91,7 @@ const useCanvas = (height: number) => {
     const canvas = ref.current;
     if (!canvas || !width) return null;
     const ratio = window.devicePixelRatio || 1;
-    if (canvas.width !== width * ratio) {
+    if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
       canvas.width = width * ratio;
       canvas.height = height * ratio;
     }
@@ -96,6 +103,74 @@ const useCanvas = (height: number) => {
 
   return { ref, width, context };
 };
+
+/**
+ * Smoothly ramps a 0..1 phosphor glow factor (`160 ms` rise while `live`,
+ * `450 ms` settle back to `0` at rest) and blends live post-DSP audio energy
+ * while playing. Stops `rAF` completely once settled.
+ */
+function useLiveGlow(live: boolean, playing: boolean): number {
+  const [glow, setGlow] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion() || isTabHidden()) {
+      setGlow(live ? 0.75 : 0);
+      return;
+    }
+
+    let raf = 0;
+    let last = performance.now();
+    let base = glow;
+    let audioBoost = 0;
+
+    const tick = (now: number) => {
+      if (isTabHidden()) {
+        raf = 0;
+        return;
+      }
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const target = live ? 1 : 0;
+      base = stepEnvelope(base, target, dt, 0.1, 0.22);
+
+      if (playing) {
+        const sample = sampleAudio();
+        const level = sample.active ? Math.min(1, sample.rms * 2.4) : 0;
+        audioBoost = stepEnvelope(audioBoost, level, dt, 0.08, 0.3);
+      } else {
+        audioBoost = stepEnvelope(audioBoost, 0, dt, 0.08, 0.25);
+      }
+
+      const combined = base * (playing ? 0.68 + 0.32 * audioBoost : 0.85);
+      if (!playing && Math.abs(base - target) < 0.006) {
+        setGlow(target * 0.85);
+        return;
+      }
+      setGlow(combined);
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onVisibility = () => {
+      if (isTabHidden()) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (!raf) {
+        last = performance.now();
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, playing]);
+
+  return glow;
+}
 
 type Drag =
   | { kind: 'scrub'; x0: number; base: number; head: number }
@@ -128,6 +203,7 @@ export function ClipEditor({
       : [Math.max(0, position - 7), Math.min(duration, position + 8)],
   );
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [activeEdge, setActiveEdge] = useState<'start' | 'end' | null>(null);
   const [start, end] = range;
 
   useEffect(() => {
@@ -150,6 +226,13 @@ export function ClipEditor({
     drag && (drag.kind === 'scrub' || drag.kind === 'seek')
       ? drag.head
       : position;
+
+  const interacting = drag !== null || activeEdge !== null;
+  const live = playing || interacting;
+  const glow = useLiveGlow(live, playing);
+  const movingEdge =
+    activeEdge ??
+    (drag?.kind === 'start' || drag?.kind === 'end' ? drag.kind : null);
 
   const play = () => {
     if (playing) return pause();
@@ -180,6 +263,8 @@ export function ClipEditor({
         head={head}
         start={start}
         end={end}
+        playing={playing}
+        glow={glow}
         drag={drag}
         setDrag={setDrag}
         setEdge={setEdge}
@@ -192,13 +277,21 @@ export function ClipEditor({
           head={head}
           start={start}
           end={end}
+          glow={glow}
           setDrag={setDrag}
+          setActiveEdge={setActiveEdge}
           setEdge={setEdge}
         />
         <div className="editor-caption">
-          <span>{formatTime(start)}</span>
-          <span>{formatTime(end - start)}</span>
-          <span>{formatTime(end)}</span>
+          <span className={movingEdge === 'start' ? 'is-live' : undefined}>
+            {formatTime(start)}
+          </span>
+          <span className={movingEdge !== null ? 'is-live' : undefined}>
+            {formatTime(end - start)}
+          </span>
+          <span className={movingEdge === 'end' ? 'is-live' : undefined}>
+            {formatTime(end)}
+          </span>
         </div>
       </div>
 
@@ -226,7 +319,10 @@ export function ClipEditor({
         onChange={e => setEdge('end', Number(e.target.value))}
       />
 
-      <div className="editor-timecode" aria-live="off">
+      <div
+        className={live ? 'editor-timecode is-live' : 'editor-timecode'}
+        aria-live="off"
+      >
         {formatTime(head)}
       </div>
 
@@ -314,6 +410,8 @@ function Band({
   head,
   start,
   end,
+  playing,
+  glow,
   drag,
   setDrag,
   setEdge,
@@ -324,6 +422,8 @@ function Band({
   head: number;
   start: number;
   end: number;
+  playing: boolean;
+  glow: number;
   drag: Drag | null;
   setDrag: (drag: Drag | null) => void;
   setEdge: (edge: 'start' | 'end', seconds: number) => void;
@@ -337,6 +437,7 @@ function Band({
     panel: PANEL,
     muted: MUTED,
     halo: HALO,
+    phosphorRgb: PHOSPHOR_RGB,
   } = PALETTES[useScheme()];
 
   useLayoutEffect(() => {
@@ -361,20 +462,69 @@ function Band({
     ctx.fillStyle = `rgb(${ACCENT} / 0.16)`;
     ctx.fillRect(x(start), 0, (end - start) * PPS, WAVE_HEIGHT);
 
-    // Bars, or the bone while the decode runs.
+    // Batched bar paths: one draw call for outside bars, one for inside bars
+    // (plus played-inside bars while previewing), avoiding per-bar shadowBlur.
     const fromS = Math.max(0, head - mid / PPS);
     const toS = Math.min(duration, head + mid / PPS);
     const pitchS = BAR_PITCH / PPS;
-    ctx.fillStyle = `rgb(${INK} / ${WAVE_BAR_ALPHA})`;
+
+    const outBars: { bx: number; by: number; bh: number }[] = [];
+    const inBars: { bx: number; by: number; bh: number; played: boolean }[] =
+      [];
+
     for (let k = Math.floor(fromS / pitchS); k * pitchS < toS; k += 1) {
       const s = k * pitchS;
+      const inRange = s >= start && s <= end;
       const level = waveform
         ? levelAt(waveform, s, s + pitchS)
         : failed
           ? 0
           : BONE_LEVEL;
-      const h = Math.max(2, level * WAVE_HEIGHT * WAVE_INK_RATIO);
-      ctx.fillRect(x(s), (WAVE_HEIGHT - h) / 2, BAR_WIDTH, h);
+      const bh = Math.max(2, level * WAVE_HEIGHT * WAVE_INK_RATIO);
+      const bx = x(s);
+      const by = (WAVE_HEIGHT - bh) / 2;
+      if (inRange) {
+        inBars.push({ bx, by, bh, played: playing && s <= head });
+      } else {
+        outBars.push({ bx, by, bh });
+      }
+    }
+
+    if (outBars.length > 0) {
+      ctx.fillStyle = `rgb(${INK} / 0.35)`;
+      ctx.beginPath();
+      for (const b of outBars) ctx.rect(b.bx, b.by, BAR_WIDTH, b.bh);
+      ctx.fill();
+    }
+
+    if (inBars.length > 0) {
+      ctx.save();
+      const alpha = 0.76 + 0.2 * glow;
+      ctx.fillStyle = `rgb(${INK} / ${alpha.toFixed(3)})`;
+      if (PHOSPHOR_RGB && glow > 0.01) {
+        ctx.shadowColor = `rgb(${PHOSPHOR_RGB} / ${(0.24 * glow).toFixed(3)})`;
+        ctx.shadowBlur = 3.5 * glow;
+      }
+      ctx.beginPath();
+      for (const b of inBars) {
+        if (!b.played) ctx.rect(b.bx, b.by, BAR_WIDTH, b.bh);
+      }
+      ctx.fill();
+
+      // Bars already swept by the playhead during a live preview shine brighter.
+      if (playing) {
+        ctx.fillStyle = `rgb(${INK} / 0.98)`;
+        if (PHOSPHOR_RGB && glow > 0.01) {
+          ctx.shadowColor = `rgb(${PHOSPHOR_RGB} / ${(0.34 * glow).toFixed(3)})`;
+          ctx.shadowBlur = 4.5 * glow;
+        }
+        ctx.beginPath();
+        for (const b of inBars) {
+          if (b.played) ctx.rect(b.bx, b.by, BAR_WIDTH, b.bh);
+        }
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     // The ruler: a second per label, one minor tick at the half.
@@ -467,7 +617,9 @@ function Overview({
   head,
   start,
   end,
+  glow,
   setDrag,
+  setActiveEdge,
   setEdge,
 }: {
   waveform: Waveform | null;
@@ -475,7 +627,9 @@ function Overview({
   head: number;
   start: number;
   end: number;
+  glow: number;
   setDrag: (drag: Drag | null) => void;
+  setActiveEdge: (edge: 'start' | 'end' | null) => void;
   setEdge: (edge: 'start' | 'end', seconds: number) => void;
 }) {
   const { ref, width, context } = useCanvas(OVERVIEW_HEIGHT);
@@ -484,6 +638,7 @@ function Overview({
     accent: ACCENT,
     playhead: PLAYHEAD,
     panel: PANEL,
+    phosphorRgb: PHOSPHOR_RGB,
   } = PALETTES[useScheme()];
   const [held, setHeld] = useState<'start' | 'end' | 'seek' | null>(null);
   // The frame's caps stand outside the range, so the track sits inset by one.
@@ -499,21 +654,50 @@ function Overview({
     ctx.roundRect(0, 0, width, OVERVIEW_HEIGHT, 8);
     ctx.fill();
 
-    ctx.fillStyle = `rgb(${INK} / 0.5)`;
     const bars = Math.floor(inner / OVERVIEW_BAR_PITCH);
     const pitchS = (OVERVIEW_BAR_PITCH / inner) * duration;
+
+    ctx.fillStyle = `rgb(${INK} / 0.34)`;
+    ctx.beginPath();
     for (let i = 0; i < bars; i += 1) {
+      const s = i * pitchS;
+      if (s >= start && s <= end) continue;
       const level = waveform
-        ? levelAt(waveform, i * pitchS, (i + 1) * pitchS)
+        ? levelAt(waveform, s, (i + 1) * pitchS)
         : BONE_LEVEL;
       const h = Math.max(1.5, level * (OVERVIEW_HEIGHT - 12));
-      ctx.fillRect(
+      ctx.rect(
         CAP_WIDTH + i * OVERVIEW_BAR_PITCH,
         (OVERVIEW_HEIGHT - h) / 2,
         OVERVIEW_BAR_WIDTH,
         h,
       );
     }
+    ctx.fill();
+
+    ctx.save();
+    ctx.fillStyle = `rgb(${INK} / ${(0.76 + 0.16 * glow).toFixed(3)})`;
+    if (PHOSPHOR_RGB && glow > 0.01) {
+      ctx.shadowColor = `rgb(${PHOSPHOR_RGB} / ${(0.22 * glow).toFixed(3)})`;
+      ctx.shadowBlur = 3 * glow;
+    }
+    ctx.beginPath();
+    for (let i = 0; i < bars; i += 1) {
+      const s = i * pitchS;
+      if (s < start || s > end) continue;
+      const level = waveform
+        ? levelAt(waveform, s, (i + 1) * pitchS)
+        : BONE_LEVEL;
+      const h = Math.max(1.5, level * (OVERVIEW_HEIGHT - 12));
+      ctx.rect(
+        CAP_WIDTH + i * OVERVIEW_BAR_PITCH,
+        (OVERVIEW_HEIGHT - h) / 2,
+        OVERVIEW_BAR_WIDTH,
+        h,
+      );
+    }
+    ctx.fill();
+    ctx.restore();
 
     // The selection frame: rails top and bottom, a cap at each end with a
     // chevron pointing in — the app's ClipTrimFrame.
@@ -556,11 +740,13 @@ function Overview({
       onPointerDown={e => {
         e.currentTarget.setPointerCapture(e.pointerId);
         const px = e.clientX - e.currentTarget.getBoundingClientRect().left;
-        if (Math.abs(px - (x(end) + CAP_WIDTH / 2)) <= CAP_WIDTH + 8)
+        if (Math.abs(px - (x(end) + CAP_WIDTH / 2)) <= CAP_WIDTH + 8) {
           setHeld('end');
-        else if (Math.abs(px - (x(start) - CAP_WIDTH / 2)) <= CAP_WIDTH + 8)
+          setActiveEdge('end');
+        } else if (Math.abs(px - (x(start) - CAP_WIDTH / 2)) <= CAP_WIDTH + 8) {
           setHeld('start');
-        else {
+          setActiveEdge('start');
+        } else {
           setHeld('seek');
           setDrag({ kind: 'seek', head: timeAt(e.clientX) });
         }
@@ -578,10 +764,12 @@ function Overview({
         if (held === 'seek')
           scrubTo(Math.min(Math.max(timeAt(e.clientX), 0), duration));
         setHeld(null);
+        setActiveEdge(null);
         setDrag(null);
       }}
       onPointerCancel={() => {
         setHeld(null);
+        setActiveEdge(null);
         setDrag(null);
       }}
     />

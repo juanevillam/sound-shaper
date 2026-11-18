@@ -64,6 +64,9 @@
   --font-sans:
     system-ui, -apple-system, 'SF Pro Text', 'Segoe UI Variable Text',
     'Segoe UI', sans-serif;
+  --phosphor-ink: var(--ink);
+  --phosphor-glow: 0 0 6px rgb(184 220 255 / 0.18);
+  --phosphor-drop: drop-shadow(0 0 3.5px rgb(184 220 255 / 0.24));
   color-scheme: dark;
 }
 
@@ -102,6 +105,9 @@
   --google-bg-hover: #f2f2f2;
   --google-ink: #1f1f1f;
   --google-edge: #747775;
+  --phosphor-ink: #000;
+  --phosphor-glow: none;
+  --phosphor-drop: none;
   color-scheme: light;
 }
 
@@ -1039,30 +1045,23 @@ button {
   gap: 0;
 }
 
-.collapse {
-  align-self: center;
+.stage-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
   display: grid;
-  place-items: center;
-  width: 4rem;
-  height: 1.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  touch-action: none;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: calc(var(--bar-h) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) var(--gutter) 0;
+  pointer-events: none;
 }
 
-.collapse .grabber {
-  width: 2.25rem;
-  height: 0.3125rem;
-  border-radius: 999px;
-  background: rgb(var(--fg) / 0.3);
-}
-
-/* What a finger pulls the player down by does not scroll it. */
-.now-art,
-.now-copy {
-  touch-action: none;
+.stage-close-mobile {
+  justify-self: start;
+  pointer-events: auto;
 }
 
 .now-art {
@@ -1093,6 +1092,7 @@ button {
 }
 
 .now-artist {
+  min-height: 1.375rem;
   color: var(--muted);
   font-size: 1.0625rem;
   line-height: 1.375rem;
@@ -1172,7 +1172,9 @@ button {
   align-items: center;
   justify-content: center;
   gap: clamp(1.5rem, 8%, 3rem);
-  margin-top: 1.25rem;
+  min-height: 6.5rem;
+  margin-block: auto;
+  padding-block: 1rem;
 }
 
 .transport .skip {
@@ -1206,12 +1208,8 @@ button {
   isolation: isolate;
   transform: translateZ(0);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.25rem;
-  /* Wide enough that a divider stands clear of a hovered or open pill. */
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  /* Half the gap: a highlight stands the same 6px off the bar's edge as off
-     the divider beside it, on every side. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.375rem;
   padding: 0.375rem;
   border-radius: 1.375rem;
   background: var(--lg-fill);
@@ -1228,7 +1226,7 @@ button {
   position: absolute;
   top: 25%;
   bottom: 25%;
-  left: calc(-0.375rem - 0.5px);
+  left: calc(-0.1875rem - 0.5px);
   width: 1px;
   background: var(--separator);
   pointer-events: none;
@@ -1239,13 +1237,14 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   min-width: 0;
-  padding: 0.625rem 0.5rem;
+  padding: 0.625rem 0.375rem;
   border: 0;
   /* Concentric with the bar: its corner less the inset. */
   border-radius: 1rem;
   background: none;
+  color: inherit;
   text-align: start;
   transition: transform 160ms var(--ease);
 }
@@ -1267,6 +1266,11 @@ button {
   pointer-events: none;
 }
 
+.dock-cell.is-hug {
+  justify-content: center;
+  padding-inline: 0.5rem 0.625rem;
+}
+
 @media (hover: hover) {
   .dock-cell:hover::after {
     opacity: 1;
@@ -1286,6 +1290,11 @@ button {
   flex: none;
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.dock-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .dock-copy {
@@ -1400,8 +1409,8 @@ button {
      left over, the glass bar on the bottom edge. */
   display: flex;
   flex-direction: column;
-  padding: max(0.5rem, env(safe-area-inset-top)) max(1.5rem, var(--gutter))
-    max(1.5rem, env(safe-area-inset-bottom));
+  padding: max(1.5rem, env(safe-area-inset-top) + 0.5rem)
+    max(1.5rem, var(--gutter)) max(1.5rem, env(safe-area-inset-bottom) + 0.5rem);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
@@ -1427,12 +1436,12 @@ button {
   max-width: 26rem;
   margin: 0 auto;
   /* The cover gives way so the whole console fits the screen, glass bar
-     included: everything under it measured 21.75rem at 393 × 663 (Chrome on
+     included: everything under it measured 18.75rem at 393 × 663 (Chrome on
      an iPhone, with its bars), plus the column's own safe-area padding.
      Before, the column scrolled and the bar ended up over bare ground. */
   --cover-cap: calc(
-    100dvh - 22rem - max(0.5rem, env(safe-area-inset-top)) -
-      max(1.5rem, env(safe-area-inset-bottom))
+    100dvh - 18.75rem - max(1.5rem, env(safe-area-inset-top) + 0.5rem) -
+      max(1.5rem, env(safe-area-inset-bottom) + 0.5rem)
   );
 }
 
@@ -1442,15 +1451,6 @@ button {
   align-self: center;
   width: min(100cqw, var(--cover-cap));
   height: min(100cqw, var(--cover-cap));
-}
-
-.now-column .transport {
-  margin-block: auto;
-  padding-block: 1rem;
-}
-
-.now-column .dock {
-  margin-top: 0;
 }
 
 /* ── The player's wash: the app's PlayerBackdrop ── */
@@ -2045,8 +2045,208 @@ button {
 }
 
 .head-value {
-  color: var(--ink);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: color var(--dur-quick) var(--ease);
+}
+
+.head-value.is-active {
+  color: var(--ink);
+}
+
+.picker.is-active select {
+  color: var(--ink);
+  transition: color var(--dur-quick) var(--ease);
+}
+
+.picker-meta {
+  flex: none;
+  margin-left: -0.375rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cell-value.is-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Studio parameter scopes (Equalizer, Echo, Next Room) — standardized 38px
+   height, Book Highlighter one-shot ink/wash entrance, and Play/Pause motion. */
+.scope {
+  position: relative;
+  height: 2.375rem;
+  overflow: hidden;
+  border-bottom: 1px solid var(--separator);
+}
+
+.scope svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scope-spectrum {
+  fill: rgb(var(--fg) / 0.08);
+  stroke: rgb(var(--fg) / 0.17);
+  stroke-width: 0.75;
+}
+
+:root[data-theme='light'] .scope-spectrum {
+  fill: rgb(0 0 0 / 0.045);
+  stroke: rgb(0 0 0 / 0.11);
+}
+
+.scope-grid {
+  stroke: var(--separator);
+  stroke-width: 0.75;
+  stroke-dasharray: 1.5 2;
+}
+
+.scope-zero {
+  stroke: var(--separator);
+  stroke-width: 0.9;
+}
+
+.scope-fill-edge {
+  stop-color: var(--phosphor-ink);
+  stop-opacity: 0.14;
+}
+
+.scope-fill-mid {
+  stop-color: var(--phosphor-ink);
+  stop-opacity: 0.015;
+}
+
+:root[data-theme='light'] .scope-fill-edge {
+  stop-opacity: 0.08;
+}
+
+:root[data-theme='light'] .scope-fill-mid {
+  stop-opacity: 0.01;
+}
+
+.scope-area {
+  opacity: 0.24;
+  transition: opacity var(--dur-settle) var(--ios-curve);
+}
+
+.scope.is-active .scope-area {
+  opacity: 0.56;
+}
+
+.scope.is-playing .scope-area {
+  opacity: 0.52;
+  transition-duration: var(--dur-turn);
+}
+
+.scope.is-live .scope-area {
+  opacity: 1;
+  transition-duration: var(--dur-turn);
+}
+
+.scope-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.36;
+  transition:
+    opacity var(--dur-settle) var(--ios-curve),
+    filter var(--dur-settle) var(--ios-curve);
+}
+
+.scope.is-active .scope-line {
+  opacity: 0.68;
+}
+
+.scope.is-playing .scope-line {
+  opacity: 0.72;
+  transition-duration: var(--dur-turn);
+}
+
+.scope.is-live .scope-line {
+  opacity: 1;
+  filter: var(--phosphor-drop);
+  transition-duration: var(--dur-turn);
+}
+
+.scope-node {
+  fill: var(--muted);
+  opacity: 0.65;
+  transition:
+    fill var(--dur-settle) var(--ios-curve),
+    opacity var(--dur-settle) var(--ios-curve),
+    filter var(--dur-settle) var(--ios-curve);
+}
+
+.scope.is-playing .scope-node {
+  opacity: 0.9;
+}
+
+.scope-node.is-active {
+  fill: var(--ink);
+  opacity: 0.85;
+}
+
+.scope.is-live .scope-node.is-active {
+  fill: var(--ink);
+  opacity: 1;
+  filter: var(--phosphor-drop);
+  transition-duration: var(--dur-quick);
+}
+
+/* Book Highlighter one-shot ink-draw + directional brush-wash entrance:
+   settled into static state via data-ink-state="done" so live drags never
+   re-trigger entrance keyframes. */
+.scope[data-ink-state='drawing'] .scope-line {
+  stroke-dasharray: 1.04;
+  stroke-dashoffset: 1.04;
+  animation: scope-ink-draw 560ms cubic-bezier(0.22, 0.88, 0.32, 1) both;
+}
+
+.scope[data-ink-state='drawing'] .scope-area {
+  animation: scope-wash-reveal 560ms 90ms cubic-bezier(0.22, 0.88, 0.32, 1) both;
+}
+
+.scope[data-ink-state='drawing'] .scope-node {
+  animation: scope-node-in 360ms calc(140ms + var(--node-i, 0) * 45ms)
+    var(--ios-curve) both;
+}
+
+@keyframes scope-ink-draw {
+  0% {
+    stroke-dashoffset: 1.04;
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes scope-wash-reveal {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  100% {
+    clip-path: inset(0 0% 0 0%);
+  }
+}
+
+@keyframes scope-node-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .section-foot {
@@ -2066,10 +2266,15 @@ button {
   font-size: 0.8125rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .band-db {
   text-align: end;
+  transition: color var(--dur-quick) var(--ease);
+}
+
+.band-db.is-active {
   color: var(--ink);
 }
 
@@ -2344,6 +2549,8 @@ button {
     opacity: 1;
     visibility: visible;
     transform: none;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     touch-action: auto;
   }
@@ -2360,10 +2567,10 @@ button {
     max-width: none;
     margin: 0;
     /* The cover keeps room for the console under it on a short window. */
-    --cover-cap: calc(100svh - 23rem);
+    --cover-cap: calc(100svh - 21.75rem);
   }
 
-  .collapse,
+  .stage-bar,
   .mini {
     display: none;
   }
@@ -2508,6 +2715,15 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.editor-caption span {
+  transition: color var(--dur-settle) var(--ease);
+}
+
+.editor-caption span.is-live {
+  color: var(--ink);
+  transition-duration: var(--dur-micro);
+}
+
 /* The app's 34pt semibold readout — a running timer's weight, not a
    display face's hairline. */
 .editor-timecode {
@@ -2516,6 +2732,12 @@ button {
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  transition: text-shadow var(--dur-settle) var(--ease);
+}
+
+.editor-timecode.is-live {
+  text-shadow: var(--phosphor-glow);
+  transition-duration: var(--dur-quick);
 }
 
 .editor .transport {

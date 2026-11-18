@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { AUTO_DJ_MODES, isAutoDjMode } from '@app/lib/autoDj/plan';
 import { rateLabel, RATE_MAX, RATE_MIN, RATE_STEP } from '@app/lib/player';
@@ -23,6 +23,16 @@ import {
   setRate as setRateRaw,
   usePlayer,
 } from '../player';
+
+import {
+  EchoScope,
+  eqExtremeDb,
+  EqScope,
+  echoTapDb,
+  formatSignedDb,
+  nextRoom1kDb,
+  NextRoomScope,
+} from './Scopes';
 
 // Any control moved by hand takes the controls back from the DJ — the app's
 // `byHand`: the DJ stops with the shape where it is, and the move stands.
@@ -71,15 +81,23 @@ export function useShapeSummary(): string {
 const LevelPicker = ({
   label,
   value,
+  meta,
+  scope,
   onChange,
 }: {
   label: string;
   value: EffectLevel;
+  meta?: string | null;
+  scope?: ReactNode;
   onChange: (level: EffectLevel) => void;
 }) => (
   <div className="card">
-    <label className="cell picker">
+    {scope}
+    <label
+      className={value !== 'off' ? 'cell picker is-active' : 'cell picker'}
+    >
       <span className="cell-name">{label}</span>
+      {meta && <span className="picker-meta">{meta}</span>}
       <select
         value={value}
         onChange={e => onChange(e.target.value as EffectLevel)}
@@ -94,12 +112,6 @@ const LevelPicker = ({
   </div>
 );
 
-/**
- * The Shape sheet — the app's iOS Form, section for section: Presets,
- * Equalizer, Playback Speed, Preserve Pitch, Echo, Next Room. Every control
- * is heard as it moves. On a desk it is the column at the right; on a phone,
- * a sheet over the player.
- */
 /**
  * DJ Juan — the sheet's last section, as in the app: a menu picker (Off,
  * This Sound, All Sounds), a footer, and while the library is being read in All
@@ -125,7 +137,9 @@ function AutoDjSection() {
   return (
     <section>
       <div className="card">
-        <label className="cell picker">
+        <label
+          className={mode !== 'off' ? 'cell picker is-active' : 'cell picker'}
+        >
           <span className="cell-name">{t('player.autoDj')}</span>
           <select
             value={mode}
@@ -144,7 +158,7 @@ function AutoDjSection() {
         {reading && shown && (
           <div className="cell">
             <span className="cell-name">{t('player.autoDjPreparing')}</span>
-            <span className="cell-value">
+            <span className="cell-value is-tabular">
               {t('player.autoDjProgress', {
                 ready: String(ready),
                 total: String(total),
@@ -160,6 +174,7 @@ function AutoDjSection() {
 
 /** The Shape sheet's form — what `SidePanel` holds while Shape is open. */
 export function ShapeForm() {
+  const playing = usePlayer(s => s.playing);
   const gains = usePlayer(s => s.gains);
   const rate = usePlayer(s => s.rate);
   const keepPitch = usePlayer(s => s.keepPitch);
@@ -201,10 +216,17 @@ export function ShapeForm() {
     }
   }, [djOn, djFocus]);
 
+  const eqActive = gains.some(g => g !== 0);
+  const eqDb = eqExtremeDb(gains);
+
   return (
     <>
       <div ref={presetsRef} className="card" data-dj-section="presets">
-        <label className="cell picker">
+        <label
+          className={
+            preset !== 'flat' ? 'cell picker is-active' : 'cell picker'
+          }
+        >
           <span className="cell-name">{t('player.shape.presets')}</span>
           <select value={preset} onChange={e => setPreset(e.target.value)}>
             {EQ_PRESETS.map(p => (
@@ -220,32 +242,42 @@ export function ShapeForm() {
       </div>
 
       <section data-dj-section="eq">
-        <h3 className="section-head">{t('player.eq.title')}</h3>
+        <h3 className="section-head split">
+          <span>{t('player.eq.title')}</span>
+          {eqActive && (
+            <span className="head-value is-active">{formatSignedDb(eqDb)}</span>
+          )}
+        </h3>
         <div className="card">
-          {EQ_BANDS.map((band, i) => (
-            <label key={band.hz} className="cell band">
-              <span className="band-hz">{band.label}</span>
-              <input
-                type="range"
-                className="slider"
-                min={EQ_MIN_DB}
-                max={EQ_MAX_DB}
-                step={1}
-                value={gains[i]}
-                aria-label={`${band.hz} Hz`}
-                aria-valuetext={`${gains[i]} dB`}
-                style={
-                  {
-                    '--fill': (gains[i] - EQ_MIN_DB) / (EQ_MAX_DB - EQ_MIN_DB),
-                  } as React.CSSProperties
-                }
-                onChange={e => setBand(i, Number(e.target.value))}
-              />
-              <span className="band-db">
-                {gains[i] > 0 ? `+${gains[i]}` : gains[i]}
-              </span>
-            </label>
-          ))}
+          <EqScope gains={gains} playing={playing} />
+          {EQ_BANDS.map((band, i) => {
+            const active = gains[i] !== 0;
+            return (
+              <label key={band.hz} className="cell band">
+                <span className="band-hz">{band.label}</span>
+                <input
+                  type="range"
+                  className="slider"
+                  min={EQ_MIN_DB}
+                  max={EQ_MAX_DB}
+                  step={1}
+                  value={gains[i]}
+                  aria-label={`${band.hz} Hz`}
+                  aria-valuetext={`${gains[i]} dB`}
+                  style={
+                    {
+                      '--fill':
+                        (gains[i] - EQ_MIN_DB) / (EQ_MAX_DB - EQ_MIN_DB),
+                    } as React.CSSProperties
+                  }
+                  onChange={e => setBand(i, Number(e.target.value))}
+                />
+                <span className={active ? 'band-db is-active' : 'band-db'}>
+                  {gains[i] > 0 ? `+${gains[i]}` : gains[i]}
+                </span>
+              </label>
+            );
+          })}
         </div>
         <p className="section-foot">{t('player.eq.hint')}</p>
       </section>
@@ -253,7 +285,9 @@ export function ShapeForm() {
       <section data-dj-section="speed">
         <h3 className="section-head split">
           <span>{t('player.speed')}</span>
-          <span className="head-value">{rateLabel(rate, locale)}</span>
+          <span className={rate !== 1 ? 'head-value is-active' : 'head-value'}>
+            {rateLabel(rate, locale)}
+          </span>
         </h3>
         <div className="card">
           <div className="cell">
@@ -294,7 +328,13 @@ export function ShapeForm() {
       </section>
 
       <section data-dj-section="echo">
-        <LevelPicker label={t('player.echo')} value={echo} onChange={setEcho} />
+        <LevelPicker
+          label={t('player.echo')}
+          value={echo}
+          meta={echo === 'off' ? null : formatSignedDb(echoTapDb(echo))}
+          scope={<EchoScope level={echo} playing={playing} />}
+          onChange={setEcho}
+        />
         <p className="section-foot">{t('player.echoDescription')}</p>
       </section>
 
@@ -302,6 +342,10 @@ export function ShapeForm() {
         <LevelPicker
           label={t('player.nextRoom')}
           value={nextRoom}
+          meta={
+            nextRoom === 'off' ? null : formatSignedDb(nextRoom1kDb(nextRoom))
+          }
+          scope={<NextRoomScope level={nextRoom} playing={playing} />}
           onChange={setNextRoom}
         />
         <p className="section-foot">{t('player.nextRoomDescription')}</p>
