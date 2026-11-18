@@ -167,22 +167,24 @@ function useEditWake(signature: string, holdMs = 650): boolean {
   return awake;
 }
 
-const useBoxWidth = (onWidth?: (width: number) => void) => {
+let lastScopeWidth = 320;
+
+const useBoxWidth = () => {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const cbRef = useRef(onWidth);
-  cbRef.current = onWidth;
+  const [width, setWidth] = useState(lastScopeWidth);
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const initial = el.getBoundingClientRect().width;
-    setWidth(initial);
-    cbRef.current?.(initial);
+    const apply = (raw: number) => {
+      const next = Math.round(raw);
+      if (next <= 0) return;
+      lastScopeWidth = next;
+      setWidth(prev => (prev === next ? prev : next));
+    };
+    apply(el.getBoundingClientRect().width);
     const observer = new ResizeObserver(([entry]) => {
-      const next = entry.contentRect.width;
-      setWidth(next);
-      cbRef.current?.(next);
+      apply(entry.contentRect.width);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -294,26 +296,27 @@ export function echoTapDb(level: EffectLevel): number {
 }
 
 function ScopeBox({
+  boxRef,
+  width,
   active,
   playing,
   live,
   className,
-  onWidth,
   children,
 }: {
+  boxRef: React.RefObject<HTMLDivElement | null>;
+  width: number;
   active: boolean;
   playing: boolean;
   live: boolean;
   className?: string;
-  onWidth?: (width: number) => void;
   children: (width: number) => ReactNode;
 }) {
-  const { ref, width } = useBoxWidth(onWidth);
   const inkState = useInkEntrance();
 
   return (
     <div
-      ref={ref}
+      ref={boxRef}
       data-ink-state={inkState}
       className={[
         'scope',
@@ -352,6 +355,7 @@ function useLiveSpectrumPath(
   maxRisePx: number,
 ) {
   const binsRef = useRef<Float32Array | null>(null);
+  const ptsRef = useRef<{ x: number; y: number }[] | null>(null);
   const gateRef = useRef(0);
   const playingRef = useRef(playing);
   playingRef.current = playing;
@@ -367,7 +371,11 @@ function useLiveSpectrumPath(
     if (!binsRef.current || binsRef.current.length !== bins) {
       binsRef.current = new Float32Array(bins);
     }
+    if (!ptsRef.current || ptsRef.current.length !== bins) {
+      ptsRef.current = Array.from({ length: bins }, () => ({ x: 0, y: 0 }));
+    }
     const smooth = binsRef.current;
+    const pts = ptsRef.current;
     const raw = new Float32Array(bins);
 
     let initialPeak = 0;
@@ -405,7 +413,6 @@ function useLiveSpectrumPath(
         : { active: false, rms: 0 };
 
       let peak = 0;
-      const pts: { x: number; y: number }[] = [];
       const span = width + 2;
 
       for (let i = 0; i < bins; i += 1) {
@@ -420,10 +427,8 @@ function useLiveSpectrumPath(
         );
         const val = smooth[i];
         if (val > peak) peak = val;
-        pts.push({
-          x: -1 + u * span,
-          y: height - val * maxRisePx,
-        });
+        pts[i].x = -1 + u * span;
+        pts[i].y = height - val * maxRisePx;
       }
 
       if (peak > 0.003) {
@@ -483,7 +488,7 @@ export function EqScope({
   const { values, moving } = useGlide(targetGains, EQ_SPANS);
   const fillId = useSvgId('eq-fill');
   const specRef = useRef<SVGPathElement>(null);
-  const [measuredW, setMeasuredW] = useState(0);
+  const { ref, width } = useBoxWidth();
 
   const active = gains.some(g => g !== 0);
   const live = active && (playing || moving || editAwake);
@@ -495,20 +500,21 @@ export function EqScope({
   useLiveSpectrumPath(
     specRef,
     playing,
-    measuredW,
+    width,
     SCOPE_HEIGHT,
     SCOPE_HEIGHT * 0.76,
   );
 
   return (
     <ScopeBox
+      boxRef={ref}
+      width={width}
       active={active}
       playing={playing}
       live={live}
       className="scope-eq"
-      onWidth={setMeasuredW}
     >
-      {width => {
+      {w => {
         const mid = SCOPE_HEIGHT / 2;
         const swing = mid - LINE_PAD_Y;
         const y = (db: number) =>
@@ -517,12 +523,12 @@ export function EqScope({
             swing;
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(width / 2.5));
+        const count = Math.max(48, Math.round(w / 2.5));
         const xStart = -1.5;
-        const xEnd = width + 1.5;
+        const xEnd = w + 1.5;
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(width, x)), width);
+          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);
@@ -539,7 +545,7 @@ export function EqScope({
             </defs>
             <path ref={specRef} className="scope-spectrum" />
             {EQ_BANDS.map(band => {
-              const bx = freqX(band.hz, width);
+              const bx = freqX(band.hz, w);
               return (
                 <line
                   key={band.hz}
@@ -551,19 +557,13 @@ export function EqScope({
                 />
               );
             })}
-            <line
-              className="scope-zero"
-              x1={-1}
-              x2={width + 1}
-              y1={mid}
-              y2={mid}
-            />
+            <line className="scope-zero" x1={-1} x2={w + 1} y1={mid} y2={mid} />
             <path d={area} className="scope-area" fill={`url(#${fillId})`} />
             <path d={line} pathLength={1} className="scope-line" />
             {EQ_BANDS.map((band, i) => (
               <circle
                 key={band.hz}
-                cx={freqX(band.hz, width)}
+                cx={freqX(band.hz, w)}
                 cy={y(responseDb(coefficients, band.hz))}
                 r={NODE_R}
                 style={{ '--node-i': i } as CSSProperties}
@@ -602,6 +602,7 @@ function useLiveEchoTrail(
   decayRef: React.RefObject<number>,
 ) {
   const historyRef = useRef<Float32Array | null>(null);
+  const ptsRef = useRef<{ x: number; y: number }[] | null>(null);
   const gateRef = useRef(0);
   const playingRef = useRef(playing);
   playingRef.current = playing;
@@ -617,7 +618,11 @@ function useLiveEchoTrail(
     if (!historyRef.current || historyRef.current.length !== slots) {
       historyRef.current = new Float32Array(slots);
     }
+    if (!ptsRef.current || ptsRef.current.length !== slots) {
+      ptsRef.current = Array.from({ length: slots }, () => ({ x: 0, y: 0 }));
+    }
     const history = historyRef.current;
+    const pts = ptsRef.current;
 
     let initialPeak = 0;
     for (let i = 0; i < slots; i += 1) {
@@ -680,17 +685,14 @@ function useLiveEchoTrail(
       const decay = decayRef.current;
       const maxRise = height * 0.76;
       const span = width + 2;
-      const pts: { x: number; y: number }[] = [];
 
       for (let i = 0; i < slots; i += 1) {
         const u = i / (slots - 1);
         const atten = Math.exp(-decay * 0.72 * u);
         const val = history[i] * atten * (isPlaying ? 1 : gateRef.current);
         if (val > peak) peak = val;
-        pts.push({
-          x: -1 + u * span,
-          y: height - val * maxRise,
-        });
+        pts[i].x = -1 + u * span;
+        pts[i].y = height - val * maxRise;
       }
 
       if (peak > 0.003) {
@@ -751,36 +753,37 @@ export function EchoScope({
   const live = active && (playing || moving || editAwake);
   const fillId = useSvgId('echo-fill');
   const trailRef = useRef<SVGPathElement>(null);
-  const [measuredW, setMeasuredW] = useState(0);
+  const { ref, width } = useBoxWidth();
 
   const decay = echoDecayRate(fb, rippleAmt);
   const decayRef = useRef(decay);
   decayRef.current = decay;
 
-  useLiveEchoTrail(trailRef, playing, measuredW, SCOPE_HEIGHT, decayRef);
+  useLiveEchoTrail(trailRef, playing, width, SCOPE_HEIGHT, decayRef);
 
   return (
     <ScopeBox
+      boxRef={ref}
+      width={width}
       active={active}
       playing={playing}
       live={live}
       className="scope-echo"
-      onWidth={setMeasuredW}
     >
-      {width => {
+      {w => {
         // Line floor sits `LINE_PAD_Y` (6.5px) above `border-bottom` so the
         // glowing trace never touches or mixes with the bottom border.
         const lineFloor = SCOPE_HEIGHT - LINE_PAD_Y;
         const lineSpan = lineFloor - LINE_PAD_Y;
         const maxRise = lineSpan * (0.68 + 0.32 * rippleAmt) * posture;
         const xStart = -1.5;
-        const xEnd = width + 1.5;
-        const count = Math.max(56, Math.round(width / 2));
+        const xEnd = w + 1.5;
+        const count = Math.max(56, Math.round(w / 2));
         const pts: { x: number; y: number }[] = [];
 
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const u = Math.max(0, Math.min(1, x / Math.max(1, width)));
+          const u = Math.max(0, Math.min(1, x / Math.max(1, w)));
           const env = Math.exp(-decay * u);
           const mod =
             1 - rippleAmt * 0.44 * (1 - Math.cos(2 * Math.PI * ECHO_WAVES * u));
@@ -838,25 +841,26 @@ export function NextRoomScope({
   );
   const fillId = useSvgId('room-fill');
   const specRef = useRef<SVGPathElement>(null);
-  const [measuredW, setMeasuredW] = useState(0);
+  const { ref, width } = useBoxWidth();
 
   useLiveSpectrumPath(
     specRef,
     playing,
-    measuredW,
+    width,
     SCOPE_HEIGHT,
     SCOPE_HEIGHT * 0.76,
   );
 
   return (
     <ScopeBox
+      boxRef={ref}
+      width={width}
       active={active}
       playing={playing}
       live={live}
       className="scope-room"
-      onWidth={setMeasuredW}
     >
-      {width => {
+      {w => {
         const topY =
           ROOM_TOP_STANDBY + (ROOM_TOP_LIVE - ROOM_TOP_STANDBY) * awake;
         const lineFloor = SCOPE_HEIGHT - LINE_PAD_Y;
@@ -866,12 +870,12 @@ export function NextRoomScope({
             (lineFloor - topY);
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(width / 2.5));
+        const count = Math.max(48, Math.round(w / 2.5));
         const xStart = -1.5;
-        const xEnd = width + 1.5;
+        const xEnd = w + 1.5;
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(width, x)), width);
+          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);

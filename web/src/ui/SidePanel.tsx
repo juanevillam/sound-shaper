@@ -52,8 +52,15 @@ export function SidePanel({
   const aside = useRef<HTMLElement>(null);
   const form = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState(false);
-  const [pull, setPull] = useState<number | null>(null);
+  const edgeRef = useRef(false);
   const grab = useRef<{ y: number; t: number; id: number } | null>(null);
+
+  const clearPullStyle = () => {
+    const el = aside.current;
+    if (!el) return;
+    el.style.removeProperty('--pull');
+    el.style.removeProperty('transition');
+  };
 
   // Mounted below the edge, then raised on the very next paint frame after
   // committing the initial off-screen layout synchronously in `useLayoutEffect`.
@@ -71,6 +78,7 @@ export function SidePanel({
   // A new body in the sheet starts at the top with a bare bar.
   useEffect(() => {
     if (form.current) form.current.scrollTop = 0;
+    edgeRef.current = false;
     setEdge(false);
   }, [title]);
 
@@ -88,32 +96,32 @@ export function SidePanel({
       return;
     grab.current = { y: e.clientY, t: performance.now(), id: e.pointerId };
     e.currentTarget.setPointerCapture(e.pointerId);
-    setPull(0);
+    const el = aside.current;
+    if (el) {
+      el.style.setProperty('--pull', '0px');
+      el.style.setProperty('transition', 'none');
+    }
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!grab.current || grab.current.id !== e.pointerId) return;
     const dy = e.clientY - grab.current.y;
     // Upward, a sheet at its large detent has nowhere to go: it resists.
-    setPull(dy > 0 ? dy : dy / 6);
+    const pullPx = Math.max(dy > 0 ? dy : dy / 6, -12);
+    aside.current?.style.setProperty('--pull', `${pullPx}px`);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     const start = grab.current;
     grab.current = null;
+    clearPullStyle();
     if (!start) return;
     const dy = e.clientY - start.y;
     const velocity = dy / Math.max(1, performance.now() - start.t);
-    setPull(null);
     if (dy > DISMISS_PX || (dy > 24 && velocity > DISMISS_VELOCITY)) onClose();
   };
 
-  const style = {
-    '--index': index,
-    ...(pull !== null
-      ? { '--pull': `${Math.max(pull, -12)}px`, transition: 'none' }
-      : null),
-  } as React.CSSProperties;
+  const style = { '--index': index } as React.CSSProperties;
 
   return (
     <aside
@@ -141,7 +149,7 @@ export function SidePanel({
         onPointerUp={onPointerUp}
         onPointerCancel={() => {
           grab.current = null;
-          setPull(null);
+          clearPullStyle();
         }}
       >
         <span className="side-grabber" aria-hidden="true" />
@@ -157,7 +165,13 @@ export function SidePanel({
       <div
         ref={form}
         className="form"
-        onScroll={e => setEdge(e.currentTarget.scrollTop > 0)}
+        onScroll={e => {
+          const next = e.currentTarget.scrollTop > 0;
+          if (edgeRef.current !== next) {
+            edgeRef.current = next;
+            setEdge(next);
+          }
+        }}
       >
         {children}
       </div>

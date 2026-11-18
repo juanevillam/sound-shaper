@@ -332,33 +332,6 @@ button {
 
 /* ══ The signed-in app ═════════════════════════════════════════════════ */
 
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.backdrop img {
-  position: absolute;
-  inset: -10%;
-  width: 120%;
-  height: 120%;
-  object-fit: cover;
-  filter: blur(64px) saturate(1.1) brightness(0.55);
-  opacity: 0;
-  transform: scale(1.05);
-  transition:
-    opacity 900ms var(--ease),
-    transform 1600ms var(--ease);
-}
-
-.backdrop img.is-on {
-  opacity: 0.32;
-  transform: scale(1);
-}
-
 .home {
   position: relative;
   min-height: 100svh;
@@ -1609,21 +1582,33 @@ button {
   visibility: hidden;
   transition:
     transform var(--dur-quick) var(--ease),
-    filter var(--dur-quick) var(--ease),
     visibility 0s linear var(--dur-quick);
+}
+
+.side::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  background: rgb(0 0 0 / 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-turn) var(--ease);
 }
 
 .side.is-open {
   transform: translateY(var(--pull, 0px));
   visibility: visible;
-  transition:
-    transform var(--dur-turn) var(--ease),
-    filter var(--dur-turn) var(--ease);
+  transition: transform var(--dur-turn) var(--ease);
 }
 
 .side.is-open.is-under {
   transform: translateY(-0.5rem) scale(0.94);
-  filter: brightness(0.6);
+}
+
+.side.is-open.is-under::after {
+  opacity: 1;
 }
 
 .side.is-open.is-deep {
@@ -2170,8 +2155,11 @@ button {
 
 .scope.is-live .scope-line {
   opacity: 1;
-  filter: var(--phosphor-drop);
   transition-duration: var(--dur-turn);
+}
+
+.scope.is-live:not([data-ink-state='drawing']) .scope-line {
+  filter: var(--phosphor-drop);
 }
 
 .scope-node {
@@ -2195,8 +2183,11 @@ button {
 .scope.is-live .scope-node.is-active {
   fill: var(--ink);
   opacity: 1;
-  filter: var(--phosphor-drop);
   transition-duration: var(--dur-quick);
+}
+
+.scope.is-live:not([data-ink-state='drawing']) .scope-node.is-active {
+  filter: var(--phosphor-drop);
 }
 
 /* Book Highlighter one-shot ink-draw + directional brush-wash entrance:
@@ -2209,7 +2200,7 @@ button {
 }
 
 .scope[data-ink-state='drawing'] .scope-area {
-  animation: scope-wash-reveal 560ms 90ms cubic-bezier(0.22, 0.88, 0.32, 1) both;
+  animation: scope-wash-reveal 480ms 90ms cubic-bezier(0.22, 0.88, 0.32, 1) both;
 }
 
 .scope[data-ink-state='drawing'] .scope-node {
@@ -2231,15 +2222,8 @@ button {
 }
 
 @keyframes scope-wash-reveal {
-  0% {
-    clip-path: inset(0 100% 0 0);
+  from {
     opacity: 0;
-  }
-  20% {
-    opacity: 0.65;
-  }
-  100% {
-    clip-path: inset(0 0% 0 0%);
   }
 }
 
@@ -2479,7 +2463,6 @@ button {
     transition:
       opacity var(--dur-quick) var(--ease),
       transform var(--dur-turn) var(--ease),
-      filter var(--dur-turn) var(--ease),
       background-color var(--dur-turn) var(--ease),
       border-radius var(--dur-turn) var(--ease),
       border-color var(--dur-turn) var(--ease);

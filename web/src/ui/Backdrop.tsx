@@ -47,30 +47,6 @@ function useCrossfade(src: string): {
 }
 
 /**
- * The app's PlayerBackdrop, on the web: the active cover, blurred and dimmed,
- * behind everything. Two layers, so a new cover fades in over the last rather
- * than snapping.
- */
-export function Backdrop({ artUrl }: { artUrl: string }) {
-  const { layers, front } = useCrossfade(artUrl ? thumbUrl(artUrl, 160) : '');
-
-  return (
-    <div className="backdrop" aria-hidden="true">
-      {layers.map((src, i) =>
-        src ? (
-          <img
-            key={i}
-            src={src}
-            alt=""
-            className={i === front ? 'is-on' : undefined}
-          />
-        ) : null,
-      )}
-    </div>
-  );
-}
-
-/**
  * THE FLOW — the app's, number for number (PlayerBackdrop.tsx there carries
  * the reasoning and the measurement): two copies of the cover, blurred less
  * than the still wash, turning in opposite directions about pivots off the
@@ -87,6 +63,8 @@ const FLOW_LAYERS = [
 const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const isHidden = () => typeof document !== 'undefined' && document.hidden;
+
 /** Drives every `.flow` turner under `root` from one clock. */
 function useFlow(
   root: React.RefObject<HTMLDivElement | null>,
@@ -101,7 +79,12 @@ function useFlow(
     if (!flowing || reducedMotion()) return;
     let frame = 0;
     let last = performance.now();
+
     const tick = (now: number) => {
+      if (isHidden()) {
+        frame = 0;
+        return;
+      }
       const dt = now - last;
       last = now;
       // A long gap is a hidden tab coming back, not time to catch up on.
@@ -114,8 +97,25 @@ function useFlow(
       });
       frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+
+    const onVisibility = () => {
+      if (isHidden()) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      } else if (!frame) {
+        last = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    if (!isHidden()) {
+      frame = requestAnimationFrame(tick);
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [flowing, root]);
 }
 

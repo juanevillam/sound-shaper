@@ -13,7 +13,7 @@ import { resetPlayer, syncLibrary, usePlayer } from '../player';
 import { leadPosition } from '../sounds';
 import { useTrophySystem } from '../trophies';
 import { AccountForm } from '../ui/AccountForm';
-import { Backdrop, PlayerBackdrop } from '../ui/Backdrop';
+import { PlayerBackdrop } from '../ui/Backdrop';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
 import { ClipsForm } from '../ui/ClipsForm';
 import {
@@ -42,6 +42,20 @@ import { showToast } from '../ui/Toast';
 import { TrophiesForm, TrophyBanner } from '../ui/Trophies';
 
 const DESK = '(min-width: 64rem)';
+
+const useIsDesktop = (): boolean => {
+  const [isDesk, setIsDesk] = useState(
+    () => typeof matchMedia === 'function' && matchMedia(DESK).matches,
+  );
+  useEffect(() => {
+    const mq = matchMedia(DESK);
+    const onChange = (e: MediaQueryListEvent) => setIsDesk(e.matches);
+    setIsDesk(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isDesk;
+};
 
 /**
  * A change to the desk's columns, animated as one move. Opening a sheet
@@ -172,6 +186,7 @@ export function Home({ user }: { user: User }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
   const rate = usePlayer(s => s.rate);
+  const isDesk = useIsDesktop();
   const [expanded, setExpanded] = useState(false);
   const [toolLayers, setToolLayers] = useState<Layer<ToolEntry>[]>([]);
   const [modalLayers, setModalLayers] = useState<Layer<ModalEntry>[]>([]);
@@ -226,18 +241,54 @@ export function Home({ user }: { user: User }) {
     );
   };
 
-  const pushTool = (entry: ToolEntry, switching = false) =>
-    setToolLayers(all => [
-      ...all,
-      { id: nextLayer++, entry, leaving: false, switching },
-    ]);
+  // On initial hydration, stand the second column synchronously with the
+  // library so the grid never renders wide and shrinks mid-entrance; reserve
+  // `morph` for 0 -> 1 and 1 -> 0 changes during the session.
+  const activeCurrent =
+    current ?? (library.state === 'ready' ? (library.sounds[0] ?? null) : null);
+  const hasCurrent = Boolean(activeCurrent);
+  const [stood, setStood] = useState(false);
+  const isStaged = hydrated.current ? stood : hasCurrent;
+
+  useEffect(() => {
+    if (library.state === 'loading') return;
+    if (!hydrated.current) {
+      hydrated.current = true;
+      setStood(hasCurrent);
+      return;
+    }
+    if (hasCurrent === stood) return;
+    morph(() => setStood(hasCurrent));
+  }, [library.state, hasCurrent, stood]);
+
+  // THE THIRD COLUMN stands up and lies down through `morph` synchronously
+  // with the stack that needs it so the column and its sheet commit in a
+  // single layout pass without a 1-frame `useEffect` lag.
+  const toolsShown = liveTools.length > 0 && hasCurrent;
+
+  const pushTool = (entry: ToolEntry, switching = false) => {
+    const apply = () =>
+      setToolLayers(all => [
+        ...all,
+        { id: nextLayer++, entry, leaving: false, switching },
+      ]);
+    if (liveTools.length === 0 && hasCurrent) morph(apply);
+    else apply();
+  };
 
   const popTool = () => {
     const front = liveTools[liveTools.length - 1];
-    if (front) leaveIn(setToolLayers, layer => layer.id !== front.id);
+    if (!front) return;
+    const apply = () => leaveIn(setToolLayers, layer => layer.id !== front.id);
+    if (liveTools.length === 1 && hasCurrent) morph(apply);
+    else apply();
   };
 
-  const closeTools = () => leaveIn(setToolLayers, () => false);
+  const closeTools = () => {
+    const apply = () => leaveIn(setToolLayers, () => false);
+    if (liveTools.length > 0 && hasCurrent) morph(apply);
+    else apply();
+  };
 
   const openTool = (kind: 'shape' | 'clips') => {
     if (liveTools.length === 1 && toolBase === kind) {
@@ -245,7 +296,7 @@ export function Home({ user }: { user: User }) {
       return;
     }
     const wasOpen = liveTools.length > 0;
-    if (wasOpen) closeTools();
+    if (wasOpen) leaveIn(setToolLayers, () => false);
     pushTool({ kind }, wasOpen);
   };
 
@@ -278,34 +329,6 @@ export function Home({ user }: { user: User }) {
     closeModals();
     pushModal(entry);
   };
-
-  // On initial hydration, stand the second column synchronously with the
-  // library so the grid never renders wide and shrinks mid-entrance; reserve
-  // `morph` for 0 -> 1 and 1 -> 0 changes during the session.
-  const activeCurrent =
-    current ?? (library.state === 'ready' ? (library.sounds[0] ?? null) : null);
-  const hasCurrent = Boolean(activeCurrent);
-  const [stood, setStood] = useState(false);
-  const isStaged = hydrated.current ? stood : hasCurrent;
-
-  useEffect(() => {
-    if (library.state === 'loading') return;
-    if (!hydrated.current) {
-      hydrated.current = true;
-      setStood(hasCurrent);
-      return;
-    }
-    if (hasCurrent === stood) return;
-    morph(() => setStood(hasCurrent));
-  }, [library.state, hasCurrent, stood]);
-
-  // THE THIRD COLUMN stands up and lies down through `morph` too, a beat
-  // after the stack that needs it — the same lag as the player's column.
-  const tooled = liveTools.length > 0 && hasCurrent;
-  const [toolsShown, setToolsShown] = useState(false);
-  useEffect(() => {
-    if (tooled !== toolsShown) morph(() => setToolsShown(tooled));
-  }, [tooled, toolsShown]);
 
   const pick = (file: File) => {
     if (!isMp3(file)) {
@@ -547,10 +570,12 @@ export function Home({ user }: { user: User }) {
     labScreens.push('trophies');
   }
 
+  const stageFlowing =
+    playing &&
+    (isDesk || (expanded && liveTools.length === 0 && liveModals.length === 0));
+
   return (
     <div className={className}>
-      <Backdrop artUrl={activeCurrent?.artUrl ?? ''} />
-
       <main className="library">
         <header className={titled ? 'bar is-edge is-titled' : 'bar'}>
           <span />
@@ -605,7 +630,7 @@ export function Home({ user }: { user: User }) {
         <div className="now-column">
           <PlayerBackdrop
             artUrl={current?.artUrl ?? ''}
-            flowing={playing}
+            flowing={stageFlowing}
             rate={rate}
           />
           <NowPlaying

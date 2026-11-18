@@ -297,8 +297,14 @@ function TrophyDetail({
   const view = trophy ?? shown.current;
   const open = trophy !== null;
   // Pulled by its grabber, like every sheet: past a threshold it goes.
-  const [pull, setPull] = useState<number | null>(null);
   const grab = useRef<{ y: number; t: number } | null>(null);
+
+  const clearPullStyle = () => {
+    const el = sheet.current;
+    if (!el) return;
+    el.style.removeProperty('--pull');
+    el.style.removeProperty('transition');
+  };
 
   useEffect(() => {
     setHost(anchor.current?.closest<HTMLElement>('.side') ?? null);
@@ -331,29 +337,26 @@ function TrophyDetail({
         aria-label={view?.title}
         aria-hidden={!open}
         tabIndex={-1}
-        style={
-          pull !== null
-            ? ({
-                '--pull': `${Math.max(pull, -12)}px`,
-                transition: 'none',
-              } as React.CSSProperties)
-            : undefined
-        }
         onPointerDown={e => {
           if ((e.target as HTMLElement).closest('button')) return;
           grab.current = { y: e.clientY, t: performance.now() };
           e.currentTarget.setPointerCapture(e.pointerId);
-          setPull(0);
+          const el = sheet.current;
+          if (el) {
+            el.style.setProperty('--pull', '0px');
+            el.style.setProperty('transition', 'none');
+          }
         }}
         onPointerMove={e => {
           if (!grab.current) return;
           const dy = e.clientY - grab.current.y;
-          setPull(dy > 0 ? dy : dy / 6);
+          const pullPx = Math.max(dy > 0 ? dy : dy / 6, -12);
+          sheet.current?.style.setProperty('--pull', `${pullPx}px`);
         }}
         onPointerUp={e => {
           const start = grab.current;
           grab.current = null;
-          setPull(null);
+          clearPullStyle();
           if (!start) return;
           const dy = e.clientY - start.y;
           const v = dy / Math.max(1, performance.now() - start.t);
@@ -361,7 +364,7 @@ function TrophyDetail({
         }}
         onPointerCancel={() => {
           grab.current = null;
-          setPull(null);
+          clearPullStyle();
         }}
       >
         <span className="sub-grabber" aria-hidden="true" />

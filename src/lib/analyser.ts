@@ -16,6 +16,20 @@ const DB_SPAN = MAX_DB - MIN_DB;
 const freqScratch = new Float32Array(BIN_COUNT);
 const waveScratch = new Float32Array(FFT_SIZE);
 
+/**
+ * Per-frame cache so multiple scopes (`EqScope`, `EchoScope`, `NextRoomScope`,
+ * `ClipEditor`) ticking inside the same `requestAnimationFrame` batch share a
+ * single `getFloatTimeDomainData` + `getFloatFrequencyData` + log-binning pass
+ * instead of reading the native `AnalyserNode` 3–4 times per frame.
+ */
+const FRAME_WINDOW_MS = 4;
+let lastWaveStamp = -Infinity;
+let lastRms = 0;
+let lastFreqStamp = -Infinity;
+let lastSpecStamp = -Infinity;
+let lastSpecKey = '';
+let lastSpecCache = new Float32Array(0);
+
 export type AudioSample = {
   active: boolean;
   /** Instantaneous post-DSP RMS amplitude, 0..1. */
@@ -37,23 +51,42 @@ export function sampleAudio(
     return { active: false, rms: 0 };
   }
 
+  const now = typeof performance !== 'undefined' ? performance.now() : 0;
   const { analyser, context } = tap;
-  analyser.getFloatTimeDomainData(waveScratch);
 
-  let sumSq = 0;
-  for (let i = 0; i < FFT_SIZE; i += 1) {
-    const s = waveScratch[i];
-    sumSq += s * s;
+  if (now - lastWaveStamp > FRAME_WINDOW_MS) {
+    analyser.getFloatTimeDomainData(waveScratch);
+    let sumSq = 0;
+    for (let i = 0; i < FFT_SIZE; i += 1) {
+      const s = waveScratch[i];
+      sumSq += s * s;
+    }
+    lastRms = Math.sqrt(sumSq / FFT_SIZE);
+    lastWaveStamp = now;
   }
-  const rms = Math.sqrt(sumSq / FFT_SIZE);
+  const rms = lastRms;
 
   if (spectrumOut && spectrumOut.length > 0) {
-    analyser.getFloatFrequencyData(freqScratch);
+    const n = spectrumOut.length;
+    const specKey = `${n}:${fLo}:${fHi}`;
+    if (
+      now - lastSpecStamp <= FRAME_WINDOW_MS &&
+      lastSpecKey === specKey &&
+      lastSpecCache.length === n
+    ) {
+      spectrumOut.set(lastSpecCache);
+      return { active: rms > 0.0002, rms };
+    }
+
+    if (now - lastFreqStamp > FRAME_WINDOW_MS) {
+      analyser.getFloatFrequencyData(freqScratch);
+      lastFreqStamp = now;
+    }
+
     const sr = context.sampleRate || 48000;
     const nyquist = sr / 2;
     const hi = Math.min(fHi, nyquist * 0.98);
     const ratio = hi / fLo;
-    const n = spectrumOut.length;
     const hzToBin = FFT_SIZE / sr;
 
     for (let i = 0; i < n; i += 1) {
@@ -86,6 +119,13 @@ export function sampleAudio(
       const norm = Number.isFinite(magDb) ? (magDb - MIN_DB) / DB_SPAN : 0;
       spectrumOut[i] = Math.max(0, Math.min(1, norm));
     }
+
+    if (lastSpecCache.length !== n) {
+      lastSpecCache = new Float32Array(n);
+    }
+    lastSpecCache.set(spectrumOut);
+    lastSpecKey = specKey;
+    lastSpecStamp = now;
   }
 
   return { active: rms > 0.0002, rms };

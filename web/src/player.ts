@@ -234,6 +234,7 @@ export const playerState = () => state;
 const follow = () => {
   cancelAnimationFrame(frame);
   const tick = () => {
+    frame = 0;
     if (element) set({ position: element.currentTime });
     const clip = state.activeClip;
     if (
@@ -243,10 +244,29 @@ const follow = () => {
       element.currentTime * 1000 >= clip.endMs
     )
       void clipEnded(clip);
-    if (state.playing) frame = requestAnimationFrame(tick);
+    if (
+      state.playing &&
+      (typeof document === 'undefined' || !document.hidden)
+    ) {
+      frame = requestAnimationFrame(tick);
+    }
   };
-  frame = requestAnimationFrame(tick);
+  if (typeof document === 'undefined' || !document.hidden) {
+    frame = requestAnimationFrame(tick);
+  }
 };
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    } else if (state.playing && !frame) {
+      if (element) set({ position: element.currentTime });
+      follow();
+    }
+  });
+}
 
 const release = () => {
   cancelAnimationFrame(frame);
