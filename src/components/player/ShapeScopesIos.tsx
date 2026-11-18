@@ -1,18 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
-import {
-  AppState,
-  StyleSheet,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 
 import { useReducedMotion } from 'react-native-reanimated';
 import Svg, {
@@ -52,7 +40,31 @@ import {
  */
 
 export const SCOPE_HEIGHT = 38;
-const LINE_PAD_Y = 6.5;
+const LINE_PAD_Y = 7.5;
+/**
+ * Standard iOS 26 inset-grouped Form cell padding (`UICollectionViewListCell`
+ * default contentMargins when `@expo/ui`'s `SectionView` wraps children in
+ * `SlotView`, preventing `listRowInsets` from reaching the cell directly):
+ * - Horizontal: `ROW_INSET` (16pt) on each side, so bleeding `±16pt` expands
+ *   the scope across the full `cardWidth` edge-to-edge.
+ * - Vertical: `11pt` top and bottom around a cell's content, so shifting down
+ *   by `+11pt` (`marginBottom: -11`) seats `y = SCOPE_HEIGHT` dead-on the
+ *   cell's bottom separator line, with an `11pt` upward extension (`BLEED_TOP`)
+ *   so vertical grid lines reach the card's top border.
+ */
+export const SCOPE_CELL_PAD_Y = 11;
+const BLEED_TOP = SCOPE_CELL_PAD_Y;
+const SVG_HEIGHT = SCOPE_HEIGHT + BLEED_TOP;
+/**
+ * The bottom divider sits at `y = SCOPE_HEIGHT - 0.5` (spanning `37.0..38.0`).
+ * Every area fill and live spectrum/echo trail anchors its bottom edge at
+ * `y = SCOPE_HEIGHT - 1` (`37.0`) so it meets the top of the separator cleanly
+ * without painting over or hiding the separator line, and every `.scope-line`
+ * curve stays within `[LINE_PAD_Y, SCOPE_HEIGHT - LINE_PAD_Y]` (`7.5..30.5`)
+ * so the 1.45pt stroke + phosphor halo always keeps ≥ 5pt of clear breathing
+ * room above the bottom divider.
+ */
+const DIVIDER_TOP_Y = SCOPE_HEIGHT - 1;
 
 const NYQUIST = 24000;
 const F_LO = 40;
@@ -273,39 +285,37 @@ export function echoTapDb(level: EffectLevel): number {
 }
 
 function ScopeBox({
-  onWidth,
+  width,
+  separatorColor,
   children,
 }: {
-  onWidth?: (width: number) => void;
+  width: number;
+  separatorColor: string;
   children: (width: number) => ReactNode;
 }) {
-  const [width, setWidth] = useState(0);
-  const cbRef = useRef(onWidth);
-  cbRef.current = onWidth;
-
-  const onLayout = useCallback((event: LayoutChangeEvent) => {
-    const next = Math.round(event.nativeEvent.layout.width);
-    setWidth(prev => {
-      if (prev !== next) cbRef.current?.(next);
-      return next;
-    });
-  }, []);
-
   return (
     <View
-      onLayout={onLayout}
       pointerEvents="none"
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={styles.box}
+      style={[styles.box, { width }]}
     >
       {width > 0 ? (
         <Svg
           width={width}
-          height={SCOPE_HEIGHT}
-          viewBox={`0 0 ${width} ${SCOPE_HEIGHT}`}
+          height={SVG_HEIGHT}
+          viewBox={`0 ${-BLEED_TOP} ${width} ${SVG_HEIGHT}`}
+          style={styles.svg}
         >
           {children(width)}
+          <Line
+            x1={0}
+            x2={width}
+            y1={SCOPE_HEIGHT - 0.5}
+            y2={SCOPE_HEIGHT - 0.5}
+            stroke={separatorColor}
+            strokeWidth={1}
+          />
         </Svg>
       ) : null}
     </View>
@@ -401,7 +411,7 @@ function useLiveSpectrumPath(
 
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
-        const bottom = (height + 1).toFixed(1);
+        const bottom = DIVIDER_TOP_Y.toFixed(1);
         setPathD(`${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`);
       } else {
         setPathD('');
@@ -450,9 +460,11 @@ const EQ_SPANS = EQ_BANDS.map(() => EQ_MAX_DB * 2);
 export function EqScope({
   gains,
   playing,
+  width,
 }: {
   gains: readonly number[];
   playing: boolean;
+  width: number;
 }) {
   const { colors, scheme } = useAppTheme();
   const isDark = scheme === 'dark';
@@ -462,7 +474,6 @@ export function EqScope({
   const targetGains = gains.map(g => g * (engaged ? 1 : 0.58));
   const { values, moving } = useGlide(targetGains, EQ_SPANS, reduceMotion);
   const fillId = useSvgId('eq-fill');
-  const [measuredW, setMeasuredW] = useState(0);
 
   const active = gains.some(g => g !== 0);
   const live = active && (playing || moving || editAwake);
@@ -474,9 +485,9 @@ export function EqScope({
 
   const spectrumD = useLiveSpectrumPath(
     playing,
-    measuredW,
-    SCOPE_HEIGHT,
-    SCOPE_HEIGHT * 0.76,
+    width,
+    DIVIDER_TOP_Y,
+    SCOPE_HEIGHT * 0.68,
     reduceMotion,
   );
 
@@ -486,8 +497,8 @@ export function EqScope({
   const specStroke = withAlpha(colors.onSurface, isDark ? 0.17 : 0.11);
 
   return (
-    <ScopeBox onWidth={setMeasuredW}>
-      {width => {
+    <ScopeBox width={width} separatorColor={colors.listSeparator}>
+      {w => {
         const mid = SCOPE_HEIGHT / 2;
         const swing = mid - LINE_PAD_Y;
         const y = (db: number) =>
@@ -496,12 +507,12 @@ export function EqScope({
             swing;
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(width / 2.5));
+        const count = Math.max(48, Math.round(w / 2.5));
         const xStart = -1.5;
-        const xEnd = width + 1.5;
+        const xEnd = w + 1.5;
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(width, x)), width);
+          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);
@@ -537,14 +548,14 @@ export function EqScope({
               />
             ) : null}
             {EQ_BANDS.map(band => {
-              const bx = freqX(band.hz, width);
+              const bx = freqX(band.hz, w);
               return (
                 <Line
                   key={band.hz}
                   x1={bx}
                   x2={bx}
-                  y1={0}
-                  y2={SCOPE_HEIGHT}
+                  y1={-BLEED_TOP}
+                  y2={DIVIDER_TOP_Y}
                   stroke={colors.listSeparator}
                   strokeWidth={0.75}
                   strokeDasharray="1.5, 2"
@@ -553,7 +564,7 @@ export function EqScope({
             })}
             <Line
               x1={-1}
-              x2={width + 1}
+              x2={w + 1}
               y1={mid}
               y2={mid}
               stroke={colors.listSeparator}
@@ -592,7 +603,7 @@ export function EqScope({
               return (
                 <Circle
                   key={band.hz}
-                  cx={freqX(band.hz, width)}
+                  cx={freqX(band.hz, w)}
                   cy={y(responseDb(coefficients, band.hz))}
                   r={NODE_R}
                   fill={bandActive ? colors.onSurface : colors.onSurfaceMuted}
@@ -719,7 +730,7 @@ function useLiveEchoTrail(
 
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
-        const bottom = (height + 1).toFixed(1);
+        const bottom = DIVIDER_TOP_Y.toFixed(1);
         setPathD(`${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`);
       } else {
         setPathD('');
@@ -757,9 +768,11 @@ function useLiveEchoTrail(
 export function EchoScope({
   level,
   playing,
+  width,
 }: {
   level: EffectLevel;
   playing: boolean;
+  width: number;
 }) {
   const { colors, scheme } = useAppTheme();
   const isDark = scheme === 'dark';
@@ -777,7 +790,6 @@ export function EchoScope({
   const live = active && (playing || moving || editAwake);
   const { areaOpacity, lineOpacity } = scopeOpacities(active, playing, live);
   const fillId = useSvgId('echo-fill');
-  const [measuredW, setMeasuredW] = useState(0);
 
   const decay = echoDecayRate(fb, rippleAmt);
   const decayRef = useRef(decay);
@@ -785,8 +797,8 @@ export function EchoScope({
 
   const trailD = useLiveEchoTrail(
     playing,
-    measuredW,
-    SCOPE_HEIGHT,
+    width,
+    DIVIDER_TOP_Y,
     decayRef,
     reduceMotion,
   );
@@ -797,19 +809,19 @@ export function EchoScope({
   const specStroke = withAlpha(colors.onSurface, isDark ? 0.17 : 0.11);
 
   return (
-    <ScopeBox onWidth={setMeasuredW}>
-      {width => {
+    <ScopeBox width={width} separatorColor={colors.listSeparator}>
+      {w => {
         const lineFloor = SCOPE_HEIGHT - LINE_PAD_Y;
         const lineSpan = lineFloor - LINE_PAD_Y;
         const maxRise = lineSpan * (0.68 + 0.32 * rippleAmt) * posture;
         const xStart = -1.5;
-        const xEnd = width + 1.5;
-        const count = Math.max(56, Math.round(width / 2));
+        const xEnd = w + 1.5;
+        const count = Math.max(56, Math.round(w / 2));
         const pts: { x: number; y: number }[] = [];
 
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const u = Math.max(0, Math.min(1, x / Math.max(1, width)));
+          const u = Math.max(0, Math.min(1, x / Math.max(1, w)));
           const env = Math.exp(-decay * u);
           const mod =
             1 - rippleAmt * 0.44 * (1 - Math.cos(2 * Math.PI * ECHO_WAVES * u));
@@ -817,7 +829,7 @@ export function EchoScope({
         }
 
         const line = polylinePath(pts);
-        const bottom = (SCOPE_HEIGHT + 1).toFixed(1);
+        const bottom = DIVIDER_TOP_Y.toFixed(1);
         const area = `${line}L${xEnd.toFixed(1)} ${bottom}L${xStart.toFixed(1)} ${bottom}Z`;
 
         return (
@@ -882,9 +894,11 @@ const ROOM_SPANS = [14, 1] as const;
 export function NextRoomScope({
   level,
   playing,
+  width,
 }: {
   level: EffectLevel;
   playing: boolean;
+  width: number;
 }) {
   const { colors, scheme } = useAppTheme();
   const isDark = scheme === 'dark';
@@ -905,13 +919,12 @@ export function NextRoomScope({
     coefficientsFor(band, d * (0.65 + 0.35 * awake), NYQUIST),
   );
   const fillId = useSvgId('room-fill');
-  const [measuredW, setMeasuredW] = useState(0);
 
   const spectrumD = useLiveSpectrumPath(
     playing,
-    measuredW,
-    SCOPE_HEIGHT,
-    SCOPE_HEIGHT * 0.76,
+    width,
+    DIVIDER_TOP_Y,
+    SCOPE_HEIGHT * 0.68,
     reduceMotion,
   );
 
@@ -921,8 +934,8 @@ export function NextRoomScope({
   const specStroke = withAlpha(colors.onSurface, isDark ? 0.17 : 0.11);
 
   return (
-    <ScopeBox onWidth={setMeasuredW}>
-      {width => {
+    <ScopeBox width={width} separatorColor={colors.listSeparator}>
+      {w => {
         const topY =
           ROOM_TOP_STANDBY + (ROOM_TOP_LIVE - ROOM_TOP_STANDBY) * awake;
         const lineFloor = SCOPE_HEIGHT - LINE_PAD_Y;
@@ -932,16 +945,16 @@ export function NextRoomScope({
             (lineFloor - topY);
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(width / 2.5));
+        const count = Math.max(48, Math.round(w / 2.5));
         const xStart = -1.5;
-        const xEnd = width + 1.5;
+        const xEnd = w + 1.5;
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(width, x)), width);
+          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);
-        const bottom = (SCOPE_HEIGHT + 1).toFixed(1);
+        const bottom = DIVIDER_TOP_Y.toFixed(1);
         const area = `${line}L${xEnd.toFixed(1)} ${bottom}L${xStart.toFixed(1)} ${bottom}Z`;
 
         return (
@@ -999,7 +1012,10 @@ export function NextRoomScope({
 const styles = StyleSheet.create({
   box: {
     height: SCOPE_HEIGHT,
-    overflow: 'hidden',
-    width: '100%',
+    marginBottom: -SCOPE_CELL_PAD_Y,
+    marginTop: 4,
+  },
+  svg: {
+    marginTop: -BLEED_TOP,
   },
 });

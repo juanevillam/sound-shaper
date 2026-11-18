@@ -1,5 +1,7 @@
 import { useEffect, type ReactElement } from 'react';
 
+import { useWindowDimensions } from 'react-native';
+
 import {
   HStack,
   Picker,
@@ -15,14 +17,18 @@ import {
   font,
   foregroundStyle,
   frame,
-  listRowInsets,
+  listRowSeparator,
   listSectionMargins,
   monospacedDigit,
+  offset,
   pickerStyle,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import { scrollSheetSection } from '@modules/audio-session';
+import {
+  prepareShapeScopeCells,
+  scrollSheetSection,
+} from '@modules/audio-session';
 
 import {
   EchoScope,
@@ -32,11 +38,12 @@ import {
   formatSignedDb,
   nextRoom1kDb,
   NextRoomScope,
+  SCOPE_CELL_PAD_Y,
   SCOPE_HEIGHT,
 } from '@/components/player/ShapeScopesIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
-import { useAppTheme } from '@/core';
+import { ROW_INSET, SCREEN_PADDING, useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import {
@@ -131,19 +138,45 @@ function DjProgressRow(props: Parameters<typeof FormValueRowIos>[0]) {
 
 /**
  * Hosted studio parameter scope row inside a grouped SwiftUI `Section`:
- * `listRowInsets(0)` spans edge-to-edge across the grouped card, and
- * `frame({ height: SCOPE_HEIGHT })` reserves the exact 38pt slot in SwiftUI on
- * the first frame with zero layout shift.
+ * - `@expo/ui`'s `SectionView` wraps its children in a `SlotView`, so SwiftUI's
+ *   `listRowInsets` cannot reach the `UICollectionViewListCell` directly and
+ *   the cell keeps its default `ROW_INSET` (16pt) horizontal and 11pt vertical
+ *   content margins.
+ * - We therefore reserve the inner row box (`width - ROW_INSET * 2`, height
+ *   `SCOPE_HEIGHT - SCOPE_CELL_PAD_Y * 2 + 4`) in the layout `VStack`, and
+ *   expand the inner `RNHostView` to the full `cardWidth` (`width`) shifted left
+ *   by `-ROW_INSET` so the scope spans 100% edge-to-edge across the grouped
+ *   card and lands flush on the bottom cell divider with zero gap.
  */
-function ScopeRowIos({ children }: { children: ReactElement }) {
+function ScopeRowIos({
+  width,
+  children,
+}: {
+  width: number;
+  children: ReactElement;
+}) {
+  const innerWidth = Math.max(1, width - ROW_INSET * 2);
+  const layoutHeight = Math.max(16, SCOPE_HEIGHT - SCOPE_CELL_PAD_Y * 2 + 4);
   return (
     <VStack
+      alignment="leading"
       modifiers={[
-        frame({ height: SCOPE_HEIGHT }),
-        listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
+        listRowSeparator('hidden', 'bottom'),
+        frame({
+          width: innerWidth,
+          height: layoutHeight,
+          alignment: 'leading',
+        }),
       ]}
     >
-      <RNHostView>{children}</RNHostView>
+      <VStack
+        modifiers={[
+          frame({ width, height: SCOPE_HEIGHT }),
+          offset({ x: -ROW_INSET, y: 0 }),
+        ]}
+      >
+        <RNHostView>{children}</RNHostView>
+      </VStack>
     </VStack>
   );
 }
@@ -159,6 +192,7 @@ function LevelPickerSection({
   value,
   meta,
   scope,
+  scopeWidth,
   activeColor,
   mutedColor,
   onChange,
@@ -169,6 +203,7 @@ function LevelPickerSection({
   value: EffectLevel;
   meta?: string | null;
   scope: ReactElement;
+  scopeWidth: number;
   activeColor: string;
   mutedColor: string;
   onChange: (key: unknown) => void;
@@ -176,24 +211,29 @@ function LevelPickerSection({
 }) {
   return (
     <Section footer={<SwiftUIText>{footer}</SwiftUIText>}>
-      <ScopeRowIos>{scope}</ScopeRowIos>
+      <ScopeRowIos width={scopeWidth}>{scope}</ScopeRowIos>
       <Picker
         label={
           meta ? (
-            <HStack spacing={6}>
-              <SwiftUIText modifiers={[foregroundStyle(activeColor)]}>
-                {label}
+            <SwiftUIText>
+              <SwiftUIText
+                modifiers={[
+                  font({ textStyle: 'body', weight: 'regular' }),
+                  foregroundStyle(activeColor),
+                ]}
+              >
+                {`${label}  `}
               </SwiftUIText>
               <SwiftUIText
                 modifiers={[
-                  font({ textStyle: 'footnote' }),
+                  font({ textStyle: 'subheadline', weight: 'regular' }),
                   monospacedDigit(),
                   foregroundStyle(mutedColor),
                 ]}
               >
                 {meta}
               </SwiftUIText>
-            </HStack>
+            </SwiftUIText>
           ) : (
             label
           )
@@ -214,8 +254,19 @@ function LevelPickerSection({
 
 function ShaperSheetScreen() {
   const { t, locale } = useI18n();
+  const { width: winW } = useWindowDimensions();
+  const scopeWidth = Math.max(1, Math.round(winW - SCREEN_PADDING * 2));
 
-  useEffect(() => track({ name: 'open_shape' }), []);
+  useEffect(() => {
+    track({ name: 'open_shape' });
+    prepareShapeScopeCells();
+    const t1 = setTimeout(prepareShapeScopeCells, 120);
+    const t2 = setTimeout(prepareShapeScopeCells, 350);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
   const { colors } = useAppTheme();
 
   const playing = usePlayerStore(s => s.playing);
@@ -357,11 +408,16 @@ function ShaperSheetScreen() {
           ]}
           header={
             <HStack>
-              <SwiftUIText>{t('player.eq.title')}</SwiftUIText>
+              <SwiftUIText
+                modifiers={[font({ textStyle: 'footnote', weight: 'regular' })]}
+              >
+                {t('player.eq.title')}
+              </SwiftUIText>
               <Spacer />
               {eqActive ? (
                 <SwiftUIText
                   modifiers={[
+                    font({ textStyle: 'footnote', weight: 'regular' }),
                     monospacedDigit(),
                     foregroundStyle(colors.onSurface),
                   ]}
@@ -373,8 +429,8 @@ function ShaperSheetScreen() {
           }
           footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
         >
-          <ScopeRowIos>
-            <EqScope gains={gains} playing={playing} />
+          <ScopeRowIos width={scopeWidth}>
+            <EqScope gains={gains} playing={playing} width={scopeWidth} />
           </ScopeRowIos>
           {EQ_BANDS.map((band, index) => {
             const bandActive = gains[index] !== 0;
@@ -411,10 +467,15 @@ function ShaperSheetScreen() {
         <Section
           header={
             <HStack>
-              <SwiftUIText>{t('player.speed')}</SwiftUIText>
+              <SwiftUIText
+                modifiers={[font({ textStyle: 'footnote', weight: 'regular' })]}
+              >
+                {t('player.speed')}
+              </SwiftUIText>
               <Spacer />
               <SwiftUIText
                 modifiers={[
+                  font({ textStyle: 'footnote', weight: 'regular' }),
                   monospacedDigit(),
                   foregroundStyle(
                     rate !== 1 ? colors.onSurface : colors.onSurfaceMuted,
@@ -461,7 +522,10 @@ function ShaperSheetScreen() {
           footer={t('player.echoDescription')}
           value={echo}
           meta={echo === 'off' ? null : formatSignedDb(echoTapDb(echo), locale)}
-          scope={<EchoScope level={echo} playing={playing} />}
+          scope={
+            <EchoScope level={echo} playing={playing} width={scopeWidth} />
+          }
+          scopeWidth={scopeWidth}
           activeColor={colors.onSurface}
           mutedColor={colors.onSurfaceMuted}
           onChange={key => byHand(setEcho)(asLevel(key))}
@@ -477,7 +541,14 @@ function ShaperSheetScreen() {
               ? null
               : formatSignedDb(nextRoom1kDb(nextRoom), locale)
           }
-          scope={<NextRoomScope level={nextRoom} playing={playing} />}
+          scope={
+            <NextRoomScope
+              level={nextRoom}
+              playing={playing}
+              width={scopeWidth}
+            />
+          }
+          scopeWidth={scopeWidth}
           activeColor={colors.onSurface}
           mutedColor={colors.onSurfaceMuted}
           onChange={key => byHand(setNextRoom)(asLevel(key))}

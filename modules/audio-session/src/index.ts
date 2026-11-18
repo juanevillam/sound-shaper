@@ -3,6 +3,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 type NativeAudioSession = {
   excludeFromBackup: (path: string) => void;
   isOtherAudioPlaying: () => boolean;
+  prepareShapeScopeCells?: () => void;
   scrollSheetSection?: (section: number) => void;
 };
 
@@ -36,4 +37,8 @@ export const excludeFromBackup = (path: string): void => {
  */
 export const scrollSheetSection = (section: number): void => {
   native?.scrollSheetSection?.(section);
+};
+
+export const prepareShapeScopeCells = (): void => {
+  native?.prepareShapeScopeCells?.();
 };
