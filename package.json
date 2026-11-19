@@ -17,6 +17,7 @@
     "brand-art": "python3 -m venv .brand-venv >/dev/null && .brand-venv/bin/pip install --quiet shapely pillow && .brand-venv/bin/python scripts/gen-brand-art.py",
     "store-screenshots": "python3 -m venv .brand-venv >/dev/null && .brand-venv/bin/pip install --quiet pillow && .brand-venv/bin/python store/generate.py",
     "sync:website": "node ../scripts/sync-shaper-website.mjs",
+    "sync:website:check": "node ../scripts/sync-shaper-website.mjs --check",
     "check:website": "node ../scripts/sync-shaper-website.mjs --check",
     "postinstall": "node scripts/apply-patches.mjs",
     "prepare": "husky"

@@ -22,5 +22,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zustand": "5.0.13"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.13.7"
   }
 }

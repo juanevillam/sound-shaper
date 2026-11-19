@@ -31,7 +31,7 @@
         "APP_CHECK": "enforce",
         // The web app (sound-shaper/web) and its dev server. CORS only lets
         // a browser read the reply; the token and App Check still decide.
-        "ALLOWED_ORIGINS": "https://soundshaper.juanevillam.com,http://localhost:5173",
+        "ALLOWED_ORIGINS": "https://soundshaper.juanevillam.com,http://localhost:5173,http://localhost:5174",
       },
       // 30 requests a minute per account, across every route.
       "ratelimits": [

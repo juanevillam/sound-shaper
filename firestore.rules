@@ -53,7 +53,8 @@ service cloud.firestore {
         allow read, delete: if isUser(uid);
         allow create, update: if isUser(uid)
           && request.resource.data.keys().hasOnly(['achievedAt'])
-          && request.resource.data.achievedAt is number;
+          && (request.resource.data.achievedAt is timestamp
+            || request.resource.data.achievedAt is number);
       }
     }
 

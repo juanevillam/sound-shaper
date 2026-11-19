@@ -168,6 +168,9 @@ export const deleteAccount = async () => {
   try {
     await cleanupMyMedia();
     await sweep(user.uid);
+    const { forgetAddTilePosition } = await import('./library');
+    forgetAddTilePosition(user.uid);
+    forgetMemberSince();
     await deleteUser(user);
   } catch (error) {
     blockTrophySync(false);
