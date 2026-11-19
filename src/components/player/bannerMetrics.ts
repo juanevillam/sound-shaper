@@ -29,10 +29,7 @@ import { NOW_PLAYING_BOTTOM_GAP_IOS } from '@/ui';
  *
  * Re-exported here under the player's names (`BANNER_BOTTOM_GAP_IOS`).
  */
-export {
-  MINI_PLAYER_HEIGHT,
-  NOW_PLAYING_BOTTOM_GAP_IOS as BANNER_BOTTOM_GAP_IOS,
-} from '@/ui';
+export { MINI_PLAYER_HEIGHT } from '@/ui';
 
 /**
  * Gap from the banner to each screen edge. It is the SCREEN GUTTER, not a

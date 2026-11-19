@@ -14,13 +14,10 @@ export {
   CONTINUOUS_CURVE,
   HAIRLINE,
   innerRadius,
-  SHAPE_MD,
   SHAPE_SM,
-  TILE_RADIUS,
 } from './shape';
 export { legalUrl, type LegalPage } from './author';
 export { confirmDestructiveIos } from './confirmDestructiveIos';
-export { DisclosureChevron } from './DisclosureChevron';
 export { artworkRadius } from './artworkRadius';
 export { EmptyState } from './EmptyState';
 export {
@@ -41,7 +38,6 @@ export {
 export { ErrorScreen } from './ErrorScreen';
 export {
   HEADER_CLOSE_GLYPH_SIZE,
-  HEADER_LONE_TARGET,
   HeaderGlyphButtonIos,
   HeaderGlyphGroupIos,
 } from './HeaderGlyphButtonIos';
@@ -50,11 +46,7 @@ export {
   FormDisclosureRowIos,
   FormValueRowIos,
 } from './FormDisclosureRowIos';
-export {
-  GROUPED_ROW,
-  GROUPED_ROW_PITCH,
-  LIST_ROW_PADDING_VERTICAL,
-} from './groupedRow';
+export { GROUPED_ROW } from './groupedRow';
 export { LIST_ROW_ONE_LINE } from './listRowText';
 export { SHEET_HERO_BADGE_SIZE, SHEET_HERO_GLYPH_SIZE } from './sheetHero';
 export {
@@ -63,14 +55,9 @@ export {
   SHEET_FIRST_CARD_MARGIN,
 } from './sheetMetrics';
 export { SkeletonBone } from './SkeletonBone';
-export { SkeletonTextLine, SKELETON_BAR_RATIO } from './SkeletonTextLine';
+export { SkeletonTextLine } from './SkeletonTextLine';
 export { StateWrap } from './StateWrap';
-export {
-  EMPTY_MEDIA_INITIAL_RATIO,
-  emptyMediaColor,
-  InitialArt,
-  type MediaContainer,
-} from './InitialArt';
+export { emptyMediaColor, InitialArt, type MediaContainer } from './InitialArt';
 export { type IconName } from './icons';
 export { WelcomeScreen, type AuthAction } from './WelcomeScreen';
 export { ProgressOverlayIos } from './ProgressOverlayIos';
@@ -83,7 +70,6 @@ export {
   FLOATING_RADIUS,
 } from './floating';
 export {
-  GLASS_FLOOR,
   glassFloorColor,
   GlassSurfaceIos,
   makeGlassUnderlay,

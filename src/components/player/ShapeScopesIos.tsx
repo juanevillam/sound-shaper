@@ -412,9 +412,10 @@ function useLiveSpectrumPath(
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
         const bottom = DIVIDER_TOP_Y.toFixed(1);
-        setPathD(`${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`);
+        const nextD = `${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`;
+        setPathD(prev => (prev === nextD ? prev : nextD));
       } else {
-        setPathD('');
+        setPathD(prev => (prev === '' ? prev : ''));
         if (!isPlaying) {
           smooth.fill(0);
           gateRef.current = 0;
@@ -731,9 +732,10 @@ function useLiveEchoTrail(
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
         const bottom = DIVIDER_TOP_Y.toFixed(1);
-        setPathD(`${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`);
+        const nextD = `${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`;
+        setPathD(prev => (prev === nextD ? prev : nextD));
       } else {
-        setPathD('');
+        setPathD(prev => (prev === '' ? prev : ''));
         if (!isPlaying) {
           history.fill(0);
           gateRef.current = 0;

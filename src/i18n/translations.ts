@@ -1,8 +1,5 @@
 export const translations = {
   en: {
-    platform: {
-      androidUnavailable: "Sound Shaper isn't available on Android yet.",
-    },
     errors: {
       title: 'An Error Occurred',
       message: 'An unexpected error occurred.',
@@ -140,8 +137,6 @@ export const translations = {
         // The editor's door is the + above — the old copy described the
         // retired on-scrubber framing.
         empty: 'Tap + to save your favorite part.',
-        // The web has no + in its bar: the empty state carries New Clip.
-        emptyWeb: 'Save your favorite part as a clip.',
         none: 'No Clips Yet',
         loadError: "Couldn't Load Clips",
         loadErrorHint: 'Check your connection and try again.',
@@ -199,11 +194,9 @@ export const translations = {
     soundEdit: {
       name: {
         label: 'Title',
-        placeholder: 'Nightcall',
       },
       subtitle: {
         label: 'Subtitle (Optional)',
-        placeholder: 'Kavinsky',
       },
       art: {
         add: 'Add Artwork',
@@ -383,9 +376,6 @@ export const translations = {
     },
   },
   es: {
-    platform: {
-      androidUnavailable: 'Sound Shaper aún no está disponible en Android.',
-    },
     errors: {
       title: 'Se produjo un error',
       message: 'Se produjo un error inesperado.',
@@ -511,7 +501,6 @@ export const translations = {
         preview: 'Previsualizar',
         saveClip: 'Guardar',
         empty: 'Toca + para guardar tu parte favorita.',
-        emptyWeb: 'Guarda tu parte favorita como un clip.',
         none: 'Aún no hay clips',
         loadError: 'No se pudieron cargar los clips',
         loadErrorHint: 'Comprueba tu conexión y vuelve a intentarlo.',
@@ -543,11 +532,9 @@ export const translations = {
     soundEdit: {
       name: {
         label: 'Título',
-        placeholder: 'Nightcall',
       },
       subtitle: {
         label: 'Subtítulo (opcional)',
-        placeholder: 'Kavinsky',
       },
       art: {
         add: 'Añadir ilustración',
@@ -723,9 +710,6 @@ export const translations = {
     },
   },
   zh: {
-    platform: {
-      androidUnavailable: 'Sound Shaper 尚不支持 Android。',
-    },
     errors: {
       title: '发生错误',
       message: '发生了意外错误。',
@@ -846,7 +830,6 @@ export const translations = {
         preview: '预览',
         saveClip: '存储',
         empty: '轻点+即可存储你最喜欢的部分。',
-        emptyWeb: '将你最喜欢的部分存储为片段。',
         none: '还没有片段',
         loadError: '无法载入片段',
         loadErrorHint: '请检查网络连接后重试。',
@@ -878,11 +861,9 @@ export const translations = {
     soundEdit: {
       name: {
         label: '标题',
-        placeholder: 'Nightcall',
       },
       subtitle: {
         label: '副标题（可选）',
-        placeholder: 'Kavinsky',
       },
       art: {
         add: '添加插图',

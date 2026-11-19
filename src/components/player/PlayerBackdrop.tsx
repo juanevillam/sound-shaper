@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AppState, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, {
@@ -19,6 +19,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useAppTheme } from '@/core';
+import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 
 // The immersive top of the expanded player: the sound's own artwork, blown up
@@ -282,9 +283,20 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
 }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
   const reduceMotion = useReducedMotion();
+  const iosSheetPresented = useIosSheetPresented();
+  const [appActive, setAppActive] = useState(
+    () => AppState.currentState === 'active',
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      setAppActive(next === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   // The flow's clock, in seconds of MUSIC: real time × rate, and only while
-  // playing. Advanced on the UI thread, so React never re-renders for it.
+  // playing, uncovered by a full-height form sheet, and in the foreground.
+  // Advanced on the UI thread, so React never re-renders for it.
   const phase = useSharedValue(0);
   const speed = useSharedValue(rate);
   useEffect(() => {
@@ -298,8 +310,8 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
   }, false);
   const flows = !reduceMotion;
   useEffect(() => {
-    clock.setActive(flowing && flows);
-  }, [clock, flowing, flows]);
+    clock.setActive(flowing && flows && !iosSheetPresented && appActive);
+  }, [appActive, clock, flowing, flows, iosSheetPresented]);
 
   /**
    * CROSSFADE THE SOURCES, NOT JUST THE IMAGES. expo-image's `transition`

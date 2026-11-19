@@ -120,6 +120,14 @@ public class AudioSessionModule: Module {
 
         if abs(sv.contentOffset.y - targetY) > 2 {
           sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: targetY), animated: true)
+          if let cv = sv as? UICollectionView {
+            Self.tuneScopeCells(in: cv)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+              Self.tuneScopeCells(in: cv)
+            }
+          }
+        } else if let cv = sv as? UICollectionView {
+          Self.tuneScopeCells(in: cv)
         }
       }
     }

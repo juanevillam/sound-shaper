@@ -112,6 +112,7 @@ export function MediaScrubberIos({
   const valueSv = useSharedValue(0);
   const activeSv = useSharedValue(0);
   const movedSv = useSharedValue(false);
+  const lastWholeSecSv = useSharedValue(-1);
   const draggingRef = useRef(false);
 
   // FOLLOW THE TRANSPORT ONLY WHEN THE FINGER DOES NOT OWN THE VALUE, and do
@@ -155,17 +156,26 @@ export function MediaScrubberIos({
           runOnJS(setDragging)(true);
           activeSv.value = 1;
           movedSv.value = false;
+          lastWholeSecSv.value = -1;
         })
         .onChange(event => {
           if (widthSv.value <= 0) return;
           movedSv.value = true;
           const next =
             valueSv.value + (event.changeX / widthSv.value) * duration;
-          valueSv.value = Math.min(Math.max(next, 0), duration);
-          runOnJS(emitDrag)(valueSv.value);
+          const clamped = Math.min(Math.max(next, 0), duration);
+          valueSv.value = clamped;
+          const wholeSec = Math.floor(clamped);
+          if (wholeSec !== lastWholeSecSv.value) {
+            lastWholeSecSv.value = wholeSec;
+            runOnJS(emitDrag)(clamped);
+          }
         })
         .onFinalize(() => {
           activeSv.value = 0;
+          if (movedSv.value) {
+            runOnJS(emitDrag)(valueSv.value);
+          }
           runOnJS(setDragging)(false);
           runOnJS(emitDragEnd)(movedSv.value);
         }),
@@ -174,6 +184,7 @@ export function MediaScrubberIos({
       duration,
       emitDrag,
       emitDragEnd,
+      lastWholeSecSv,
       movedSv,
       setDragging,
       valueSv,

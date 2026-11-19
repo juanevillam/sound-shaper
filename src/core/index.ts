@@ -3,7 +3,6 @@ export {
   opticalTextInset,
   ROW_INSET,
   SCREEN_PADDING,
-  SECTION_GAP,
   TILE_GAP,
 } from './theme/metrics';
 export { DEFAULT_THEME, SUPPORTED_THEMES, type Theme } from './theme/themes';

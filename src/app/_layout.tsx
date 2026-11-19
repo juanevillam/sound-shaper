@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { Appearance, Platform, StyleSheet, Text, View } from 'react-native';
+import { Appearance, StyleSheet } from 'react-native';
 
 import {
   Stack,
@@ -83,31 +83,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
-// SOUND SHAPER IS iOS AND THE WEB ONLY (Juan, 2026-11-04). There is no Android
-// build, but expo-router still compiles for it, so an Android run gets one
-// plain screen saying so and nothing else — none of the app's hooks mount.
-function NotAvailableOnAndroid() {
-  const { t } = useI18n();
-  const { colors } = useAppTheme();
-
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
-
-  return (
-    <View style={[styles.unavailable, { backgroundColor: colors.background }]}>
-      <Text style={[styles.unavailableText, { color: colors.onSurface }]}>
-        {t('platform.androidUnavailable')}
-      </Text>
-    </View>
-  );
-}
-
 export default function RootLayout() {
-  return Platform.OS === 'android' ? <NotAvailableOnAndroid /> : <AppRoot />;
-}
-
-function AppRoot() {
   const layoutHydrated = useLayoutStore(s => s.hasHydrated);
   const authResolved = useAuthStore(s => s.hasResolved);
   const themeHydrated = useThemeStore(s => s.hasHydrated);
@@ -180,11 +156,4 @@ function AppRoot() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  unavailable: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 32,
-  },
-  unavailableText: { fontSize: 17, lineHeight: 22, textAlign: 'center' },
 });

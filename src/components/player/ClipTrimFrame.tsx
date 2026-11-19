@@ -182,19 +182,6 @@ type ClipTrimFrameProps = {
   endSv: SharedValue<number>;
   onChange: (startS: number, endS: number) => void;
   /**
-   * A FINGER IS ON THE FRAME — true on touch-down, false when it lifts.
-   *
-   * The same competition the zoomed strip already reported, on the surface
-   * that needs it MORE: the overview's drags are a short horizontal throw
-   * inside a Compose `ModalBottomSheet`, and the fine-scrub gain is entered
-   * by sliding DOWN — which is the sheet's own dismiss direction. Sliding the
-   * clip therefore handed the finger to the sheet on the gesture the editor
-   * exists for (Juan, 2026-09-11). Fires from `onBegin`, i.e. on touch-down
-   * rather than on activation, for the reason `ClipTrimEditor` states: by the
-   * time a pan activates the sheet may already have won. iOS passes nothing.
-   */
-  onBandTouch?: (down: boolean) => void;
-  /**
    * Which edge or handle is currently being dragged (`'start' | 'end' | 'clip'`),
    * or `null` when released, so `ClipRangeCaption` can highlight the active
    * edge timestamp in full ink matching `web/src/ui/ClipEditor.tsx`.
@@ -209,7 +196,6 @@ export function ClipTrimFrame({
   startSv,
   endSv,
   onChange,
-  onBandTouch,
   onActiveEdgeChange,
 }: ClipTrimFrameProps) {
   const { colors } = useAppTheme();
@@ -256,14 +242,9 @@ export function ClipTrimFrame({
     edge: 'start' | 'end' | 'clip' | null = null,
   ) => {
     draggingRef.current = value;
-    // The sheet under this editor stops competing for the drag — see
-    // `onBandTouch`.
-    onBandTouch?.(value);
     onActiveEdgeChange?.(value ? edge : null);
   };
   const commit = (nextStartS: number, nextEndS: number) => {
-    // Through `setDragging`, so the release REACHES the sheet: a commit that
-    // only cleared the ref left `sheetGesturesEnabled` off for good.
     setDragging(false, null);
     onChange(nextStartS, nextEndS);
   };

@@ -51,12 +51,6 @@ export const SCREEN_PADDING = 16;
 export const TILE_GAP = 14;
 
 /**
- * Vertical gap between two sections of a screen. Material stacks sections on
- * the 8dp grid; iOS grouped lists leave a deeper trough between groups.
- */
-export const SECTION_GAP = 28;
-
-/**
  * Inset a row's own content sits at INSIDE its container. iOS list cells run
  * 16pt from the container edge; M3 list items 16dp — the same, so this exists
  * only as the named anchor the two share.

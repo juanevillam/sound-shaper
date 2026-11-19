@@ -307,22 +307,6 @@ type ClipTrimEditorProps = {
   /** Committed selection — the numbers Save writes. */
   range: Range;
   onRangeChange: (startS: number, endS: number) => void;
-  /**
-   * A FINGER IS ON THE BAND — true on touch-down, false when it lifts.
-   *
-   * Android's editor lives in a Compose `ModalBottomSheet`, whose own
-   * drag-to-dismiss is a NATIVE gesture in the window above RN's. Scrubbing
-   * is never purely horizontal, so the sheet kept claiming the drag and
-   * sliding away mid-trim — on the one interaction this surface exists for
-   * (Juan, 2026-09-10). The sheet takes this to turn `sheetGesturesEnabled`
-   * off while the finger is down, so the two are no longer racing.
-   *
-   * It fires from `onBegin`, i.e. on touch-down rather than on activation,
-   * because by the time a pan activates the sheet may already have won.
-   * iOS passes nothing: its sheet is a real `UISheetPresentationController`
-   * and arbitrates with the scroller itself.
-   */
-  onBandTouch?: (down: boolean) => void;
 };
 
 /**
@@ -366,11 +350,7 @@ function barsPath(
   return parts.join('');
 }
 
-export function ClipTrimEditor({
-  range,
-  onRangeChange,
-  onBandTouch,
-}: ClipTrimEditorProps) {
+export function ClipTrimEditor({ range, onRangeChange }: ClipTrimEditorProps) {
   const { t } = useI18n();
   const { colors } = useAppTheme();
   // Each platform's own accent, no branch — see the frame's note
@@ -420,9 +400,6 @@ export function ClipTrimEditor({
   const setPanning = (value: boolean) => {
     panningRef.current = value;
     setScrubbing(value);
-    // The sheet under this editor stops competing for the drag — see
-    // `onBandTouch`.
-    onBandTouch?.(value);
   };
 
   /**
@@ -532,8 +509,6 @@ export function ClipTrimEditor({
   ) => {
     edgeDraggingRef.current = value;
     setActiveEdge(value ? edge : null);
-    // Dragging a cap is the same competition as scrubbing — see `onBandTouch`.
-    onBandTouch?.(value);
   };
   useEffect(() => {
     if (edgeDraggingRef.current) return;
@@ -553,13 +528,8 @@ export function ClipTrimEditor({
   const commitEdges = useCallback(() => {
     edgeDraggingRef.current = false;
     setActiveEdge(null);
-    // RELEASE THE SHEET TOO. This cleared only the ref, so a cap drag left
-    // `sheetGesturesEnabled` off permanently — swipe-to-dismiss was dead for
-    // the rest of the editor's life, and the leak was invisible because the
-    // symptom is a gesture that STOPS working rather than one that misfires.
-    onBandTouch?.(false);
     onRangeChange(startSv.value, endSv.value);
-  }, [onBandTouch, onRangeChange, startSv, endSv]);
+  }, [onRangeChange, startSv, endSv]);
 
   // --- Tiled strip ---------------------------------------------------------
   // The strip lives in ABSOLUTE track coordinates (translateX derives from
@@ -1187,7 +1157,6 @@ export function ClipTrimEditor({
                 startSv={startSv}
                 endSv={endSv}
                 onChange={onRangeChange}
-                onBandTouch={onBandTouch}
                 onActiveEdgeChange={setActiveEdge}
               />
             </View>

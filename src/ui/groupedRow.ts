@@ -23,12 +23,9 @@ import { ROW_INSET } from '@/core';
  * WHAT A NATIVE `insetGrouped` ROW PUTS ABOVE AND BELOW ITS ARTWORK.
  *
  * MEASURED, not assumed: the row band-scanned at a 73pt pitch around 44pt
- * artwork, so the padding is (73 − 44) / 2. EXPORTED rather than folded into
- * the 73, because `TopItemListSkeletonIos` stands a row of the same kind around
- * 64pt artwork and would otherwise have to measure the identical thing a second
- * time — which is how two bones come to disagree about one OS metric.
+ * artwork, so the padding is (73 − 44) / 2.
  */
-export const LIST_ROW_PADDING_VERTICAL = 14.5;
+const LIST_ROW_PADDING_VERTICAL = 14.5;
 
 const ART = 44;
 /** The List's row box: 44pt artwork with the shared padding above and below. */
@@ -75,11 +72,3 @@ export const GROUPED_ROW = {
   separatorHeight: SEPARATOR_HEIGHT,
   separatorInset: SEPARATOR_INSET,
 } as const;
-
-/**
- * One bone row's footprint, separator included. Exported (and listed in
- * `docs/standards.md`'s single-source table) although nothing reads it today:
- * it is the term any bone stack standing where grouped rows stand must step
- * by, so the next one imports it rather than re-adding `pitch + separator`.
- */
-export const GROUPED_ROW_PITCH = ROW_PITCH + SEPARATOR_HEIGHT;

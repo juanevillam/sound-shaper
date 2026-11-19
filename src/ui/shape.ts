@@ -24,17 +24,11 @@ import { StyleSheet, type ViewStyle } from 'react-native';
 // inset-grouped-list radius.
 const IOS_GROUP_RADIUS = 26;
 
-// M3 shape-scale steps — the Android radius of a surface nested inside a
-// CARD_RADIUS / TILE_RADIUS container (M3 has no concentric-corner rule; it
-// keys nested radii to this fixed scale instead).
+/** Floor radius for a surface nested inside a `CARD_RADIUS` container. */
 export const SHAPE_SM = 8;
-export const SHAPE_MD = 12;
 
-/** Standard card/row container (M3 12 / iOS grouped 26). */
+/** Standard card/row container (iOS grouped 26). */
 export const CARD_RADIUS = IOS_GROUP_RADIUS;
-
-/** Larger tile container (M3 16 / iOS grouped 26). */
-export const TILE_RADIUS = IOS_GROUP_RADIUS;
 
 /**
  * The corner CURVE, not its size. Apple's corners are continuous ("squircle")
