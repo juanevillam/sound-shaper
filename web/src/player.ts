@@ -10,11 +10,13 @@ import {
 import { RATE_MAX, RATE_MIN, snapRate } from '@app/lib/player';
 import { EQ_PRESETS, type EffectLevel } from '@app/lib/shapeDsp';
 
+import { forgetMemberSince } from './account';
 import { autoDjState } from './autoDj';
 import { forgetClips, getClipsOfSounds, knownClips } from './clips';
 import { thumbUrl } from './lib/thumbUrl';
 import type { Sound } from './library';
 import { asHandle, type AudioTagHandle } from './shims/audio-api';
+import { bankSoundDuration } from './sounds';
 import { forgetWaveforms } from './waveform';
 
 /**
@@ -296,9 +298,19 @@ const load = (sound: Sound) => {
     follow();
   });
   el.addEventListener('pause', () => set({ playing: false }));
-  el.addEventListener('loadedmetadata', () =>
-    set({ duration: Number.isFinite(el.duration) ? el.duration : 0 }),
-  );
+  el.addEventListener('loadedmetadata', () => {
+    const duration = Number.isFinite(el.duration) ? el.duration : 0;
+    set({ duration });
+    const reportedMs = Math.round(duration * 1000);
+    const currentSound = state.current?.id === sound.id ? state.current : sound;
+    const storedMs = currentSound.durationMs;
+    if (
+      reportedMs > 0 &&
+      (storedMs === null || Math.abs(storedMs - reportedMs) > 1000)
+    ) {
+      void bankSoundDuration(sound.id, reportedMs);
+    }
+  });
   el.addEventListener('ended', () => {
     if (autoDjState().mode === 'sound') {
       void cueSound(sound, 0);
@@ -567,6 +579,7 @@ export const resetPlayer = () => {
   audioEngine.apply(FLAT, 'off', 'off');
   forgetClips();
   forgetWaveforms();
+  forgetMemberSince();
   try {
     localStorage.removeItem(REPEAT_KEY);
   } catch {

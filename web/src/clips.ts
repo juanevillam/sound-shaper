@@ -62,6 +62,7 @@ const toClip = (id: string, data: Record<string, unknown>): Clip => ({
 let known: Record<string, Clip[] | undefined> = {};
 let loaded: Record<string, true> = {};
 const listeners = new Set<() => void>();
+const activeSubs = new Map<string, { count: number; unsub: () => void }>();
 
 const publish = (soundId: string, clips: Clip[]) => {
   known = { ...known, [soundId]: clips };
@@ -81,15 +82,31 @@ export const useClips = (soundId: string | undefined): Clip[] | null => {
   useEffect(() => {
     if (!soundId) return;
 
-    return onSnapshot(
-      query(clipsOf(soundId), orderBy('startMs', 'asc')),
-      snapshot =>
-        publish(
-          soundId,
-          snapshot.docs.map(d => toClip(d.id, d.data())),
-        ),
-      error => console.warn('clips', error),
-    );
+    const existing = activeSubs.get(soundId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      const unsub = onSnapshot(
+        query(clipsOf(soundId), orderBy('startMs', 'asc')),
+        snapshot =>
+          publish(
+            soundId,
+            snapshot.docs.map(d => toClip(d.id, d.data())),
+          ),
+        error => console.warn('clips', error),
+      );
+      activeSubs.set(soundId, { count: 1, unsub });
+    }
+
+    return () => {
+      const entry = activeSubs.get(soundId);
+      if (!entry) return;
+      entry.count -= 1;
+      if (entry.count <= 0) {
+        activeSubs.delete(soundId);
+        entry.unsub();
+      }
+    };
   }, [soundId]);
 
   return useSyncExternalStore(subscribe, () =>
@@ -148,8 +165,22 @@ export const updateClip = (
 export const deleteClip = (soundId: string, clipId: string) =>
   deleteDoc(doc(clipsOf(soundId), clipId));
 
+/** Deleted sound: drop its cached clips. */
+export const forgetClipsOfSound = (soundId: string) => {
+  if (!(soundId in known) && !(soundId in loaded)) return;
+  const nextKnown = { ...known };
+  const nextLoaded = { ...loaded };
+  delete nextKnown[soundId];
+  delete nextLoaded[soundId];
+  known = nextKnown;
+  loaded = nextLoaded;
+  listeners.forEach(listener => listener());
+};
+
 /** Sign-out: these are the signed-out account's clips. */
 export const forgetClips = () => {
+  activeSubs.forEach(entry => entry.unsub());
+  activeSubs.clear();
   known = {};
   loaded = {};
   listeners.forEach(listener => listener());

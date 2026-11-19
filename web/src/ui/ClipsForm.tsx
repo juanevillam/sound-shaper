@@ -146,9 +146,9 @@ export function ClipsForm({ onEdit }: { onEdit: (clip: Clip) => void }) {
 }
 
 /** The dock card's second line: "3 saved", or "None". */
-export function useClipsSummary(): string {
+export function useClipsSummary(active = true): string {
   const current = usePlayer(s => s.current);
-  const clips = useClips(current?.id);
+  const clips = useClips(active ? current?.id : undefined);
 
   return clips?.length
     ? t('player.clips.count', { n: String(clips.length) })

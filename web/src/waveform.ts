@@ -121,6 +121,12 @@ export const levelAt = (waveform: Waveform, fromS: number, toS: number) => {
   return to > from ? sum / (to - from) : 0;
 };
 
+/** Deleted sound: drop its cached buckets and in-flight decode. */
+export const forgetWaveform = (soundId: string) => {
+  memory.delete(soundId);
+  resolved.delete(soundId);
+};
+
 /** Sign-out: these are the signed-out account's sounds. */
 export const forgetWaveforms = () => {
   memory.clear();

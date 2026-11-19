@@ -9,6 +9,7 @@ import {
 } from '@app/lib/id3Parse';
 
 import { t } from '../i18n';
+import { thumbUrl } from '../lib/thumbUrl';
 import type { Sound } from '../library';
 import { uploadFailureKey } from '../media';
 import {
@@ -132,8 +133,8 @@ export function SoundForm({
   const shown =
     cover.kind === 'file'
       ? preview
-      : cover.kind === 'keep' && draft.kind === 'edit'
-        ? draft.sound.artUrl
+      : cover.kind === 'keep' && draft.kind === 'edit' && draft.sound.artUrl
+        ? thumbUrl(draft.sound.artUrl, 120)
         : '';
   const valid = name.trim().length >= MIN_NAME_LENGTH;
 

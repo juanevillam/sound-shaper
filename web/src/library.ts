@@ -130,13 +130,16 @@ export const useAddTilePosition = (uid: string): number | null => {
         doc(db, USERS_COLLECTION, uid),
         snapshot => {
           const next = finite(snapshot.data()?.addTilePosition);
-          setPosition(next);
-          try {
-            if (next === null) localStorage.removeItem(addTileCacheKey(uid));
-            else localStorage.setItem(addTileCacheKey(uid), String(next));
-          } catch {
-            // Ignore storage errors.
-          }
+          setPosition(prev => {
+            if (prev === next) return prev;
+            try {
+              if (next === null) localStorage.removeItem(addTileCacheKey(uid));
+              else localStorage.setItem(addTileCacheKey(uid), String(next));
+            } catch {
+              // Ignore storage errors.
+            }
+            return next;
+          });
         },
         error => console.warn('add tile position', error),
       ),

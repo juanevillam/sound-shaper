@@ -96,7 +96,11 @@ export const subscribeToClips = ({
 
   return onSnapshot(clipsQuery, {
     error: reportedOnError('clips.subscribeToClips', onError),
-    next: snapshot => onNext(snapshot.docs.map(clipToModel)),
+    next: snapshot => {
+      const clips = snapshot.docs.map(clipToModel);
+      clipsOfSoundCache.set(soundId, clips);
+      onNext(clips);
+    },
   });
 };
 
@@ -246,6 +250,7 @@ export const deleteClipsOfSound = reported(
     const snapshot = await getDocs(clipsCollection(soundId));
 
     await Promise.all(snapshot.docs.map(clip => deleteDoc(clip.ref)));
+    clipsOfSoundCache.delete(soundId);
   },
 );
 

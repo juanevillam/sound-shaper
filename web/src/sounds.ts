@@ -18,9 +18,11 @@ import {
 } from 'firebase/firestore';
 
 import { forgetSongMap } from './autoDj';
+import { forgetClipsOfSound } from './clips';
 import { auth, db } from './firebase';
 import type { Sound } from './library';
 import { destroyAsset, uploadAudio, uploadImage, type Asset } from './media';
+import { forgetWaveform } from './waveform';
 
 /**
  * The app's sound writes (services/firebase/sounds.ts) on the web — the same
@@ -144,12 +146,27 @@ export const deleteSound = async (soundId: string) => {
 
   await Promise.all(clips.docs.map(clip => deleteDoc(clip.ref)));
   await deleteDoc(ref);
+  forgetClipsOfSound(soundId);
+  forgetWaveform(soundId);
   forgetSongMap(soundId);
   await Promise.all([
     destroyAsset((data?.audioPublicId as string) ?? '', 'video'),
     destroyAsset((data?.artPublicId as string) ?? '', 'image'),
   ]);
 };
+
+/**
+ * Bank a sound's duration the first time playback reports it (or when it
+ * differs from the stored value by more than a second) — matching iOS's
+ * `bankSoundDuration`. No `updatedAt` bump: nothing the person edited changed.
+ */
+export const bankSoundDuration = (
+  soundId: string,
+  durationMs: number,
+): Promise<void> =>
+  updateDoc(doc(soundsOf(), soundId), { durationMs }).catch(error =>
+    console.warn('bankSoundDuration', error),
+  );
 
 /**
  * The app's `moveSound`: ONE document per move, which is the whole point of

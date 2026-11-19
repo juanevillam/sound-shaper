@@ -122,6 +122,14 @@ export const signInWithGoogle = async (): Promise<boolean> => {
 };
 
 export const signOut = async () => {
+  // Flush buffered trophy totals while there is still a signed-in user,
+  // matching iOS `signOutFromGoogle`.
+  const [{ flushTrophyCounters }, { forgetMemberSince }] = await Promise.all([
+    import('./trophies'),
+    import('./account'),
+  ]);
+  flushTrophyCounters();
+  forgetMemberSince();
   writeSignedInHint(false);
   await firebaseSignOut(auth);
 };

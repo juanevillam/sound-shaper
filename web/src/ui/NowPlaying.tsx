@@ -32,18 +32,20 @@ export function NowPlaying({
   onOpen,
   panel,
   editing = false,
+  active = true,
 }: {
   onCollapse: () => void;
   onOpen: (panel: Panel) => void;
   panel: 'shape' | 'clips' | null;
   editing?: boolean;
+  active?: boolean;
 }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
   const position = usePlayer(s => s.position);
   const duration = usePlayer(s => s.duration);
   const summary = useShapeSummary();
-  const clipsSummary = useClipsSummary();
+  const clipsSummary = useClipsSummary(active);
   // While the thumb is held, the scrubber shows where it is, not the sound.
   const [dragging, setDragging] = useState<number | null>(null);
 

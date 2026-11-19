@@ -119,6 +119,14 @@ export const blockTrophySync = (block: boolean) => {
   blocked = block;
 };
 
+let activeClockFlush: (() => void) | null = null;
+
+/** Flush pending listening seconds & saved clips before `firebaseSignOut`. */
+export const flushTrophyCounters = () => {
+  activeClockFlush?.();
+  push();
+};
+
 const finite = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
@@ -204,6 +212,7 @@ const startListeningClock = () => {
     commit();
     push();
   };
+  activeClockFlush = commit;
 
   const unsubscribe = subscribePlayer(() => {
     const { current, playing, position } = playerState();
@@ -235,6 +244,7 @@ const startListeningClock = () => {
   window.addEventListener('pagehide', boundary);
 
   return () => {
+    if (activeClockFlush === commit) activeClockFlush = null;
     boundary();
     unsubscribe();
     document.removeEventListener('visibilitychange', onHide);

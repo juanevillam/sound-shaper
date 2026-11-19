@@ -641,6 +641,7 @@ export function Home({ user }: { user: User }) {
               toolBase === 'shape' || toolBase === 'clips' ? toolBase : null
             }
             editing={editingCurrent}
+            active={isDesk || expanded}
           />
         </div>
       </div>

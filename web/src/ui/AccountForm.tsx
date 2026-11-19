@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 
 import {
   deleteAccount,
+  peekMemberSince,
   ReauthCancelled,
   readMemberSince,
   setOwnName,
@@ -121,7 +122,9 @@ export function AccountForm({
   /** Trophies lives behind Account, as in the app. */
   onTrophies: () => void;
 }) {
-  const [memberSince, setMemberSince] = useState<number | null | undefined>();
+  const [memberSince, setMemberSince] = useState<number | null | undefined>(
+    () => peekMemberSince(),
+  );
   const [naming, setNaming] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [choosing, setChoosing] = useState(false);

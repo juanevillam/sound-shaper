@@ -40,11 +40,28 @@ const requireUser = () => {
 
 const ownDoc = (uid: string) => doc(db, USERS_COLLECTION, uid);
 
-/** Member Since — the profile document's `createdAt`. */
-export const readMemberSince = async (): Promise<number | null> => {
-  const data = (await getDoc(ownDoc(requireUser().uid))).data();
+const memberSinceCache = new Map<string, number | null>();
 
-  return data?.createdAt ? (data.createdAt as Timestamp).toMillis() : null;
+export const peekMemberSince = (): number | null | undefined => {
+  const uid = auth.currentUser?.uid;
+  return uid ? memberSinceCache.get(uid) : undefined;
+};
+
+export const forgetMemberSince = () => {
+  memberSinceCache.clear();
+};
+
+/** Member Since — the profile document's `createdAt`, cached per session/uid. */
+export const readMemberSince = async (): Promise<number | null> => {
+  const uid = requireUser().uid;
+  if (memberSinceCache.has(uid)) return memberSinceCache.get(uid) ?? null;
+
+  const data = (await getDoc(ownDoc(uid))).data();
+  const value = data?.createdAt
+    ? (data.createdAt as Timestamp).toMillis()
+    : null;
+  memberSinceCache.set(uid, value);
+  return value;
 };
 
 /**
