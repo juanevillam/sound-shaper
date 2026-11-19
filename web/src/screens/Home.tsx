@@ -573,9 +573,17 @@ export function Home({ user }: { user: User }) {
     playing &&
     (isDesk || (expanded && liveTools.length === 0 && liveModals.length === 0));
 
+  const modalOpen = liveModals.length > 0;
+  const libraryInert =
+    modalOpen || (!isDesk && (expanded || liveTools.length > 0));
+  const stageInert =
+    modalOpen || !current || (!isDesk && (!expanded || liveTools.length > 0));
+  const toolsInert = modalOpen || liveTools.length === 0;
+  const miniInert = modalOpen || isDesk || expanded || liveTools.length > 0;
+
   return (
     <div className={className}>
-      <main className="library">
+      <main className="library" inert={libraryInert || undefined}>
         <header className={titled ? 'bar is-edge is-titled' : 'bar'}>
           <span />
           <span className="bar-title" aria-hidden={!titled}>
@@ -625,7 +633,7 @@ export function Home({ user }: { user: User }) {
         )}
       </main>
 
-      <div className="stage">
+      <div className="stage" inert={stageInert || undefined}>
         <div className="now-column">
           <PlayerBackdrop
             artUrl={current?.artUrl ?? ''}
@@ -646,7 +654,9 @@ export function Home({ user }: { user: User }) {
         </div>
       </div>
 
-      <div className="tools">{renderStack(toolLayers, popTool)}</div>
+      <div className="tools" inert={toolsInert || undefined}>
+        {renderStack(toolLayers, popTool)}
+      </div>
 
       <div className="modals">
         <div
@@ -657,7 +667,7 @@ export function Home({ user }: { user: User }) {
         {renderStack(modalLayers, popModal)}
       </div>
 
-      <MiniPlayer onExpand={() => setExpanded(true)} />
+      <MiniPlayer inert={miniInert} onExpand={() => setExpanded(true)} />
       <Toast />
       <TrophyBanner onOpen={() => openModal({ kind: 'trophies' })} />
       <UiStateLabBar screens={labScreens} />

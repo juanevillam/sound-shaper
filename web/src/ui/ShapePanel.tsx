@@ -11,6 +11,7 @@ import {
   type EffectLevel,
 } from '@app/lib/shapeDsp';
 
+import { prefersReducedMotion } from '../analyser';
 import { byHand, setAutoDjMode, useAutoDj } from '../autoDj';
 import { locale, t } from '../i18n';
 import {
@@ -212,7 +213,10 @@ export function ShapeForm() {
       }
     }
     if (Math.abs(form.scrollTop - top) > 2) {
-      form.scrollTo({ top, behavior: 'smooth' });
+      form.scrollTo({
+        top,
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      });
     }
   }, [djOn, djFocus]);
 

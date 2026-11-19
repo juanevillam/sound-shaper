@@ -7,7 +7,7 @@
   --ground: #0d0d0d;
   --ink: #f5f5f5;
   --ink-2: #a3a3a3;
-  --ink-3: #7a7a7a;
+  --ink-3: #808080;
   --surface: #161616;
   --hairline: #262626;
   --glass-ink: #2a2a2a;
@@ -314,7 +314,7 @@ button {
 }
 
 .error {
-  color: var(--ink-2);
+  color: var(--destructive);
 }
 
 /* On a desk the welcome stays one centred column, standing in the middle
@@ -755,6 +755,10 @@ button {
   /* Leaving a hover settles on a long, even curve; an ease-out that spends
      itself in the first frames reads as a snap on the way back. */
   transition: transform 380ms var(--ios-curve);
+}
+
+.tile.is-bone {
+  pointer-events: none;
 }
 
 .tile-art {
@@ -1636,6 +1640,10 @@ button {
   margin: 0;
   font-size: 1.0625rem;
   font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 15rem;
 }
 
 .side-lead {
@@ -1971,15 +1979,18 @@ button {
 }
 
 .section-head {
-  margin: 0 0 0.375rem 1rem;
+  margin: 0 0 0.5rem 1rem;
   color: var(--muted);
   font-size: 0.8125rem;
-  font-weight: 400;
+  line-height: 1.125rem;
+  font-weight: 500;
 }
 
 .section-head.split {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   margin-right: 1rem;
 }
 
@@ -2835,6 +2846,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  max-width: calc(100vw - 2rem);
   margin: 0;
   padding: 0.75rem 1.125rem;
   border: 1px solid var(--hairline);
@@ -2843,7 +2855,8 @@ button {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   font-size: 0.9375rem;
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
   pointer-events: auto;
   animation: toast-in 380ms var(--ease) both;
 }
@@ -2879,11 +2892,13 @@ button {
 }
 
 .toast-action {
+  flex: none;
   padding: 0;
   border: 0;
   background: none;
   color: var(--accent);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 @media (min-width: 64rem) {
@@ -3137,7 +3152,7 @@ button {
 
 /* A side column is narrower than a phone: the ring gives way to the two
    labels rather than pushing "Available" off the card. */
-@container (max-width: 15rem) {
+@container (max-width: 18.5rem) {
   .trophy-summary > * {
     --ring-size: 4rem;
   }
@@ -3213,7 +3228,7 @@ button {
 .sub-scrim {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 6;
   background: rgb(0 0 0 / 0.4);
   opacity: 0;
   pointer-events: none;
@@ -3228,7 +3243,7 @@ button {
 .sub-sheet {
   position: absolute;
   inset: auto 0 0;
-  z-index: 5;
+  z-index: 7;
   max-height: calc(100% - 3rem);
   overflow-y: auto;
   padding: 2.25rem 1.5rem max(2rem, env(safe-area-inset-bottom));

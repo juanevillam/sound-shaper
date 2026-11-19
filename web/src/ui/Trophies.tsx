@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import platinumChime from '@app/../assets/sounds/trophy-platinum.mp3';
 import trophyChime from '@app/../assets/sounds/trophy.mp3';
@@ -21,7 +21,7 @@ import { useTrophies } from '@app/trophies/useTrophies';
 import { createPortal } from 'react-dom';
 
 import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
-import { locale, t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { pause, playerState, toggle } from '../player';
 
 import { ChevronRightGlyph, CloseGlyph } from './glyphs';
@@ -37,34 +37,36 @@ const COUNTS: Record<string, number> = {
 /**
  * The app's `useTrophyContent`: the titles are English everywhere (the "-er"
  * wordplay does not translate), the objectives are localized with their
- * counts filled from the same thresholds the triggers use. The web resolves
- * its strings once per page, so this is a constant.
+ * counts filled from the same thresholds the triggers use.
  */
-const COPY: Record<string, TrophyCopy> = Object.fromEntries(
-  TROPHY_CONFIGS.map(({ id }) => [
-    id,
-    {
-      title: TROPHY_TITLES[id] ?? id,
-      description: t(`trophies.items.${id}.description`, {
-        count: String(COUNTS[id] ?? ''),
-      }),
-    },
-  ]),
-);
+const buildCopy = (currentLocale: string): Record<string, TrophyCopy> => {
+  void currentLocale;
+  return Object.fromEntries(
+    TROPHY_CONFIGS.map(({ id }) => [
+      id,
+      {
+        title: TROPHY_TITLES[id] ?? id,
+        description: t(`trophies.items.${id}.description`, {
+          count: String(COUNTS[id] ?? ''),
+        }),
+      },
+    ]),
+  );
+};
 
 const tierName = (tier: TrophyTier) => t(`trophies.tier.${tier}`);
 
-const formatDate = (achievedAt: number) =>
-  new Intl.DateTimeFormat(locale, {
+const formatDate = (achievedAt: number, currentLocale: string) =>
+  new Intl.DateTimeFormat(currentLocale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   }).format(new Date(achievedAt));
 
 /** "Gold · Earned Oct 17, 2026" or "Gold · Locked" — the detail's caption. */
-const caption = (trophy: ResolvedTrophy) =>
+const caption = (trophy: ResolvedTrophy, currentLocale: string) =>
   trophy.unlocked && trophy.achievedAt !== null
-    ? `${tierName(trophy.tier)} · ${t('trophies.earned')} ${formatDate(trophy.achievedAt)}`
+    ? `${tierName(trophy.tier)} · ${t('trophies.earned')} ${formatDate(trophy.achievedAt, currentLocale)}`
     : `${tierName(trophy.tier)} · ${t('trophies.locked')}`;
 
 /* ── The glyph ── */
@@ -200,14 +202,16 @@ function Ring({ fraction, label }: { fraction: number; label: string }) {
  * row captions stand bones instead of a confident "0 of 7".
  */
 export function TrophiesForm() {
-  const { trophies, earned, total, hydrated: realHydrated } = useTrophies(COPY);
+  const activeLocale = useLocale();
+  const copy = useMemo(() => buildCopy(activeLocale), [activeLocale]);
+  const { trophies, earned, total, hydrated: realHydrated } = useTrophies(copy);
   const trophiesLab = useUiStateLab(s => (UI_STATE_LAB ? s.trophies : 'live'));
   const hydrated = trophiesLab === 'skeleton' ? false : realHydrated;
   const [open, setOpen] = useState<string | null>(null);
   const fraction = total > 0 ? earned / total : 0;
-  const percent = new Intl.NumberFormat(locale, { style: 'percent' }).format(
-    fraction,
-  );
+  const percent = new Intl.NumberFormat(activeLocale, {
+    style: 'percent',
+  }).format(fraction);
   const detail = trophies.find(trophy => trophy.id === open) ?? null;
 
   return (
@@ -255,7 +259,7 @@ export function TrophiesForm() {
                 <span className="trophy-line">
                   {tierName(trophy.tier)} ·{' '}
                   {trophy.unlocked && trophy.achievedAt !== null
-                    ? `${t('trophies.earned')} ${formatDate(trophy.achievedAt)}`
+                    ? `${t('trophies.earned')} ${formatDate(trophy.achievedAt, activeLocale)}`
                     : trophy.description}
                 </span>
               ) : (
@@ -269,7 +273,11 @@ export function TrophiesForm() {
         ))}
       </div>
 
-      <TrophyDetail trophy={detail} onClose={() => setOpen(null)} />
+      <TrophyDetail
+        trophy={detail}
+        activeLocale={activeLocale}
+        onClose={() => setOpen(null)}
+      />
     </>
   );
 }
@@ -283,9 +291,11 @@ export function TrophiesForm() {
  */
 function TrophyDetail({
   trophy,
+  activeLocale,
   onClose,
 }: {
   trophy: ResolvedTrophy | null;
+  activeLocale: string;
   onClose: () => void;
 }) {
   const anchor = useRef<HTMLSpanElement>(null);
@@ -309,6 +319,23 @@ function TrophyDetail({
   useEffect(() => {
     setHost(anchor.current?.closest<HTMLElement>('.side') ?? null);
   }, []);
+
+  useEffect(() => {
+    if (!host) return;
+    const bar = host.querySelector<HTMLElement>('.side-bar');
+    const form = host.querySelector<HTMLElement>('.form');
+    if (open) {
+      bar?.setAttribute('inert', '');
+      form?.setAttribute('inert', '');
+    } else {
+      bar?.removeAttribute('inert');
+      form?.removeAttribute('inert');
+    }
+    return () => {
+      bar?.removeAttribute('inert');
+      form?.removeAttribute('inert');
+    };
+  }, [host, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -336,6 +363,7 @@ function TrophyDetail({
         aria-modal="true"
         aria-label={view?.title}
         aria-hidden={!open}
+        inert={!open}
         tabIndex={-1}
         onPointerDown={e => {
           if ((e.target as HTMLElement).closest('button')) return;
@@ -390,7 +418,7 @@ function TrophyDetail({
               <TrophyGlyph tier={view.tier} locked={!view.unlocked} size={44} />
             </span>
             <h2>{view.title}</h2>
-            <p className="trophy-caption">{caption(view)}</p>
+            <p className="trophy-caption">{caption(view, activeLocale)}</p>
             <p>{view.description}</p>
           </>
         )}
@@ -456,6 +484,8 @@ const playChime = (platinum: boolean) => {
  * The platinum stays up longer and takes one pass of light across it.
  */
 export function TrophyBanner({ onOpen }: { onOpen: () => void }) {
+  const activeLocale = useLocale();
+  const copyMap = useMemo(() => buildCopy(activeLocale), [activeLocale]);
   const head = useTrophyStore(state => state.queue[0] ?? null);
   const dequeue = useTrophyStore(state => state.dequeue);
   const [leaving, setLeaving] = useState(false);
@@ -480,7 +510,7 @@ export function TrophyBanner({ onOpen }: { onOpen: () => void }) {
 
   if (!head) return null;
 
-  const copy = COPY[head.id];
+  const copy = copyMap[head.id];
 
   return (
     <div className="trophy-slot" role="status" aria-live="polite">

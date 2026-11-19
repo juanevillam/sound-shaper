@@ -37,7 +37,9 @@ export function Avatar({ user, size }: { user: User; size: number }) {
       ) : (
         // The letter is a share of the disc, as the app's monogram is — a
         // fixed size read as a speck on the banner's larger disc.
-        <span style={{ fontSize: size * 0.42 }}>{name.trim().slice(0, 1)}</span>
+        <span style={{ fontSize: size * 0.42 }}>
+          {name.trim().slice(0, 1) || 'U'}
+        </span>
       )}
     </span>
   );
@@ -172,7 +174,7 @@ export function SettingsForm({
               className="cell link-row"
               href={legalUrl('Sound Shaper', page, 'settings')}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
             >
               <span className="cell-name">{t(label)}</span>
               <span className="chevron">

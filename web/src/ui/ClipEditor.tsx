@@ -34,7 +34,7 @@ import { showToast } from './Toast';
  */
 
 const PPS = 100;
-const WAVE_HEIGHT = 200;
+const WAVE_HEIGHT = 224;
 const RULER_HEIGHT = 28;
 const BAND_BOTTOM_PAD = 10;
 const WAVE_INK_RATIO = 0.78;

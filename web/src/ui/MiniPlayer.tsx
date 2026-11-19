@@ -11,14 +11,20 @@ import { NextGlyph, PlayPauseGlyph, PreviousGlyph } from './glyphs';
  * progress line: the app dropped its own, and the expanded player has the
  * scrubber.
  */
-export function MiniPlayer({ onExpand }: { onExpand: () => void }) {
+export function MiniPlayer({
+  inert,
+  onExpand,
+}: {
+  inert?: boolean;
+  onExpand: () => void;
+}) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
 
   if (!current) return null;
 
   return (
-    <div className="mini">
+    <div className="mini" inert={inert || undefined}>
       <button type="button" className="mini-open" onClick={onExpand}>
         <Artwork artUrl={current.artUrl} name={current.name} width={48} eager />
         <span className="mini-copy">
