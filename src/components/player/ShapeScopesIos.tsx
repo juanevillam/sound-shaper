@@ -42,18 +42,13 @@ import {
 export const SCOPE_HEIGHT = 38;
 const LINE_PAD_Y = 7.5;
 /**
- * Standard iOS 26 inset-grouped Form cell padding (`UICollectionViewListCell`
- * default contentMargins when `@expo/ui`'s `SectionView` wraps children in
- * `SlotView`, preventing `listRowInsets` from reaching the cell directly):
- * - Horizontal: `ROW_INSET` (16pt) on each side, so bleeding `±16pt` expands
- *   the scope across the full `cardWidth` edge-to-edge.
- * - Vertical: `11pt` top and bottom around a cell's content, so shifting down
- *   by `+11pt` (`marginBottom: -11`) seats `y = SCOPE_HEIGHT` dead-on the
- *   cell's bottom separator line, with an `11pt` upward extension (`BLEED_TOP`)
- *   so vertical grid lines reach the card's top border.
+ * Standard iOS 26 inset-grouped Form top cell inset (`15pt`): extending the
+ * SVG viewBox upward by `15pt` (`BLEED_TOP`) while pairing `ScopeRowIos` with
+ * the section's first control row in one `VStack` cell lets the `38pt` scope
+ * sit flush against the card's top border without triggering iOS 26's `52pt`
+ * `defaultMinListRowHeight` on a standalone scope cell.
  */
-export const SCOPE_CELL_PAD_Y = 11;
-const BLEED_TOP = SCOPE_CELL_PAD_Y;
+const BLEED_TOP = 15;
 const SVG_HEIGHT = SCOPE_HEIGHT + BLEED_TOP;
 /**
  * The bottom divider sits at `y = SCOPE_HEIGHT - 0.5` (spanning `37.0..38.0`).
@@ -1014,8 +1009,6 @@ export function NextRoomScope({
 const styles = StyleSheet.create({
   box: {
     height: SCOPE_HEIGHT,
-    marginBottom: -SCOPE_CELL_PAD_Y,
-    marginTop: 4,
   },
   svg: {
     marginTop: -BLEED_TOP,

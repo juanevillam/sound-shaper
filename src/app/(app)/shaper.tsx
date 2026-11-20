@@ -17,7 +17,6 @@ import {
   font,
   foregroundStyle,
   frame,
-  listRowSeparator,
   listSectionMargins,
   monospacedDigit,
   offset,
@@ -25,10 +24,7 @@ import {
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import {
-  prepareShapeScopeCells,
-  scrollSheetSection,
-} from '@modules/audio-session';
+import { scrollSheetSection } from '@modules/audio-session';
 
 import {
   EchoScope,
@@ -38,12 +34,11 @@ import {
   formatSignedDb,
   nextRoom1kDb,
   NextRoomScope,
-  SCOPE_CELL_PAD_Y,
   SCOPE_HEIGHT,
 } from '@/components/player/ShapeScopesIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
 import { SKELETON_DELAY_MS } from '@/components/ui/Skeleton';
-import { ROW_INSET, SCREEN_PADDING, useAppTheme } from '@/core';
+import { useAppTheme } from '@/core';
 import { useDelayedShow } from '@/hooks/useDelayedShow';
 import { useI18n } from '@/i18n';
 import {
@@ -110,6 +105,9 @@ import { FormValueRowIos, SheetFormBodyIos } from '@/ui';
 const FOOTER_TO_HEADER_MAKEUP = 10;
 
 const EQ_LABEL_WIDTH = 38;
+/** iOS 26 inset-grouped Form horizontal card margin and cell content inset (20pt each). */
+const FORM_CARD_INSET = 20;
+const FORM_CELL_INSET = 20;
 
 /** The Presets row's tag for a hand-shaped curve; never a real preset key. */
 const CUSTOM_TAG = 'custom';
@@ -137,16 +135,16 @@ function DjProgressRow(props: Parameters<typeof FormValueRowIos>[0]) {
 }
 
 /**
- * Hosted studio parameter scope row inside a grouped SwiftUI `Section`:
- * - `@expo/ui`'s `SectionView` wraps its children in a `SlotView`, so SwiftUI's
- *   `listRowInsets` cannot reach the `UICollectionViewListCell` directly and
- *   the cell keeps its default `ROW_INSET` (16pt) horizontal and 11pt vertical
- *   content margins.
- * - We therefore reserve the inner row box (`width - ROW_INSET * 2`, height
- *   `SCOPE_HEIGHT - SCOPE_CELL_PAD_Y * 2 + 4`) in the layout `VStack`, and
- *   expand the inner `RNHostView` to the full `cardWidth` (`width`) shifted left
- *   by `-ROW_INSET` so the scope spans 100% edge-to-edge across the grouped
- *   card and lands flush on the bottom cell divider with zero gap.
+ * Hosted studio parameter scope at the top of a grouped SwiftUI `Section`:
+ * - iOS 26 inset-grouped `Form` enforces a `52pt` `defaultMinListRowHeight` on
+ *   every standalone cell (`15pt` top + `22pt` content + `15pt` bottom), which
+ *   previously forced a `38pt` scope cell to `52pt` and left `~8pt` of empty
+ *   space below the scope's bottom border above the first control row.
+ * - Pairing `ScopeRowIos` with the section's first control row inside a single
+ *   `VStack(spacing: 15)` cell avoids creating a separate `52pt`-clamped cell:
+ *   the scope bleeds into the cell's `15pt` top and `20pt` horizontal margins
+ *   to span the full `cardWidth` at its exact `38pt` height, and the control
+ *   row below it receives symmetric `15pt` top and bottom vertical padding.
  */
 function ScopeRowIos({
   width,
@@ -155,13 +153,12 @@ function ScopeRowIos({
   width: number;
   children: ReactElement;
 }) {
-  const innerWidth = Math.max(1, width - ROW_INSET * 2);
-  const layoutHeight = Math.max(16, SCOPE_HEIGHT - SCOPE_CELL_PAD_Y * 2 + 4);
+  const innerWidth = Math.max(1, width - FORM_CELL_INSET * 2);
+  const layoutHeight = SCOPE_HEIGHT - 15;
   return (
     <VStack
       alignment="leading"
       modifiers={[
-        listRowSeparator('hidden', 'bottom'),
         frame({
           width: innerWidth,
           height: layoutHeight,
@@ -172,7 +169,7 @@ function ScopeRowIos({
       <VStack
         modifiers={[
           frame({ width, height: SCOPE_HEIGHT }),
-          offset({ x: -ROW_INSET, y: 0 }),
+          offset({ x: -FORM_CELL_INSET, y: -7.5 }),
         ]}
       >
         <RNHostView>{children}</RNHostView>
@@ -211,43 +208,45 @@ function LevelPickerSection({
 }) {
   return (
     <Section footer={<SwiftUIText>{footer}</SwiftUIText>}>
-      <ScopeRowIos width={scopeWidth}>{scope}</ScopeRowIos>
-      <Picker
-        label={
-          meta ? (
-            <SwiftUIText>
-              <SwiftUIText
-                modifiers={[
-                  font({ textStyle: 'body', weight: 'regular' }),
-                  foregroundStyle(activeColor),
-                ]}
-              >
-                {`${label}  `}
+      <VStack spacing={15}>
+        <ScopeRowIos width={scopeWidth}>{scope}</ScopeRowIos>
+        <Picker
+          label={
+            meta ? (
+              <SwiftUIText>
+                <SwiftUIText
+                  modifiers={[
+                    font({ textStyle: 'body', weight: 'regular' }),
+                    foregroundStyle(activeColor),
+                  ]}
+                >
+                  {`${label}  `}
+                </SwiftUIText>
+                <SwiftUIText
+                  modifiers={[
+                    font({ textStyle: 'subheadline', weight: 'regular' }),
+                    monospacedDigit(),
+                    foregroundStyle(mutedColor),
+                  ]}
+                >
+                  {meta}
+                </SwiftUIText>
               </SwiftUIText>
-              <SwiftUIText
-                modifiers={[
-                  font({ textStyle: 'subheadline', weight: 'regular' }),
-                  monospacedDigit(),
-                  foregroundStyle(mutedColor),
-                ]}
-              >
-                {meta}
-              </SwiftUIText>
+            ) : (
+              label
+            )
+          }
+          selection={value}
+          onSelectionChange={onChange}
+          modifiers={[pickerStyle('menu')]}
+        >
+          {EFFECT_LEVELS.map(level => (
+            <SwiftUIText key={level} modifiers={[tag(level)]}>
+              {levelLabel(level)}
             </SwiftUIText>
-          ) : (
-            label
-          )
-        }
-        selection={value}
-        onSelectionChange={onChange}
-        modifiers={[pickerStyle('menu')]}
-      >
-        {EFFECT_LEVELS.map(level => (
-          <SwiftUIText key={level} modifiers={[tag(level)]}>
-            {levelLabel(level)}
-          </SwiftUIText>
-        ))}
-      </Picker>
+          ))}
+        </Picker>
+      </VStack>
     </Section>
   );
 }
@@ -255,17 +254,10 @@ function LevelPickerSection({
 function ShaperSheetScreen() {
   const { t, locale } = useI18n();
   const { width: winW } = useWindowDimensions();
-  const scopeWidth = Math.max(1, Math.round(winW - SCREEN_PADDING * 2));
+  const scopeWidth = Math.max(1, Math.round(winW - FORM_CARD_INSET * 2));
 
   useEffect(() => {
     track({ name: 'open_shape' });
-    prepareShapeScopeCells();
-    const t1 = setTimeout(prepareShapeScopeCells, 120);
-    const t2 = setTimeout(prepareShapeScopeCells, 350);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
   }, []);
   const { colors } = useAppTheme();
 
@@ -429,12 +421,9 @@ function ShaperSheetScreen() {
           }
           footer={<SwiftUIText>{t('player.eq.hint')}</SwiftUIText>}
         >
-          <ScopeRowIos width={scopeWidth}>
-            <EqScope gains={gains} playing={playing} width={scopeWidth} />
-          </ScopeRowIos>
           {EQ_BANDS.map((band, index) => {
             const bandActive = gains[index] !== 0;
-            return (
+            const row = (
               <HStack key={band.hz} spacing={8}>
                 <SwiftUIText
                   modifiers={[...mutedText, frame({ width: EQ_LABEL_WIDTH })]}
@@ -460,6 +449,16 @@ function ShaperSheetScreen() {
                   {dbLabel(gains[index])}
                 </SwiftUIText>
               </HStack>
+            );
+            return index === 0 ? (
+              <VStack key={band.hz} spacing={15}>
+                <ScopeRowIos width={scopeWidth}>
+                  <EqScope gains={gains} playing={playing} width={scopeWidth} />
+                </ScopeRowIos>
+                {row}
+              </VStack>
+            ) : (
+              row
             );
           })}
         </Section>

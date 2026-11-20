@@ -17,36 +17,6 @@ public class AudioSessionModule: Module {
     return nil
   }
 
-  private static func hideNativeSeparators(in view: UIView, rootCell: UIView) {
-    for sub in view.subviews {
-      let typeName = String(describing: type(of: sub))
-      let frameInCell = sub.convert(sub.bounds, to: rootCell)
-      if typeName.contains("Separator") ||
-         (sub.bounds.height > 0 && sub.bounds.height <= 1.5 && frameInCell.maxY >= rootCell.bounds.height - 3) {
-        sub.isHidden = true
-        sub.alpha = 0
-      } else {
-        hideNativeSeparators(in: sub, rootCell: rootCell)
-      }
-    }
-  }
-
-  private static func applyFullBleedSeparator(to cell: UICollectionViewCell) {
-    hideNativeSeparators(in: cell, rootCell: cell)
-  }
-
-  private static func tuneScopeCells(in cv: UICollectionView) {
-    // Sections 1 (Equalizer), 4 (Echo), and 5 (Next Room) have their studio
-    // parameter scope at item 0.
-    for section in [1, 4, 5] where section < cv.numberOfSections {
-      guard cv.numberOfItems(inSection: section) > 0 else { continue }
-      let indexPath = IndexPath(item: 0, section: section)
-      if let cell = cv.cellForItem(at: indexPath) {
-        applyFullBleedSeparator(to: cell)
-      }
-    }
-  }
-
   public func definition() -> ModuleDefinition {
     Name("AudioSession")
 
@@ -120,38 +90,6 @@ public class AudioSessionModule: Module {
 
         if abs(sv.contentOffset.y - targetY) > 2 {
           sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: targetY), animated: true)
-          if let cv = sv as? UICollectionView {
-            Self.tuneScopeCells(in: cv)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-              Self.tuneScopeCells(in: cv)
-            }
-          }
-        } else if let cv = sv as? UICollectionView {
-          Self.tuneScopeCells(in: cv)
-        }
-      }
-    }
-
-    Function("prepareShapeScopeCells") { () in
-      DispatchQueue.main.async {
-        guard
-          let scene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first(where: { $0.activationState == .foregroundActive }),
-          let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first,
-          let root = window.rootViewController
-        else { return }
-
-        var scrollView: UIScrollView?
-        var current = root.presentedViewController
-        while let vc = current {
-          if let found = Self.findFormScrollView(in: vc.view) {
-            scrollView = found
-          }
-          current = vc.presentedViewController
-        }
-        if let cv = scrollView as? UICollectionView {
-          Self.tuneScopeCells(in: cv)
         }
       }
     }
