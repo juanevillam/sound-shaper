@@ -39,23 +39,27 @@ import {
  *   completely once paused and settled.
  */
 
-export const SCOPE_HEIGHT = 38;
-const LINE_PAD_Y = 7.5;
+export const SCOPE_HEIGHT = 48;
+const LINE_PAD_Y = 6.5;
 /**
- * Standard iOS 26 inset-grouped Form top cell inset (`15pt`): extending the
- * SVG viewBox upward by `15pt` (`BLEED_TOP`) while pairing `ScopeRowIos` with
- * the section's first control row in one `VStack` cell lets the `38pt` scope
- * sit flush against the card's top border without triggering iOS 26's `52pt`
- * `defaultMinListRowHeight` on a standalone scope cell.
+ * Standard iOS 26 inset-grouped Form top cell inset (`15pt`) and horizontal
+ * bleed (`20pt`): extending the SVG viewBox upward by `15pt` (`BLEED_TOP`) and
+ * horizontally by `±20pt` (`BLEED_X`) while pairing `ScopeRowIos` with the
+ * section's first control row in one centered `VStack` cell lets the `48pt`
+ * scope sit flush against the card's top, left, and right borders on every
+ * iPhone width (`375pt`..`440pt`) without vertical edge cutoffs or triggering
+ * iOS 26's `52pt` `defaultMinListRowHeight` on a standalone scope cell.
  */
 const BLEED_TOP = 15;
+export const SCOPE_BLEED_X = 20;
+const WAVE_OVERSCAN_X = 14;
 const SVG_HEIGHT = SCOPE_HEIGHT + BLEED_TOP;
 /**
- * The bottom divider sits at `y = SCOPE_HEIGHT - 0.5` (spanning `37.0..38.0`).
+ * The bottom divider sits at `y = SCOPE_HEIGHT - 0.5` (spanning `47.0..48.0`).
  * Every area fill and live spectrum/echo trail anchors its bottom edge at
- * `y = SCOPE_HEIGHT - 1` (`37.0`) so it meets the top of the separator cleanly
+ * `y = SCOPE_HEIGHT - 1` (`47.0`) so it meets the top of the separator cleanly
  * without painting over or hiding the separator line, and every `.scope-line`
- * curve stays within `[LINE_PAD_Y, SCOPE_HEIGHT - LINE_PAD_Y]` (`7.5..30.5`)
+ * curve stays within `[LINE_PAD_Y, SCOPE_HEIGHT - LINE_PAD_Y]` (`6.5..41.5`)
  * so the 1.45pt stroke + phosphor halo always keeps ≥ 5pt of clear breathing
  * room above the bottom divider.
  */
@@ -288,24 +292,25 @@ function ScopeBox({
   separatorColor: string;
   children: (width: number) => ReactNode;
 }) {
+  const svgWidth = width + SCOPE_BLEED_X * 2;
   return (
     <View
       pointerEvents="none"
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={[styles.box, { width }]}
+      style={[styles.box, { width: svgWidth }]}
     >
       {width > 0 ? (
         <Svg
-          width={width}
+          width={svgWidth}
           height={SVG_HEIGHT}
-          viewBox={`0 ${-BLEED_TOP} ${width} ${SVG_HEIGHT}`}
+          viewBox={`${-SCOPE_BLEED_X} ${-BLEED_TOP} ${svgWidth} ${SVG_HEIGHT}`}
           style={styles.svg}
         >
           {children(width)}
           <Line
-            x1={0}
-            x2={width}
+            x1={-SCOPE_BLEED_X}
+            x2={width + SCOPE_BLEED_X}
             y1={SCOPE_HEIGHT - 0.5}
             y2={SCOPE_HEIGHT - 0.5}
             stroke={separatorColor}
@@ -384,7 +389,9 @@ function useLiveSpectrumPath(
 
       let peak = 0;
       const pts: { x: number; y: number }[] = [];
-      const span = width + 2;
+      const xStart = -WAVE_OVERSCAN_X;
+      const xEnd = width + WAVE_OVERSCAN_X;
+      const span = xEnd - xStart;
 
       for (let i = 0; i < bins; i += 1) {
         const u = i / (bins - 1);
@@ -399,7 +406,7 @@ function useLiveSpectrumPath(
         const val = smooth[i];
         if (val > peak) peak = val;
         pts.push({
-          x: -1 + u * span,
+          x: xStart + u * span,
           y: height - val * maxRisePx,
         });
       }
@@ -407,7 +414,7 @@ function useLiveSpectrumPath(
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
         const bottom = DIVIDER_TOP_Y.toFixed(1);
-        const nextD = `${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`;
+        const nextD = `${curve}L${xEnd.toFixed(1)} ${bottom}L${xStart.toFixed(1)} ${bottom}Z`;
         setPathD(prev => (prev === nextD ? prev : nextD));
       } else {
         setPathD(prev => (prev === '' ? prev : ''));
@@ -450,7 +457,7 @@ function scopeOpacities(active: boolean, playing: boolean, live: boolean) {
 
 // ── 1. Equalizer: compact 38pt 5-band biquad cascade + live spectrum ──────
 
-const EQ_DB_SPAN = 15;
+const EQ_DB_SPAN = 13;
 const EQ_SPANS = EQ_BANDS.map(() => EQ_MAX_DB * 2);
 
 export function EqScope({
@@ -467,7 +474,7 @@ export function EqScope({
   const reduceMotion = useReducedMotion();
   const editAwake = useEditWake(gains.join(','));
   const engaged = playing || editAwake;
-  const targetGains = gains.map(g => g * (engaged ? 1 : 0.58));
+  const targetGains = gains.map(g => g * (engaged ? 1 : 0.82));
   const { values, moving } = useGlide(targetGains, EQ_SPANS, reduceMotion);
   const fillId = useSvgId('eq-fill');
 
@@ -483,7 +490,7 @@ export function EqScope({
     playing,
     width,
     DIVIDER_TOP_Y,
-    SCOPE_HEIGHT * 0.68,
+    SCOPE_HEIGHT * 0.78,
     reduceMotion,
   );
 
@@ -503,12 +510,12 @@ export function EqScope({
             swing;
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(w / 2.5));
-        const xStart = -1.5;
-        const xEnd = w + 1.5;
+        const xStart = -WAVE_OVERSCAN_X;
+        const xEnd = w + WAVE_OVERSCAN_X;
+        const count = Math.max(56, Math.round((xEnd - xStart) / 2.5));
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
+          const hz = hzAtX(x, w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);
@@ -559,8 +566,8 @@ export function EqScope({
               );
             })}
             <Line
-              x1={-1}
-              x2={w + 1}
+              x1={xStart}
+              x2={xEnd}
               y1={mid}
               y2={mid}
               stroke={colors.listSeparator}
@@ -709,8 +716,10 @@ function useLiveEchoTrail(
 
       let peak = 0;
       const decay = decayRef.current;
-      const maxRise = height * 0.76;
-      const span = width + 2;
+      const maxRise = height * 0.8;
+      const xStart = -WAVE_OVERSCAN_X;
+      const xEnd = width + WAVE_OVERSCAN_X;
+      const span = xEnd - xStart;
       const pts: { x: number; y: number }[] = [];
 
       for (let i = 0; i < slots; i += 1) {
@@ -719,7 +728,7 @@ function useLiveEchoTrail(
         const val = history[i] * atten * (isPlaying ? 1 : gateRef.current);
         if (val > peak) peak = val;
         pts.push({
-          x: -1 + u * span,
+          x: xStart + u * span,
           y: height - val * maxRise,
         });
       }
@@ -727,7 +736,7 @@ function useLiveEchoTrail(
       if (peak > 0.003) {
         const curve = smoothSvgPath(pts);
         const bottom = DIVIDER_TOP_Y.toFixed(1);
-        const nextD = `${curve}L${(width + 1).toFixed(1)} ${bottom}L-1 ${bottom}Z`;
+        const nextD = `${curve}L${xEnd.toFixed(1)} ${bottom}L${xStart.toFixed(1)} ${bottom}Z`;
         setPathD(prev => (prev === nextD ? prev : nextD));
       } else {
         setPathD(prev => (prev === '' ? prev : ''));
@@ -776,7 +785,7 @@ export function EchoScope({
   const reduceMotion = useReducedMotion();
   const active = level !== 'off';
   const editAwake = useEditWake(level);
-  const engaged = playing || editAwake ? 1 : 0.74;
+  const engaged = playing || editAwake ? 1 : 0.85;
   const targetFb = active ? ECHO_LEVELS[level].feedback : 0.22;
   const { values, moving } = useGlide(
     [targetFb, active ? 1 : 0, engaged],
@@ -810,15 +819,15 @@ export function EchoScope({
       {w => {
         const lineFloor = SCOPE_HEIGHT - LINE_PAD_Y;
         const lineSpan = lineFloor - LINE_PAD_Y;
-        const maxRise = lineSpan * (0.68 + 0.32 * rippleAmt) * posture;
-        const xStart = -1.5;
-        const xEnd = w + 1.5;
-        const count = Math.max(56, Math.round(w / 2));
+        const maxRise = lineSpan * (0.78 + 0.22 * rippleAmt) * posture;
+        const xStart = -WAVE_OVERSCAN_X;
+        const xEnd = w + WAVE_OVERSCAN_X;
+        const count = Math.max(64, Math.round((xEnd - xStart) / 2));
         const pts: { x: number; y: number }[] = [];
 
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const u = Math.max(0, Math.min(1, x / Math.max(1, w)));
+          const u = Math.max(0, (x - xStart) / Math.max(1, xEnd - xStart));
           const env = Math.exp(-decay * u);
           const mod =
             1 - rippleAmt * 0.44 * (1 - Math.cos(2 * Math.PI * ECHO_WAVES * u));
@@ -883,9 +892,9 @@ export function EchoScope({
 
 // ── 3. Next Room: compact 38pt 3-shelf wall roll-off + live spectrum ──────
 
-const ROOM_TOP_LIVE = LINE_PAD_Y + 1;
-const ROOM_TOP_STANDBY = LINE_PAD_Y + 4;
-const ROOM_FLOOR_DB = -44;
+const ROOM_TOP_LIVE = LINE_PAD_Y + 0.5;
+const ROOM_TOP_STANDBY = LINE_PAD_Y + 2;
+const ROOM_FLOOR_DB = -38;
 const ROOM_SPANS = [14, 1] as const;
 
 export function NextRoomScope({
@@ -913,7 +922,7 @@ export function NextRoomScope({
   const live = active && (playing || moving || editAwake);
   const { areaOpacity, lineOpacity } = scopeOpacities(active, playing, live);
   const coefficients = ROOM_SHELVES.map(band =>
-    coefficientsFor(band, d * (0.65 + 0.35 * awake), NYQUIST),
+    coefficientsFor(band, d * (0.82 + 0.18 * awake), NYQUIST),
   );
   const fillId = useSvgId('room-fill');
 
@@ -921,7 +930,7 @@ export function NextRoomScope({
     playing,
     width,
     DIVIDER_TOP_Y,
-    SCOPE_HEIGHT * 0.68,
+    SCOPE_HEIGHT * 0.78,
     reduceMotion,
   );
 
@@ -942,12 +951,12 @@ export function NextRoomScope({
             (lineFloor - topY);
 
         const points: { x: number; y: number }[] = [];
-        const count = Math.max(48, Math.round(w / 2.5));
-        const xStart = -1.5;
-        const xEnd = w + 1.5;
+        const xStart = -WAVE_OVERSCAN_X;
+        const xEnd = w + WAVE_OVERSCAN_X;
+        const count = Math.max(56, Math.round((xEnd - xStart) / 2.5));
         for (let p = 0; p <= count; p += 1) {
           const x = xStart + (p / count) * (xEnd - xStart);
-          const hz = hzAtX(Math.max(0, Math.min(w, x)), w);
+          const hz = hzAtX(x, w);
           points.push({ x, y: y(responseDb(coefficients, hz)) });
         }
         const line = polylinePath(points);

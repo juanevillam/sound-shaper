@@ -34,6 +34,7 @@ import {
   formatSignedDb,
   nextRoom1kDb,
   NextRoomScope,
+  SCOPE_BLEED_X,
   SCOPE_HEIGHT,
 } from '@/components/player/ShapeScopesIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
@@ -105,8 +106,12 @@ import { FormValueRowIos, SheetFormBodyIos } from '@/ui';
 const FOOTER_TO_HEADER_MAKEUP = 10;
 
 const EQ_LABEL_WIDTH = 38;
-/** iOS 26 inset-grouped Form horizontal card margin and cell content inset (20pt each). */
-const FORM_CARD_INSET = 20;
+/**
+ * iOS 26 inset-grouped Form horizontal card margin (`16pt` on `<414pt` standard
+ * iPhones such as 390/393/402pt; `20pt` on `>=414pt` Plus/Pro Max) and inner
+ * cell content margin (`20pt`).
+ */
+const formCardInsetForWidth = (winW: number) => (winW >= 414 ? 20 : 16);
 const FORM_CELL_INSET = 20;
 
 /** The Presets row's tag for a hand-shaped curve; never a real preset key. */
@@ -154,22 +159,21 @@ function ScopeRowIos({
   children: ReactElement;
 }) {
   const innerWidth = Math.max(1, width - FORM_CELL_INSET * 2);
+  const hostWidth = width + SCOPE_BLEED_X * 2;
   const layoutHeight = SCOPE_HEIGHT - 15;
   return (
     <VStack
-      alignment="leading"
       modifiers={[
         frame({
           width: innerWidth,
           height: layoutHeight,
-          alignment: 'leading',
         }),
       ]}
     >
       <VStack
         modifiers={[
-          frame({ width, height: SCOPE_HEIGHT }),
-          offset({ x: -FORM_CELL_INSET, y: -7.5 }),
+          frame({ width: hostWidth, height: SCOPE_HEIGHT }),
+          offset({ x: 0, y: -7.5 }),
         ]}
       >
         <RNHostView>{children}</RNHostView>
@@ -254,7 +258,10 @@ function LevelPickerSection({
 function ShaperSheetScreen() {
   const { t, locale } = useI18n();
   const { width: winW } = useWindowDimensions();
-  const scopeWidth = Math.max(1, Math.round(winW - FORM_CARD_INSET * 2));
+  const scopeWidth = Math.max(
+    1,
+    Math.round(winW - formCardInsetForWidth(winW) * 2),
+  );
 
   useEffect(() => {
     track({ name: 'open_shape' });
