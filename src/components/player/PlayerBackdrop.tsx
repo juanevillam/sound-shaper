@@ -1,9 +1,10 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import { AppState, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, {
+  type FrameInfo,
   type SharedValue,
   useAnimatedStyle,
   useFrameCallback,
@@ -19,7 +20,6 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useAppTheme } from '@/core';
-import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 
 // The immersive top of the expanded player: the sound's own artwork, blown up
@@ -283,7 +283,6 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
 }: PlayerBackdropProps) {
   const { colors } = useAppTheme();
   const reduceMotion = useReducedMotion();
-  const iosSheetPresented = useIosSheetPresented();
   const [appActive, setAppActive] = useState(
     () => AppState.currentState === 'active',
   );
@@ -295,23 +294,28 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
   }, []);
 
   // The flow's clock, in seconds of MUSIC: real time × rate, and only while
-  // playing, uncovered by a full-height form sheet, and in the foreground.
-  // Advanced on the UI thread, so React never re-renders for it.
+  // playing and in the foreground. Advanced on the UI thread, so React never
+  // re-renders for it.
   const phase = useSharedValue(0);
   const speed = useSharedValue(rate);
   useEffect(() => {
     speed.value = rate;
   }, [rate, speed]);
-  const clock = useFrameCallback(frame => {
-    const dt = frame.timeSincePreviousFrame ?? 0;
-    // A long gap is the app coming back, not music played: never jump.
-    if (dt > 100) return;
-    phase.value += (dt / 1000) * speed.value;
-  }, false);
+  const onFrame = useCallback(
+    (frame: FrameInfo) => {
+      'worklet';
+      const dt = frame.timeSincePreviousFrame ?? 0;
+      // A long gap is the app coming back, not music played: never jump.
+      if (dt > 100) return;
+      phase.value += (dt / 1000) * speed.value;
+    },
+    [phase, speed],
+  );
+  const clock = useFrameCallback(onFrame, false);
   const flows = !reduceMotion;
   useEffect(() => {
-    clock.setActive(flowing && flows && !iosSheetPresented && appActive);
-  }, [appActive, clock, flowing, flows, iosSheetPresented]);
+    clock.setActive(flowing && flows && appActive);
+  }, [appActive, clock, flowing, flows]);
 
   /**
    * CROSSFADE THE SOURCES, NOT JUST THE IMAGES. expo-image's `transition`

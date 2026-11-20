@@ -285,7 +285,8 @@ const applyMove = (move: Partial<DjMove>) => {
     setKeepPitch(move.keepPitch);
   if (nextFocus) {
     const cur = dj.focus;
-    const nowMs = Date.now();
+    const nowMs =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
     const holdCurrent =
       cur !== null &&
       cur !== nextFocus &&
@@ -557,9 +558,10 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
     if (!current) return;
     const map = maps.get(current.id);
     if (!map) return; // read first; `pump` joins when it lands
-    const startFromTop = singleSound || firstJoin;
+    const isEntry = firstJoin;
+    const startFromTop = singleSound || isEntry;
     firstJoin = false;
-    if (startFromTop && now.position > 0.35) {
+    if (!isEntry && startFromTop && now.position > 0.35) {
       seek(0);
     }
     const atS = startFromTop ? 0 : now.position;

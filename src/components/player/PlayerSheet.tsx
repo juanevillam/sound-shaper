@@ -50,6 +50,7 @@ import { SoundArt } from '@/components/ui/SoundArt';
 import { Text as AppText } from '@/components/ui/Text';
 import { useAppTheme, withAlpha } from '@/core';
 import { useClipsSubscription } from '@/hooks/useClipsSubscription';
+import { useIosSheetPresented } from '@/hooks/useIosSheetPresented';
 import { useShapeSummary } from '@/hooks/useShapeSummary';
 import { useI18n } from '@/i18n';
 import { useClipsStore } from '@/store/clips';
@@ -394,6 +395,7 @@ export function PlayerSheet() {
    * route reads its own.)
    */
   const expandNonce = usePlayerStore(s => s.expandNonce);
+  const iosSheetPresented = useIosSheetPresented();
 
   // Geometry (all deterministic — no measuring, no flicker). The expanded art
   // is the console's content-box width (`playerArtSize` in `chrome.ts`).
@@ -662,7 +664,7 @@ export function PlayerSheet() {
   // its own from the same recipe.
   const makeDragDown = () =>
     Gesture.Pan()
-      .enabled(expanded)
+      .enabled(expanded && !iosSheetPresented)
       .activeOffsetY([-12, 12])
       .onUpdate(event => {
         progress.value =
@@ -832,7 +834,7 @@ export function PlayerSheet() {
   // Same one-instance-per-region rule as the drag-down recipe above.
   const makeSkipSwipe = () =>
     Gesture.Pan()
-      .enabled(expanded)
+      .enabled(expanded && !iosSheetPresented)
       .activeOffsetX([-SKIP_ACTIVATE_X, SKIP_ACTIVATE_X])
       .failOffsetY([-SKIP_FAIL_Y, SKIP_FAIL_Y])
       .onUpdate(event => {

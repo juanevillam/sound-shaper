@@ -492,7 +492,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (Math.abs(get().position - seconds) > 0.05) audioEngine.seek(seconds);
     // A manual scrub ends any clip replay, and with it the run.
     endRun();
-    set({ position: seconds, activeClip: null, seekNonce: nextSeekNonce() });
+    set({
+      position: seconds,
+      activeClip: null,
+      pendingStart: seconds === 0,
+      seekNonce: nextSeekNonce(),
+    });
   },
 
   setRate: rate => set({ rate }),

@@ -115,7 +115,8 @@ function applyMove(move: Partial<DjMove>): void {
   if (nextFocus) {
     const dj = useAutoDjStore.getState();
     const cur = dj.focus;
-    const nowMs = Date.now();
+    const nowMs =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
     const holdCurrent =
       cur !== null &&
       cur !== nextFocus &&
@@ -411,16 +412,19 @@ export function AutoDjDirector() {
       if (!current) return;
       const map = maps.get(current.id);
       if (!map) return; // read first; `pump` joins when it lands
-      const startFromTop = singleSound || firstJoin;
+      const isEntry = firstJoin;
+      const startFromTop = singleSound || isEntry;
       firstJoin = false;
-      if (startFromTop && player.position > 0.35) {
+      // Entry already sought to 0 above; seeking to 0 a second time while the
+      // offloaded seek is in flight can stall the native decoder.
+      if (!isEntry && startFromTop && player.position > 0.35) {
         player.seek(0);
       }
       const atS = startFromTop ? 0 : player.position;
-      const dakiti = isPinnedDakiti(current);
+      const dakiti = singleSound && isPinnedDakiti(current);
       const seed = dakiti ? DAKITI_DEMO_SEED : Math.floor(random() * 2 ** 31);
       begin(
-        singleSound || dakiti
+        singleSound
           ? planSoundSegment({
               sound: { soundId: current.id, map },
               style: dakiti ? 'club' : nextStyle(),
@@ -434,7 +438,7 @@ export function AutoDjDirector() {
               atS,
               setTempo,
             }),
-        dakiti ? 0 : atS,
+        atS,
       );
     };
 
