@@ -13,6 +13,7 @@ import { resetPlayer, usePlayer } from '../player';
 import { leadPosition } from '../sounds';
 import { useTrophySystem } from '../trophies';
 import { AccountForm } from '../ui/AccountForm';
+import { AutoDjSettingsForm } from '../ui/AutoDjSettingsForm';
 import { PlayerBackdrop } from '../ui/Backdrop';
 import { ClipEditor, commitClipEditor } from '../ui/ClipEditor';
 import { ClipsForm } from '../ui/ClipsForm';
@@ -150,7 +151,7 @@ type ToolEntry =
   | { kind: 'clip'; clip: Clip | null };
 
 type ModalEntry =
-  | { kind: 'settings' | 'account' | 'trophies' }
+  | { kind: 'settings' | 'account' | 'trophies' | 'autoDj' }
   /** The playing sound's editor, or — from a held tile — that sound's. */
   | { kind: 'edit'; sound?: Sound }
   | { kind: 'new'; picked: PickedSound };
@@ -417,8 +418,14 @@ export function Home({ user }: { user: User }) {
               user={user}
               onChanged={() => setProfileTick(n => n + 1)}
               onTrophies={() => pushModal({ kind: 'trophies' })}
+              onAutoDj={() => pushModal({ kind: 'autoDj' })}
             />
           ),
+        };
+      case 'autoDj':
+        return {
+          title: t('settings.autoDj.title'),
+          body: <AutoDjSettingsForm />,
         };
       case 'trophies':
         return { title: t('trophies.title'), body: <TrophiesForm /> };

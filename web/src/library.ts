@@ -14,6 +14,7 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 
+import { hydrateAutoDjProfile, syncAutoDjProfileFromAccount } from './autoDj';
 import { db } from './firebase';
 import { syncLibrary } from './player';
 import { backfillSoundPositions } from './sounds';
@@ -133,27 +134,30 @@ export const useAddTilePosition = (uid: string): number | null => {
     readCachedAddTilePos(uid),
   );
 
-  useEffect(
-    () =>
-      onSnapshot(
-        doc(db, USERS_COLLECTION, uid),
-        snapshot => {
-          const next = finite(snapshot.data()?.addTilePosition);
-          setPosition(prev => {
-            if (prev === next) return prev;
-            try {
-              if (next === null) localStorage.removeItem(addTileCacheKey(uid));
-              else localStorage.setItem(addTileCacheKey(uid), String(next));
-            } catch {
-              // Ignore storage errors.
-            }
-            return next;
-          });
-        },
-        error => console.warn('add tile position', error),
-      ),
-    [uid],
-  );
+  useEffect(() => {
+    hydrateAutoDjProfile(uid);
+    return onSnapshot(
+      doc(db, USERS_COLLECTION, uid),
+      snapshot => {
+        const data = snapshot.data();
+        if (data?.autoDjProfile !== undefined) {
+          syncAutoDjProfileFromAccount(uid, data.autoDjProfile);
+        }
+        const next = finite(data?.addTilePosition);
+        setPosition(prev => {
+          if (prev === next) return prev;
+          try {
+            if (next === null) localStorage.removeItem(addTileCacheKey(uid));
+            else localStorage.setItem(addTileCacheKey(uid), String(next));
+          } catch {
+            // Ignore storage errors.
+          }
+          return next;
+        });
+      },
+      error => console.warn('add tile position', error),
+    );
+  }, [uid]);
 
   return position;
 };

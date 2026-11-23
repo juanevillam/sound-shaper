@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { fetchUserProfile } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/auth';
+import { useAutoDjStore } from '@/store/autoDj';
 import { useProfileStore } from '@/store/profile';
 
 /**
@@ -32,7 +33,11 @@ export const useOwnProfile = () => {
 
     fetchUserProfile(uid)
       .then(profile => {
-        if (active) setProfile(profile);
+        if (!active) return;
+        setProfile(profile);
+        if (profile?.autoDjProfile) {
+          useAutoDjStore.getState().hydrateProfile(profile.autoDjProfile);
+        }
       })
       // A failed read leaves whatever the store already had. The sheet's own
       // `hasSettled` branch covers a first visit that never resolves.

@@ -12,6 +12,7 @@ import {
   setOwnName,
   setOwnPhoto,
 } from '../account';
+import { useAutoDj } from '../autoDj';
 import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
 import { locale, t } from '../i18n';
 import { uploadFailureKey } from '../media';
@@ -114,13 +115,17 @@ export function AccountForm({
   user,
   onChanged,
   onTrophies,
+  onAutoDj,
 }: {
   user: User;
   /** Auth's user object changes in place; this re-renders whoever shows it. */
   onChanged: () => void;
   /** Trophies lives behind Account, as in the app. */
   onTrophies: () => void;
+  /** DJ Juan preferences live in Account and sync across devices. */
+  onAutoDj: () => void;
 }) {
+  const djPreset = useAutoDj(s => s.profile.preset);
   const [memberSince, setMemberSince] = useState<number | null | undefined>(
     () => peekMemberSince(),
   );
@@ -285,6 +290,24 @@ export function AccountForm({
           onClick={onTrophies}
         >
           <span className="cell-name">{t('trophies.title')}</span>
+          <span className="chevron">
+            <ChevronRightGlyph />
+          </span>
+        </button>
+      </div>
+
+      {/* Detached from Trophies and untitled, matching Book Highlighter's Library Tools. */}
+      <div className="card">
+        <button
+          type="button"
+          className="cell link-row"
+          disabled={deleting}
+          onClick={onAutoDj}
+        >
+          <span className="cell-name">{t('settings.autoDj.title')}</span>
+          <span className="cell-value">
+            {t(`settings.autoDj.preset.${djPreset}`)}
+          </span>
           <span className="chevron">
             <ChevronRightGlyph />
           </span>

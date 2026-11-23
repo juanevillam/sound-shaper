@@ -1,8 +1,19 @@
 import { create } from 'zustand';
 
 import { type TranslationKey } from '@/i18n';
-import { type AutoDjMode, type DjFocus } from '@/lib/autoDj/plan';
+import {
+  DEFAULT_AUTO_DJ_CUSTOM,
+  DEFAULT_AUTO_DJ_PROFILE,
+  randomizeAutoDjCustom,
+  sameAutoDjProfile,
+  type AutoDjCustomConfig,
+  type AutoDjMode,
+  type AutoDjProfile,
+  type DjFocus,
+} from '@/lib/autoDj/plan';
 import { type EffectLevel } from '@/lib/shapeDsp';
+import { setAutoDjProfileDoc } from '@/services/firebase/users';
+import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
 import { useShaperStore } from '@/store/shaper';
 
@@ -48,6 +59,7 @@ export type AutoDjStatus = 'idle' | 'preparing' | 'mixing';
 type AutoDjState = {
   on: boolean;
   mode: AutoDjMode;
+  profile: AutoDjProfile;
   status: AutoDjStatus;
   /** The section of the Shape sheet the DJ most recently changed. */
   focus: DjFocus | null;
@@ -62,6 +74,10 @@ type AutoDjState = {
   setStatus: (status: AutoDjStatus) => void;
   setFocus: (focus: DjFocus | null) => void;
   setProgress: (ready: number, total: number) => void;
+  hydrateProfile: (profile: AutoDjProfile) => void;
+  patchCustom: (patch: Partial<AutoDjCustomConfig>) => void;
+  randomizeProfile: () => void;
+  resetProfile: () => void;
   /** Sign-out: forget everything. The shape stores reset themselves. */
   reset: () => void;
 };
@@ -76,6 +92,14 @@ const IDLE = {
   snapshot: null,
 };
 
+const persistProfile = (profile: AutoDjProfile) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return;
+  void setAutoDjProfileDoc({ uid, profile }).catch((error: unknown) => {
+    if (__DEV__) console.warn('setAutoDjProfile failed:', error);
+  });
+};
+
 const takeSnapshot = (): Snapshot => {
   const { gains, nextRoom, echo } = useShaperStore.getState();
   const { rate, keepPitch } = usePlayerStore.getState();
@@ -84,6 +108,7 @@ const takeSnapshot = (): Snapshot => {
 
 export const useAutoDjStore = create<AutoDjState>()((set, get) => ({
   ...IDLE,
+  profile: DEFAULT_AUTO_DJ_PROFILE,
 
   setMode: mode => {
     if (mode === 'off') {
@@ -124,7 +149,38 @@ export const useAutoDjStore = create<AutoDjState>()((set, get) => ({
   },
   setProgress: (ready, total) => set({ ready, total }),
 
-  reset: () => set(IDLE),
+  hydrateProfile: profile => {
+    if (!sameAutoDjProfile(get().profile, profile)) set({ profile });
+  },
+
+  patchCustom: patch => {
+    const profile: AutoDjProfile = {
+      preset: 'custom',
+      custom: { ...get().profile.custom, ...patch },
+    };
+    set({ profile });
+    persistProfile(profile);
+  },
+
+  randomizeProfile: () => {
+    const profile: AutoDjProfile = {
+      preset: 'custom',
+      custom: randomizeAutoDjCustom(),
+    };
+    set({ profile });
+    persistProfile(profile);
+  },
+
+  resetProfile: () => {
+    const profile: AutoDjProfile = {
+      preset: 'classic',
+      custom: { ...DEFAULT_AUTO_DJ_CUSTOM },
+    };
+    set({ profile });
+    persistProfile(profile);
+  },
+
+  reset: () => set({ ...IDLE, profile: DEFAULT_AUTO_DJ_PROFILE }),
 }));
 
 export const autoDjModeLabel = (

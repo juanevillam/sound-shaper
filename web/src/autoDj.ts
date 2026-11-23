@@ -9,14 +9,22 @@ import {
 import { djLevelDb } from '@app/lib/autoDj/loudness';
 import {
   AUTO_DJ_STYLES,
+  DEFAULT_AUTO_DJ_CUSTOM,
+  DEFAULT_AUTO_DJ_PROFILE,
   DJ_FOCUS_RANK,
   moveFocus,
   nextMoveIndex,
+  parseAutoDjProfile,
+  randomizeAutoDjCustom,
   rng,
+  sameAutoDjProfile,
   stateAt,
+  type AutoDjCustomConfig,
   type AutoDjMode,
+  type AutoDjProfile,
   type AutoDjStyle,
   type DjFocus,
+  type DjJuggleStep,
   type DjMove,
 } from '@app/lib/autoDj/plan';
 import {
@@ -32,8 +40,11 @@ import {
   type TransitionFx,
 } from '@app/lib/autoDj/set';
 import type { EffectLevel } from '@app/lib/shapeDsp';
+import { USERS_COLLECTION } from '@app/services/firebase/collections';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { djFx, preloadDjFx } from './djFx';
+import { auth, db } from './firebase';
 import type { Sound } from './library';
 import {
   applyGains,
@@ -66,9 +77,29 @@ type Snapshot = {
   keepPitch: boolean;
 };
 
+const profileCacheKey = (uid: string) => `soundshaper.autoDjProfile.${uid}`;
+
+const readCachedProfile = (uid: string): AutoDjProfile => {
+  try {
+    const raw = localStorage.getItem(profileCacheKey(uid));
+    return raw ? parseAutoDjProfile(JSON.parse(raw)) : DEFAULT_AUTO_DJ_PROFILE;
+  } catch {
+    return DEFAULT_AUTO_DJ_PROFILE;
+  }
+};
+
+const writeCachedProfile = (uid: string, profile: AutoDjProfile) => {
+  try {
+    localStorage.setItem(profileCacheKey(uid), JSON.stringify(profile));
+  } catch {
+    // Private browsing or quota full: keep in memory for this visit.
+  }
+};
+
 export type AutoDjState = {
   on: boolean;
   mode: AutoDjMode;
+  profile: AutoDjProfile;
   status: 'idle' | 'preparing' | 'mixing';
   /** The section of the Shape panel the DJ most recently changed. */
   focus: DjFocus | null;
@@ -78,7 +109,7 @@ export type AutoDjState = {
   snapshot: Snapshot | null;
 };
 
-const IDLE: AutoDjState = {
+const IDLE_BASE: Omit<AutoDjState, 'profile'> = {
   on: false,
   mode: 'off',
   status: 'idle',
@@ -88,7 +119,7 @@ const IDLE: AutoDjState = {
   snapshot: null,
 };
 
-let dj: AutoDjState = IDLE;
+let dj: AutoDjState = { ...IDLE_BASE, profile: DEFAULT_AUTO_DJ_PROFILE };
 const listeners = new Set<() => void>();
 
 export const autoDjState = (): AutoDjState => dj;
@@ -96,6 +127,58 @@ export const autoDjState = (): AutoDjState => dj;
 const setDj = (patch: Partial<AutoDjState>) => {
   dj = { ...dj, ...patch };
   listeners.forEach(listener => listener());
+};
+
+/** Seed DJ Juan profile from per-uid localStorage cache while Firestore loads. */
+export const hydrateAutoDjProfile = (uid: string) => {
+  const cached = readCachedProfile(uid);
+  if (!sameAutoDjProfile(dj.profile, cached)) setDj({ profile: cached });
+};
+
+/** Sync incoming `users/{uid}.autoDjProfile` snapshot without triggering spurious restarts. */
+export const syncAutoDjProfileFromAccount = (uid: string, raw: unknown) => {
+  const parsed = parseAutoDjProfile(raw);
+  writeCachedProfile(uid, parsed);
+  if (!sameAutoDjProfile(dj.profile, parsed)) setDj({ profile: parsed });
+};
+
+const persistProfile = (profile: AutoDjProfile) => {
+  const uid = auth.currentUser?.uid;
+  if (uid) {
+    writeCachedProfile(uid, profile);
+    void setDoc(
+      doc(db, USERS_COLLECTION, uid),
+      { autoDjProfile: profile },
+      { merge: true },
+    ).catch(error => console.warn('autoDjProfile', error));
+  }
+};
+
+export const patchAutoDjCustom = (patch: Partial<AutoDjCustomConfig>) => {
+  const profile: AutoDjProfile = {
+    preset: 'custom',
+    custom: { ...dj.profile.custom, ...patch },
+  };
+  persistProfile(profile);
+  setDj({ profile });
+};
+
+export const randomizeAutoDjProfile = () => {
+  const profile: AutoDjProfile = {
+    preset: 'custom',
+    custom: randomizeAutoDjCustom(),
+  };
+  persistProfile(profile);
+  setDj({ profile });
+};
+
+export const resetAutoDjProfile = () => {
+  const profile: AutoDjProfile = {
+    preset: 'classic',
+    custom: { ...DEFAULT_AUTO_DJ_CUSTOM },
+  };
+  persistProfile(profile);
+  setDj({ profile });
 };
 
 export const useAutoDj = <T>(select: (s: AutoDjState) => T): T =>
@@ -132,7 +215,7 @@ export const setAutoDjMode = (mode: AutoDjMode) => {
  */
 export const stopAutoDj = ({ restore }: { restore: boolean }) => {
   const { snapshot } = dj;
-  setDj(IDLE);
+  setDj(IDLE_BASE);
   if (!restore || !snapshot) return;
   const now = playerState();
   applyGains(snapshot.gains);
@@ -235,7 +318,7 @@ const getSongMap = (sound: Sound): Promise<SongMap | null> => {
 
 /** Sign-out: off, and nothing of the last account's library kept. */
 export const resetAutoDj = () => {
-  setDj(IDLE);
+  setDj({ ...IDLE_BASE, profile: DEFAULT_AUTO_DJ_PROFILE });
   memory.clear();
   try {
     Object.keys(localStorage)
@@ -315,7 +398,10 @@ const applyMove = (move: Partial<DjMove>) => {
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31);
 
 /** The app's director, line for line where it can be — see AutoDjDirector. */
-const direct = (mode: 'sound' | 'all'): (() => void) => {
+const direct = (
+  mode: 'sound' | 'all',
+  profile: AutoDjProfile,
+): (() => void) => {
   const singleSound = mode === 'sound';
   let cancelled = false;
   const maps = new Map<string, SongMap>();
@@ -383,6 +469,10 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
   let cued: Segment | null = null;
   let next = 0;
   let lastPosition = 0;
+  /** True while a real-time juggle sequence is driving seek/shape steps. */
+  let juggling = false;
+  /** Move indices whose one-shot `juggle` already fired in the current segment. */
+  const firedJuggles = new Set<number>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   /** The library, in grid order — the player's queue. */
@@ -391,6 +481,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
   const clearTimers = () => {
     timers.forEach(clearTimeout);
     timers.clear();
+    juggling = false;
   };
 
   const publishProgress = () => {
@@ -443,8 +534,10 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
   const setUpNext = (seg: Segment | null) => {
     upNext = seg;
     rose = false;
+    // Transition sound FX (riser/downlifter/zap/reverseCymbal) only glue cuts
+    // between different songs in `all` mode — never in single-sound mode.
     fx =
-      seg && segment
+      !singleSound && seg && segment
         ? transitionFx(segment, seg, random, barOf(segment))
         : null;
   };
@@ -460,6 +553,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
           style: nextStyle(),
           seed: Math.floor(random() * 2 ** 31),
           atS: 0,
+          profile,
         }),
       );
       return;
@@ -484,6 +578,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
           part,
           fromBar,
           finale,
+          profile,
         }),
       );
     };
@@ -547,6 +642,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
   const begin = (seg: Segment, position: number) => {
     segment = seg;
     landed = true;
+    firedJuggles.clear();
     setTempo = seg.tempo;
     played.add(seg.soundId);
     setDj({ status: 'mixing' });
@@ -576,6 +672,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
             style: nextStyle(),
             seed,
             atS: 0,
+            profile,
           })
         : joinSegment({
             sound: { soundId: current.id, map },
@@ -583,6 +680,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
             seed,
             atS,
             setTempo,
+            profile,
           }),
       atS,
     );
@@ -659,6 +757,62 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
     }
   };
 
+  /**
+   * Execute a one-shot real-time juggle sequence (rewinds, multi-rewinds with
+   * pitch changes, forward skips). While running, `juggling` stays true so
+   * DJ-issued seeks do not trigger manual-scrub resets.
+   */
+  const runJuggle = (steps: DjJuggleStep[], beatS: number) => {
+    if (!steps.length || !segment) return;
+    clearTimers();
+    juggling = true;
+
+    const runStep = (idx: number) => {
+      if (cancelled || !segment || !playerState().playing) {
+        juggling = false;
+        return;
+      }
+      const step = steps[idx];
+      applyMove(step);
+      if (!singleSound && step.fx) {
+        djFx.play(
+          step.fx,
+          0,
+          step.fx === 'reverseCymbal' ? beatS * 2 : undefined,
+        );
+      }
+      if (step.seekToS !== undefined) {
+        const clamped = Math.max(
+          segment.startS,
+          Math.min(segment.endS - 0.25, step.seekToS),
+        );
+        lastPosition = clamped;
+        seek(clamped);
+      }
+      const nextIdx = idx + 1;
+      if (nextIdx >= steps.length) {
+        juggling = false;
+        const pos = playerState().position;
+        lastPosition = pos;
+        next = nextMoveIndex(segment.mix, pos);
+        return;
+      }
+      const nextStep = steps[nextIdx];
+      const activeRate = Math.max(0.5, playerState().rate);
+      const delayMs = Math.max(
+        40,
+        ((nextStep.delayBeats * beatS) / activeRate) * 1000,
+      );
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        runStep(nextIdx);
+      }, delayMs);
+      timers.add(timer);
+    };
+
+    runStep(0);
+  };
+
   const onPosition = (position: number, playing: boolean) => {
     if (!segment) return;
     // After a cue, the reports before the new sound lands belong to the
@@ -667,6 +821,13 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
       if (position < segment.startS - 0.3) return;
       landed = true;
       foldTo(position);
+      return;
+    }
+    if (juggling) {
+      lastPosition = position;
+      if (playing && upNext && position >= segment.endS - CUE_LEAD_S) {
+        cue();
+      }
       return;
     }
     const jumped =
@@ -695,15 +856,31 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
       }
     }
     const { moves } = segment.mix;
+    const barS = barOf(segment);
+    const beatS = barS / 4;
     while (next < moves.length) {
-      const move = moves[next];
+      const moveIdx = next;
+      const move = moves[moveIdx];
       const ahead = move.atS - position;
       if (ahead > LOOKAHEAD_S) break;
       next += 1;
       const delayMs = Math.max(0, (ahead / rate) * 1000);
       const timer = setTimeout(() => {
         timers.delete(timer);
-        if (!cancelled) applyMove(move);
+        if (cancelled) return;
+        if (move.juggle && !firedJuggles.has(moveIdx)) {
+          firedJuggles.add(moveIdx);
+          runJuggle(move.juggle, beatS);
+          return;
+        }
+        applyMove(move);
+        if (!singleSound && move.fx) {
+          djFx.play(
+            move.fx,
+            0,
+            move.fx === 'reverseCymbal' ? barS / 2 : undefined,
+          );
+        }
       }, delayMs);
       timers.add(timer);
     }
@@ -722,6 +899,7 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
         cued = null;
         segment = seg;
         landed = false;
+        firedJuggles.clear();
         setTempo = seg.tempo;
         played.add(seg.soundId);
         next = nextMoveIndex(seg.mix, seg.startS);
@@ -781,7 +959,11 @@ const direct = (mode: 'sound' | 'all'): (() => void) => {
 /** Mount once in the signed-in app: the DJ runs whatever is open. */
 export const useAutoDjDirector = () => {
   const mode = useAutoDj(s => s.mode);
-  useEffect(() => (mode !== 'off' ? direct(mode) : undefined), [mode]);
+  const profile = useAutoDj(s => s.profile);
+  useEffect(
+    () => (mode !== 'off' ? direct(mode, profile) : undefined),
+    [mode, profile],
+  );
   // Signing out (unmounting) leaves nothing on.
   useEffect(() => resetAutoDj, []);
 };

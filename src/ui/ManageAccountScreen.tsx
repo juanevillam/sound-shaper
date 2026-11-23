@@ -60,6 +60,7 @@ export type ManageAccountInfoRow = {
 export type ManageAccountNavRow = {
   id: string;
   label: string;
+  value?: string;
   onPress: () => void;
 };
 
@@ -258,7 +259,11 @@ export const ManageAccountScreen = ({
           >
             {section.rows.map(row => (
               <Button key={row.id} onPress={row.onPress}>
-                <FormDisclosureRowIos label={row.label} colors={colors} />
+                <FormDisclosureRowIos
+                  label={row.label}
+                  value={row.value}
+                  colors={colors}
+                />
               </Button>
             ))}
           </Section>

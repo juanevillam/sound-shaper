@@ -260,7 +260,7 @@ export const translations = {
         // behind the row, in Apple's construction (App Store: "Account info,
         // payments and settings"). Sentence case, no period: it is a
         // description, not a label.
-        summary: 'Account info and trophies',
+        summary: 'Account info, trophies and DJ Juan',
       },
       manageAccount: {
         infoTitle: 'Account Information',
@@ -315,6 +315,40 @@ export const translations = {
         light: 'Light',
         dark: 'Dark',
         system: 'Automatic',
+      },
+      autoDj: {
+        title: 'DJ Juan',
+        preset: {
+          classic: 'Classic',
+          custom: 'Custom',
+        },
+        flowTitle: 'Flow',
+        pace: {
+          label: 'Pace',
+          calm: 'Calm',
+          balanced: 'Balanced',
+          lively: 'Lively',
+        },
+        vibe: {
+          label: 'Tempo Vibe',
+          auto: 'Auto',
+          slowed: 'Slowed',
+          normal: 'Normal',
+          hyper: 'Sped Up',
+        },
+        controlsTitle: 'Controls',
+        controlsHint:
+          'Turn any control off so DJ Juan leaves it untouched, or raise it for bolder moves.',
+        keepPitch: {
+          auto: 'Auto',
+          on: 'Always On',
+          off: 'Always Off',
+        },
+        skips: {
+          label: 'Forward Skips',
+        },
+        randomize: 'Randomize',
+        reset: 'Reset to Classic',
       },
       install: {
         label: 'Install App',
@@ -593,7 +627,7 @@ export const translations = {
       account: {
         sheetTitle: 'Cuenta',
         noName: 'Tu cuenta',
-        summary: 'Información de la cuenta y trofeos',
+        summary: 'Información de la cuenta, trofeos y DJ Juan',
       },
       manageAccount: {
         infoTitle: 'Información de la cuenta',
@@ -644,6 +678,40 @@ export const translations = {
         light: 'Claro',
         dark: 'Oscuro',
         system: 'Automático',
+      },
+      autoDj: {
+        title: 'DJ Juan',
+        preset: {
+          classic: 'Clásico',
+          custom: 'Personalizado',
+        },
+        flowTitle: 'Ritmo',
+        pace: {
+          label: 'Frecuencia',
+          calm: 'Tranquilo',
+          balanced: 'Equilibrado',
+          lively: 'Movido',
+        },
+        vibe: {
+          label: 'Vibra',
+          auto: 'Automático',
+          slowed: 'Slowed',
+          normal: 'Normal',
+          hyper: 'Acelerado',
+        },
+        controlsTitle: 'Controles',
+        controlsHint:
+          'Apaga cualquier control para que DJ Juan no lo toque, o súbelo para cambios más fuertes.',
+        keepPitch: {
+          auto: 'Automático',
+          on: 'Siempre sí',
+          off: 'Siempre no',
+        },
+        skips: {
+          label: 'Saltos adelante',
+        },
+        randomize: 'Aleatorizar',
+        reset: 'Restablecer a Clásico',
       },
       install: {
         label: 'Instalar aplicación',
@@ -920,7 +988,7 @@ export const translations = {
       account: {
         sheetTitle: '账户',
         noName: '你的账户',
-        summary: '账户信息和奖杯',
+        summary: '账户信息、奖杯和 DJ Juan',
       },
       manageAccount: {
         infoTitle: '账户信息',
@@ -969,6 +1037,39 @@ export const translations = {
         light: '浅色',
         dark: '深色',
         system: '自动',
+      },
+      autoDj: {
+        title: 'DJ Juan',
+        preset: {
+          classic: '经典',
+          custom: '自定',
+        },
+        flowTitle: '节奏',
+        pace: {
+          label: '频率',
+          calm: '舒缓',
+          balanced: '均衡',
+          lively: '活跃',
+        },
+        vibe: {
+          label: '速度氛围',
+          auto: '自动',
+          slowed: '放慢',
+          normal: '原速',
+          hyper: '加速',
+        },
+        controlsTitle: '控制项',
+        controlsHint: '关闭任意项即可让 DJ Juan 保持不动，调高则变化更明显。',
+        keepPitch: {
+          auto: '自动',
+          on: '始终保持',
+          off: '始终关闭',
+        },
+        skips: {
+          label: '向前跳转',
+        },
+        randomize: '随机生成',
+        reset: '恢复经典',
       },
       install: {
         label: '安装应用',

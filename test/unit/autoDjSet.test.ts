@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { songOf } from './autoDjSong';
-import { AUTO_DJ_STYLES, rng, stateAt } from '../../src/lib/autoDj/plan';
+import {
+  AUTO_DJ_STYLES,
+  parseAutoDjProfile,
+  randomizeAutoDjCustom,
+  rng,
+  stateAt,
+} from '../../src/lib/autoDj/plan';
 import {
   firstPeakBar,
   joinSegment,
@@ -471,6 +477,161 @@ describe('planSoundSegment ("This Sound" mode)', () => {
           expect(st.keepPitch).toBe(false);
         }
       }
+    }
+  });
+});
+
+describe('AutoDjProfile (classic / custom)', () => {
+  it('keeps classic bit-for-bit identical to the default with zero juggles', () => {
+    const def = planSoundSegment({
+      sound: { soundId: 'dakiti', map: song },
+      style: 'club',
+      seed: 42,
+      atS: 0,
+    });
+    const classic = planSoundSegment({
+      sound: { soundId: 'dakiti', map: song },
+      style: 'club',
+      seed: 42,
+      atS: 0,
+      profile: {
+        preset: 'classic',
+        custom: {
+          pace: 'lively',
+          vibe: 'hyper',
+          eq: 'high',
+          speed: 'high',
+          keepPitch: 'off',
+          nextRoom: 'high',
+          echo: 'high',
+          skips: 'high',
+        },
+      },
+    });
+    expect(classic).toEqual(def);
+    expect(classic.mix.moves.some(m => m.juggle)).toBe(false);
+  });
+
+  it('strictly honors disabled controls in custom mode', () => {
+    const seg = planSoundSegment({
+      sound: { soundId: 'dakiti', map: song },
+      style: 'club',
+      seed: 77,
+      atS: 0,
+      profile: {
+        preset: 'custom',
+        custom: {
+          pace: 'lively',
+          vibe: 'normal',
+          eq: 'off',
+          speed: 'off',
+          keepPitch: 'on',
+          nextRoom: 'off',
+          echo: 'off',
+          skips: 'off',
+        },
+      },
+    });
+    for (const m of seg.mix.moves) {
+      if (m.gains) expect(m.gains).toEqual([0, 0, 0, 0, 0]);
+      if (m.rate !== undefined) expect(m.rate).toBe(1);
+      if (m.keepPitch !== undefined) expect(m.keepPitch).toBe(true);
+      if (m.nextRoom !== undefined) expect(m.nextRoom).toBe('off');
+      if (m.echo !== undefined) expect(m.echo).toBe('off');
+      expect(m.juggle).toBeUndefined();
+      expect(m.fx).toBeUndefined();
+    }
+  });
+
+  it('produces asymmetric -12/+12 EQ, forward-only skips (never rewinds), and zero FX in single-sound high custom mode', () => {
+    const segs = Array.from({ length: 12 }, (_, i) =>
+      planSoundSegment({
+        sound: { soundId: 'dakiti', map: song },
+        style: AUTO_DJ_STYLES[i % AUTO_DJ_STYLES.length],
+        seed: 100 + i,
+        atS: 0,
+        profile: {
+          preset: 'custom',
+          custom: {
+            pace: 'lively',
+            vibe: 'auto',
+            eq: 'high',
+            speed: 'high',
+            keepPitch: 'auto',
+            nextRoom: 'high',
+            echo: 'medium',
+            skips: 'high',
+          },
+        },
+      }),
+    );
+    const allMoves = segs.flatMap(s => s.mix.moves);
+    expect(allMoves.some(m => m.juggle && m.juggle.length > 0)).toBe(true);
+    expect(allMoves.some(m => m.fx !== undefined)).toBe(false);
+    expect(allMoves.some(m => m.juggle?.some(st => st.fx !== undefined))).toBe(
+      false,
+    );
+
+    for (const s of segs) {
+      for (const m of s.mix.moves) {
+        if (!m.juggle) continue;
+        let cursor = m.atS;
+        for (const step of m.juggle) {
+          expect(step.delayBeats).toBeGreaterThanOrEqual(0);
+          if (step.seekToS !== undefined) {
+            // Strictly forward — DJ Juan never rewinds a track.
+            expect(step.seekToS).toBeGreaterThan(cursor);
+            expect(step.seekToS).toBeLessThanOrEqual(s.endS);
+            cursor = step.seekToS;
+          }
+          if (step.rate !== undefined) {
+            expect(step.rate).toBeGreaterThanOrEqual(0.75);
+            expect(step.rate).toBeLessThanOrEqual(1.25);
+          }
+        }
+      }
+      for (let t = s.startS; t < s.endS; t += 0.5) {
+        const st = stateAt(s.mix, t);
+        if (st.rate < 0.95 - 1e-4) expect(st.keepPitch).toBe(false);
+      }
+    }
+
+    const hasExtremeAsymmetric = allMoves.some(m => {
+      const curves = [
+        ...(m.gains ? [m.gains] : []),
+        ...(m.juggle?.flatMap(st => (st.gains ? [st.gains] : [])) ?? []),
+      ];
+      return curves.some(
+        g =>
+          g.includes(-12) && g.includes(12) && (g[0] !== g[4] || g[1] !== g[3]),
+      );
+    });
+    expect(hasExtremeAsymmetric).toBe(true);
+  });
+
+  it('parses malformed profiles safely and randomizes with at least two active controls', () => {
+    expect(parseAutoDjProfile(null).preset).toBe('classic');
+    expect(
+      parseAutoDjProfile({
+        preset: 'custom',
+        custom: { eq: 'high', pace: 'bad' },
+      }),
+    ).toMatchObject({
+      preset: 'custom',
+      custom: { eq: 'high', pace: 'balanced' },
+    });
+
+    const rand = rng(999);
+    for (let i = 0; i < 30; i += 1) {
+      const cfg = randomizeAutoDjCustom(rand);
+      const active = [
+        cfg.eq,
+        cfg.speed,
+        cfg.nextRoom,
+        cfg.echo,
+        cfg.skips,
+      ].filter(v => v !== 'off').length;
+      expect(active).toBeGreaterThanOrEqual(2);
     }
   });
 });

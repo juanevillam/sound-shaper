@@ -15,7 +15,9 @@
 // changes Echo live (2026-11-04), so the set does too — at a cut, or there.
 // ---------------------------------------------------------------------------
 
-import { EQ_PRESETS, type EffectLevel } from '../shapeDsp';
+import { EFFECT_LEVELS, EQ_PRESETS, type EffectLevel } from '../shapeDsp';
+
+import type { FxName } from './fx';
 
 export type AutoDjStyle = 'club' | 'slowed' | 'hyper';
 export const AUTO_DJ_STYLES: readonly AutoDjStyle[] = [
@@ -23,6 +25,156 @@ export const AUTO_DJ_STYLES: readonly AutoDjStyle[] = [
   'slowed',
   'hyper',
 ];
+
+/**
+ * DJ Juan profile:
+ *   · `classic` — Juan's original DÁKITI-inspired algorithm, untouched;
+ *   · `custom`  — user-directed DJ Juan: pick pace, tempo vibe, preserve pitch,
+ *                 and how much EQ, speed, Next Room, Echo and rewinds he uses.
+ */
+export type AutoDjPreset = 'classic' | 'custom';
+
+const isAutoDjPreset = (value: unknown): value is AutoDjPreset =>
+  value === 'classic' || value === 'custom';
+
+export type AutoDjPace = 'calm' | 'balanced' | 'lively';
+export const AUTO_DJ_PACES: readonly AutoDjPace[] = [
+  'calm',
+  'balanced',
+  'lively',
+];
+
+export type AutoDjVibe = 'auto' | 'slowed' | 'normal' | 'hyper';
+export const AUTO_DJ_VIBES: readonly AutoDjVibe[] = [
+  'auto',
+  'slowed',
+  'normal',
+  'hyper',
+];
+
+export type AutoDjPitchPref = 'auto' | 'on' | 'off';
+export const AUTO_DJ_PITCH_PREFS: readonly AutoDjPitchPref[] = [
+  'auto',
+  'on',
+  'off',
+];
+
+export type AutoDjCustomConfig = {
+  pace: AutoDjPace;
+  vibe: AutoDjVibe;
+  eq: EffectLevel;
+  speed: EffectLevel;
+  keepPitch: AutoDjPitchPref;
+  nextRoom: EffectLevel;
+  echo: EffectLevel;
+  skips: EffectLevel;
+};
+
+export const DEFAULT_AUTO_DJ_CUSTOM: AutoDjCustomConfig = {
+  pace: 'balanced',
+  vibe: 'auto',
+  eq: 'medium',
+  speed: 'medium',
+  keepPitch: 'auto',
+  nextRoom: 'low',
+  echo: 'low',
+  skips: 'off',
+};
+
+export type AutoDjProfile = {
+  preset: AutoDjPreset;
+  custom: AutoDjCustomConfig;
+};
+
+export const DEFAULT_AUTO_DJ_PROFILE: AutoDjProfile = {
+  preset: 'classic',
+  custom: DEFAULT_AUTO_DJ_CUSTOM,
+};
+
+export const sameAutoDjProfile = (
+  a: AutoDjProfile,
+  b: AutoDjProfile,
+): boolean =>
+  a.preset === b.preset &&
+  a.custom.pace === b.custom.pace &&
+  a.custom.vibe === b.custom.vibe &&
+  a.custom.eq === b.custom.eq &&
+  a.custom.speed === b.custom.speed &&
+  a.custom.keepPitch === b.custom.keepPitch &&
+  a.custom.nextRoom === b.custom.nextRoom &&
+  a.custom.echo === b.custom.echo &&
+  a.custom.skips === b.custom.skips;
+
+const isOneOf = <T extends string>(
+  list: readonly T[],
+  value: unknown,
+): value is T =>
+  typeof value === 'string' && (list as readonly string[]).includes(value);
+
+/** Parse any unknown value (localStorage or Firestore) into a valid `AutoDjProfile`. */
+export function parseAutoDjProfile(raw: unknown): AutoDjProfile {
+  if (!raw || typeof raw !== 'object') return DEFAULT_AUTO_DJ_PROFILE;
+  const parsed = raw as Partial<AutoDjProfile>;
+  const preset: AutoDjPreset = isAutoDjPreset(parsed.preset)
+    ? parsed.preset
+    : 'classic';
+  const c = (parsed.custom ?? {}) as Partial<AutoDjCustomConfig>;
+  return {
+    preset,
+    custom: {
+      pace: isOneOf(AUTO_DJ_PACES, c.pace)
+        ? c.pace
+        : DEFAULT_AUTO_DJ_CUSTOM.pace,
+      vibe: isOneOf(AUTO_DJ_VIBES, c.vibe)
+        ? c.vibe
+        : DEFAULT_AUTO_DJ_CUSTOM.vibe,
+      eq: isOneOf(EFFECT_LEVELS, c.eq) ? c.eq : DEFAULT_AUTO_DJ_CUSTOM.eq,
+      speed: isOneOf(EFFECT_LEVELS, c.speed)
+        ? c.speed
+        : DEFAULT_AUTO_DJ_CUSTOM.speed,
+      keepPitch: isOneOf(AUTO_DJ_PITCH_PREFS, c.keepPitch)
+        ? c.keepPitch
+        : DEFAULT_AUTO_DJ_CUSTOM.keepPitch,
+      nextRoom: isOneOf(EFFECT_LEVELS, c.nextRoom)
+        ? c.nextRoom
+        : DEFAULT_AUTO_DJ_CUSTOM.nextRoom,
+      echo: isOneOf(EFFECT_LEVELS, c.echo)
+        ? c.echo
+        : DEFAULT_AUTO_DJ_CUSTOM.echo,
+      skips: isOneOf(EFFECT_LEVELS, c.skips)
+        ? c.skips
+        : DEFAULT_AUTO_DJ_CUSTOM.skips,
+    },
+  };
+}
+
+/**
+ * Generate a fresh, musical random `AutoDjCustomConfig` — guarantees at least
+ * two active controls so a random roll never comes back completely silent/flat.
+ */
+export function randomizeAutoDjCustom(
+  random: () => number = Math.random,
+): AutoDjCustomConfig {
+  const pick = <T>(xs: readonly T[]): T => xs[Math.floor(random() * xs.length)];
+  const activeLevels: readonly EffectLevel[] = ['low', 'medium', 'high'];
+  const config: AutoDjCustomConfig = {
+    pace: pick(AUTO_DJ_PACES),
+    vibe: pick(AUTO_DJ_VIBES),
+    eq: pick(EFFECT_LEVELS),
+    speed: pick(EFFECT_LEVELS),
+    keepPitch: pick(AUTO_DJ_PITCH_PREFS),
+    nextRoom: pick(EFFECT_LEVELS),
+    echo: pick(EFFECT_LEVELS),
+    skips: pick(EFFECT_LEVELS),
+  };
+  const keys = ['eq', 'speed', 'nextRoom', 'echo', 'skips'] as const;
+  const activeCount = keys.filter(k => config[k] !== 'off').length;
+  if (activeCount < 2) {
+    config.eq = pick(activeLevels);
+    config.speed = pick(activeLevels);
+  }
+  return config;
+}
 
 /**
  * How DJ Juan plays: off, mixing only the playing sound in a loop (`sound`),
@@ -69,7 +221,32 @@ export type DjState = {
   keepPitch?: boolean;
 };
 
-export type DjMove = { atS: number } & Partial<DjState>;
+/**
+ * One real-time step inside a DJ juggle (rewind, double-back, or forward skip)
+ * executed by the director when a move with `juggle` fires. `delayBeats` is
+ * measured in musical beats (scaled by the active playback rate at runtime)
+ * after the previous step.
+ */
+export type DjJuggleStep = {
+  /** Beats to wait after the previous step before firing this one (0 = now). */
+  delayBeats: number;
+  /** Target playhead position in seconds (clamped inside the segment). */
+  seekToS?: number;
+  /** Optional DJ FX flourish fired on this step (e.g. 'zap' on a rewind). */
+  fx?: FxName;
+} & Partial<DjState>;
+
+export type DjMove = {
+  atS: number;
+  /** Optional DJ FX flourish fired on this move. */
+  fx?: FxName;
+  /**
+   * One-shot real-time juggle sequence (rewinds / forward skips / pitch
+   * ladders). Never emitted in `classic` level; consumed once per segment so
+   * rewinding behind `atS` can never re-trigger an infinite loop.
+   */
+  juggle?: DjJuggleStep[];
+} & Partial<DjState>;
 
 export type Mix = {
   style: AutoDjStyle;
@@ -164,7 +341,7 @@ export function stateAt(mix: Mix, atS: number): DjState {
   };
   for (const move of mix.moves) {
     if (move.atS > atS) break;
-    const { atS: _at, ...rest } = move;
+    const { atS: _at, fx: _fx, juggle: _juggle, ...rest } = move;
     Object.assign(state, rest);
   }
   return state;

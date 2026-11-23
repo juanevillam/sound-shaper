@@ -11,6 +11,7 @@ import {
   rng,
   stateAt,
   type AutoDjStyle,
+  type DjJuggleStep,
   type DjMove,
 } from '@/lib/autoDj/plan';
 import {
@@ -162,6 +163,7 @@ const isPinnedDakiti = (
 export function AutoDjDirector() {
   const on = useAutoDjStore(s => s.on);
   const mode = useAutoDjStore(s => s.mode);
+  const profile = useAutoDjStore(s => s.profile);
 
   useEffect(() => {
     if (!on || mode === 'off') return;
@@ -231,6 +233,8 @@ export function AutoDjDirector() {
     let cued: Segment | null = null;
     let next = 0;
     let lastPosition = 0;
+    let juggling = false;
+    const firedJuggles = new Set<number>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     const library = (): Sound[] => useSoundsStore.getState().sounds;
@@ -238,6 +242,7 @@ export function AutoDjDirector() {
     const clearTimers = () => {
       timers.forEach(clearTimeout);
       timers.clear();
+      juggling = false;
     };
 
     const publishProgress = () => {
@@ -290,8 +295,9 @@ export function AutoDjDirector() {
     const setUpNext = (seg: Segment | null) => {
       upNext = seg;
       rose = false;
+      // Transition sound FX only glue cuts between different songs in `all` mode.
       fx =
-        seg && segment
+        !singleSound && seg && segment
           ? transitionFx(segment, seg, random, barOf(segment))
           : null;
     };
@@ -311,6 +317,7 @@ export function AutoDjDirector() {
             style: dakiti ? 'club' : nextStyle(),
             seed: dakiti ? DAKITI_DEMO_SEED : Math.floor(random() * 2 ** 31),
             atS: 0,
+            profile,
           }),
         );
         return;
@@ -335,6 +342,7 @@ export function AutoDjDirector() {
             part,
             fromBar,
             finale,
+            profile,
           }),
         );
       };
@@ -398,6 +406,7 @@ export function AutoDjDirector() {
     const begin = (seg: Segment, position: number) => {
       segment = seg;
       landed = true;
+      firedJuggles.clear();
       setTempo = seg.tempo;
       played.add(seg.soundId);
       dj.setStatus('mixing');
@@ -430,6 +439,7 @@ export function AutoDjDirector() {
               style: dakiti ? 'club' : nextStyle(),
               seed,
               atS: 0,
+              profile,
             })
           : joinSegment({
               sound: { soundId: current.id, map },
@@ -437,6 +447,7 @@ export function AutoDjDirector() {
               seed,
               atS,
               setTempo,
+              profile,
             }),
         atS,
       );
@@ -513,6 +524,57 @@ export function AutoDjDirector() {
       }
     };
 
+    const runJuggle = (steps: DjJuggleStep[], beatS: number) => {
+      if (!steps.length || !segment) return;
+      clearTimers();
+      juggling = true;
+
+      const runStep = (idx: number) => {
+        if (cancelled || !segment || !usePlayerStore.getState().playing) {
+          juggling = false;
+          return;
+        }
+        const step = steps[idx];
+        applyMove(step);
+        if (!singleSound && step.fx) {
+          djFx.play(
+            step.fx,
+            0,
+            step.fx === 'reverseCymbal' ? beatS * 2 : undefined,
+          );
+        }
+        if (step.seekToS !== undefined) {
+          const clamped = Math.max(
+            segment.startS,
+            Math.min(segment.endS - 0.25, step.seekToS),
+          );
+          lastPosition = clamped;
+          usePlayerStore.getState().seek(clamped);
+        }
+        const nextIdx = idx + 1;
+        if (nextIdx >= steps.length) {
+          juggling = false;
+          const pos = usePlayerStore.getState().position;
+          lastPosition = pos;
+          next = nextMoveIndex(segment.mix, pos);
+          return;
+        }
+        const nextStep = steps[nextIdx];
+        const activeRate = Math.max(0.5, usePlayerStore.getState().rate);
+        const delayMs = Math.max(
+          40,
+          ((nextStep.delayBeats * beatS) / activeRate) * 1000,
+        );
+        const timer = setTimeout(() => {
+          timers.delete(timer);
+          runStep(nextIdx);
+        }, delayMs);
+        timers.add(timer);
+      };
+
+      runStep(0);
+    };
+
     const onPosition = (position: number, playing: boolean) => {
       if (!segment) return;
       // After a cue, the reports before the new sound lands belong to the
@@ -521,6 +583,13 @@ export function AutoDjDirector() {
         if (position < segment.startS - 0.3) return;
         landed = true;
         foldTo(position);
+        return;
+      }
+      if (juggling) {
+        lastPosition = position;
+        if (playing && upNext && position >= segment.endS - CUE_LEAD_S) {
+          cue();
+        }
         return;
       }
       const jumped =
@@ -549,15 +618,31 @@ export function AutoDjDirector() {
         }
       }
       const { moves } = segment.mix;
+      const barS = barOf(segment);
+      const beatS = barS / 4;
       while (next < moves.length) {
-        const move = moves[next];
+        const moveIdx = next;
+        const move = moves[moveIdx];
         const ahead = move.atS - position;
         if (ahead > LOOKAHEAD_S) break;
         next += 1;
         const delayMs = Math.max(0, (ahead / rate) * 1000);
         const timer = setTimeout(() => {
           timers.delete(timer);
-          if (!cancelled) applyMove(move);
+          if (cancelled) return;
+          if (move.juggle && !firedJuggles.has(moveIdx)) {
+            firedJuggles.add(moveIdx);
+            runJuggle(move.juggle, beatS);
+            return;
+          }
+          applyMove(move);
+          if (!singleSound && move.fx) {
+            djFx.play(
+              move.fx,
+              0,
+              move.fx === 'reverseCymbal' ? barS / 2 : undefined,
+            );
+          }
         }, delayMs);
         timers.add(timer);
       }
@@ -572,6 +657,7 @@ export function AutoDjDirector() {
           cued = null;
           segment = seg;
           landed = false;
+          firedJuggles.clear();
           setTempo = seg.tempo;
           played.add(seg.soundId);
           next = nextMoveIndex(seg.mix, seg.startS);
@@ -638,7 +724,7 @@ export function AutoDjDirector() {
       unsubscribe();
       dj.setProgress(0, 0);
     };
-  }, [on, mode]);
+  }, [on, mode, profile]);
 
   return null;
 }

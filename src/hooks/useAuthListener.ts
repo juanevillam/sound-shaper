@@ -131,6 +131,9 @@ export const useAuthListener = () => {
         .then(profile => {
           if (useAuthStore.getState().user?.uid !== user.uid) return;
           useProfileStore.getState().setProfile(profile);
+          if (profile.autoDjProfile) {
+            useAutoDjStore.getState().hydrateProfile(profile.autoDjProfile);
+          }
           void hydrateTrophyCounters(profile);
         })
         .catch((error: unknown) => {

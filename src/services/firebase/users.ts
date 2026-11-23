@@ -9,6 +9,7 @@ import {
   type Timestamp,
 } from '@react-native-firebase/firestore';
 
+import { parseAutoDjProfile, type AutoDjProfile } from '@/lib/autoDj/plan';
 import { USERS_COLLECTION } from '@/services/firebase/collections';
 import { reported } from '@/services/firebase/crashlytics';
 
@@ -26,6 +27,8 @@ export type UserProfile = {
    * app's whole life before this.
    */
   addTilePosition: number | null;
+  /** Account-synced DJ Juan profile (Classic or Custom). */
+  autoDjProfile?: AutoDjProfile;
   /**
    * HOW MANY CLIPS THE PERSON HAS EVER SAVED, server-side — the `saved-clips`
    * trophy's count. Only ever moved by `increment`; see `lib/trophyCounters`.
@@ -60,6 +63,7 @@ const dataToModel = (
 
   return {
     addTilePosition: finiteOrNull(data.addTilePosition),
+    autoDjProfile: parseAutoDjProfile(data.autoDjProfile),
     clipsSaved: finiteOrNull(data.clipsSaved),
     createdAt: createdAt ? createdAt.toMillis() : null,
     displayName: (data.displayName as string) ?? null,
@@ -172,6 +176,24 @@ export const setAddTilePosition = reported(
     await setDoc(
       doc(getFirestore(), USERS_COLLECTION, uid),
       { addTilePosition: position },
+      { merge: true },
+    );
+  },
+);
+
+/** Save the person's DJ Juan profile (`Classic` or `Custom`) onto `users/{uid}`. */
+export const setAutoDjProfileDoc = reported(
+  'users.setAutoDjProfile',
+  async ({
+    profile,
+    uid,
+  }: {
+    profile: AutoDjProfile;
+    uid: string;
+  }): Promise<void> => {
+    await setDoc(
+      doc(getFirestore(), USERS_COLLECTION, uid),
+      { autoDjProfile: profile },
       { merge: true },
     );
   },

@@ -176,6 +176,7 @@ export const IOS_SHEET_SCREENS: ReadonlyArray<{
     titleKey: 'settings.account.sheetTitle',
   },
   { name: 'trophies', detents: [1], titleKey: 'trophies.title' },
+  { name: 'auto-dj', detents: [1], titleKey: 'settings.autoDj.title' },
 ];
 
 /**

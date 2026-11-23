@@ -2835,15 +2835,24 @@ button {
   color: var(--faint);
 }
 
+.action-row,
 .destructive-row {
   justify-content: center;
   width: 100%;
   border: 0;
   background: none;
-  color: var(--destructive);
   font-size: 1.0625rem;
 }
 
+.action-row {
+  color: var(--accent);
+}
+
+.destructive-row {
+  color: var(--destructive);
+}
+
+.action-row:active,
 .destructive-row:active {
   background: rgb(var(--fg) / 0.06);
 }

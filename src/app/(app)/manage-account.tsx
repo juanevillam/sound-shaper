@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Image as RemoteImage } from 'expo-image';
-import { router, useNavigation } from 'expo-router';
+import { router, useNavigation, type Href } from 'expo-router';
 
 import { HeaderCloseButtonIos } from '@/components/ui/HeaderCloseButtonIos';
 import { SheetScreen } from '@/components/ui/SheetScreenIos';
@@ -17,6 +17,7 @@ import { useI18n } from '@/i18n';
 import { haptics } from '@/lib/haptics';
 import { thumbUrl } from '@/services/cloudinary/thumbUrl';
 import { useAuthStore } from '@/store/auth';
+import { useAutoDjStore } from '@/store/autoDj';
 import { usePlayerStore } from '@/store/player';
 import { useProfileStore } from '@/store/profile';
 import {
@@ -72,6 +73,7 @@ export default function ManageAccount() {
   useOwnProfile();
   const profile = useProfileStore(s => s.profile);
   const hasSettled = useProfileStore(s => s.hasSettled);
+  const djPreset = useAutoDjStore(s => s.profile.preset);
   const navigation = useNavigation();
   const deleteAccount = useDeleteAccount();
   // The person's own name and photo — Sign in with Apple may share neither.
@@ -301,9 +303,9 @@ export default function ManageAccount() {
           rows: infoRows,
           loading,
         }}
-        // Trophies lives behind Account: Settings' identity banner is the way
-        // in (Apple's Apple Account pattern) and everything account-shaped
-        // sits behind it. Untitled card — the label says what it is.
+        // Trophies and DJ Juan live behind Account: Settings' identity banner is
+        // the way in (Apple's Apple Account pattern) and everything account-
+        // shaped sits behind it. Untitled cards — the labels say what they are.
         sections={[
           {
             rows: [
@@ -311,6 +313,16 @@ export default function ManageAccount() {
                 id: 'trophies',
                 label: t('trophies.title'),
                 onPress: () => router.push('/trophies'),
+              },
+            ],
+          },
+          {
+            rows: [
+              {
+                id: 'auto-dj',
+                label: t('settings.autoDj.title'),
+                value: t(`settings.autoDj.preset.${djPreset}`),
+                onPress: () => router.push('/auto-dj' as Href),
               },
             ],
           },
