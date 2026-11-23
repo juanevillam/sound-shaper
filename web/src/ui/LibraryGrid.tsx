@@ -429,7 +429,7 @@ export function LibraryGrid({
     if (li) {
       const from = li.style.transform;
       li.style.transform = '';
-      if (from) {
+      if (from && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
         li.style.zIndex = '10';
         const anim = li.animate([{ transform: from }, { transform: 'none' }], {
           duration: 220,

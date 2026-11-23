@@ -122,29 +122,29 @@ export const blockTrophySync = (block: boolean) => {
 let activeClockFlush: (() => void) | null = null;
 
 /** Flush pending listening seconds & saved clips before `firebaseSignOut`. */
-export const flushTrophyCounters = () => {
+export const flushTrophyCounters = (): Promise<void> => {
   activeClockFlush?.();
-  push();
+  return push();
 };
 
 const finite = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
-/** Send what this tab holds. Fire-and-forget; a refusal keeps the credit. */
-const push = () => {
+/** Send what this tab holds. Returns the write promise; a refusal keeps credit. */
+const push = (): Promise<void> => {
   const { uid, hydrated, unsyncedListened, unsyncedClips } = counters;
-  if (blocked || !uid || !hydrated) return;
+  if (blocked || !uid || !hydrated) return Promise.resolve();
 
   const listenedSeconds = Math.round(unsyncedListened);
   const clipsSaved = unsyncedClips;
-  if (listenedSeconds <= 0 && clipsSaved <= 0) return;
+  if (listenedSeconds <= 0 && clipsSaved <= 0) return Promise.resolve();
 
   setCounters({
     unsyncedListened: unsyncedListened - listenedSeconds,
     unsyncedClips: 0,
   });
 
-  setDoc(
+  return setDoc(
     doc(db, USERS_COLLECTION, uid),
     {
       ...(listenedSeconds > 0

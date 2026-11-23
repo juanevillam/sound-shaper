@@ -63,6 +63,7 @@ const nameFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
  */
 let bar = { valid: false, busy: false };
 let commit: (() => void) | null = null;
+let owner: symbol | null = null;
 const listeners = new Set<() => void>();
 const publish = (next: typeof bar) => {
   if (next.valid === bar.valid && next.busy === bar.busy) return;
@@ -178,14 +179,20 @@ export function SoundForm({
     }
   };
 
+  const token = useRef(Symbol('sound-form')).current;
+  owner = token;
   commit = () => void save();
-  useEffect(() => publish({ valid, busy }));
+  useEffect(() => {
+    if (owner === token) publish({ valid, busy });
+  });
   useEffect(
     () => () => {
+      if (owner !== token) return;
+      owner = null;
       commit = null;
       publish({ valid: false, busy: false });
     },
-    [],
+    [token],
   );
 
   return (

@@ -195,13 +195,18 @@ export function ClipEditor({
     engineDuration || (sound.durationMs ?? 0) / 1000,
   );
 
-  // Entry pauses and frames the playhead −7 … +8, as the app's editor does;
-  // a clip being edited opens on its own range with the playhead at its start.
-  const [range, setRange] = useState<[number, number]>(() =>
-    clip
-      ? [clip.startMs / 1000, clip.endMs / 1000]
-      : [Math.max(0, position - 7), Math.min(duration, position + 8)],
-  );
+  // Entry pauses and frames the playhead −7 … +8 (always a 15 s window when
+  // the track allows, matching iOS `useClipTrimScreen`); a clip being edited
+  // opens on its own range with the playhead at its start.
+  const [range, setRange] = useState<[number, number]>(() => {
+    if (clip) return [clip.startMs / 1000, clip.endMs / 1000];
+    const initialStart = Math.max(0, Math.round(position - 7));
+    const initialEnd = Math.max(
+      Math.min(duration, initialStart + 15),
+      Math.min(duration, initialStart + MIN_GAP_S),
+    );
+    return [initialStart, initialEnd];
+  });
   const [drag, setDrag] = useState<Drag | null>(null);
   const [activeEdge, setActiveEdge] = useState<'start' | 'end' | null>(null);
   const [start, end] = range;
@@ -382,7 +387,10 @@ const EditorCommit = ({
 }) => {
   useEffect(() => {
     commit = () => {
-      const value = { startMs: range[0] * 1000, endMs: range[1] * 1000 };
+      const value = {
+        startMs: Math.round(range[0] * 1000),
+        endMs: Math.round(range[1] * 1000),
+      };
       const write = clip
         ? updateClip(soundId, clip.id, value)
         : createClip(soundId, value);

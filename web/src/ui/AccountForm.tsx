@@ -15,7 +15,6 @@ import {
 import { UI_STATE_LAB, useUiStateLab } from '../dev/uiStateLab';
 import { locale, t } from '../i18n';
 import { uploadFailureKey } from '../media';
-import { resetPlayer } from '../player';
 
 import { ActionSheet } from './ActionSheet';
 import { ConfirmDialog, useModalDialog } from './ConfirmDialog';
@@ -160,7 +159,6 @@ export function AccountForm({
   const runDelete = async () => {
     setDeleting(true);
     try {
-      resetPlayer();
       await deleteAccount();
       // Nothing resets on success: the session listener takes the page to
       // Welcome the moment the Auth user is gone.

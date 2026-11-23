@@ -24,6 +24,7 @@ import {
 
 import { auth, db } from './firebase';
 import { cleanupMyMedia, destroyAsset, uploadImage } from './media';
+import { resetPlayer } from './player';
 import { blockTrophySync } from './trophies';
 
 /**
@@ -162,6 +163,10 @@ export const deleteAccount = async () => {
       throw new ReauthCancelled();
     throw error;
   }
+
+  // Stop playback and clear local player state only after re-auth succeeds,
+  // so cancelling the Google popup leaves the session intact.
+  resetPlayer();
 
   // A trophy total sent after the sweep would recreate the swept document.
   blockTrophySync(true);

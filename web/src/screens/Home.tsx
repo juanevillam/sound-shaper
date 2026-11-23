@@ -9,7 +9,7 @@ import { UI_STATE_LAB, useUiStateLab, type LabScreen } from '../dev/uiStateLab';
 import { UiStateLabBar } from '../dev/UiStateLabBar';
 import { t } from '../i18n';
 import { useAddTilePosition, useLibrary, type Sound } from '../library';
-import { resetPlayer, syncLibrary, usePlayer } from '../player';
+import { resetPlayer, usePlayer } from '../player';
 import { leadPosition } from '../sounds';
 import { useTrophySystem } from '../trophies';
 import { AccountForm } from '../ui/AccountForm';
@@ -207,10 +207,6 @@ export function Home({ user }: { user: User }) {
   const toolBase = liveTools[0]?.entry.kind ?? null;
   const liveModals = modalLayers.filter(layer => !layer.leaving);
   const modalBase = liveModals[0]?.entry.kind ?? null;
-
-  useEffect(() => {
-    if (library.state === 'ready') syncLibrary(library.sounds);
-  }, [library]);
 
   // A sign-out from another tab ends here too: nothing keeps playing.
   useEffect(() => resetPlayer, []);
@@ -427,7 +423,10 @@ export function Home({ user }: { user: User }) {
       case 'trophies':
         return { title: t('trophies.title'), body: <TrophiesForm /> };
       case 'shape':
-        return { title: t('player.shape.title'), body: <ShapeForm /> };
+        return {
+          title: t('player.shape.title'),
+          body: <ShapeForm covered={!isDesk && liveModals.length > 0} />,
+        };
       case 'clips':
         // The app's Clips bar: close on the left, and on the right one capsule
         // holding Shape and + (HeaderGlyphGroupIos).
@@ -649,7 +648,10 @@ export function Home({ user }: { user: User }) {
               toolBase === 'shape' || toolBase === 'clips' ? toolBase : null
             }
             editing={editingCurrent}
-            active={isDesk || expanded}
+            active={
+              isDesk ||
+              (expanded && liveTools.length === 0 && liveModals.length === 0)
+            }
           />
         </div>
       </div>

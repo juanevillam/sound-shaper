@@ -28,7 +28,7 @@ and Cloudinary.
 | `src/trophies`  | the trophy engine and its banner                                                                                             |
 | `modules/`      | local Expo modules: `widget-bridge` (the widget's App Group snapshot), `audio-session` (other-audio check, backup exclusion) |
 | `targets/`      | the iOS widget extension (`@bacons/apple-targets`)                                                                           |
-| `patches/`      | source overlays on two dependencies, applied by `postinstall` — see below                                                    |
+| `patches/`      | source overlay on `react-native-audio-api`, applied by `postinstall` — see below                                             |
 | `plugins/`      | config plugins for the iOS build: the SwiftUI link fix and the UIScene lifecycle iOS 26+ requires                            |
 | `web/`          | the web app at soundshaper.juanevillam.com — React, Vite, Web Audio; see [`docs/web.md`](docs/web.md)                        |
 | `media-worker/` | the Cloudflare Worker that lets the app delete its own Cloudinary uploads (it holds the API secret)                          |

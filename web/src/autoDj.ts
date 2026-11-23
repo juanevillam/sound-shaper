@@ -210,13 +210,7 @@ const compute = async (sound: Sound): Promise<SongMap | null> => {
     1,
     ANALYSIS_SAMPLE_RATE,
   ).decodeAudioData(bytes);
-  const map = analyzeSamples(buffer.getChannelData(0), buffer.sampleRate);
-  try {
-    localStorage.setItem(MAP_KEY + sound.id, JSON.stringify(map));
-  } catch {
-    // Full or private: the map lives for this visit.
-  }
-  return map;
+  return analyzeSamples(buffer.getChannelData(0), buffer.sampleRate);
 };
 
 const getSongMap = (sound: Sound): Promise<SongMap | null> => {
@@ -224,7 +218,16 @@ const getSongMap = (sound: Sound): Promise<SongMap | null> => {
   if (inFlight) return inFlight;
   const promise = compute(sound).catch(() => null);
   void promise.then(map => {
-    if (!map) memory.delete(sound.id);
+    if (memory.get(sound.id) !== promise) return;
+    if (!map) {
+      memory.delete(sound.id);
+      return;
+    }
+    try {
+      localStorage.setItem(MAP_KEY + sound.id, JSON.stringify(map));
+    } catch {
+      // Full or private: the map lives for this visit.
+    }
   });
   memory.set(sound.id, promise);
   return promise;

@@ -508,34 +508,34 @@ export function TrophyBanner({ onOpen }: { onOpen: () => void }) {
     return () => clearTimeout(exit);
   }, [leaving, dequeue]);
 
-  if (!head) return null;
-
-  const copy = copyMap[head.id];
+  const copy = head ? copyMap[head.id] : null;
 
   return (
     <div className="trophy-slot" role="status" aria-live="polite">
-      <button
-        key={head.id}
-        type="button"
-        className={[
-          'trophy-banner',
-          head.tier === 'platinum' && 'is-platinum',
-          leaving && 'is-leaving',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        onClick={() => {
-          setLeaving(true);
-          onOpen();
-        }}
-      >
-        <TrophyGlyph tier={head.tier} locked={false} size={40} />
-        <span className="trophy-banner-copy">
-          <span className="eyebrow">{t('trophies.unlocked')}</span>
-          <span className="title">{copy?.title}</span>
-          <span className="desc">{copy?.description}</span>
-        </span>
-      </button>
+      {head && (
+        <button
+          key={head.id}
+          type="button"
+          className={[
+            'trophy-banner',
+            head.tier === 'platinum' && 'is-platinum',
+            leaving && 'is-leaving',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onClick={() => {
+            setLeaving(true);
+            onOpen();
+          }}
+        >
+          <TrophyGlyph tier={head.tier} locked={false} size={40} />
+          <span className="trophy-banner-copy">
+            <span className="eyebrow">{t('trophies.unlocked')}</span>
+            <span className="title">{copy?.title}</span>
+            <span className="desc">{copy?.description}</span>
+          </span>
+        </button>
+      )}
     </div>
   );
 }

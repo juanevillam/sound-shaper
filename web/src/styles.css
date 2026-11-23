@@ -1982,6 +1982,12 @@ button {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 18'%3E%3Cpath d='M2.5 6.5 6 3l3.5 3.5M2.5 11.5 6 15l3.5-3.5' fill='none' stroke='%23007aff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+.picker select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 0.375rem;
+}
+
 .picker select option {
   background: var(--sheet-bg);
   color: var(--ink);
@@ -2819,6 +2825,12 @@ button {
   font-size: 1.0625rem;
 }
 
+.field input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
 .field input::placeholder {
   color: var(--faint);
 }
@@ -3106,8 +3118,10 @@ button {
   *,
   *::before,
   *::after {
+    animation-delay: 0ms !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
+    transition-delay: 0ms !important;
     transition-duration: 1ms !important;
   }
 }

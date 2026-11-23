@@ -174,8 +174,9 @@ function AutoDjSection() {
 }
 
 /** The Shape sheet's form — what `SidePanel` holds while Shape is open. */
-export function ShapeForm() {
+export function ShapeForm({ covered = false }: { covered?: boolean }) {
   const playing = usePlayer(s => s.playing);
+  const scopesLive = playing && !covered;
   const gains = usePlayer(s => s.gains);
   const rate = usePlayer(s => s.rate);
   const keepPitch = usePlayer(s => s.keepPitch);
@@ -253,7 +254,7 @@ export function ShapeForm() {
           )}
         </h3>
         <div className="card">
-          <EqScope gains={gains} playing={playing} />
+          <EqScope gains={gains} playing={scopesLive} />
           {EQ_BANDS.map((band, i) => {
             const active = gains[i] !== 0;
             return (
@@ -336,7 +337,7 @@ export function ShapeForm() {
           label={t('player.echo')}
           value={echo}
           meta={echo === 'off' ? null : formatSignedDb(echoTapDb(echo))}
-          scope={<EchoScope level={echo} playing={playing} />}
+          scope={<EchoScope level={echo} playing={scopesLive} />}
           onChange={setEcho}
         />
         <p className="section-foot">{t('player.echoDescription')}</p>
@@ -349,7 +350,7 @@ export function ShapeForm() {
           meta={
             nextRoom === 'off' ? null : formatSignedDb(nextRoom1kDb(nextRoom))
           }
-          scope={<NextRoomScope level={nextRoom} playing={playing} />}
+          scope={<NextRoomScope level={nextRoom} playing={scopesLive} />}
           onChange={setNextRoom}
         />
         <p className="section-foot">{t('player.nextRoomDescription')}</p>

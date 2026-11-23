@@ -134,7 +134,10 @@ export const signOut = async () => {
     import('./account'),
     import('./library'),
   ]);
-  flushTrophyCounters();
+  await Promise.race([
+    flushTrophyCounters(),
+    new Promise<void>(resolve => setTimeout(resolve, 1500)),
+  ]);
   forgetMemberSince();
   forgetAddTilePosition(uid);
   writeSignedInHint(false);

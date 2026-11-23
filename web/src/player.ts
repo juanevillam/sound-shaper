@@ -231,21 +231,25 @@ export const usePlayer = <T>(select: (s: PlayerState) => T): T =>
 export const subscribePlayer = subscribe;
 export const playerState = () => state;
 
+const syncTick = () => {
+  if (element) set({ position: element.currentTime });
+  const clip = state.activeClip;
+  if (
+    clip &&
+    element &&
+    !clipEnding &&
+    element.currentTime * 1000 >= clip.endMs
+  )
+    void clipEnded(clip);
+};
+
 // The playhead follows the element every frame while it plays, so the
 // scrubber moves smoothly rather than in timeupdate's four steps a second.
 const follow = () => {
   cancelAnimationFrame(frame);
   const tick = () => {
     frame = 0;
-    if (element) set({ position: element.currentTime });
-    const clip = state.activeClip;
-    if (
-      clip &&
-      element &&
-      !clipEnding &&
-      element.currentTime * 1000 >= clip.endMs
-    )
-      void clipEnded(clip);
+    syncTick();
     if (
       state.playing &&
       (typeof document === 'undefined' || !document.hidden)
@@ -298,6 +302,13 @@ const load = (sound: Sound) => {
     follow();
   });
   el.addEventListener('pause', () => set({ playing: false }));
+  // When the tab is hidden, rAF is paused; timeupdate keeps clip loops,
+  // Auto DJ cues, and listening-time trophies advancing in the background.
+  el.addEventListener('timeupdate', () => {
+    if (typeof document !== 'undefined' && document.hidden && state.playing) {
+      syncTick();
+    }
+  });
   el.addEventListener('loadedmetadata', () => {
     const duration = Number.isFinite(el.duration) ? el.duration : 0;
     set({ duration });

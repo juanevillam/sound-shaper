@@ -27,6 +27,54 @@ import { useShapeSummary } from './ShapePanel';
  */
 export type Panel = 'shape' | 'clips' | 'edit';
 
+function NowScrubber({
+  fallbackDurationMs,
+  active,
+}: {
+  fallbackDurationMs: number | null;
+  active: boolean;
+}) {
+  const position = usePlayer(s => (active ? s.position : 0));
+  const duration = usePlayer(s => s.duration);
+  // While the thumb is held, the scrubber shows where it is, not the sound.
+  const [dragging, setDragging] = useState<number | null>(null);
+
+  const at = dragging ?? position;
+  const total = duration || (fallbackDurationMs ?? 0) / 1000;
+  const progress = total ? Math.min(1, at / total) : 0;
+
+  return (
+    <div className="scrub">
+      <input
+        type="range"
+        min={0}
+        max={total || 1}
+        step={0.1}
+        value={at}
+        aria-label={t('player.position')}
+        aria-valuetext={t('player.positionValue', {
+          elapsed: formatTime(at),
+          total: formatTime(total),
+        })}
+        style={{ '--progress': progress } as React.CSSProperties}
+        onChange={e => setDragging(Number(e.target.value))}
+        onPointerUp={e => {
+          seek(Number((e.target as HTMLInputElement).value));
+          setDragging(null);
+        }}
+        onKeyUp={e => {
+          seek(Number((e.target as HTMLInputElement).value));
+          setDragging(null);
+        }}
+      />
+      <span className="time">{formatTime(at)}</span>
+      <span className="time end">
+        {total ? `-${formatTime(total - at)}` : '-:--'}
+      </span>
+    </div>
+  );
+}
+
 export function NowPlaying({
   onCollapse,
   onOpen,
@@ -42,18 +90,10 @@ export function NowPlaying({
 }) {
   const current = usePlayer(s => s.current);
   const playing = usePlayer(s => s.playing);
-  const position = usePlayer(s => s.position);
-  const duration = usePlayer(s => s.duration);
   const summary = useShapeSummary();
   const clipsSummary = useClipsSummary(active);
-  // While the thumb is held, the scrubber shows where it is, not the sound.
-  const [dragging, setDragging] = useState<number | null>(null);
 
   if (!current) return null;
-
-  const at = dragging ?? position;
-  const total = duration || (current.durationMs ?? 0) / 1000;
-  const progress = total ? Math.min(1, at / total) : 0;
 
   return (
     <>
@@ -85,34 +125,7 @@ export function NowPlaying({
           <span className="now-artist">{current.artist}</span>
         </div>
 
-        <div className="scrub">
-          <input
-            type="range"
-            min={0}
-            max={total || 1}
-            step={0.1}
-            value={at}
-            aria-label={t('player.position')}
-            aria-valuetext={t('player.positionValue', {
-              elapsed: formatTime(at),
-              total: formatTime(total),
-            })}
-            style={{ '--progress': progress } as React.CSSProperties}
-            onChange={e => setDragging(Number(e.target.value))}
-            onPointerUp={e => {
-              seek(Number((e.target as HTMLInputElement).value));
-              setDragging(null);
-            }}
-            onKeyUp={e => {
-              seek(Number((e.target as HTMLInputElement).value));
-              setDragging(null);
-            }}
-          />
-          <span className="time">{formatTime(at)}</span>
-          <span className="time end">
-            {total ? `-${formatTime(total - at)}` : '-:--'}
-          </span>
-        </div>
+        <NowScrubber fallbackDurationMs={current.durationMs} active={active} />
 
         <div className="transport">
           <button type="button" className="glyph skip" onClick={previous}>

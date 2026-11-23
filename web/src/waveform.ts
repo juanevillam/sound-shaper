@@ -60,13 +60,14 @@ const getWaveform = (soundId: string, url: string) => {
   if (!pending) {
     pending = decode(url).then(
       waveform => {
+        if (memory.get(soundId) !== pending) return null;
         if (waveform) resolved.set(soundId, waveform);
         else memory.delete(soundId);
         return waveform;
       },
       error => {
         console.warn('waveform', error);
-        memory.delete(soundId);
+        if (memory.get(soundId) === pending) memory.delete(soundId);
         return null;
       },
     );
