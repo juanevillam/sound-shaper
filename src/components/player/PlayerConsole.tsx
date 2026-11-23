@@ -607,6 +607,7 @@ export function PlayerConsole({
 
   return (
     <Animated.View
+      accessibilityElementsHidden={!expanded}
       onAccessibilityEscape={onCollapse}
       style={[styles.console, consoleStyle]}
       pointerEvents={expanded ? 'auto' : 'none'}
@@ -621,6 +622,7 @@ export function PlayerConsole({
           `onAccessibilityEscape` gives VoiceOver the two-finger-Z it expects. */}
       <GestureDetector gesture={topGesture}>
         <View
+          accessible
           accessibilityLabel={t('common.back')}
           accessibilityRole="button"
           onAccessibilityTap={onCollapse}
@@ -665,6 +667,7 @@ export function PlayerConsole({
                   sound ? (
                     <Animated.View
                       key={`title:${side}:${sound.id}`}
+                      accessibilityElementsHidden
                       pointerEvents="none"
                       style={[
                         styles.titleBlock,

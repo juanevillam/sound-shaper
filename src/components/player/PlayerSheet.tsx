@@ -1142,6 +1142,7 @@ export function PlayerSheet() {
 
         <GestureDetector gesture={dragUp}>
           <Animated.View
+            accessibilityElementsHidden={expanded}
             style={[styles.miniRow, styles.miniRowInset, miniRowStyle]}
             pointerEvents={expanded ? 'none' : 'auto'}
           >

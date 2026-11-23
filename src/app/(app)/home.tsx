@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
@@ -266,7 +266,10 @@ export default function HomeScreen() {
   const addTilePosition = useProfileStore(
     s => s.profile?.addTilePosition ?? null,
   );
-  const cells = toGridCells(sounds, addTilePosition);
+  const cells = useMemo(
+    () => toGridCells(sounds, addTilePosition),
+    [sounds, addTilePosition],
+  );
 
   /**
    * OPEN THE EDITOR — the door a long-press used to be, and still is, with one
@@ -617,7 +620,11 @@ export default function HomeScreen() {
         }}
       />
 
-      <SafeAreaView style={styles.safeArea} edges={[]}>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={[]}
+        accessibilityElementsHidden={sheetExpanded}
+      >
         {firstLoad ? (
           showSkeleton ? (
             // `top`, not centred: these bones stand in for real content and

@@ -40,6 +40,7 @@ export const useWidgetSync = () => {
   const hasSettled = useSoundsStore(s => s.hasSettled);
   const isDragging = useSoundsStore(s => s.isDragging);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const hasResolved = useAuthStore(s => s.hasResolved);
 
   const wanted = sounds.slice(0, WIDGET_CAPACITY);
 
@@ -73,11 +74,13 @@ export const useWidgetSync = () => {
       };
     },
     // A drag is not a settled order: hold until the finger lifts.
-    ready: hasSettled && !isDragging,
+    ready: hasResolved && isAuthenticated && hasSettled && !isDragging,
     signature: JSON.stringify({
       locale,
       sounds: wanted.map(sound => `${sound.id}:${sound.artUrl}:${sound.name}`),
     }),
-    signedIn: isAuthenticated,
+    // Never clear the widget snapshot before auth has resolved on cold launch,
+    // or every app open wipes the cached covers (breaking offline cold starts).
+    signedIn: !hasResolved || isAuthenticated,
   });
 };

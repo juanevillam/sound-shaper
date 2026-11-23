@@ -14,6 +14,8 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 import {
+  accessibilityLabel,
+  accessibilityValue,
   font,
   foregroundStyle,
   frame,
@@ -438,7 +440,11 @@ function ShaperSheetScreen() {
                   {band.label}
                 </SwiftUIText>
                 <Slider
-                  modifiers={sliderInk}
+                  modifiers={[
+                    ...sliderInk,
+                    accessibilityLabel(band.label),
+                    accessibilityValue(dbLabel(gains[index])),
+                  ]}
                   value={gains[index]}
                   min={EQ_MIN_DB}
                   max={EQ_MAX_DB}
@@ -494,7 +500,11 @@ function ShaperSheetScreen() {
           }
         >
           <Slider
-            modifiers={sliderInk}
+            modifiers={[
+              ...sliderInk,
+              accessibilityLabel(t('player.speed')),
+              accessibilityValue(rateLabel(rate, locale)),
+            ]}
             // Stops, not rates — the only way SwiftUI draws the ticks (see
             // `RATE_LAST_STOP`).
             value={rateToStop(rate)}

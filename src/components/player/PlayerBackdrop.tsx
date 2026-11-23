@@ -344,7 +344,7 @@ export const PlayerBackdrop = memo(function PlayerBackdrop({
   }));
 
   return (
-    <View style={styles.bleed} pointerEvents="none">
+    <View style={styles.bleed} pointerEvents="none" accessibilityElementsHidden>
       {renderUrl ? (
         <Animated.View style={[StyleSheet.absoluteFill, artStyle]}>
           <Image

@@ -297,6 +297,7 @@ function ScopeBox({
     <View
       pointerEvents="none"
       accessible={false}
+      accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[styles.box, { width: svgWidth }]}
     >

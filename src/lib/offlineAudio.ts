@@ -101,6 +101,8 @@ type MirrorJob = {
 const inFlight = new Map<string, Promise<string | null>>();
 const waiting: MirrorJob[] = [];
 let running = false;
+/** Incremented on `clearMirror()` so in-flight copies/downloads abort on sign-out. */
+let sessionGen = 0;
 /** `.part` files something is writing this session — never swept. */
 const activeParts = new Set<string>();
 /** Off until the network gate has said otherwise — see the note above. */
@@ -260,7 +262,9 @@ const place = async (
   soundId: string,
   localUri: string,
 ): Promise<string | null> => {
+  const gen = sessionGen;
   await ensureDirectory();
+  if (gen !== sessionGen) return null;
 
   const target = offlineAudioPath(soundId);
   const present = await FileSystem.getInfoAsync(target);
@@ -270,6 +274,7 @@ const place = async (
   activeParts.add(part);
   try {
     await FileSystem.copyAsync({ from: localUri, to: part });
+    if (gen !== sessionGen) throw new Error('stale');
     const copied = await FileSystem.getInfoAsync(part);
     if (!copied.exists || (copied.size ?? 0) === 0) throw new Error('empty');
     await FileSystem.moveAsync({ from: part, to: target });
@@ -286,7 +291,9 @@ const download = async (
   soundId: string,
   audioUrl: string,
 ): Promise<string | null> => {
+  const gen = sessionGen;
   await ensureDirectory();
+  if (gen !== sessionGen) return null;
 
   const target = offlineAudioPath(soundId);
   const present = await FileSystem.getInfoAsync(target);
@@ -296,6 +303,7 @@ const download = async (
   activeParts.add(part);
   try {
     const result = await FileSystem.downloadAsync(audioUrl, part);
+    if (gen !== sessionGen) throw new Error('stale');
     // A 404 or a Cloudinary error page is a successful HTTP round trip and a
     // useless file: taking only 2xx keeps an error body out of the mirror,
     // where it would look exactly like a downloaded sound.
@@ -332,6 +340,7 @@ export const removeMirroredSound = (soundId: string): void => {
  * The next session re-mirrors what it finds, which is the correct cost.
  */
 export const clearMirror = async (): Promise<void> => {
+  sessionGen += 1;
   dropWaiting(() => false);
   inFlight.clear();
   directoryEnsured = false;

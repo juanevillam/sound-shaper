@@ -1378,6 +1378,7 @@ const WaveTile = memo(function WaveTile({
   return (
     <View
       pointerEvents="none"
+      accessibilityElementsHidden
       style={[
         styles.tile,
         {

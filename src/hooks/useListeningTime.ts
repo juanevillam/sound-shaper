@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { AppState } from 'react-native';
 
 import { pushTrophyCounters } from '@/lib/trophyCounters';
+import { useAuthStore } from '@/store/auth';
 import { useListeningStore } from '@/store/listening';
 import { usePlayerStore } from '@/store/player';
 
@@ -48,70 +49,74 @@ const COMMIT_THRESHOLD_S = 5;
  * Banks real listening time by watching the transport's own position, so it
  * counts only sound that actually played: paused time never advances position,
  * and scrubbing forward is discarded by the step guard. Mount once, app-wide.
+ *
+ * Uses an imperative store subscription rather than React selectors so the
+ * 10Hz transport tick never re-renders `AuthenticatedSubscriptions` and its
+ * sibling session hooks.
  */
 export const useListeningTime = () => {
-  const position = usePlayerStore(state => state.position);
-  const playing = usePlayerStore(state => state.playing);
-  const currentId = usePlayerStore(state => state.current?.id);
-
-  // Last position seen while playing THIS sound; null whenever a comparison
-  // would be meaningless (paused, stopped, or a different sound loaded).
-  const lastRef = useRef<number | null>(null);
-  // Listened seconds not yet written to the store — see COMMIT_THRESHOLD_S.
-  const pendingRef = useRef(0);
-
-  // Push whatever has piled up, and forget it. Called on every boundary that
-  // ends a stretch of listening, so a partial block is only ever lost to a
-  // kill — never to something the person did on purpose.
-  const flush = useCallback(() => {
-    const pending = pendingRef.current;
-    if (pending <= 0) return;
-
-    pendingRef.current = 0;
-    useListeningStore.getState().add(pending);
-  }, []);
-
-  // A BOUNDARY also sends the total to Firestore (`lib/trophyCounters`); a
-  // 5-second block only reaches the disk. That split is the whole cost model:
-  // a few writes per listening session, not 720 an hour.
-  const flushAndSync = useCallback(() => {
-    flush();
-    pushTrophyCounters();
-  }, [flush]);
-
   useEffect(() => {
-    flushAndSync();
-    lastRef.current = null;
-  }, [currentId, flushAndSync]);
+    // Last position seen while playing THIS sound; null whenever a comparison
+    // would be meaningless (paused, stopped, or a different sound loaded).
+    let last: number | null = null;
+    // Listened seconds not yet written to the store — see COMMIT_THRESHOLD_S.
+    let pending = 0;
 
-  // Background is a boundary too: playback may carry on there, but the
-  // process may also be killed there without another word.
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', state => {
+    // Push whatever has piled up, and forget it. Guarded on auth so sign-out
+    // teardown never writes the departing account's partial block back into a
+    // freshly reset store.
+    const flush = () => {
+      if (pending <= 0) return;
+      const delta = pending;
+      pending = 0;
+      if (!useAuthStore.getState().isAuthenticated) return;
+      useListeningStore.getState().add(delta);
+    };
+
+    // A BOUNDARY also sends the total to Firestore (`lib/trophyCounters`); a
+    // 5-second block only reaches the disk. That split is the whole cost model:
+    // a few writes per listening session, not 720 an hour.
+    const flushAndSync = () => {
+      flush();
+      if (useAuthStore.getState().isAuthenticated) pushTrophyCounters();
+    };
+
+    const unsubscribe = usePlayerStore.subscribe((state, prev) => {
+      if (state.current?.id !== prev.current?.id) {
+        flushAndSync();
+        last = null;
+        return;
+      }
+
+      if (!state.playing) {
+        if (prev.playing) flushAndSync();
+        last = null;
+        return;
+      }
+
+      if (state.position === prev.position && prev.playing) return;
+
+      const previous = last;
+      last = state.position;
+      if (previous === null) return;
+
+      const delta = state.position - previous;
+      if (delta <= 0 || delta > MAX_STEP_S) return;
+
+      pending += delta;
+      if (pending >= COMMIT_THRESHOLD_S) flush();
+    });
+
+    // Background is a boundary too: playback may carry on there, but the
+    // process may also be killed there without another word.
+    const appStateSub = AppState.addEventListener('change', state => {
       if (state === 'background') flushAndSync();
     });
-    return () => subscription.remove();
-  }, [flushAndSync]);
 
-  useEffect(() => {
-    if (!playing) {
-      flushAndSync();
-      lastRef.current = null;
-      return;
-    }
-
-    const previous = lastRef.current;
-    lastRef.current = position;
-
-    if (previous === null) return;
-
-    const delta = position - previous;
-    if (delta <= 0 || delta > MAX_STEP_S) return;
-
-    pendingRef.current += delta;
-    if (pendingRef.current >= COMMIT_THRESHOLD_S) flush();
-  }, [flush, flushAndSync, playing, position]);
-
-  // Sign-out and teardown: bank the last partial block rather than dropping it.
-  useEffect(() => () => flush(), [flush]);
+    return () => {
+      unsubscribe();
+      appStateSub.remove();
+      flush();
+    };
+  }, []);
 };

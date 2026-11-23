@@ -107,6 +107,7 @@ export function InitialArt({ container, size, style, title }: InitialArtProps) {
 
   return (
     <View
+      accessibilityElementsHidden
       style={[
         styles.box,
         // The platform's EMPTY-MEDIA material — on iOS `surfaceContainer`
@@ -124,6 +125,7 @@ export function InitialArt({ container, size, style, title }: InitialArtProps) {
       ]}
     >
       <Text
+        allowFontScaling={false}
         style={[
           styles.initial,
           {

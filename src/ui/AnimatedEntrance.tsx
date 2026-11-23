@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 
 import Animated, {
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
@@ -26,8 +27,11 @@ export const AnimatedEntrance = ({
   duration = durationTokens.base,
   isVisible,
 }: AnimatedEntranceProps) => {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(direction === 'down' ? -OFFSET : OFFSET);
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(reduceMotion ? 1 : 0);
+  const translateY = useSharedValue(
+    reduceMotion ? 0 : direction === 'down' ? -OFFSET : OFFSET,
+  );
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -37,9 +41,15 @@ export const AnimatedEntrance = ({
   useEffect(() => {
     if (!isVisible) return;
 
+    if (reduceMotion) {
+      opacity.value = 1;
+      translateY.value = 0;
+      return;
+    }
+
     opacity.value = withDelay(delay, withTiming(1, { duration }));
     translateY.value = withDelay(delay, withTiming(0, { duration }));
-  }, [delay, duration, isVisible, opacity, translateY]);
+  }, [delay, duration, isVisible, opacity, reduceMotion, translateY]);
 
   return <Animated.View style={animatedStyle}>{children}</Animated.View>;
 };
